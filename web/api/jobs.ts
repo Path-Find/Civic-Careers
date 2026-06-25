@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createDb } from './_db';
+import { createDb } from './_db.js';
 
 export default async function handler(_req: IncomingMessage, res: ServerResponse) {
   const db = createDb();

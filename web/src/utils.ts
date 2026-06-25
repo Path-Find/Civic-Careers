@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify';
 
-export const renderMarkdown = (md: string): string => {
+export const renderMarkdown = (md: string | null): string => {
   if (!md) return '';
   const html = md
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -27,7 +27,7 @@ export const formatSalary = (job: { salary_min: number | null; salary_max: numbe
   return `${fmt((min ?? max)!)}${periodLabel}`;
 };
 
-export const daysUntilClose = (dateStr: string): number | null => {
+export const daysUntilClose = (dateStr: string | null): number | null => {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return null;
@@ -36,8 +36,8 @@ export const daysUntilClose = (dateStr: string): number | null => {
   return Math.floor((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 };
 
-export const fixCasing = (s: string): string => {
-  if (!s) return s;
+export const fixCasing = (s: string | null): string => {
+  if (!s) return '';
   const cleaned = s.replace(/\s+/g, ' ').trim();
   if (cleaned === cleaned.toUpperCase()) {
     return cleaned.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
