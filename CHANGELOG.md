@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Fixed scraper marking all previously-seen jobs as inactive after a run — `scrapeRawAndStage` now touches `raw_jobs.scraped_at` when skipping an already-parsed job, so `cleanupExpiredJobs` correctly recognises it as still active. Previously, 879 of 890 jobs were being incorrectly deactivated on every run.
+
 ## [1.5.2] - 2026-07-03
 
 ### Fixed
