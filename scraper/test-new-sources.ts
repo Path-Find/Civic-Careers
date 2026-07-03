@@ -1,20 +1,23 @@
 import { chromium } from 'playwright';
 import { initDb } from './db';
-import { scrapeConservationHalton } from './engines/custom';
-import { scrapeADP } from './engines/adp';
-
-const ADP_CLARINGTON = 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=09ed440f-e109-4f6f-ac03-075ea0a3a5e5&ccId=19000101_000001&lang=en_CA';
+import { BASE_CONFIG } from './utils';
+import { scrapeSuccessFactors } from './engines/successfactors';
+import { scrapeRSS } from './engines/rss';
+import { scrapeJazzHR } from './engines/jazzhhr';
+import { scrapeWorkland } from './engines/workland';
+import { scrapePeterborough } from './engines/custom';
 
 async function main() {
-  const browser = await chromium.launch({ headless: false });
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-    viewport: { width: 1280, height: 800 }
-  });
+  const headless = !process.env.DISPLAY && process.env.CI !== 'false';
+  const browser = await chromium.launch({ headless });
+  const context = await browser.newContext(BASE_CONFIG);
   const db = await initDb();
 
-  await scrapeConservationHalton(db, context);
-  await scrapeADP(db, context, ADP_CLARINGTON, 'Municipality of Clarington');
+  await scrapePeterborough(db, context);
+  await scrapeSuccessFactors(db, context, 'https://career47.sapsf.com/careers/cityofottawa/search', 'City of Ottawa', 'https://career47.sapsf.com');
+  await scrapeRSS(db, context, 'https://careers.cityofkingston.ca/CL2/net/ResumeProcessing/RssFeedOutput.aspx?CLID=61577&lang=1', 'City of Kingston', 'kingston');
+  await scrapeJazzHR(db, context, 'https://cityofbelleville.applytojob.com/apply/', 'City of Belleville', 'belleville');
+  await scrapeWorkland(db, context, 'https://atlas.workland.com/careers/cornwall/jobs?page=1', 'City of Cornwall', 'cornwall');
 
   await browser.close();
   process.exit(0);

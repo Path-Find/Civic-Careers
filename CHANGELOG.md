@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added City of Kingston scraper (CL2/Njoyn RSS feed — `scraper/engines/rss.ts`).
+- Added City of Ottawa scraper (SAP SuccessFactors on `career47.sapsf.com`, company `cityofottawa`).
+- Added City of Belleville scraper (Jazz HR — HTML listing page, `scraper/engines/jazzhhr.ts`).
+- Added City of Cornwall scraper (Workland SPA — Playwright-rendered, `scraper/engines/workland.ts`).
+- Added City of Peterborough scraper (CMS static pages — links filtered from careers page, `scrapePeterborough` in `engines/custom.ts`).
+- Added `test-new-sources.yml` GitHub Actions workflow (manual `workflow_dispatch`) for validating new job boards independently without running the full scraper.
+- Updated `test-new-sources.ts` to include the five new sources.
+
 ### Changed
 - Switched from hash-based routing (`#job/123`) to clean path routing (`/job/123`). Added catch-all rewrite in `vercel.json` so refreshing any path serves the React app.
 

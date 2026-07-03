@@ -383,3 +383,45 @@ export async function scrapeBrantford(db: Client, context: BrowserContext) {
     await page.close();
   }
 }
+
+export async function scrapePeterborough(db: Client, context: BrowserContext) {
+  const sourceName = 'City of Peterborough';
+  const base = 'https://www.peterborough.ca';
+  const careersPath = '/council-city-hall/careers';
+  const STATIC_SLUGS = ['', 'why-work-for-us', 'hiring-process', 'volunteering'];
+
+  console.log(`Scraping ${sourceName}...`);
+  const page = await context.newPage();
+  try {
+    await page.goto(`${base}${careersPath}`, { waitUntil: 'networkidle', timeout: 60000 });
+    await page.waitForTimeout(2000);
+
+    const jobUrls = await page.evaluate(({ careersPath, staticSlugs }) => {
+      const seen = new Set<string>();
+      return Array.from(document.querySelectorAll<HTMLAnchorElement>(`a[href*="${careersPath}/"]`))
+        .map(a => a.href)
+        .filter(href => {
+          try {
+            const path = new URL(href).pathname.replace(/\/$/, '');
+            const slug = path.replace(careersPath + '/', '').split('/')[0] || '';
+            if (!slug || staticSlugs.includes(slug)) return false;
+            if (slug.endsWith('-candidate-pool') || path.includes('/hiring-process/') || path.includes('/volunteering/')) return false;
+            if (seen.has(href)) return false;
+            seen.add(href);
+            return true;
+          } catch { return false; }
+        });
+    }, { careersPath, staticSlugs: STATIC_SLUGS });
+
+    console.log(`[${sourceName}] Found ${jobUrls.length} job pages`);
+    for (const url of jobUrls) {
+      const slug = new URL(url).pathname.replace(/\/$/, '').split('/').pop() || '';
+      await scrapeRawAndStage(db, context, { id: `peterborough_${slug}`, url }, sourceName);
+    }
+    console.log(`\n[${sourceName}] Done.`);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+  } finally {
+    await page.close();
+  }
+}

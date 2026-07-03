@@ -9,7 +9,7 @@ export function urlId(url: string): string {
 
 export interface JobSummary {
   id: string;
-  title: string;
+  title?: string;
   url: string;
   department?: string;
   location?: string;
