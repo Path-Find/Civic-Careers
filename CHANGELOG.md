@@ -10,9 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Expired job detection now uses `closing_date` as the primary signal — a job is hidden when its closing date/time has passed. Falls back to `is_active = 0` only for jobs with no closing date (e.g. pulled from portal early). This makes expiry scraper-independent for the majority of postings.
 - Parser now extracts closing time when listed (e.g. "4:30 PM") and stores it as `YYYY-MM-DDTHH:MM:SS`. Date-only postings remain `YYYY-MM-DD`. `daysUntilClose` uses real-time comparison when a time is present.
+- Job detail URLs now use clean integer rowids (`#job/123`) instead of portal-derived strings (`#job/Student---Non-Union_JR100515`).
+- Student/Co-op badge changed from amber to slate grey.
 
 ### Fixed
 - Fixed scraper marking all previously-seen jobs as inactive after a run — `scrapeRawAndStage` now touches `raw_jobs.scraped_at` when skipping an already-parsed job, so `cleanupExpiredJobs` correctly recognises it as still active. Previously, 879 of 890 jobs were being incorrectly deactivated on every run.
+- Fixed salary filter never matching — was parsing the formatted display string (`$96K – $132K / yr`) instead of `salary_min`.
+- Fixed closing date countdown showing "0d left" for jobs closing tomorrow — date-only strings (`YYYY-MM-DD`) were parsed as UTC midnight, shifting the date back 4–5 hours in EDT. Now parsed as local midnight.
 
 ## [1.5.2] - 2026-07-03
 

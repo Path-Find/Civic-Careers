@@ -29,13 +29,14 @@ export const formatSalary = (job: { salary_min: number | null; salary_max: numbe
 
 export const daysUntilClose = (dateStr: string | null): number | null => {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return null;
-  const hasTime = dateStr.includes('T');
-  const now = new Date();
-  if (hasTime) {
-    return Math.floor((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (dateStr.includes('T')) {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    return Math.floor((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   }
+  const [y, m, day] = dateStr.split('-').map(Number);
+  const d = new Date(y, m - 1, day);
+  if (isNaN(d.getTime())) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.floor((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));

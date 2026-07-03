@@ -4,7 +4,7 @@ import { createDb } from './_db.js';
 export default async function handler(_req: IncomingMessage, res: ServerResponse) {
   const db = createDb();
   const result = await db.execute(`
-    SELECT j.id, j.url, j.source, j.is_active, j.is_saved, j.scraped_at,
+    SELECT j.rowid AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.scraped_at,
            jd.job_title, jd.department, jd.location, jd.salary_range, jd.description,
            jd.closing_date, jd.is_inventory, jd.is_student,
            jd.salary_min, jd.salary_max, jd.salary_period,
