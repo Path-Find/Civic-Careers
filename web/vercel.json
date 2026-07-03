@@ -1,5 +1,11 @@
 {
   "installCommand": "npm install --include=dev",
   "buildCommand": "npm install --include=dev && npm run build",
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/job/:id", "destination": "/index.html" },
+    { "source": "/companies", "destination": "/index.html" },
+    { "source": "/companies/:name", "destination": "/index.html" },
+    { "source": "/saved", "destination": "/index.html" },
+    { "source": "/jobs", "destination": "/index.html" }
+  ]
 }
