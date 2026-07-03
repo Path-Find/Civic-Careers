@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Region of Waterloo scraper (Jobs2Web — same engine as London and Kitchener).
 - Added City of Thunder Bay scraper (Jibe by iCIMS — Angular SPA with infinite scroll, `scraper/engines/jibe.ts`).
 - Added Town of Smiths Falls scraper (CMS table — scrapes career page for table links, `scrapeSmithsFalls` in `engines/custom.ts`; no current openings but scraper is live for when they post).
+- Added City of Burlington scraper (Workday — `myworkdaysite.com/recruiting/cityofburlington/cob`).
+- Added Town of Oakville scraper (Taleo — same engine as St. Catharines, `org=TOWNOFOA`).
+- Added Town of Milton scraper (Workday — `milton.wd10.myworkdayjobs.com/TownOfMilton`).
 - Added `test-new-sources.yml` GitHub Actions workflow (manual `workflow_dispatch`) for validating new job boards independently without running the full scraper.
 - Updated `test-new-sources.ts` to include all ten new sources.
 
