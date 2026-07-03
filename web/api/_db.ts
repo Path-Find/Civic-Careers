@@ -1,4 +1,4 @@
-import { createClient } from '@libsql/client/http.js';
+import { createClient } from '@libsql/client/http';
 
 export function createDb() {
   return createClient({
