@@ -98,7 +98,7 @@ export async function saveJobDetails(client: Client, job: {
       work_model, employment_type, duration, is_unionized, union_name, benefits
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO NOTHING`,
+    ON CONFLICT(id) DO UPDATE SET closing_date = excluded.closing_date`,
     args: [
       job.id, job.job_title, job.department, job.location, job.salary_range,
       job.description, job.closing_date,

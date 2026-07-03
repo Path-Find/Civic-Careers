@@ -47,9 +47,10 @@ function normalizeEmploymentType(v: unknown): 'Full-time' | 'Part-time' | 'Contr
 function normalizeClosingDate(v: unknown): string | null {
   if (v == null || v === 'null' || v === 'N/A' || v === '') return null;
   const s = coerceString(v);
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s)) return s;
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   const d = new Date(s);
-  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  if (!isNaN(d.getTime())) return d.toISOString().replace(/\.\d{3}Z$/, '');
   return null;
 }
 

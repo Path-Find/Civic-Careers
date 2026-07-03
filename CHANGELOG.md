@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Expired job detection now uses `closing_date` as the primary signal — a job is hidden when its closing date/time has passed. Falls back to `is_active = 0` only for jobs with no closing date (e.g. pulled from portal early). This makes expiry scraper-independent for the majority of postings.
+- Parser now extracts closing time when listed (e.g. "4:30 PM") and stores it as `YYYY-MM-DDTHH:MM:SS`. Date-only postings remain `YYYY-MM-DD`. `daysUntilClose` uses real-time comparison when a time is present.
+
 ### Fixed
 - Fixed scraper marking all previously-seen jobs as inactive after a run — `scrapeRawAndStage` now touches `raw_jobs.scraped_at` when skipping an already-parsed job, so `cleanupExpiredJobs` correctly recognises it as still active. Previously, 879 of 890 jobs were being incorrectly deactivated on every run.
 

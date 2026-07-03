@@ -45,7 +45,7 @@ export async function parseJobWithAI(description: string): Promise<ParsedJob | n
       "salary_min": number | null,
       "salary_max": number | null,
       "salary_period": "yearly" | "hourly" | "monthly",
-      "closing_date": "YYYY-MM-DD" | null,
+      "closing_date": "YYYY-MM-DDTHH:MM:SS" | "YYYY-MM-DD" | null,
       "work_model": "Hybrid" | "Remote" | "On-site",
       "employment_type": "Full-time" | "Part-time" | "Contract" | "Permanent",
       "duration": "Length of contract if applicable",
@@ -60,7 +60,7 @@ export async function parseJobWithAI(description: string): Promise<ParsedJob | n
     CONSTRAINTS:
     - If salary is a range like "$96,566.00 - $132,880.00", salary_min = 96566, salary_max = 132880.
     - If salary is hourly, keep it hourly (do not multiply).
-    - Closing date: infer the date if it says "Closing in 2 weeks" relative to today (${today}).
+    - Closing date: infer the date if it says "Closing in 2 weeks" relative to today (${today}). If a closing time is listed (e.g. "4:30 PM", "11:59 PM"), include it as "YYYY-MM-DDTHH:MM:SS" in 24-hour format. If only a date is listed, use "YYYY-MM-DD".
 
     Text:
     ${description}

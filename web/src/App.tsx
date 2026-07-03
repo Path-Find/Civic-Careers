@@ -302,8 +302,15 @@ function App() {
 
   const filteredJobs = useMemo(() => {
     let pool = jobs;
+    const isExpired = (j: Job) => {
+      if (j.closing_date) {
+        const days = daysUntilClose(j.closing_date);
+        return days !== null && days < 0;
+      }
+      return j.is_active === 0;
+    };
     if (currentView === 'saved') { pool = jobs.filter(j => j.is_saved); }
-    else { pool = pool.filter(j => j.is_active === 1); }
+    else { pool = pool.filter(j => !isExpired(j)); }
     const filtered = pool.filter(job => {
       if (!showInventories && job.is_inventory) return false;
       const matchesSearch = (job.job_title ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -319,7 +326,7 @@ function App() {
       let matchesDeadline = true;
       if (closingSoon) {
         const days = daysUntilClose(job.closing_date);
-        matchesDeadline = job.is_active === 1 && days !== null && days >= 0 && days <= 7;
+        matchesDeadline = !isExpired(job) && days !== null && days >= 0 && days <= 7;
       }
       return matchesSearch && matchesMode && matchesSalary && matchesDeadline;
     });
