@@ -13,8 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added City of Belleville scraper (Jazz HR — HTML listing page, `scraper/engines/jazzhhr.ts`).
 - Added City of Cornwall scraper (Workland SPA — Playwright-rendered, `scraper/engines/workland.ts`).
 - Added City of Peterborough scraper (CMS static pages — links filtered from careers page, `scrapePeterborough` in `engines/custom.ts`).
+- Added City of Windsor scraper (Jazz HR — HTML listing page at `cityofwindsor.applytojob.com/apply/`).
+- Added City of Sarnia scraper (ADP WorkforceNow).
+- Added City of St. Thomas scraper (Dayforce candidate portal).
+- Added Region of Waterloo scraper (Jobs2Web — same engine as London and Kitchener).
+- Added City of Thunder Bay scraper (Jibe by iCIMS — Angular SPA with infinite scroll, `scraper/engines/jibe.ts`).
+- Added Town of Smiths Falls scraper (CMS table — scrapes career page for table links, `scrapeSmithsFalls` in `engines/custom.ts`; no current openings but scraper is live for when they post).
 - Added `test-new-sources.yml` GitHub Actions workflow (manual `workflow_dispatch`) for validating new job boards independently without running the full scraper.
-- Updated `test-new-sources.ts` to include the five new sources.
+- Updated `test-new-sources.ts` to include all ten new sources.
 
 ### Changed
 - Switched from hash-based routing (`#job/123`) to clean path routing (`/job/123`). Added catch-all rewrite in `vercel.json` so refreshing any path serves the React app.

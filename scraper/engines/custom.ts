@@ -425,3 +425,42 @@ export async function scrapePeterborough(db: Client, context: BrowserContext) {
     await page.close();
   }
 }
+
+export async function scrapeSmithsFalls(db: Client, context: BrowserContext) {
+  const sourceName = 'Town of Smiths Falls';
+  const base = 'https://www.smithsfalls.ca';
+  const careersPath = '/council-administration/careers';
+
+  console.log(`Scraping ${sourceName}...`);
+  const page = await context.newPage();
+  try {
+    await page.goto(`${base}${careersPath}/`, { waitUntil: 'networkidle', timeout: 60000 });
+    await page.waitForTimeout(2000);
+
+    const jobUrls = await page.evaluate(({ careersPath }) => {
+      const seen = new Set<string>();
+      return Array.from(document.querySelectorAll<HTMLAnchorElement>(`table a[href*="${careersPath}/"]`))
+        .map(a => a.href)
+        .filter(href => {
+          try {
+            const path = new URL(href).pathname.replace(/\/$/, '');
+            if (path === careersPath) return false;
+            if (seen.has(href)) return false;
+            seen.add(href);
+            return true;
+          } catch { return false; }
+        });
+    }, { careersPath });
+
+    console.log(`[${sourceName}] Found ${jobUrls.length} job pages`);
+    for (const url of jobUrls) {
+      const slug = new URL(url).pathname.replace(/\/$/, '').split('/').pop() || '';
+      await scrapeRawAndStage(db, context, { id: `smithsfalls_${slug}`, url }, sourceName);
+    }
+    console.log(`\n[${sourceName}] Done.`);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+  } finally {
+    await page.close();
+  }
+}
