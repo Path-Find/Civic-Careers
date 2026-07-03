@@ -54,7 +54,7 @@ export async function parseJobWithAI(description: string): Promise<ParsedJob | n
       "is_student": boolean,
       "is_inventory": boolean,
       "benefits": ["pension", "health", "dental", etc],
-      "clean_description": "Markdown formatted, NO boilerplate"
+      "clean_description": "Full job description in Markdown. Preserve all sections, headings, and bullet points from the original. Use ## for section headers (e.g. ## Responsibilities, ## Qualifications). DO NOT summarize or condense — keep all content. Remove ONLY: site navigation, cookie notices, 'Share this page' widgets, social media buttons, and legal/EEO boilerplate at the very end."
     }
 
     CONSTRAINTS:

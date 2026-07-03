@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed parser compressing job descriptions into a single paragraph — prompt now explicitly instructs the model to preserve all sections, headings, and bullet points, and only strip navigation/widget boilerplate.
+
 ### Changed
 - Expired job detection now uses `closing_date` as the primary signal — a job is hidden when its closing date/time has passed. Falls back to `is_active = 0` only for jobs with no closing date (e.g. pulled from portal early). This makes expiry scraper-independent for the majority of postings.
 - Parser now extracts closing time when listed (e.g. "4:30 PM") and stores it as `YYYY-MM-DDTHH:MM:SS`. Date-only postings remain `YYYY-MM-DD`. `daysUntilClose` uses real-time comparison when a time is present.
