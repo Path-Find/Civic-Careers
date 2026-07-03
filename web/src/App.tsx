@@ -177,24 +177,24 @@ function App() {
   // Sync state with browser history
   useEffect(() => {
     const handlePopState = (_event: PopStateEvent) => {
-      const path = window.location.hash;
-      if (path.startsWith('#job/')) {
-        const rid = Number(path.replace('#job/', ''));
+      const path = window.location.pathname;
+      if (path.startsWith('/job/')) {
+        const rid = Number(path.replace('/job/', ''));
         const job = jobs.find(j => j.rid === rid);
         if (job) setSelectedJob(job);
-      } else if (path === '#saved') {
+      } else if (path === '/saved') {
         setCurrentView('saved');
         setSelectedJob(null);
-      } else if (path.startsWith('#companies/')) {
-        const company = decodeURIComponent(path.replace('#companies/', ''));
+      } else if (path.startsWith('/companies/')) {
+        const company = decodeURIComponent(path.replace('/companies/', ''));
         setCurrentView('jobs');
         setSearchTerm(company);
         setSelectedJob(null);
-      } else if (path === '#companies') {
+      } else if (path === '/companies') {
         setCurrentView('companies');
         setSearchTerm('');
         setSelectedJob(null);
-      } else if (path === '#jobs') {
+      } else if (path === '/jobs') {
         setCurrentView('jobs');
         setSelectedJob(null);
       } else {
@@ -252,21 +252,21 @@ function App() {
     setSelectedJob(null);
     if (companyFilter) {
       setSearchTerm(companyFilter);
-      window.history.pushState(null, '', `#companies/${encodeURIComponent(companyFilter)}`);
+      window.history.pushState(null, '', `/companies/${encodeURIComponent(companyFilter)}`);
     } else {
-      window.history.pushState(null, '', `#${view === 'home' ? '' : view}`);
+      window.history.pushState(null, '', `/${view === 'home' ? '' : view}`);
     }
   };
 
   const handleSelectJob = (job: Job) => {
     if (!job.is_active) return;
     setSelectedJob(job);
-    window.history.pushState({ jobId: job.rid }, '', `#job/${job.rid}`);
+    window.history.pushState({ jobId: job.rid }, '', `/job/${job.rid}`);
   };
 
   const handleBackToList = () => {
     setSelectedJob(null);
-    window.history.pushState(null, '', `#${currentView === 'home' ? '' : currentView}`);
+    window.history.pushState(null, '', `/${currentView === 'home' ? '' : currentView}`);
   };
 
   const toggleSaveJob = async (job: Job, e: React.MouseEvent) => {
@@ -365,7 +365,7 @@ function App() {
 
   const reset = () => {
     setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setMinSalary(null); setClosingSoon(false); setShowInventories(false); setIsSearchExpanded(false); setSortNewest(false);
-    window.history.pushState(null, '', '#');
+    window.history.pushState(null, '', '/');
   };
 
   return (

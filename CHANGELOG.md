@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Switched from hash-based routing (`#job/123`) to clean path routing (`/job/123`). Added catch-all rewrite in `vercel.json` so refreshing any path serves the React app.
+
 ### Fixed
 - Fixed parser compressing job descriptions into a single paragraph — prompt now explicitly instructs the model to preserve all sections, headings, and bullet points, and only strip navigation/widget boilerplate.
 
