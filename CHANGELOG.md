@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Expired jobs now hidden from all views except Saved — main job list filters to `is_active = 1` only; saved view still shows all saved jobs regardless of status.
 - Fixed "Closing soon" filter including expired jobs — now requires `is_active = 1` in addition to the date check.
+- Fixed company pages having no URL — clicking a company now pushes `#companies/:name` to history so the page survives a refresh.
 
 ## [1.5.1] - 2026-07-03
 

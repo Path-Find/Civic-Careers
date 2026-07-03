@@ -184,8 +184,14 @@ function App() {
       } else if (path === '#saved') {
         setCurrentView('saved');
         setSelectedJob(null);
+      } else if (path.startsWith('#companies/')) {
+        const company = decodeURIComponent(path.replace('#companies/', ''));
+        setCurrentView('jobs');
+        setSearchTerm(company);
+        setSelectedJob(null);
       } else if (path === '#companies') {
         setCurrentView('companies');
+        setSearchTerm('');
         setSelectedJob(null);
       } else if (path === '#jobs') {
         setCurrentView('jobs');
@@ -243,8 +249,12 @@ function App() {
   const handleNavigate = (view: View, companyFilter?: string) => {
     setCurrentView(view);
     setSelectedJob(null);
-    if (companyFilter) setSearchTerm(companyFilter);
-    window.history.pushState(null, '', `#${view === 'home' ? '' : view}`);
+    if (companyFilter) {
+      setSearchTerm(companyFilter);
+      window.history.pushState(null, '', `#companies/${encodeURIComponent(companyFilter)}`);
+    } else {
+      window.history.pushState(null, '', `#${view === 'home' ? '' : view}`);
+    }
   };
 
   const handleSelectJob = (job: Job) => {
@@ -293,6 +303,7 @@ function App() {
   const filteredJobs = useMemo(() => {
     let pool = jobs;
     if (currentView === 'saved') { pool = jobs.filter(j => j.is_saved); }
+    else { pool = pool.filter(j => j.is_active === 1); }
     const filtered = pool.filter(job => {
       if (!showInventories && job.is_inventory) return false;
       const matchesSearch = (job.job_title ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -567,7 +578,7 @@ function App() {
                     filteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)
                   ) : (
                     companies.map(name => (
-                      <div key={name} onClick={() => {setMinSalary(null); setSelectedModes([]); setClosingSoon(false); setSearchTerm(name); handleNavigate('jobs'); }} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div key={name} onClick={() => {setMinSalary(null); setSelectedModes([]); setClosingSoon(false); handleNavigate('jobs', name); }} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
                         <span style={{ fontSize: '0.8125rem', color: '#2563eb', fontWeight: 700 }}>{jobsByCompany[name].length} positions</span>
                       </div>
