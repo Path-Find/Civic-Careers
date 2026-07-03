@@ -308,7 +308,7 @@ function App() {
       let matchesDeadline = true;
       if (closingSoon) {
         const days = daysUntilClose(job.closing_date);
-        matchesDeadline = days !== null && days >= 0 && days <= 7;
+        matchesDeadline = job.is_active === 1 && days !== null && days >= 0 && days <= 7;
       }
       return matchesSearch && matchesMode && matchesSalary && matchesDeadline;
     });
