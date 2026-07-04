@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added City of Richmond Hill scraper (Jobs2Web — `jobs.richmondhill.ca/search/`; also covers Richmond Hill Public Library jobs).
 - Added Vaughan Public Library scraper (custom CMS table at `vaughanpl.info/jobs#ats`, `scrapeVaughanPL` in `engines/custom.ts`).
 
+### Changed
+- Parser now waits out DeepSeek peak-pricing windows before making API calls (peak UTC: 1–4 AM and 6–10 AM). If called during peak hours, it sleeps until the window ends.
+- Shifted GitHub Actions cron from 10 AM UTC to 11 AM UTC (clearly off-peak) — previous schedule landed on the last minute of the morning peak window.
+
 ### Fixed
 - Fixed AI parser preserving source-specific section headers ("What will I be doing?", "Summary of Duties", "General Duties", "What Skills Do You Bring?") — `clean_description` prompt now requires all headings to be normalized to exactly five standard headers: `## Overview`, `## Responsibilities`, `## Qualifications`, `## Nice to Have`, `## Compensation & Benefits`.
 

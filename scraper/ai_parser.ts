@@ -30,7 +30,23 @@ export interface ParsedJob {
     clean_description: string;
 }
 
+// DeepSeek peak hours (UTC): 1–4 AM and 6–10 AM
+function msUntilOffPeak(): number {
+    const now = new Date();
+    const mins = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const isPeak = (mins >= 60 && mins < 240) || (mins >= 360 && mins < 600);
+    if (!isPeak) return 0;
+    const targetMins = mins < 240 ? 240 : 600; // wait until 4 AM or 10 AM UTC
+    return (targetMins - mins) * 60 * 1000 - now.getUTCSeconds() * 1000;
+}
+
 export async function parseJobWithAI(description: string): Promise<ParsedJob | null> {
+    const wait = msUntilOffPeak();
+    if (wait > 0) {
+        console.log(`\n[Parser] DeepSeek peak hours — waiting ${Math.ceil(wait / 60000)} min until off-peak...`);
+        await new Promise(r => setTimeout(r, wait));
+    }
+
     const today = new Date().toISOString().split('T')[0];
     
     const prompt = `
