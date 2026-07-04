@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Parser now waits out DeepSeek peak-pricing windows before making API calls (peak UTC: 1–4 AM and 6–10 AM). If called during peak hours, it sleeps until the window ends.
-- Shifted GitHub Actions cron from 10 AM UTC to 11 AM UTC (clearly off-peak) — previous schedule landed on the last minute of the morning peak window.
+- Shifted GitHub Actions cron to 10:30 AM UTC (6:30 AM EDT) — 30 minutes after the morning peak window ends, maximizing off-peak runway before the next peak at 1 AM UTC.
 
 ### Fixed
 - Fixed AI parser preserving source-specific section headers ("What will I be doing?", "Summary of Duties", "General Duties", "What Skills Do You Bring?") — `clean_description` prompt now requires all headings to be normalized to exactly five standard headers: `## Overview`, `## Responsibilities`, `## Qualifications`, `## Nice to Have`, `## Compensation & Benefits`.

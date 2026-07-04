@@ -2,7 +2,7 @@ name: Job Feed Scrape
 
 on:
   schedule:
-    - cron: '0 11 * * 1,4' # Run Mon and Thu at 7 AM EDT (11 AM UTC) — off-peak for DeepSeek pricing
+    - cron: '30 10 * * 1,4' # Run Mon and Thu at 6:30 AM EDT (10:30 AM UTC) — off-peak for DeepSeek pricing
   workflow_dispatch: # Allow manual runs
 
 jobs:
