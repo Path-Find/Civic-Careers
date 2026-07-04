@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Town of Milton scraper (Workday — `milton.wd10.myworkdayjobs.com/TownOfMilton`).
 - Added `test-new-sources.yml` GitHub Actions workflow (manual `workflow_dispatch`) for validating new job boards independently without running the full scraper.
 - Updated `test-new-sources.ts` to include all ten new sources.
+- Added Town of Whitby scraper (Workday — `whitby.wd10.myworkdayjobs.com/EXT`).
+- Added City of Markham scraper (ADP WorkforceNow — `cid=04bf51f8`).
+- Added Town of Aurora scraper (ADP WorkforceNow — `cid=b1fead40`).
+- Added City of Richmond Hill scraper (Jobs2Web — `jobs.richmondhill.ca/search/`; also covers Richmond Hill Public Library jobs).
+- Added Vaughan Public Library scraper (custom CMS table at `vaughanpl.info/jobs#ats`, `scrapeVaughanPL` in `engines/custom.ts`).
 
 ### Changed
 - Switched from hash-based routing (`#job/123`) to clean path routing (`/job/123`). Added catch-all rewrite in `vercel.json` so refreshing any path serves the React app.

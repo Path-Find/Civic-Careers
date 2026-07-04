@@ -426,6 +426,36 @@ export async function scrapePeterborough(db: Client, context: BrowserContext) {
   }
 }
 
+export async function scrapeVaughanPL(db: Client, context: BrowserContext) {
+  const sourceName = 'Vaughan Public Library';
+  console.log(`Scraping ${sourceName}...`);
+  const page = await context.newPage();
+  try {
+    await page.goto('https://www.vaughanpl.info/jobs', { waitUntil: 'networkidle', timeout: 60000 });
+    await page.waitForTimeout(2000);
+
+    const jobs = await page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('#ats table tbody tr'));
+      return rows.map(tr => {
+        const applyLink = tr.querySelector<HTMLAnchorElement>('a[href*="/jobs-applications/add/"]');
+        return applyLink ? applyLink.href : null;
+      }).filter(Boolean) as string[];
+    });
+
+    console.log(`[${sourceName}] Found ${jobs.length} jobs`);
+    for (const url of jobs) {
+      const m = url.match(/\/jobs-applications\/add\/(\d+)/);
+      if (!m?.[1]) continue;
+      await scrapeRawAndStage(db, context, { id: `vaughanpl_${m[1]}`, url }, sourceName);
+    }
+    console.log(`\n[${sourceName}] Done.`);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
 export async function scrapeSmithsFalls(db: Client, context: BrowserContext) {
   const sourceName = 'Town of Smiths Falls';
   const base = 'https://www.smithsfalls.ca';

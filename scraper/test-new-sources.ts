@@ -9,7 +9,8 @@ import { scrapeJazzHR } from './engines/jazzhhr';
 import { scrapeWorkland } from './engines/workland';
 import { scrapeJibe } from './engines/jibe';
 import { scrapeADP } from './engines/adp';
-import { scrapePeterborough, scrapeSmithsFalls } from './engines/custom';
+import { scrapeWorkday } from './engines/workday';
+import { scrapePeterborough, scrapeSmithsFalls, scrapeVaughanPL } from './engines/custom';
 
 async function main() {
   const headless = !process.env.DISPLAY && process.env.CI !== 'false';
@@ -31,6 +32,13 @@ async function main() {
   await scrapeDayforce(db, context, 'https://jobs.dayforcehcm.com/en-CA/stthomas/CANDIDATEPORTAL', 'City of St. Thomas');
   await scrapeJobs2Web(db, context, 'https://careers.regionofwaterloo.ca/RoW/search/', 'Region of Waterloo');
   await scrapeJibe(db, context, 'https://careers.thunderbay.ca/careers-home/jobs', 'City of Thunder Bay', 'thunderbay');
+
+  // GTHA additions (batch 3)
+  await scrapeWorkday(db, context, 'https://whitby.wd10.myworkdayjobs.com/EXT', 'Town of Whitby');
+  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=04bf51f8-d2dd-4641-ba92-183522f6e8b3&ccId=19000101_000001&type=MP&lang=en_CA', 'City of Markham');
+  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=b1fead40-7a8c-4b14-87a0-dc031bab192d&ccId=19000101_000001&lang=en_CA', 'Town of Aurora');
+  await scrapeJobs2Web(db, context, 'https://jobs.richmondhill.ca/search/', 'City of Richmond Hill');
+  await scrapeVaughanPL(db, context);
 
   await browser.close();
   process.exit(0);

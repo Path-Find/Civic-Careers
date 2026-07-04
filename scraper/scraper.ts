@@ -27,6 +27,7 @@ import {
   scrapeBrantford,
   scrapePeterborough,
   scrapeSmithsFalls,
+  scrapeVaughanPL,
 } from './engines/custom';
 import { scrapeRSS } from './engines/rss';
 import { scrapeJazzHR } from './engines/jazzhhr';
@@ -54,6 +55,7 @@ async function main() {
   // 2. Libraries & Specialized
   // TPL (Njoyn) blocked by Radware bot protection — cannot scrape headlessly
   await scrapeWaterfront(db, context);
+  await scrapeVaughanPL(db, context);
 
   // 3. Crown Corps & Conservation
   await scrapeJobs2Web(db, context, 'https://careers.cmhc-schl.gc.ca/search/', 'CMHC');
@@ -80,7 +82,11 @@ async function main() {
 
   // 6. GTHA Regions & Cities
   await scrapeDurhamRegion(db, context);
+  await scrapeWorkday(db, context, 'https://whitby.wd10.myworkdayjobs.com/EXT', 'Town of Whitby');
   await scrapeHRSmart(db, context, 'https://york.hua.hrsmart.com/hr/ats/JobSearch/viewAll', 'York Region');
+  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=04bf51f8-d2dd-4641-ba92-183522f6e8b3&ccId=19000101_000001&type=MP&lang=en_CA', 'City of Markham');
+  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=b1fead40-7a8c-4b14-87a0-dc031bab192d&ccId=19000101_000001&lang=en_CA', 'Town of Aurora');
+  await scrapeJobs2Web(db, context, 'https://jobs.richmondhill.ca/search/', 'City of Richmond Hill');
   await scrapeICIMS(db, context, 'https://careers-peelregion.icims.com/jobs/search?ss=1', 'Peel Region');
   await scrapeSuccessFactors(db, context, 'https://careers.halton.ca/search/', 'Halton Region', 'https://careers.halton.ca');
   await scrapeWorkday(db, context, 'https://wd10.myworkdaysite.com/recruiting/cityofburlington/cob', 'City of Burlington');
