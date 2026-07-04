@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added City of Richmond Hill scraper (Jobs2Web — `jobs.richmondhill.ca/search/`; also covers Richmond Hill Public Library jobs).
 - Added Vaughan Public Library scraper (custom CMS table at `vaughanpl.info/jobs#ats`, `scrapeVaughanPL` in `engines/custom.ts`).
 
+### Fixed
+- Fixed AI parser preserving source-specific section headers ("What will I be doing?", "Summary of Duties", "General Duties", "What Skills Do You Bring?") — `clean_description` prompt now requires all headings to be normalized to exactly five standard headers: `## Overview`, `## Responsibilities`, `## Qualifications`, `## Nice to Have`, `## Compensation & Benefits`.
+
 ### Changed
 - Switched from hash-based routing (`#job/123`) to clean path routing (`/job/123`). Added catch-all rewrite in `vercel.json` so refreshing any path serves the React app.
 
