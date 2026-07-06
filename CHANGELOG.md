@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed skipped/already-parsed active jobs not being marked active in the `jobs` table.
 - Optimized the unparsed jobs query to skip parsing jobs that are already marked inactive, saving AI parser credits and processing time.
 
+### Removed
+- Removed deprecated duplicate GitHub Actions workflow file `scrape.yml`.
+
 ## [1.6.2] - 2026-07-06
 
 ### Fixed
