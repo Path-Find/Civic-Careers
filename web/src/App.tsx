@@ -310,6 +310,8 @@ function App() {
     return false;
   }, []);
 
+  const CLOSING_SOON_DAYS = 14;
+
   const filteredJobs = useMemo(() => {
     let pool = jobs;
     if (currentView === 'saved') { pool = jobs.filter(j => j.is_saved); }
@@ -328,7 +330,7 @@ function App() {
       let matchesDeadline = true;
       if (closingSoon) {
         const days = daysUntilClose(job.closing_date);
-        matchesDeadline = !isExpired(job) && days !== null && days >= 0 && days <= 7;
+        matchesDeadline = !isExpired(job) && days !== null && days >= 0 && days <= CLOSING_SOON_DAYS;
       }
       return matchesSearch && matchesMode && matchesSalary && matchesDeadline;
     });
@@ -336,8 +338,8 @@ function App() {
     return filtered.sort((a, b) => {
       const dA = daysUntilClose(a.closing_date);
       const dB = daysUntilClose(b.closing_date);
-      const urgentA = dA !== null && dA >= 0 && dA <= 7;
-      const urgentB = dB !== null && dB >= 0 && dB <= 7;
+      const urgentA = dA !== null && dA >= 0 && dA <= CLOSING_SOON_DAYS;
+      const urgentB = dB !== null && dB >= 0 && dB <= CLOSING_SOON_DAYS;
       if (urgentA && !urgentB) return -1;
       if (!urgentA && urgentB) return 1;
       if (urgentA && urgentB) return (dA ?? 0) - (dB ?? 0);
@@ -347,11 +349,12 @@ function App() {
 
   const recentJobs = useMemo(() => [...jobs].filter(j => !isExpired(j)).sort((a, b) => b.scraped_at.localeCompare(a.scraped_at)).slice(0, 5), [jobs, isExpired]);
   const closingSoonJobs = useMemo(() => {
+    // Show the 5 active jobs closing soonest (any future deadline), for useful home panel
     return jobs
       .filter(j => !isExpired(j))
-      .map(j => ({ job: j, days: daysUntilClose(j.closing_date) }))
-      .filter(({ days }) => days !== null && days >= 0 && days <= 7)
-      .sort((a, b) => (a.days ?? 999) - (b.days ?? 999))
+      .map(j => ({ job: j, days: daysUntilClose(j.closing_date) ?? 999 }))
+      .filter(({ days }) => days >= 0)
+      .sort((a, b) => a.days - b.days)
       .slice(0, 5)
       .map(({ job }) => job);
   }, [jobs, isExpired]);

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- "Closing Soon" now shows results (filter window increased to 14 days; home panel shows the 5 soonest-closing active jobs to avoid empty state when no deadlines fall in the window).
+
 ## [1.6.1] - 2026-07-06
 
 ### Fixed
