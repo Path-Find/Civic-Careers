@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-07-06
+
+### Fixed
+- Inactive/expired jobs (is_active=0 or past closing_date) now consistently hidden from main lists, "Closing Soon" filter, recent postings, and companies page counts.
+- Companies position counts now match the "X jobs available" total (e.g. Gov of Canada no longer shows 490 vs 396 total).
+- Improved closing_date extraction for GC Jobs and HRSmart/York by strengthening AI prompt priority and preserving more page text (helps empty "Closing Soon" and expiry data issues).
+
 ## [1.6.0] - 2026-07-06
 
 ### Added
