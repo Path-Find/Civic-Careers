@@ -50,3 +50,26 @@ export const fixCasing = (s: string | null): string => {
   }
   return cleaned;
 };
+
+export const slugify = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
+export const formatDate = (dateStr: string | null): string => {
+  if (!dateStr) return '';
+  const cleanDate = dateStr.split('T')[0].trim();
+  const parts = cleanDate.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts.map(Number);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthName = months[month - 1];
+    if (monthName) {
+      return `${monthName} ${day}, ${year}`;
+    }
+  }
+  return dateStr;
+};

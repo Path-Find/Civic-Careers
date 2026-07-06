@@ -5,10 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.7.0] - 2026-07-06
 
 ### Added
 - Added 13 new job sources: University of Toronto, Seneca College, Centennial College, University of Waterloo, Brock University, Sheridan College, University of Guelph, University of Ottawa, Algonquin College, Carleton University, OCAD University, Queen's University, and EFHC.
+- Implemented lazy-loading for job descriptions in the API and frontend, reducing the initial JSON payload from ~3MB to ~150KB and rendering page loads instantly.
+- Added official career portal URL mappings for all 40+ employers, displaying a dedicated header with direct portal links when filtering jobs by company.
+- Added external website link icons next to company names in the Companies list, enabling direct portal navigation.
+
+### Changed
+- Made the filter sidebars on the jobs and companies pages sticky so they float alongside the content as you scroll.
+- Grouped global navigation links (Jobs, Companies, Saved) and the permanent search input together on the right side of the header for a more cohesive, tighter layout.
+- Slugified URLs for company routing to remove ugly `%20` encodings (e.g. `/companies/algonquin-college` instead of `/companies/Algonquin%20College`).
+- Formatted raw ISO datetime values (like `2026-07-17T23:59:00`) in the UI to clean strings (like `Jul 17, 2026`).
+
+### Fixed
+- Fixed company name click handler on the job details view incorrectly routing to the generic Companies list rather than the filtered Jobs list for that specific employer.
 
 ## [1.6.3] - 2026-07-06
 

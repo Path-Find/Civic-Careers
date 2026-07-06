@@ -1,9 +1,62 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { inject } from '@vercel/analytics';
-import { renderMarkdown, formatSalary, daysUntilClose, fixCasing } from './utils';
+import { renderMarkdown, formatSalary, daysUntilClose, fixCasing, slugify, formatDate } from './utils';
 
 const API = import.meta.env.VITE_API_URL ?? '';
 import { Search, ExternalLink, ChevronRight, X, ArrowLeft, ChevronDown, ChevronUp, Bookmark } from 'lucide-react';
+
+const COMPANY_PORTALS: Record<string, string> = {
+  'City of Toronto': 'https://jobs.toronto.ca/jobsatcity/',
+  'Government of Canada': 'https://www.canada.ca/en/public-service-commission/jobs/services/gc-jobs.html',
+  'CMHC': 'https://www.cmhc-schl.gc.ca/about-us/careers',
+  'University of Toronto': 'https://jobs.utoronto.ca/',
+  'Metrolinx': 'https://metrolinx.jibeapply.com/',
+  'City of Hamilton': 'https://www.hamilton.ca/city-careers',
+  'York Region': 'https://www.york.ca/careers',
+  'City of Barrie': 'https://www.barrie.ca/government-contact/careers',
+  'Brock University': 'https://brocku.wd3.myworkdayjobs.com/brocku_careers',
+  'University of Waterloo': 'https://uwaterloo.wd3.myworkdayjobs.com/uw_careers',
+  'University of Ottawa': 'https://uottawa.wd3.myworkdayjobs.com/en-US/uOttawa_External_Career_Site',
+  'TTC': 'https://www.ttc.ca/jobs',
+  'City of Richmond Hill': 'https://www.richmondhill.ca/en/find-or-learn-about/careers.aspx',
+  'Town of Milton': 'https://www.milton.ca/en/work-and-play/careers.aspx',
+  'Town of Caledon': 'https://www.caledon.ca/en/government/careers.aspx',
+  'City of Brantford': 'https://www.brantford.ca/en/your-government/careers.aspx',
+  'City of Waterloo': 'https://www.waterloo.ca/en/government/careers.aspx',
+  'City of Cambridge': 'https://www.cambridge.ca/en/your-government/careers.aspx',
+  'City of Burlington': 'https://www.burlington.ca/en/your-government/careers.aspx',
+  'City of Windsor': 'https://windsor.myrecruitmentplus.com/',
+  'City of St. Catharines': 'https://www.stcatharines.ca/en/government/careers.aspx',
+  'City of Thunder Bay': 'https://www.thunderbay.ca/en/city-hall/jobs.aspx',
+  'OCAD University': 'https://www.ocadu.ca/about/careers',
+  'Seneca College': 'https://www.senecacollege.ca/about/careers.html',
+  'Town of Oakville': 'https://www.oakville.ca/town-hall/careers/',
+  'Algonquin College': 'https://www.algonquincollege.com/hr/careers/',
+  'City of London': 'https://www.london.ca/careers',
+  'Town of Ajax': 'https://www.ajax.ca/en/inside-town-hall/careers.aspx',
+  'City of Peterborough': 'https://www.peterborough.ca/en/city-hall/careers.aspx',
+  'City of Niagara Falls': 'https://niagarafalls.ca/city-hall/human-resources/careers/',
+  'Town of Whitby': 'https://www.whitby.ca/en/work/careers.aspx',
+  'EFHC': 'https://efhc.ca/careers/',
+  'CreateTO': 'https://createtg.ca/careers/',
+  'City of Welland': 'https://www.welland.ca/hr/jobs.asp',
+  'City of Belleville': 'https://www.belleville.ca/en/city-hall/careers.aspx',
+  'Waterfront Toronto': 'https://www.waterfrontoronto.ca/about-us/careers',
+  'Vaughan Public Library': 'https://www.vaughanpl.info/about/careers',
+  'Peel Region': 'https://www.peelregion.ca/jobs/',
+  'Durham Region': 'https://www.durham.ca/en/doing-business/careers.aspx',
+  'City of Kingston': 'https://www.cityofkingston.ca/city-hall/careers',
+  'City of Cornwall': 'https://www.cornwall.ca/en/play-here/careers.aspx',
+  'Town of Smiths Falls': 'https://www.smithsfalls.ca/en/town-hall/careers.aspx',
+  'City of Oshawa': 'https://www.oshawa.ca/en/city-hall/careers.aspx',
+  'City of Vaughan': 'https://www.vaughan.ca/about-city-vaughan/careers',
+  'City of Sarnia': 'https://www.sarnia.ca/living-here/careers/',
+  'City of St. Thomas': 'https://www.stthomas.ca/city_hall/human_resources/employment_opportunities',
+  'Region of Waterloo': 'https://www.regionofwaterloo.ca/en/regional-government/careers.aspx',
+  'Halton Region': 'https://www.halton.ca/about-halton/careers',
+  'Town of Halton Hills': 'https://www.haltonhills.ca/en/your-government/careers.aspx',
+  'Conservation Halton': 'https://www.conservationhalton.ca/careers/'
+};
 
 interface Job {
   id: string;
@@ -20,7 +73,7 @@ interface Job {
   is_unionized: number | null;
   union_name: string | null;
   benefits: string | null;
-  description: string | null;
+  description?: string | null;
   closing_date: string | null;
   url: string;
   source: string;
@@ -109,7 +162,7 @@ const JobRow = ({ job, onClick }: { job: Job, onClick: () => void }) => (
         const urgent = days !== null && days >= 0 && days <= 7;
         return (
           <div style={{ fontSize: '0.75rem', textAlign: 'right', fontWeight: 500, color: urgent ? '#dc2626' : '#94a3b8' }}>
-            {urgent ? `${days}d left` : job.closing_date}
+            {urgent ? `${days}d left` : formatDate(job.closing_date)}
           </div>
         );
       })()}
@@ -171,8 +224,6 @@ function App() {
   const [closingSoon, setClosingSoon] = useState(false);
   const [showInventories, setShowInventories] = useState(false);
   const [sortNewest, setSortNewest] = useState(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Sync state with browser history
   useEffect(() => {
@@ -186,9 +237,15 @@ function App() {
         setCurrentView('saved');
         setSelectedJob(null);
       } else if (path.startsWith('/companies/')) {
-        const company = decodeURIComponent(path.replace('/companies/', ''));
+        const slug = path.replace('/companies/', '');
+        // Find matching company from the jobs data by slugifying sources
+        const company = Array.from(new Set(jobs.map(j => j.source))).find(name => slugify(name) === slug);
         setCurrentView('jobs');
-        setSearchTerm(company);
+        if (company) {
+          setSearchTerm(company);
+        } else {
+          setSearchTerm(decodeURIComponent(slug.replace(/-/g, ' ')));
+        }
         setSelectedJob(null);
       } else if (path === '/companies') {
         setCurrentView('companies');
@@ -207,11 +264,23 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [jobs]);
 
+  // Lazy-load job description when a job is selected
   useEffect(() => {
-    if (isSearchExpanded && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isSearchExpanded]);
+    if (!selectedJob) return;
+    if (selectedJob.description) return;
+
+    fetch(`${API}/api/jobs?id=${selectedJob.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.description) {
+          setSelectedJob(prev => prev && prev.id === selectedJob.id ? { ...prev, description: data.description } : prev);
+          setJobs(prev => prev.map(j => j.id === selectedJob.id ? { ...j, description: data.description } : j));
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching job description:', err);
+      });
+  }, [selectedJob]);
 
   const fetchJobs = () => {
     fetch(`${API}/api/jobs`)
@@ -252,7 +321,7 @@ function App() {
     setSelectedJob(null);
     if (companyFilter) {
       setSearchTerm(companyFilter);
-      window.history.pushState(null, '', `/companies/${encodeURIComponent(companyFilter)}`);
+      window.history.pushState(null, '', `/companies/${slugify(companyFilter)}`);
     } else {
       window.history.pushState(null, '', `/${view === 'home' ? '' : view}`);
     }
@@ -384,7 +453,7 @@ function App() {
   const currentJobDetails = useMemo(() => selectedJob ? parseJobDetails(selectedJob) : null, [selectedJob]);
 
   const reset = () => {
-    setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setMinSalary(null); setClosingSoon(false); setShowInventories(false); setIsSearchExpanded(false); setSortNewest(false);
+    setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setMinSalary(null); setClosingSoon(false); setShowInventories(false); setSortNewest(false);
     window.history.pushState(null, '', '/');
   };
 
@@ -393,100 +462,89 @@ function App() {
       {/* Universal Sticky Header */}
       <header style={{ borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
         <div style={{ padding: '2rem 2rem 1.5rem 2rem', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', position: 'relative' }}>
-            <div style={{ display: 'grid', gridAutoFlow: 'column', alignItems: 'center', justifyContent: 'start', gap: '3rem' }}>
-              <h1 onClick={reset} style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, letterSpacing: '-0.04em', cursor: 'pointer', lineHeight: 1 }}>GovJobs</h1>
-              
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center' }}>
+            <h1 onClick={reset} style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, letterSpacing: '-0.04em', cursor: 'pointer', lineHeight: 1 }}>GovJobs</h1>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
               <nav style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2rem',
                 fontSize: '1rem', 
                 fontWeight: 600, 
-                color: '#64748b',
-                transition: 'opacity 0.2s ease',
-                opacity: isSearchExpanded ? 0 : 1,
-                visibility: isSearchExpanded ? 'hidden' : 'visible'
+                color: '#64748b'
               }}>
                 <span 
                   onClick={() => handleNavigate('jobs')} 
-                  style={{ cursor: 'pointer', color: (currentView === 'jobs' && !selectedJob) ? '#0f172a' : 'inherit', display: 'inline-block', marginRight: '2.5rem' }}
+                  style={{ cursor: 'pointer', color: (currentView === 'jobs' && !selectedJob) ? '#0f172a' : 'inherit' }}
                 >
                   Jobs
                 </span>
                 <span 
                   onClick={() => handleNavigate('companies')} 
-                  style={{ cursor: 'pointer', color: (currentView === 'companies' && !selectedJob) ? '#0f172a' : 'inherit', display: 'inline-block' }}
+                  style={{ cursor: 'pointer', color: (currentView === 'companies' && !selectedJob) ? '#0f172a' : 'inherit' }}
                 >
                   Companies
                 </span>
-              </nav>
-            </div>
-
-            <div style={{ display: 'grid', gridAutoFlow: 'column', alignItems: 'center', gap: '2.5rem' }}>
-              <div style={{
-                display: 'grid',
-                gridAutoFlow: 'column',
-                alignItems: 'center',
-                gap: '2.5rem',
-                fontSize: '1rem', 
-                fontWeight: 600, 
-                color: '#64748b',
-                transition: 'opacity 0.2s ease',
-                opacity: isSearchExpanded ? 0 : 1,
-                visibility: isSearchExpanded ? 'hidden' : 'visible',
-                pointerEvents: isSearchExpanded ? 'none' : 'auto'
-              }}>
                 <span
                   onClick={() => handleNavigate('saved')}
-                  style={{ cursor: 'pointer', display: 'grid', gridAutoFlow: 'column', alignItems: 'center', gap: '0.4rem', color: (currentView === 'saved' && !selectedJob) ? '#0f172a' : 'inherit' }}
+                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', color: (currentView === 'saved' && !selectedJob) ? '#0f172a' : 'inherit' }}
                 >
                   <Bookmark size={18} style={{ opacity: 0.8 }} />
                   <span>Saved</span>
                 </span>
-                <span
-                  onClick={() => setIsSearchExpanded(true)}
-                  style={{ cursor: 'pointer', display: 'grid', gridAutoFlow: 'column', alignItems: 'center', gap: '0.4rem' }}
-                >
-                  <Search size={18} style={{ opacity: 0.8 }} />
-                  <span>Search</span>
-                </span>
-              </div>
+              </nav>
 
-              {selectedJob && !isSearchExpanded && (
-                <ActionGroup job={selectedJob} onToggleSave={(e) => toggleSaveJob(selectedJob, e)} showBack onBack={handleBackToList} />
-              )}
-            </div>
-
-            {/* Expandable Search Overlay */}
-            <div style={{ 
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex', 
-              alignItems: 'baseline', 
-              gap: '1rem', 
-              opacity: isSearchExpanded ? 1 : 0,
-              visibility: isSearchExpanded ? 'visible' : 'hidden',
-              transform: isSearchExpanded ? 'scaleY(1)' : 'scaleX(0.95)',
-              transformOrigin: 'bottom right',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              backgroundColor: 'white',
-              zIndex: 60
-            }}>
-              <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'baseline' }}>
-                <Search size={24} style={{ position: 'absolute', left: '0', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              {/* Permanent Search Input */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '220px' }}>
+                <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                 <input 
-                  ref={searchInputRef}
                   type="text" 
-                  placeholder="Search positions, companies..." 
+                  placeholder="Search positions..." 
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Escape' && setIsSearchExpanded(false)}
-                  style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 3rem', border: 'none', borderBottom: '2px solid #0f172a', outline: 'none', fontSize: '1.5rem', fontWeight: 500, color: '#0f172a', backgroundColor: 'white' }}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    if (currentView !== 'jobs' && currentView !== 'companies') {
+                      setCurrentView('jobs');
+                      window.history.pushState(null, '', '/jobs');
+                    }
+                  }}
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.4rem 0.75rem 0.4rem 2.25rem', 
+                    borderRadius: '20px', 
+                    border: '1px solid #e2e8f0', 
+                    outline: 'none', 
+                    fontSize: '0.875rem', 
+                    fontWeight: 500, 
+                    color: '#0f172a', 
+                    backgroundColor: '#f8fafc',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#0f172a';
+                    e.currentTarget.style.backgroundColor = 'white';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }}
                 />
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm('')} 
+                    style={{ position: 'absolute', right: '0.75rem', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', color: '#94a3b8', display: 'flex', padding: 0 }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
-              <button onClick={() => { setSearchTerm(''); setIsSearchExpanded(false); }} style={{ border: 'none', backgroundColor: 'transparent', cursor: 'pointer', color: '#64748b' }}>
-                <X size={24} />
-              </button>
+
+              {selectedJob && (
+                <div style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem' }}>
+                  <ActionGroup job={selectedJob} onToggleSave={(e) => toggleSaveJob(selectedJob, e)} showBack onBack={handleBackToList} />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -500,7 +558,7 @@ function App() {
               {selectedJob.closing_date && (
                 <div style={{ backgroundColor: '#fef2f2', padding: '1rem', borderRadius: '12px', border: '1px solid #fee2e2' }}>
                   <div style={{ fontSize: '0.55rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Apply By</div>
-                  <div style={{ fontSize: '1.125rem', fontWeight: 900, color: '#b91c1c' }}>{selectedJob.closing_date}</div>
+                  <div style={{ fontSize: '1.125rem', fontWeight: 900, color: '#b91c1c' }}>{formatDate(selectedJob.closing_date)}</div>
                 </div>
               )}
 
@@ -530,7 +588,7 @@ function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{ backgroundColor: 'white', padding: '0', borderRadius: '0' }}>
                 <div
-                  onClick={() => handleNavigate('companies', selectedJob.source)}
+                  onClick={() => handleNavigate('jobs', selectedJob.source)}
                   style={{ color: '#2563eb', fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.5rem', cursor: 'pointer' }}
                 >
                   {selectedJob.source}
@@ -547,12 +605,20 @@ function App() {
                   View Full Posting
                 </a>
 
-                {selectedJob.description && (
+                {selectedJob.description ? (
                   <div style={{ marginTop: '2.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '2rem' }}>
                     <div
                       style={{ fontSize: '0.9rem', lineHeight: 1.7, color: '#334155' }}
                       dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedJob.description) }}
                     />
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '2.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div className="animate-pulse" style={{ height: '1.25rem', backgroundColor: '#f1f5f9', borderRadius: '4px', width: '80%' }} />
+                    <div className="animate-pulse" style={{ height: '1.25rem', backgroundColor: '#f1f5f9', borderRadius: '4px', width: '95%' }} />
+                    <div className="animate-pulse" style={{ height: '1.25rem', backgroundColor: '#f1f5f9', borderRadius: '4px', width: '60%' }} />
+                    <div className="animate-pulse" style={{ height: '1.25rem', backgroundColor: '#f1f5f9', borderRadius: '4px', width: '90%' }} />
+                    <div className="animate-pulse" style={{ height: '1.25rem', backgroundColor: '#f1f5f9', borderRadius: '4px', width: '40%' }} />
                   </div>
                 )}
               </div>
@@ -587,7 +653,7 @@ function App() {
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '4rem' }}>
-              <aside style={{ display: 'flex', flexDirection: 'column' }}>
+              <aside style={{ display: 'flex', flexDirection: 'column', position: 'sticky', top: '100px', alignSelf: 'start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: '#0f172a' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filters</span>
                 </div>
@@ -602,6 +668,24 @@ function App() {
                 <div style={{ marginBottom: '1rem', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {currentView === 'companies' ? `${activeCompanies.length} hiring companies` : (searchTerm || selectedModes.length > 0 || minSalary || closingSoon ? `${filteredJobs.length} matches found` : `${filteredJobs.length} jobs available`)}
                 </div>
+                {currentView === 'jobs' && searchTerm && (activeCompanies.includes(searchTerm) || inactiveCompanies.includes(searchTerm)) && (
+                  <div style={{ marginBottom: '1.5rem', padding: '1.25rem 1.5rem', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: '#0f172a' }}>{searchTerm}</h2>
+                      {COMPANY_PORTALS[searchTerm] && (
+                        <a 
+                          href={COMPANY_PORTALS[searchTerm]} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#2563eb', fontSize: '0.8125rem', fontWeight: 600, marginTop: '0.4rem', textDecoration: 'none' }}
+                        >
+                          <ExternalLink size={14} />
+                          Visit Official Careers Site
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {(currentView === 'jobs' || currentView === 'saved') ? (
                     filteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)
@@ -609,7 +693,21 @@ function App() {
                     <>
                       {activeCompanies.map(name => (
                         <div key={name} onClick={() => {setMinSalary(null); setSelectedModes([]); setClosingSoon(false); handleNavigate('jobs', name); }} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
+                            {COMPANY_PORTALS[name] && (
+                              <a 
+                                href={COMPANY_PORTALS[name]} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                onClick={(e) => e.stopPropagation()} 
+                                style={{ color: '#cbd5e1', display: 'inline-flex', alignItems: 'center' }}
+                                title="Visit official careers site"
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            )}
+                          </div>
                           <span style={{ fontSize: '0.8125rem', color: '#2563eb', fontWeight: 700 }}>{activeJobsByCompany[name].length} positions</span>
                         </div>
                       ))}
@@ -620,7 +718,21 @@ function App() {
                           </div>
                           {inactiveCompanies.map(name => (
                             <div key={name} onClick={() => {setMinSalary(null); setSelectedModes([]); setClosingSoon(false); handleNavigate('jobs', name); }} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.6 }}>
-                              <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
+                                {COMPANY_PORTALS[name] && (
+                                  <a 
+                                    href={COMPANY_PORTALS[name]} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    onClick={(e) => e.stopPropagation()} 
+                                    style={{ color: '#cbd5e1', display: 'inline-flex', alignItems: 'center' }}
+                                    title="Visit official careers site"
+                                  >
+                                    <ExternalLink size={14} />
+                                  </a>
+                                )}
+                              </div>
                               <span style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 700 }}>{jobsByCompany[name].length} positions (archived)</span>
                             </div>
                           ))}
