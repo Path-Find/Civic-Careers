@@ -15,5 +15,6 @@ export default async function handler(_req: IncomingMessage, res: ServerResponse
     ORDER BY j.is_active DESC, j.scraped_at DESC
   `);
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
   res.end(JSON.stringify(result.rows));
 }

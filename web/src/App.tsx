@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { inject } from '@vercel/analytics';
 import { renderMarkdown, formatSalary, daysUntilClose, fixCasing } from './utils';
 
@@ -160,7 +160,7 @@ inject();
 
 function App() {
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [currentView, setCurrentView] = useState<View>('home');
@@ -301,15 +301,17 @@ function App() {
     };
   };
 
+  const isExpired = useCallback((j: Job): boolean => {
+    if (j.is_active === 0) return true;
+    if (j.closing_date) {
+      const days = daysUntilClose(j.closing_date);
+      return days !== null && days < 0;
+    }
+    return false;
+  }, []);
+
   const filteredJobs = useMemo(() => {
     let pool = jobs;
-    const isExpired = (j: Job) => {
-      if (j.closing_date) {
-        const days = daysUntilClose(j.closing_date);
-        return days !== null && days < 0;
-      }
-      return j.is_active === 0;
-    };
     if (currentView === 'saved') { pool = jobs.filter(j => j.is_saved); }
     else { pool = pool.filter(j => !isExpired(j)); }
     const filtered = pool.filter(job => {
@@ -341,18 +343,18 @@ function App() {
       if (urgentA && urgentB) return (dA ?? 0) - (dB ?? 0);
       return b.scraped_at.localeCompare(a.scraped_at);
     });
-  }, [jobs, searchTerm, selectedModes, minSalary, closingSoon, currentView, showInventories, sortNewest]);
+  }, [jobs, searchTerm, selectedModes, minSalary, closingSoon, currentView, showInventories, sortNewest, isExpired]);
 
-  const recentJobs = useMemo(() => [...jobs].sort((a, b) => b.scraped_at.localeCompare(a.scraped_at)).slice(0, 5), [jobs]);
+  const recentJobs = useMemo(() => [...jobs].filter(j => !isExpired(j)).sort((a, b) => b.scraped_at.localeCompare(a.scraped_at)).slice(0, 5), [jobs, isExpired]);
   const closingSoonJobs = useMemo(() => {
     return jobs
-      .filter(j => j.is_active)
+      .filter(j => !isExpired(j))
       .map(j => ({ job: j, days: daysUntilClose(j.closing_date) }))
       .filter(({ days }) => days !== null && days >= 0 && days <= 7)
       .sort((a, b) => (a.days ?? 999) - (b.days ?? 999))
       .slice(0, 5)
       .map(({ job }) => job);
-  }, [jobs]);
+  }, [jobs, isExpired]);
 
   const jobsByCompany = useMemo(() => jobs.reduce((acc, job) => {
     if (!acc[job.source]) acc[job.source] = [];
@@ -360,7 +362,22 @@ function App() {
     return acc;
   }, {} as Record<string, Job[]>), [jobs]);
 
-  const companies = useMemo(() => Object.keys(jobsByCompany).sort(), [jobsByCompany]);
+  const activeJobsByCompany = useMemo(() => {
+    const active: Record<string, Job[]> = {};
+    Object.keys(jobsByCompany).forEach(name => {
+      const act = jobsByCompany[name].filter(j => !isExpired(j));
+      if (act.length > 0) active[name] = act;
+    });
+    return active;
+  }, [jobsByCompany, isExpired]);
+
+  const activeCompanies = useMemo(() => Object.keys(activeJobsByCompany).sort(), [activeJobsByCompany]);
+  const inactiveCompanies = useMemo(() => 
+    Object.keys(jobsByCompany).filter(name => 
+      !jobsByCompany[name].some(j => !isExpired(j))
+    ).sort()
+  , [jobsByCompany, isExpired]);
+
   const currentJobDetails = useMemo(() => selectedJob ? parseJobDetails(selectedJob) : null, [selectedJob]);
 
   const reset = () => {
@@ -541,7 +558,9 @@ function App() {
         </main>
       ) : (
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem', width: '100%', boxSizing: 'border-box', flex: 1 }}>
-          {currentView === 'home' ? (
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Loading jobs...</div>
+          ) : currentView === 'home' ? (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem' }}>
               <section>
                 <div style={{ marginBottom: '2rem' }}>
@@ -578,18 +597,33 @@ function App() {
 
               <div style={{ minWidth: 0 }}>
                 <div style={{ marginBottom: '1rem', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {currentView === 'companies' ? `${companies.length} hiring companies` : (searchTerm || selectedModes.length > 0 || minSalary || closingSoon ? `${filteredJobs.length} matches found` : `${filteredJobs.length} jobs available`)}
+                  {currentView === 'companies' ? `${activeCompanies.length} hiring companies` : (searchTerm || selectedModes.length > 0 || minSalary || closingSoon ? `${filteredJobs.length} matches found` : `${filteredJobs.length} jobs available`)}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {(currentView === 'jobs' || currentView === 'saved') ? (
                     filteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)
                   ) : (
-                    companies.map(name => (
-                      <div key={name} onClick={() => {setMinSalary(null); setSelectedModes([]); setClosingSoon(false); handleNavigate('jobs', name); }} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
-                        <span style={{ fontSize: '0.8125rem', color: '#2563eb', fontWeight: 700 }}>{jobsByCompany[name].length} positions</span>
-                      </div>
-                    ))
+                    <>
+                      {activeCompanies.map(name => (
+                        <div key={name} onClick={() => {setMinSalary(null); setSelectedModes([]); setClosingSoon(false); handleNavigate('jobs', name); }} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
+                          <span style={{ fontSize: '0.8125rem', color: '#2563eb', fontWeight: 700 }}>{activeJobsByCompany[name].length} positions</span>
+                        </div>
+                      ))}
+                      {inactiveCompanies.length > 0 && (
+                        <>
+                          <div style={{ marginTop: '1rem', marginBottom: '0.25rem', fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Not currently hiring
+                          </div>
+                          {inactiveCompanies.map(name => (
+                            <div key={name} onClick={() => {setMinSalary(null); setSelectedModes([]); setClosingSoon(false); handleNavigate('jobs', name); }} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.6 }}>
+                              <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
+                              <span style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 700 }}>{jobsByCompany[name].length} positions (archived)</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

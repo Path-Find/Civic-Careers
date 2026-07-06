@@ -51,17 +51,17 @@ export async function parseJobWithAI(description: string): Promise<ParsedJob | n
     
     const prompt = `
     Extract the following information from the job description text provided. 
-    Return the data in a valid JSON format. Be extremely precise.
+    Return the data in a valid JSON format. Be extremely precise. Prioritize accurate extraction of closing_date above all else.
 
     SCHEMA:
     {
+      "closing_date": "YYYY-MM-DDTHH:MM:SS" | "YYYY-MM-DD" | null  (MOST IMPORTANT - look for any 'closing', 'apply by', 'deadline', 'expires', date in future relative to ${today}),
       "job_title": "Cleaned title (remove IDs/Internal labels)",
       "department": "Department name",
       "location": "City",
       "salary_min": number | null,
       "salary_max": number | null,
       "salary_period": "yearly" | "hourly" | "monthly",
-      "closing_date": "YYYY-MM-DDTHH:MM:SS" | "YYYY-MM-DD" | null,
       "work_model": "Hybrid" | "Remote" | "On-site",
       "employment_type": "Full-time" | "Part-time" | "Contract" | "Permanent",
       "duration": "Length of contract if applicable",
@@ -76,7 +76,7 @@ export async function parseJobWithAI(description: string): Promise<ParsedJob | n
     CONSTRAINTS:
     - If salary is a range like "$96,566.00 - $132,880.00", salary_min = 96566, salary_max = 132880.
     - If salary is hourly, keep it hourly (do not multiply).
-    - Closing date: infer the date if it says "Closing in 2 weeks" relative to today (${today}). If a closing time is listed (e.g. "4:30 PM", "11:59 PM"), include it as "YYYY-MM-DDTHH:MM:SS" in 24-hour format. If only a date is listed, use "YYYY-MM-DD".
+    - Closing date: Be aggressive - infer from any mention of close/apply/deadline/expire. Use today=${today} for relative dates like "in 2 weeks". Include time if present as YYYY-MM-DDTHH:MM:SS. Date only as YYYY-MM-DD. Return null only if no date info at all.
 
     Text:
     ${description}

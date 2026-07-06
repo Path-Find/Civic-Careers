@@ -77,7 +77,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
 
     const rawText = await page.evaluate(() => {
       const clone = document.body.cloneNode(true) as HTMLElement;
-      const noise = 'script, style, link, meta, noscript, .wb-share, #wb-dtmd, .socialMediaButtons, .page-options, nav, footer, header, #header, #footer';
+      const noise = 'script, style, link, meta, noscript, nav, footer, header, #header, #footer';
       clone.querySelectorAll(noise).forEach(e => e.remove());
       return clone.innerText?.trim() || '';
     });
