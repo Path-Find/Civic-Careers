@@ -129,7 +129,14 @@ export async function saveRawJob(client: Client, job: {
 }
 
 export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; source: string; raw_text: string }>> {
-  const result = await client.execute(`SELECT id, url, source, raw_text FROM raw_jobs WHERE parsed_at IS NULL ORDER BY scraped_at ASC`);
+  const result = await client.execute(`
+    SELECT r.id, r.url, r.source, r.raw_text
+    FROM raw_jobs r
+    LEFT JOIN jobs j ON r.id = j.id
+    WHERE r.parsed_at IS NULL
+      AND (j.is_active IS NULL OR j.is_active = 1)
+    ORDER BY r.scraped_at ASC
+  `);
   return result.rows.map(row => ({
     id: row.id as string,
     url: row.url as string,

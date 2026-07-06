@@ -26,3 +26,11 @@ scraper/fix_*.ts
 scraper/list_*.ts
 scraper/backfill_*.ts
 scraper/clean_*.ts
+
+# project instructions (gitignored, local only)
+AGENTS.md
+agents.md
+CLAUDE.md
+claude.md
+HANDOFF.md
+handoff.md

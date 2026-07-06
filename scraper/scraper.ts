@@ -38,7 +38,7 @@ export { scrapeSuccessFactors, scrapeWorkday, scrapeWaterfront, scrapeConservati
 export { urlId, scrapeRawAndStage } from './utils';
 
 async function main() {
-  const runStartedAt = new Date().toISOString();
+  const runStartedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
   const headless = !process.env.DISPLAY && process.env.CI !== 'false';
   console.log(`Launching browser (headless: ${headless})...`);
   const browser = await chromium.launch({ headless });

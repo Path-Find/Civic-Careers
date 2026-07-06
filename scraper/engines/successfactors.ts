@@ -25,6 +25,23 @@ export async function scrapeSuccessFactors(db: Client, context: BrowserContext, 
       await page.waitForTimeout(7000);
     }
 
+    // Support "Load More" style pagination (e.g. City of Toronto) by clicking the button until all jobs are loaded
+    const loadMoreBtn = await page.$('#tile-more-results, button:has-text("More Search Results"), button:has-text("Load More")');
+    if (loadMoreBtn && await loadMoreBtn.isVisible()) {
+      console.log(`[${sourceName}] Found Load More button. Loading all results...`);
+      let clickCount = 0;
+      while (clickCount < 30) {
+        if (!await loadMoreBtn.isVisible()) break;
+        const isDisabled = await loadMoreBtn.getAttribute('disabled').then(d => d !== null) ||
+                           await loadMoreBtn.getAttribute('class').then(c => c?.includes('disabled') || false);
+        if (isDisabled) break;
+
+        await loadMoreBtn.click().catch(() => {});
+        await page.waitForTimeout(5000);
+        clickCount++;
+      }
+    }
+
     let hasNextPage = true;
     let pageNum = 1;
 

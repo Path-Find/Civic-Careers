@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Added support for SuccessFactors portals using a "More Search Results" button (like City of Toronto) instead of standard next-page links, allowing the scraper to fetch all available listings.
+- Fixed date format comparison in `cleanupExpiredJobs` (SQLite UTC vs ISO string) that was incorrectly deactivating all previously-scraped jobs.
+- Fixed skipped/already-parsed active jobs not being marked active in the `jobs` table.
+- Optimized the unparsed jobs query to skip parsing jobs that are already marked inactive, saving AI parser credits and processing time.
+
+## [1.6.2] - 2026-07-06
+
+### Fixed
 - "Closing Soon" now shows results (filter window increased to 14 days; home panel shows the 5 soonest-closing active jobs to avoid empty state when no deadlines fall in the window).
 
 ## [1.6.1] - 2026-07-06
