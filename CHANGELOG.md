@@ -5,54 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.6.0] - 2026-07-06
 
 ### Added
-- Added City of Kingston scraper (CL2/Njoyn RSS feed — `scraper/engines/rss.ts`).
-- Added City of Ottawa scraper (SAP SuccessFactors on `career47.sapsf.com`, company `cityofottawa`).
-- Added City of Belleville scraper (Jazz HR — HTML listing page, `scraper/engines/jazzhhr.ts`).
-- Added City of Cornwall scraper (Workland SPA — Playwright-rendered, `scraper/engines/workland.ts`).
-- Added City of Peterborough scraper (CMS static pages — links filtered from careers page, `scrapePeterborough` in `engines/custom.ts`).
-- Added City of Windsor scraper (Jazz HR — HTML listing page at `cityofwindsor.applytojob.com/apply/`).
-- Added City of Sarnia scraper (ADP WorkforceNow).
-- Added City of St. Thomas scraper (Dayforce candidate portal).
-- Added Region of Waterloo scraper (Jobs2Web — same engine as London and Kitchener).
-- Added City of Thunder Bay scraper (Jibe by iCIMS — Angular SPA with infinite scroll, `scraper/engines/jibe.ts`).
-- Added Town of Smiths Falls scraper (CMS table — scrapes career page for table links, `scrapeSmithsFalls` in `engines/custom.ts`; no current openings but scraper is live for when they post).
-- Added City of Burlington scraper (Workday — `myworkdaysite.com/recruiting/cityofburlington/cob`).
-- Added Town of Oakville scraper (Taleo — same engine as St. Catharines, `org=TOWNOFOA`).
-- Added Town of Milton scraper (Workday — `milton.wd10.myworkdayjobs.com/TownOfMilton`).
-- Added `test-new-sources.yml` GitHub Actions workflow (manual `workflow_dispatch`) for validating new job boards independently without running the full scraper.
-- Updated `test-new-sources.ts` to include all ten new sources.
-- Added Town of Whitby scraper (Workday — `whitby.wd10.myworkdayjobs.com/EXT`).
-- Added City of Markham scraper (ADP WorkforceNow — `cid=04bf51f8`).
-- Added Town of Aurora scraper (ADP WorkforceNow — `cid=b1fead40`).
-- Added City of Richmond Hill scraper (Jobs2Web — `jobs.richmondhill.ca/search/`; also covers Richmond Hill Public Library jobs).
-- Added Vaughan Public Library scraper (custom CMS table at `vaughanpl.info/jobs#ats`, `scrapeVaughanPL` in `engines/custom.ts`).
+- 19 new Ontario municipal scrapers (Kingston, Ottawa, Belleville, Cornwall, Peterborough, Windsor, Sarnia, St. Thomas, Waterloo, Thunder Bay, Smiths Falls, Burlington, Oakville, Milton, Whitby, Markham, Aurora, Richmond Hill, Vaughan PL) using engines for RSS, SuccessFactors, JazzHR, Workland, Jobs2Web, Jibe, ADP, Dayforce, Workday, Taleo, and custom CMS.
+- Manual `test-new-sources.yml` GitHub Action workflow to validate new sources in isolation.
 
 ### Changed
-- Parser now waits out DeepSeek peak-pricing windows before making API calls (peak UTC: 1–4 AM and 6–10 AM). If called during peak hours, it sleeps until the window ends.
-- Shifted GitHub Actions cron to 10:30 AM UTC (6:30 AM EDT) — 30 minutes after the morning peak window ends, maximizing off-peak runway before the next peak at 1 AM UTC.
+- Switched routing from hash (`#job/123`) to clean paths (`/job/123`); added explicit Vercel rewrites for SPA refreshes.
+- Primary expiry uses `closing_date` (parser now extracts times); falls back to `is_active`.
+- Parser sleeps through DeepSeek peak pricing windows (1-4 AM / 6-10 AM UTC).
+- Cron shifted to 10:30 AM UTC for maximum off-peak window.
+- Student/Co-op badge recolored to slate grey.
 
 ### Fixed
-- Fixed AI parser preserving source-specific section headers ("What will I be doing?", "Summary of Duties", "General Duties", "What Skills Do You Bring?") — `clean_description` prompt now requires all headings to be normalized to exactly five standard headers: `## Overview`, `## Responsibilities`, `## Qualifications`, `## Nice to Have`, `## Compensation & Benefits`.
-
-### Changed
-- Switched from hash-based routing (`#job/123`) to clean path routing (`/job/123`). Added catch-all rewrite in `vercel.json` so refreshing any path serves the React app.
-
-### Fixed
-- Fixed parser compressing job descriptions into a single paragraph — prompt now explicitly instructs the model to preserve all sections, headings, and bullet points, and only strip navigation/widget boilerplate.
-
-### Changed
-- Expired job detection now uses `closing_date` as the primary signal — a job is hidden when its closing date/time has passed. Falls back to `is_active = 0` only for jobs with no closing date (e.g. pulled from portal early). This makes expiry scraper-independent for the majority of postings.
-- Parser now extracts closing time when listed (e.g. "4:30 PM") and stores it as `YYYY-MM-DDTHH:MM:SS`. Date-only postings remain `YYYY-MM-DD`. `daysUntilClose` uses real-time comparison when a time is present.
-- Job detail URLs now use clean integer rowids (`#job/123`) instead of portal-derived strings (`#job/Student---Non-Union_JR100515`).
-- Student/Co-op badge changed from amber to slate grey.
-
-### Fixed
-- Fixed scraper marking all previously-seen jobs as inactive after a run — `scrapeRawAndStage` now touches `raw_jobs.scraped_at` when skipping an already-parsed job, so `cleanupExpiredJobs` correctly recognises it as still active. Previously, 879 of 890 jobs were being incorrectly deactivated on every run.
-- Fixed salary filter never matching — was parsing the formatted display string (`$96K – $132K / yr`) instead of `salary_min`.
-- Fixed closing date countdown showing "0d left" for jobs closing tomorrow — date-only strings (`YYYY-MM-DD`) were parsed as UTC midnight, shifting the date back 4–5 hours in EDT. Now parsed as local midnight.
+- Parser normalizes all section headers to the five canonical headings.
+- Parser preserves sections, headings, and bullets (no more compression).
+- Scraper now touches `scraped_at` for seen jobs so they are not incorrectly deactivated.
+- Salary filter matches on structured `salary_min` values.
+- Closing date countdown and UTC parsing bugs resolved for "tomorrow" cases.
 
 ## [1.5.2] - 2026-07-03
 
