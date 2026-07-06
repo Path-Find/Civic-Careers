@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Added 13 new job sources: University of Toronto, Seneca College, Centennial College, University of Waterloo, Brock University, Sheridan College, University of Guelph, University of Ottawa, Algonquin College, Carleton University, OCAD University, Queen's University, and EFHC.
+
 ## [1.6.3] - 2026-07-06
 
 ### Fixed

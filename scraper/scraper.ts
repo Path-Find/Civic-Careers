@@ -117,6 +117,23 @@ async function main() {
   await scrapeWorkland(db, context, 'https://atlas.workland.com/careers/cornwall/jobs?page=1', 'City of Cornwall', 'cornwall');
   await scrapeSmithsFalls(db, context);
 
+  // 10. Higher Education (Colleges & Universities)
+  await scrapeJobs2Web(db, context, 'https://jobs.utoronto.ca/search/', 'University of Toronto');
+  await scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=SENECOLL4&cws=42', 'Seneca College');
+  await scrapeNjoyn(db, context, 'https://centennial.njoyn.com/CL3/xweb/Xweb.asp?tbtoken=ZVtfSx5cDVBzZXR3NV0nFE9NcmMsaVVfdCRMIit6CnkrUEVqLEsechQDd0AYGhBUQXJjF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=56827', 'Centennial College');
+  await scrapeWorkday(db, context, 'https://uwaterloo.wd3.myworkdayjobs.com/uw_careers', 'University of Waterloo');
+  await scrapeWorkday(db, context, 'https://brocku.wd3.myworkdayjobs.com/brocku_careers', 'Brock University');
+  await scrapeNjoyn(db, context, 'https://sheridan.njoyn.com/CL3/xweb/xweb.asp?page=joblisting&CLID=55117', 'Sheridan College');
+  await scrapeJobs2Web(db, context, 'https://careers.uoguelph.ca/search/', 'University of Guelph');
+  await scrapeWorkday(db, context, 'https://uottawa.wd3.myworkdayjobs.com/en-US/uOttawa_External_Career_Site', 'University of Ottawa');
+  await scrapeWorkday(db, context, 'https://algonquincollege.wd3.myworkdayjobs.com/CareerOpportunities', 'Algonquin College');
+  await scrapeNjoyn(db, context, 'https://carleton.njoyn.com/CL2/xweb/xweb.asp?CLID=53443&page=joblisting&lang=1', 'Carleton University');
+  await scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=OCADU&cws=37', 'OCAD University');
+  await scrapeNjoyn(db, context, 'https://queensu.njoyn.com/cl4/xweb/xweb.asp?tbtoken=ZVhfShpRDVAFFwd5TSQgFU84BhVfaVVYA1RMWysEf3lfXjUeWkYYcxN2cUwYGhJWQXJjF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=74827', 'Queen\'s University');
+
+  // 11. Health & Other Agencies
+  await scrapeOracleCloud(db, context, 'https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'EFHC');
+
   console.log('\nCleaning up expired jobs...');
   await cleanupExpiredJobs(db, runStartedAt);
 
