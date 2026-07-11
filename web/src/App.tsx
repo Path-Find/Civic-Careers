@@ -227,7 +227,7 @@ function App() {
 
   // Sync state with browser history
   useEffect(() => {
-    const handlePopState = (_event: PopStateEvent) => {
+    const handlePopState = () => {
       const path = window.location.pathname;
       if (path.startsWith('/job/')) {
         const rid = Number(path.replace('/job/', ''));
