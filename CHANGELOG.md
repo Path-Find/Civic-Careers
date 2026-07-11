@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-07-11
+
+### Changed
+- **Dependency updates**: Merged 12 open Dependabot PRs — `axios` 1.17.0 → 1.18.1, `playwright` 1.60.0 → 1.61.1 (`scraper`); `@types/sqlite3` 3.1.11 → 5.1.0, `tsx` 4.22.4 → 4.23.0, `typescript` 6.0.3 → 7.0.2 (`scraper`, dev); `vite` 8.0.16 → 8.1.4, `@vitejs/plugin-react` 6.0.2 → 6.0.3, `eslint` 10.4.1 → 10.7.0, `globals` 17.6.0 → 17.7.0, `@types/node` 24.13.1 → 26.1.1 (`web`, dev); `actions/checkout` v5 → v7, `actions/setup-node` v5 → v6 (CI). One real conflict (the `eslint` bump vs. an earlier `globals` bump touching the same lockfile region) resolved by hand; Dependabot auto-rebased and re-resolved it independently before the manual fix landed.
+
+### Fixed
+- **Unused parameter flagged by the eslint 10.6+ upgrade**: `App.tsx`'s `handlePopState` took an unused `_event: PopStateEvent` parameter; removed since the handler never used it.
+
 ## [1.7.0] - 2026-07-06
 
 ### Added
