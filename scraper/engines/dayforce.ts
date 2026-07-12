@@ -6,8 +6,11 @@ export async function scrapeDayforce(db: Client, context: BrowserContext, portal
   console.log(`Scraping ${sourceName} (Dayforce)...`);
   const page = await context.newPage();
   try {
-    await page.goto(portalUrl, { waitUntil: 'networkidle', timeout: 60000 });
-    await page.waitForTimeout(5000);
+    // networkidle times out here — Dayforce's SPA keeps polling and never
+    // goes fully idle. domcontentloaded + an explicit content wait instead.
+    await page.goto(portalUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForSelector('a[href*="/jobs/"]', { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(3000);
 
     const dismissBtn = await page.$('button:has-text("Reject"), button:has-text("Accept")');
     if (dismissBtn && await dismissBtn.isVisible()) {
