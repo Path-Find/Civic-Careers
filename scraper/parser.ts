@@ -65,12 +65,15 @@ async function main() {
   console.log('[Parser] Done.');
 
   if (process.env.DISCORD_WEBHOOK_URL) {
+    const postingWord = rawJobs.length === 1 ? 'posting' : 'postings';
+    const failed = rawJobs.length - done;
+    const failedNote = failed > 0 ? ` (${failed} failed)` : '';
     await fetch(process.env.DISCORD_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'GovJobs',
-        content: `Parse finished: ${done}/${rawJobs.length} job posting(s).`,
+        content: `Parse done — processed ${done} of ${rawJobs.length} job ${postingWord}${failedNote}.`,
       }),
     });
   }

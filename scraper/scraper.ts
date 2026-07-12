@@ -152,7 +152,9 @@ async function main() {
 
   console.log(`--- STARTING SCRAPE RUN${engineFilter ? ` (engine: ${engineFilter})` : ''} — ${tasks.length} source(s) ---`);
 
-  const startedAt = new Date().toISOString();
+  // Match SQLite's CURRENT_TIMESTAMP format ("YYYY-MM-DD HH:MM:SS", no "T"/"Z")
+  // — comparing against a raw ISO string breaks the >= comparison below.
+  const startedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
   for (const task of tasks) {
     await task.run(db, context);
   }
@@ -166,13 +168,15 @@ async function main() {
       args: [startedAt],
     });
     const jobCount = result.rows[0]?.n ?? 0;
-    const label = engineFilter ?? 'all';
+    const engineLabel = engineFilter ? `${engineFilter} scrape` : 'Full scrape';
+    const companyWord = tasks.length === 1 ? 'company' : 'companies';
+    const postingWord = jobCount === 1 ? 'posting' : 'postings';
     await fetch(process.env.DISCORD_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'GovJobs',
-        content: `Scrape finished (${label}): ${tasks.length} source(s), ${jobCount} job posting(s).`,
+        content: `${engineLabel} done — checked ${tasks.length} ${companyWord}, touched ${jobCount} job ${postingWord}.`,
       }),
     });
   }
