@@ -49,7 +49,7 @@ interface ScrapeTask {
 const TASKS: ScrapeTask[] = [
   // 1. Core Toronto Agencies
   { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://career17.sapsf.com/career?company=TTCPRODUCTION&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH', 'TTC', 'https://career17.sapsf.com') },
-  { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://jobs.toronto.ca/jobsatcity/', 'City of Toronto', 'https://jobs.toronto.ca') },
+  { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://jobs.toronto.ca/jobsatcity/search/', 'City of Toronto', 'https://jobs.toronto.ca') },
   { engine: 'oracle', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://ehtc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'Metrolinx') },
 
   // 2. Libraries & Specialized

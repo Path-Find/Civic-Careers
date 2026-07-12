@@ -47,12 +47,12 @@ export async function scrapeSuccessFactors(db: Client, context: BrowserContext, 
 
     while (hasNextPage) {
       console.log(`[${sourceName}] Page ${pageNum}...`);
-      await page.waitForSelector('.job-row, .jobResultItem, .job-list-item, [role="listitem"]', { timeout: 15000 }).catch(() => {});
+      await page.waitForSelector('.job-row, .jobResultItem, .job-list-item, [role="listitem"], tr.data-row', { timeout: 15000 }).catch(() => {});
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await page.waitForTimeout(2000);
 
       const summaries = await page.evaluate((baseUrl) => {
-        const items = Array.from(document.querySelectorAll('.job-row, .jobResultItem, .job-list-item, tr.job-row, div[role="listitem"]'));
+        const items = Array.from(document.querySelectorAll('.job-row, .jobResultItem, .job-list-item, tr.job-row, div[role="listitem"], tr.data-row'));
         return items.map(row => {
           const link = row.querySelector('.jobTitle-link, .jobTitle, a.job-link, a.job-title-link, a[role="link"], a') as HTMLAnchorElement;
           if (!link) return null;
