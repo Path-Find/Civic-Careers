@@ -93,7 +93,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=TOWNOFOA&cws=43', 'Town of Oakville') },
   { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://milton.wd10.myworkdayjobs.com/TownOfMilton', 'Town of Milton') },
   { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://jobs.mississauga.ca/search/', 'Mississauga', 'https://jobs.mississauga.ca') },
-  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://brampton.wd3.myworkdayjobs.com/Brampton_External_Careers', 'City of Brampton') },
+  { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.brampton.ca/search/', 'City of Brampton') },
   { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://vaughan.njoyn.com/cl4/xweb/xweb.asp?tbtoken=ZlpRRhcXCB8GYwF0NyVccitLdGZfcVVMf0gjV1oMExdbW0UZXUcbBhdxcBEbURRTSXUuX30%3D&chk=ZVpaShM%3D&CLID=52423&page=joblisting', 'City of Vaughan') },
   { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=COSC&cws=37', 'City of St. Catharines') },
   { engine: 'avanti', run: (db, ctx) => scrapeAvanti(db, ctx, 'https://welland.myavanti.ca/careers', 'City of Welland') },
