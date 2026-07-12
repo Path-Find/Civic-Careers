@@ -10,7 +10,6 @@ import { scrapeWorkland } from './engines/workland';
 import { scrapeJibe } from './engines/jibe';
 import { scrapeADP } from './engines/adp';
 import { scrapeWorkday } from './engines/workday';
-import { scrapeCSOD } from './engines/csod';
 import { scrapePeterborough, scrapeSmithsFalls, scrapeVaughanPL } from './engines/custom';
 
 async function main() {
@@ -40,12 +39,6 @@ async function main() {
   await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=b1fead40-7a8c-4b14-87a0-dc031bab192d&ccId=19000101_000001&lang=en_CA', 'Town of Aurora');
   await scrapeJobs2Web(db, context, 'https://jobs.richmondhill.ca/search/', 'City of Richmond Hill');
   await scrapeVaughanPL(db, context);
-
-  // Cornerstone OnDemand (CSOD) — new engine, added 2026-07-12 (batch 4)
-  await scrapeCSOD(db, context, 'https://georgebrown.csod.com/ux/ats/careersite/4/home?c=georgebrown&lang=en-US', 'George Brown College');
-  await scrapeCSOD(db, context, 'https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege', 'Mohawk College');
-  await scrapeCSOD(db, context, 'https://durham.csod.com/ux/ats/careersite/4/home?c=durham', 'Durham College');
-  await scrapeCSOD(db, context, 'https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu', 'Ontario Tech University');
 
   await browser.close();
   process.exit(0);

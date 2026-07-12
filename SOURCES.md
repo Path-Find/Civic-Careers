@@ -2,7 +2,7 @@
 
 This document tracks **all active** job portals currently scraped by GovJobs, grouped by scraping engine (see `scraper/engines/`) rather than by region — that's the axis that actually matters for maintenance, since a bug in one engine (e.g. Workday pagination) affects every source in that group at once.
 
-**Total active: 66** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there).
+**Total active: 70** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there).
 
 See [PENDING.md](PENDING.md) for sources not yet active, with notes on status and blockers.
 
@@ -23,6 +23,13 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 
 - **City of Hamilton** — [Careers](https://cityofhamilton.bamboohr.com/careers)
 - **CreateTO** — [Careers](https://createto.ca/about-us/careers)
+
+## CSOD / Cornerstone OnDemand (4)
+
+- **Durham College** — [Home](https://durham.csod.com/ux/ats/careersite/4/home?c=durham)
+- **George Brown College** — [Home](https://georgebrown.csod.com/ux/ats/careersite/4/home?c=georgebrown&lang=en-US)
+- **Mohawk College** — [Home](https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege)
+- **Ontario Tech University** — [Home](https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu)
 
 ## Custom (11)
 

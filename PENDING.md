@@ -75,10 +75,6 @@ Names-only backlog expanded: 2026-07-12 (no URL research yet). Manitoba added 20
 
   (Complex Oracle EBS site; new portal type; no existing engine. May need dedicated scraper.)
 
-- Durham College (Cornerstone/CSOD) — https://durham.csod.com/ux/ats/careersite/4/home?c=durham
-
-  New `csod.ts` engine built 2026-07-12 (unlocks George Brown, Mohawk, Durham College, Ontario Tech at once — all same platform). Staged in `test-new-sources.ts`, verification pending.
-
 - Conestoga College — https://employment.conestogac.on.ca/
 
   **Corrected 2026-07-12.** Not Workday — a previously-staged `conestoga.wd3.myworkdayjobs.com` guess redirected straight to Workday's maintenance page (invalid tenant, not a temp outage). The real site above is a bespoke page with no obvious ATS backend — needs a custom scraper (`scraper/engines/custom.ts` pattern), same as Peterborough/Barrie/Brantford.
@@ -94,10 +90,6 @@ Names-only backlog expanded: 2026-07-12 (no URL research yet). Manitoba added 20
 - City of Greater Sudbury (PeopleSoft Fluid) — https://myjobs.greatersudbury.ca/psc/MYJOBS/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
 
   (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine.)
-
-- Ontario Tech University (Cornerstone/CSOD) — https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu
-
-  New `csod.ts` engine built 2026-07-12 — see Durham College above. Staged in `test-new-sources.ts`, verification pending.
 
 ## Ontario — names only (URL TBD)
 

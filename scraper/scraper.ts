@@ -34,6 +34,7 @@ import { scrapeRSS } from './engines/rss';
 import { scrapeJazzHR } from './engines/jazzhhr';
 import { scrapeWorkland } from './engines/workland';
 import { scrapeJibe } from './engines/jibe';
+import { scrapeCSOD } from './engines/csod';
 
 export { scrapeSuccessFactors, scrapeWorkday, scrapeWaterfront, scrapeConservationHalton, scrapeADP };
 export { urlId, scrapeRawAndStage } from './utils';
@@ -132,6 +133,10 @@ const TASKS: ScrapeTask[] = [
   { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://carleton.njoyn.com/CL2/xweb/xweb.asp?CLID=53443&page=joblisting&lang=1', 'Carleton University') },
   { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=OCADU&cws=37', 'OCAD University') },
   { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://queensu.njoyn.com/cl4/xweb/xweb.asp?page=joblisting&CLID=74827', "Queen's University") },
+  { engine: 'csod', run: (db, ctx) => scrapeCSOD(db, ctx, 'https://georgebrown.csod.com/ux/ats/careersite/4/home?c=georgebrown&lang=en-US', 'George Brown College') },
+  { engine: 'csod', run: (db, ctx) => scrapeCSOD(db, ctx, 'https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege', 'Mohawk College') },
+  { engine: 'csod', run: (db, ctx) => scrapeCSOD(db, ctx, 'https://durham.csod.com/ux/ats/careersite/4/home?c=durham', 'Durham College') },
+  { engine: 'csod', run: (db, ctx) => scrapeCSOD(db, ctx, 'https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu', 'Ontario Tech University') },
 
   // 11. Health & Other Agencies
   { engine: 'oracle', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'EFHC') },
