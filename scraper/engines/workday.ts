@@ -49,9 +49,17 @@ export async function scrapeWorkday(db: Client, context: BrowserContext, url: st
 
     const summaries = Array.from(seen.values());
     console.log(`[${sourceName}] Found ${summaries.length} jobs`);
-    for (const job of summaries) {
-      const id = job.url.split('/').filter(Boolean).pop() || urlId(job.url);
-      await scrapeRawAndStage(db, context, { ...job, id }, sourceName);
+
+    // Visiting each new job's detail page is the slow part (individual page
+    // load, not the pagination) — run a handful concurrently instead of one
+    // at a time, same pattern as parser.ts's CONCURRENCY.
+    const DETAIL_CONCURRENCY = 5;
+    for (let i = 0; i < summaries.length; i += DETAIL_CONCURRENCY) {
+      const batch = summaries.slice(i, i + DETAIL_CONCURRENCY);
+      await Promise.all(batch.map(job => {
+        const id = job.url.split('/').filter(Boolean).pop() || urlId(job.url);
+        return scrapeRawAndStage(db, context, { ...job, id }, sourceName);
+      }));
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Workday scraper is much faster on first backfill**: new job detail pages were visited one at a time; now visits several concurrently (same pattern already used for AI parsing). Matters most for large tenants like University of Ottawa, where the pagination fix surfaced over a thousand previously-hidden postings that all needed a first visit.
+
 ## [1.8.0] - 2026-07-12
 
 ### Added
