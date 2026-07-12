@@ -75,7 +75,10 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
 
   const page = await context.newPage();
   try {
-    await page.goto(job.url, { waitUntil: 'networkidle', timeout: 45000 });
+    // networkidle hangs/times out on sites with continuous background
+    // polling (confirmed on Dayforce and Njoyn job detail pages) —
+    // domcontentloaded + the existing 3s buffer below is more reliable.
+    await page.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForTimeout(3000);
 
     await handleRedirections(page);

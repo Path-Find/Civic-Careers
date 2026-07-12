@@ -6,8 +6,10 @@ export async function scrapeNjoyn(db: Client, context: BrowserContext, url: stri
   console.log(`Scraping ${sourceName} (Njoyn)...`);
   const page = await context.newPage();
   try {
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
-    await page.waitForTimeout(7000);
+    // networkidle hangs on these xweb.asp pages — same issue as Dayforce.
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForSelector('a[href*="joblisting"], .job-title a, .njoyn-job-row a', { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(3000);
 
     let hasNextPage = true;
     let pageNum = 1;

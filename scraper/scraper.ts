@@ -63,7 +63,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'dayforce', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/en-US/infrastructureontario/CANDIDATEPORTAL', 'Infrastructure Ontario') },
   { engine: 'bamboohr', run: (db, ctx) => scrapeCreateTO(db, ctx) },
   { engine: 'custom', run: (db, ctx) => scrapeBarrie(db, ctx) },
-  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://cityofoshawa.njoyn.com/CL/xweb/Xweb.asp?tbtoken=ZlxYRhoXCBtxZi4lLkAuJF4DNyQmCFQ9dmxEcFFZe0ggUikFE2BcKkocUDcTdmUELiUuQC4kXgkbVRdUT3NsF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=126638', 'City of Oshawa') },
+  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://cityofoshawa.njoyn.com/CL/xweb/Xweb.asp?page=joblisting&CLID=126638', 'City of Oshawa') },
   { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://ajax.wd10.myworkdayjobs.com/Ajax', 'Town of Ajax') },
   { engine: 'ultipro', run: (db, ctx) => scrapeUltiPro(db, ctx, 'https://recruiting.ultipro.ca/COR5003CALED/JobBoard/55e2803a-385b-47b1-b911-51dd7ed81d1e/?q=&o=postedDateDesc', 'Town of Caledon') },
   { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://niagarafalls.wd10.myworkdayjobs.com/CNF', 'City of Niagara Falls') },
@@ -94,7 +94,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://milton.wd10.myworkdayjobs.com/TownOfMilton', 'Town of Milton') },
   { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://jobs.mississauga.ca/search/', 'Mississauga', 'https://jobs.mississauga.ca') },
   { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.brampton.ca/search/', 'City of Brampton') },
-  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://vaughan.njoyn.com/cl4/xweb/xweb.asp?tbtoken=ZlpRRhcXCB8GYwF0NyVccitLdGZfcVVMf0gjV1oMExdbW0UZXUcbBhdxcBEbURRTSXUuX30%3D&chk=ZVpaShM%3D&CLID=52423&page=joblisting', 'City of Vaughan') },
+  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://cityofvaughan.njoyn.com/cl4/xweb/Xweb.asp?page=joblisting&CLID=74035', 'City of Vaughan') },
   { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=COSC&cws=37', 'City of St. Catharines') },
   { engine: 'avanti', run: (db, ctx) => scrapeAvanti(db, ctx, 'https://welland.myavanti.ca/careers', 'City of Welland') },
   { engine: 'custom', run: (db, ctx) => scrapeBrantford(db, ctx) },
@@ -105,6 +105,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'jazzhr', run: (db, ctx) => scrapeJazzHR(db, ctx, 'https://cityofwindsor.applytojob.com/apply/', 'City of Windsor', 'windsor') },
   { engine: 'adp', run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=9ba4d624-1cab-4482-861f-900704c3df0d&ccId=19000101_000001&lang=en_CA', 'City of Sarnia') },
   { engine: 'dayforce', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/en-CA/stthomas/CANDIDATEPORTAL', 'City of St. Thomas') },
+  { engine: 'dayforce', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/en-US/orangeville/CANDIDATEPORTAL', 'Town of Orangeville') },
   { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.regionofwaterloo.ca/RoW/search/', 'Region of Waterloo') },
 
   // 8. Northern Ontario
@@ -120,7 +121,7 @@ const TASKS: ScrapeTask[] = [
   // 10. Higher Education (Colleges & Universities)
   { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.utoronto.ca/search/', 'University of Toronto') },
   { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=SENECOLL4&cws=42', 'Seneca College') },
-  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://centennial.njoyn.com/CL3/xweb/Xweb.asp?tbtoken=ZVtfSx5cDVBzZXR3NV0nFE9NcmMsaVVfdCRMIit6CnkrUEVqLEsechQDd0AYGhBUQXJjF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=56827', 'Centennial College') },
+  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://centennial.njoyn.com/CL3/xweb/Xweb.asp?page=joblisting&CLID=56827', 'Centennial College') },
   { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://uwaterloo.wd3.myworkdayjobs.com/uw_careers', 'University of Waterloo') },
   { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://brocku.wd3.myworkdayjobs.com/brocku_careers', 'Brock University') },
   { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://sheridan.njoyn.com/CL3/xweb/xweb.asp?page=joblisting&CLID=55117', 'Sheridan College') },
@@ -129,7 +130,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://algonquincollege.wd3.myworkdayjobs.com/CareerOpportunities', 'Algonquin College') },
   { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://carleton.njoyn.com/CL2/xweb/xweb.asp?CLID=53443&page=joblisting&lang=1', 'Carleton University') },
   { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=OCADU&cws=37', 'OCAD University') },
-  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://queensu.njoyn.com/cl4/xweb/xweb.asp?tbtoken=ZVhfShpRDVAFFwd5TSQgFU84BhVfaVVYA1RMWysEf3lfXjUeWkYYcxN2cUwYGhJWQXJjF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=74827', "Queen's University") },
+  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://queensu.njoyn.com/cl4/xweb/xweb.asp?page=joblisting&CLID=74827', "Queen's University") },
 
   // 11. Health & Other Agencies
   { engine: 'oracle', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'EFHC') },
