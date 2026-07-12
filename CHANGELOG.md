@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **City of Brampton jobs were completely missing**: the city migrated their careers site off Workday to a new platform a while back; our scraper still pointed at the old, now-dead Workday tenant. Updated to their current site.
+- **City of Brampton and City of Kitchener jobs were completely missing**: Brampton had migrated off Workday to a new site entirely (scraper still pointed at their old, dead Workday tenant — fixed the URL). Both Brampton and Kitchener also use a newer card-based page layout that our jobs2web selector (which required a `<table>` wrapper) didn't match. Broadened the selector to work with both layouts. Verified: both went from 0 to real job counts.
 - **City of Toronto jobs were undercounted 61 → 4**: scraper URL was a landing page, not the actual results page. Fixed the URL and added a missing row-selector variant used by some SuccessFactors tenants. Verified: 4 → 55 jobs on next scrape.
 - **Dayforce sources (TRCA, Infrastructure Ontario, City of St. Thomas) found zero jobs, partial fix**: the job-list page load used a wait condition (`networkidle`) that Dayforce's site never actually reaches, so it timed out before finding anything. Fixed for the list page — TRCA now finds all 18 listed jobs. Individual job detail pages still hit the same timeout (shared code, not yet fixed) so postings aren't fully saved yet.
 

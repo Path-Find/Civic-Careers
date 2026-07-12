@@ -14,10 +14,10 @@ export async function scrapeJobs2Web(db: Client, context: BrowserContext, portal
       console.log(`[${sourceName}] startrow=${startRow}...`);
       await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
       await page.waitForTimeout(3000);
-      await page.waitForSelector('table a[href*="/job/"]', { timeout: 15000 }).catch(() => {});
+      await page.waitForSelector('a[href*="/job/"]', { timeout: 15000 }).catch(() => {});
 
       const summaries = await page.evaluate((baseUrl) => {
-        return Array.from(document.querySelectorAll('table a[href*="/job/"]'))
+        return Array.from(document.querySelectorAll('a[href*="/job/"]'))
           .map(l => {
             const href = (l as HTMLAnchorElement).getAttribute('href') || '';
             return {
