@@ -152,12 +152,30 @@ async function main() {
 
   console.log(`--- STARTING SCRAPE RUN${engineFilter ? ` (engine: ${engineFilter})` : ''} — ${tasks.length} source(s) ---`);
 
+  const startedAt = new Date().toISOString();
   for (const task of tasks) {
     await task.run(db, context);
   }
 
   console.log('All scraping tasks complete.');
   await browser.close();
+
+  if (process.env.DISCORD_WEBHOOK_URL) {
+    const result = await db.execute({
+      sql: `SELECT COUNT(*) as n FROM raw_jobs WHERE scraped_at >= ?`,
+      args: [startedAt],
+    });
+    const jobCount = result.rows[0]?.n ?? 0;
+    const label = engineFilter ?? 'all';
+    await fetch(process.env.DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'GovJobs',
+        content: `Scrape finished (${label}): ${tasks.length} source(s), ${jobCount} job posting(s).`,
+      }),
+    });
+  }
 }
 
 if (require.main === module) {

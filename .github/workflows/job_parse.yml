@@ -1,0 +1,42 @@
+name: Job Feed Parse
+
+on:
+  schedule:
+    - cron: '30 10 * * 1,4' # Run Mon and Thu at 6:30 AM EDT (10:30 AM UTC) — off-peak for DeepSeek pricing, and after the 3 AM scrape has had time to finish
+  workflow_dispatch: # Allow manual runs
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: scraper/package-lock.json
+
+      - name: Install dependencies
+        run: cd scraper && npm install
+
+      - name: Run Parser
+        env:
+          TURSO_URL: ${{ secrets.TURSO_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          AI_MODEL: "deepseek-chat"
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: cd scraper && npx tsx parser.ts
+
+      - name: Notify Discord on failure
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -sf -H "Content-Type: application/json" -X POST -d "$(cat <<EOF
+          {"username": "GovJobs", "content": "Parse failed\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}
+          EOF
+          )" "$DISCORD_WEBHOOK_URL"
