@@ -81,6 +81,7 @@ jobs:
 
   parse:
     needs: scrape
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
 
     steps:
