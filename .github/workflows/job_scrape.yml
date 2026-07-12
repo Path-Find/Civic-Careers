@@ -3,14 +3,15 @@ name: Job Feed Scrape
 on:
   schedule:
     - cron: '30 10 * * 1,4' # Run Mon and Thu at 6:30 AM EDT (10:30 AM UTC) — off-peak for DeepSeek pricing
-  workflow_dispatch: # Allow manual runs
-
-jobs:
-  scrape:
-    strategy:
-      fail-fast: false
-      matrix:
-        engine:
+  workflow_dispatch: # Allow manual runs, scoped to one engine or all of them
+    inputs:
+      engine:
+        description: 'Engine to scrape (all = every engine, the full production run)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
           - successfactors
           - workday
           - njoyn
@@ -30,6 +31,27 @@ jobs:
           - jazzhr
           - workland
           - jibe
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      engines: ${{ steps.set.outputs.engines }}
+    steps:
+      - id: set
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.engine }}" = "all" ] || [ -z "${{ inputs.engine }}" ]; then
+            echo 'engines=["successfactors","workday","njoyn","oracle","dayforce","jobs2web","icims","hrsmart","ultipro","adp","taleo","avanti","bamboohr","talentpoolbuilder","custom","rss","jazzhr","workland","jibe"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'engines=["${{ inputs.engine }}"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  scrape:
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: ${{ fromJSON(needs.setup.outputs.engines) }}
     runs-on: ubuntu-latest
 
     steps:
