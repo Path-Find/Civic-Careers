@@ -3,7 +3,7 @@
 Sources that have been identified but are not yet scraped, with notes on why.
 
 Last synced with scraper/scraper.ts: 2026-07-06  
-Names-only backlog expanded: 2026-07-12 (no URL research yet).
+Names-only backlog expanded: 2026-07-12 (no URL research yet). Manitoba added 2026-07-12 as the first out-of-province expansion — English-speaking, no French-parsing gap.
 
 ## Needs a new engine
 
@@ -11,33 +11,25 @@ Names-only backlog expanded: 2026-07-12 (no URL research yet).
 
 ## Engine ready, URL needed
 
-- City of Guelph (iCIMS) — https://careers-guelph.icims.com/jobs/search?ss=1&hashed=-435770267&mobile=false&width=1440&height=500&bga=true&needsRedirect=false&jan1offset=-300&jun1offset=-240
+- City of Guelph (iCIMS) — https://careers-guelph.icims.com/jobs/search?ss=1
 
-  (iCIMS engine exists and used for Peel; similar structure.)
+  **Tried 2026-07-12, blocked.** URL loads an iCIMS-branded iframe wrapping the City of Guelph's own site chrome, but the actual job table doesn't render within the frame the standard selector finds — same "needs interaction/search submission" symptom as issues #32 (SuccessFactors) and #35 (Njoyn). Not a quick selector swap; needs the same investigation as those.
 
 - Toronto Metropolitan University (PeopleSoft Fluid) — https://careers.torontomu.ca/psc/hrcgprd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
 
-  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine.)
+  **Investigated 2026-07-12.** Job list is virtualized/scroll-loaded (only 1 of ~77 job elements in the DOM at once) — needs real new-engine work (scroll-to-load handling), not a quick add. See also Western, McMaster, Greater Sudbury below — same PeopleSoft Fluid platform, likely one shared engine covers all four.
 
-- George Brown College (Cornerstone/CSOD) — https://georgebrown.csod.com/ux/ats/careersite/4/home?c=georgebrown&lang=en-US
-
-  (New portal type; no existing CSOD engine. May need dedicated scraper.)
-
-- York University (Technomedia) — https://jobs-ca.technomedia.com/yorkuniversity/?_4x1F8B08000000000000FF7590BD6E83301446DFC66364F367183CD018AA6C91226664E036716A6CEBDAA8E5ED5B12C664BBC33947FAEE60ECE5E67ECE0EA33267750511710112BE61FD042B572B58555439E759D2B38231969679CFBABCA72C292869D1CDF794D2A7E5D18D10C229C22CFCA378B8BBC1BB10B5BD1E368EA053935DE601F07538D9C308232E3A02D6E396145FCA04200EA74D24A332067059F4F4BAC2F6CAA483376A7DAEDB97FDDF4236972379AF67D5EE6BAB63D79DE41B6CA7C2EF283C6A1B337C3C4EB4BCE465D356AD64755236F551E645CD69937EE432294AFA07C2520D1D75010000
+- York University (Technomedia) — https://jobs-ca.technomedia.com/yorkuniversity/
 
   (New portal type; no existing Technomedia engine. May need dedicated scraper.)
 
 - Humber College (Taleo) — https://humber.taleo.net/careersection/hbr_ex/jobsearch.ftl?lang=en
 
-  (Taleo engine exists; similar to Oakville and St. Catharines.)
+  **Tried 2026-07-12, blocked.** Page shows "Job Openings 1-12 of 12" and real facet counts, but this tenant's template renders zero `<a href>` job links anywhere on the page (checked broadly, not just the `h4 a[href*="viewRequisition"]` selector used for Oakville/St. Catharines) — likely a different/newer Taleo Career Section template using JS click handlers instead of hrefs. Needs deeper DOM investigation before the existing Taleo engine can be reused.
 
 - Western University (PeopleSoft Fluid) — https://recruit.uwo.ca/psc/hrprdwebER/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
 
-  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine.)
-
-- Fanshawe College (Workday) — https://fanshawec.wd3.myworkdayjobs.com/fanshawecareers?_gl=1*8d8f9b*_gcl_au*MTU3MzMwMzUzNi4xNzgzMzU1MDk5*_ga*MTU4MjUwNDQ4MS4xNzgzMzU1MDk5*_ga_VVLLFESQ6F*czE3ODMzNTUwOTgkbzEkZzAkdDE3ODMzNTUwOTgkajYwJGwwJGg0NzI3NjQ4OTc.
-
-  (Workday engine exists; similar to other Workday portals like Brampton, Ajax, etc.)
+  (Same PeopleSoft Fluid platform as TMU above — bundle into one engine build.)
 
 - University of Niagara Falls Canada — https://www.unfc.ca/about/careers
 
@@ -45,19 +37,11 @@ Names-only backlog expanded: 2026-07-12 (no URL research yet).
 
 - McMaster University (PeopleSoft) — https://careers.mcmaster.ca/psp/prcsprd/EMPLOYEE/HRMS/c/HRS_HRAM.HRS_APP_SCHJOB.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1001&customTab=MCM_STAFF_POS&IgnoreParamTempl=customTab
 
-  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine.)
-
-- Mohawk College (Cornerstone/CSOD) — https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege
-
-  (New portal type; no existing CSOD engine. May need dedicated scraper.)
+  (Same PeopleSoft Fluid platform as TMU above — bundle into one engine build.)
 
 - St. Lawrence College — https://www.stlawrencecollege.ca/about/careers-at-slc/current-job-opportunities
 
   (New portal type; no existing engine. May need dedicated scraper.)
-
-- Government of Canada External (Taleo) — https://aa165.taleo.net/careersection/gc_external_career_site/jobsearch.ftl?lang=en&portal=8216760849
-
-  (Taleo engine exists; similar to Seneca College and Humber College.)
 
 - Lakehead University (Administrative Staff) — https://www.lakeheadu.ca/faculty-and-staff/departments/services/hr/employment-opportunities/administrative-staff
 
@@ -67,9 +51,9 @@ Names-only backlog expanded: 2026-07-12 (no URL research yet).
 
   (New portal type; no existing engine. May need dedicated scraper.)
 
-- City of Ottawa (Jobs2Web) — https://jobs-emplois.ottawa.ca/city-jobs/search/?createNewAlert=false&q=&optionsFacetsDD_department=&optionsFacetsDD_facility=&optionsFacetsDD_customfield1=
+- City of Ottawa (Jobs2Web) — https://jobs-emplois.ottawa.ca/city-jobs/search/
 
-  (Jobs2Web engine ready; similar to other /search/ portals like CMHC, London, etc.)
+  **Tried 2026-07-12, partial.** Job discovery works fine (found 74 real, correctly-titled postings). But detail pages render client-side and are slower than other Jobs2Web tenants — the standard 2s post-load buffer captures a "Loading..." placeholder instead of the actual job text, which would poison the AI parser with junk. Needs a longer/selector-based wait specifically for this tenant's detail pages before promoting. Note: production already has a separate "City of Ottawa" source via SuccessFactors (`career47.sapsf.com`, currently broken — see issue #32) — worth confirming these are genuinely two different systems (e.g. corporate vs. union postings) and not a portal migration, so we don't end up double-listing the same jobs under one source name once both work.
 
 - Kingston Frontenac Public Library — https://www.kfpl.ca/your-library/work-and-volunteer/jobs-at-the-library
 
@@ -93,11 +77,11 @@ Names-only backlog expanded: 2026-07-12 (no URL research yet).
 
 - Durham College (Cornerstone/CSOD) — https://durham.csod.com/ux/ats/careersite/4/home?c=durham
 
-  (New portal type; no existing CSOD engine. May need dedicated scraper.)
+  New `csod.ts` engine built 2026-07-12 (unlocks George Brown, Mohawk, Durham College, Ontario Tech at once — all same platform). Staged in `test-new-sources.ts`, verification pending.
 
-- Conestoga College (Workday) — https://employment.conestogac.on.ca/#current-opportunities
+- Conestoga College — https://employment.conestogac.on.ca/
 
-  (Workday engine exists; similar to other Workday portals like Brampton, Ajax, etc.)
+  **Corrected 2026-07-12.** Not Workday — a previously-staged `conestoga.wd3.myworkdayjobs.com` guess redirected straight to Workday's maintenance page (invalid tenant, not a temp outage). The real site above is a bespoke page with no obvious ATS backend — needs a custom scraper (`scraper/engines/custom.ts` pattern), same as Peterborough/Barrie/Brantford.
 
 - Laurentian University (Administrative Staff) — https://laurentian.ca/about/careers/administrative-vacancies
 
@@ -113,7 +97,7 @@ Names-only backlog expanded: 2026-07-12 (no URL research yet).
 
 - Ontario Tech University (Cornerstone/CSOD) — https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu
 
-  (New portal type; no existing CSOD engine. May need dedicated scraper.)
+  New `csod.ts` engine built 2026-07-12 — see Durham College above. Staged in `test-new-sources.ts`, verification pending.
 
 ## Ontario — names only (URL TBD)
 
@@ -311,3 +295,54 @@ Starter expansion set. **Ville de Montréal** and **Ville de Montréal (SIM)** a
 - Cégep de Sainte-Foy
 - Cégep de Limoilou
 - Cégep de Sherbrooke
+
+## Manitoba — names only (URL TBD)
+
+English-speaking, so no translation-handling gap like the Quebec set above — prioritize this province before deeper Quebec work.
+
+### Provincial & municipal
+
+- Government of Manitoba (jobsearch.gov.mb.ca — provincial portal, likely similar structure to Ontario's OPS scraper)
+- City of Winnipeg
+- City of Brandon
+- City of Steinbach
+- City of Portage la Prairie
+- City of Thompson
+- City of Selkirk
+- City of Winkler
+- City of Morden
+
+### Crown corporations & agencies
+
+- Manitoba Hydro
+- Manitoba Public Insurance (MPI)
+- Manitoba Liquor & Lotteries
+- Shared Health Manitoba (provincial health authority)
+- Manitoba Housing
+- CentreVenture (Winnipeg downtown development corp)
+
+### Universities & colleges
+
+- University of Manitoba
+- University of Winnipeg
+- Brandon University
+- Université de Saint-Boniface
+- Canadian Mennonite University
+- Red River College Polytechnic
+- Assiniboine Community College
+- University College of the North
+
+### Transit, police & libraries
+
+- Winnipeg Transit
+- Winnipeg Police Service
+- Winnipeg Public Library
+
+### School divisions (major only)
+
+- Winnipeg School Division
+- Pembina Trails School Division
+- Louis Riel School Division
+- Seven Oaks School Division
+- River East Transcona School Division
+- St. James-Assiniboia School Division

@@ -10,8 +10,7 @@ import { scrapeWorkland } from './engines/workland';
 import { scrapeJibe } from './engines/jibe';
 import { scrapeADP } from './engines/adp';
 import { scrapeWorkday } from './engines/workday';
-import { scrapeICIMS } from './engines/icims';
-import { scrapeTaleo } from './engines/taleo';
+import { scrapeCSOD } from './engines/csod';
 import { scrapePeterborough, scrapeSmithsFalls, scrapeVaughanPL } from './engines/custom';
 
 async function main() {
@@ -42,13 +41,11 @@ async function main() {
   await scrapeJobs2Web(db, context, 'https://jobs.richmondhill.ca/search/', 'City of Richmond Hill');
   await scrapeVaughanPL(db, context);
 
-  // From PENDING.md backlog (2026-07-12) — existing engines, no new scraper needed
-  await scrapeICIMS(db, context, 'https://careers-guelph.icims.com/jobs/search?ss=1&hashed=-435770267&mobile=false&width=1440&height=500&bga=true&needsRedirect=false&jan1offset=-300&jun1offset=-240', 'City of Guelph');
-  await scrapeTaleo(db, context, 'https://humber.taleo.net/careersection/hbr_ex/jobsearch.ftl?lang=en', 'Humber College');
-  await scrapeTaleo(db, context, 'https://aa165.taleo.net/careersection/gc_external_career_site/jobsearch.ftl?lang=en&portal=8216760849', 'Government of Canada External');
-  await scrapeWorkday(db, context, 'https://fanshawec.wd3.myworkdayjobs.com/fanshawecareers', 'Fanshawe College');
-  await scrapeWorkday(db, context, 'https://conestoga.wd3.myworkdayjobs.com/Conestoga_Careers', 'Conestoga College');
-  await scrapeJobs2Web(db, context, 'https://jobs-emplois.ottawa.ca/city-jobs/search/', 'City of Ottawa');
+  // Cornerstone OnDemand (CSOD) — new engine, added 2026-07-12 (batch 4)
+  await scrapeCSOD(db, context, 'https://georgebrown.csod.com/ux/ats/careersite/4/home?c=georgebrown&lang=en-US', 'George Brown College');
+  await scrapeCSOD(db, context, 'https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege', 'Mohawk College');
+  await scrapeCSOD(db, context, 'https://durham.csod.com/ux/ats/careersite/4/home?c=durham', 'Durham College');
+  await scrapeCSOD(db, context, 'https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu', 'Ontario Tech University');
 
   await browser.close();
   process.exit(0);
