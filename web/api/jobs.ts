@@ -28,7 +28,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
            jd.closing_date, jd.is_inventory, jd.is_student,
            jd.salary_min, jd.salary_max, jd.salary_period,
            jd.work_model, jd.employment_type, jd.duration,
-           jd.is_unionized, jd.union_name, jd.benefits
+           jd.is_unionized, jd.union_name, jd.benefits, jd.required_skills
     FROM jobs j
     LEFT JOIN job_details jd ON j.id = jd.id
     ORDER BY j.is_active DESC, j.scraped_at DESC

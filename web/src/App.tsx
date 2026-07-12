@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import { inject } from '@vercel/analytics';
 import { renderMarkdown, formatSalary, daysUntilClose, fixCasing, slugify, formatDate } from './utils';
 
 const API = import.meta.env.VITE_API_URL ?? '';
-import { Search, ExternalLink, ChevronRight, X, ArrowLeft, ChevronDown, ChevronUp, Bookmark } from 'lucide-react';
+import { Search, ExternalLink, ChevronRight, X, ChevronDown, ChevronUp, Bookmark } from 'lucide-react';
 
 const COMPANY_PORTALS: Record<string, string> = {
   'City of Toronto': 'https://jobs.toronto.ca/jobsatcity/',
@@ -73,6 +73,7 @@ interface Job {
   is_unionized: number | null;
   union_name: string | null;
   benefits: string | null;
+  required_skills: string | null;
   description?: string | null;
   closing_date: string | null;
   url: string;
@@ -86,38 +87,6 @@ interface Job {
 }
 
 type View = 'home' | 'jobs' | 'saved' | 'companies';
-
-const ActionGroup = ({ job, onToggleSave, showBack = false, onBack, showApply = true }: { job: Job, onToggleSave: (e: React.MouseEvent) => void, showBack?: boolean, onBack?: () => void, showApply?: boolean }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-    {showApply && (
-      <a 
-        href={job.url} 
-        target="_blank" 
-        rel="noopener noreferrer" 
-        onClick={(e) => e.stopPropagation()}
-        style={{ color: '#0f172a', opacity: 0.6, display: 'flex', alignItems: 'center' }}
-        title="Apply on official portal"
-      >
-        <ExternalLink size={18} />
-      </a>
-    )}
-    <button 
-      onClick={onToggleSave}
-      style={{ border: 'none', backgroundColor: 'transparent', cursor: 'pointer', color: job.is_saved ? '#0f172a' : '#cbd5e1', padding: 0, display: 'flex' }}
-      title={job.is_saved ? "Unsave job" : "Save job"}
-    >
-      <Bookmark size={18} fill={job.is_saved ? '#0f172a' : 'transparent'} />
-    </button>
-    {showBack && onBack && (
-      <button 
-        onClick={onBack}
-        style={{ marginLeft: '1rem', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', color: '#64748b', fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-      >
-        <ArrowLeft size={20} /> Back
-      </button>
-    )}
-  </div>
-);
 
 const JobRow = ({ job, onClick }: { job: Job, onClick: () => void }) => (
   <div 
@@ -162,7 +131,7 @@ const JobRow = ({ job, onClick }: { job: Job, onClick: () => void }) => (
         const urgent = days !== null && days >= 0 && days <= 7;
         return (
           <div style={{ fontSize: '0.75rem', textAlign: 'right', fontWeight: 500, color: urgent ? '#dc2626' : '#94a3b8' }}>
-            {urgent ? `${days}d left` : formatDate(job.closing_date)}
+            {urgent ? (days === 0 ? 'Closes today' : days === 1 ? '1 day left' : `${days}d left`) : formatDate(job.closing_date)}
           </div>
         );
       })()}
@@ -224,6 +193,21 @@ function App() {
   const [closingSoon, setClosingSoon] = useState(false);
   const [showInventories, setShowInventories] = useState(false);
   const [sortNewest, setSortNewest] = useState(false);
+
+  // Sticky sidebars offset by the header's real height (it grows on the job
+  // detail page), not a guessed pixel value.
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(80);
+
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setHeaderHeight(entry.contentRect.height);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Sync state with browser history
   useEffect(() => {
@@ -333,11 +317,6 @@ function App() {
     window.history.pushState({ jobId: job.rid }, '', `/job/${job.rid}`);
   };
 
-  const handleBackToList = () => {
-    setSelectedJob(null);
-    window.history.pushState(null, '', `/${currentView === 'home' ? '' : currentView}`);
-  };
-
   const toggleSaveJob = async (job: Job, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -354,21 +333,21 @@ function App() {
     }
   };
 
-  const parseJobDetails = (job: Job) => {
-    const benefits = (() => {
-      try { const b = JSON.parse(job.benefits || '[]'); return Array.isArray(b) && b.length ? b.join(', ') : null; }
-      catch { return null; }
-    })();
-    return {
-      salary: formatSalary(job),
-      mode: job.work_model === 'On-site' ? 'In-person' : (job.work_model || null),
-      type: job.employment_type || null,
-      duration: job.duration || null,
-      union: job.is_unionized ? (job.union_name || 'Unionized') : null,
-      benefits,
-      future: (job.description || '').toLowerCase().includes('future requirements') ? 'Eligible for future requirements' : null,
-    };
+  const joinJsonArray = (raw: string | null): string | null => {
+    try { const arr = JSON.parse(raw || '[]'); return Array.isArray(arr) && arr.length ? arr.join(', ') : null; }
+    catch { return null; }
   };
+
+  const parseJobDetails = (job: Job) => ({
+    salary: formatSalary(job),
+    mode: job.work_model === 'On-site' ? 'In-person' : (job.work_model || null),
+    type: job.employment_type || null,
+    duration: job.duration || null,
+    union: job.is_unionized ? (job.union_name || 'Unionized') : null,
+    benefits: joinJsonArray(job.benefits),
+    skills: joinJsonArray(job.required_skills),
+    future: (job.description || '').toLowerCase().includes('future requirements') ? 'Eligible for future requirements' : null,
+  });
 
   const isExpired = useCallback((j: Job): boolean => {
     if (j.is_active === 0) return true;
@@ -460,7 +439,7 @@ function App() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white', color: '#0f172a', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', flexDirection: 'column' }}>
       {/* Universal Sticky Header */}
-      <header style={{ borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
+      <header ref={headerRef} style={{ borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
         <div style={{ padding: '2rem 2rem 1.5rem 2rem', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center' }}>
             <h1 onClick={reset} style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, letterSpacing: '-0.04em', cursor: 'pointer', lineHeight: 1 }}>GovJobs</h1>
@@ -474,24 +453,24 @@ function App() {
                 fontWeight: 600, 
                 color: '#64748b'
               }}>
-                <span 
-                  onClick={() => handleNavigate('jobs')} 
+                <span
+                  onClick={() => { setSortNewest(false); setClosingSoon(false); handleNavigate('jobs'); }}
                   style={{ cursor: 'pointer', color: (currentView === 'jobs' && !selectedJob) ? '#0f172a' : 'inherit' }}
                 >
                   Jobs
                 </span>
-                <span 
-                  onClick={() => handleNavigate('companies')} 
+                <span
+                  onClick={() => handleNavigate('companies')}
                   style={{ cursor: 'pointer', color: (currentView === 'companies' && !selectedJob) ? '#0f172a' : 'inherit' }}
                 >
                   Companies
                 </span>
+                <div style={{ width: '1px', height: '16px', backgroundColor: '#e2e8f0' }} />
                 <span
                   onClick={() => handleNavigate('saved')}
-                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', color: (currentView === 'saved' && !selectedJob) ? '#0f172a' : 'inherit' }}
+                  style={{ cursor: 'pointer', color: (currentView === 'saved' && !selectedJob) ? '#0f172a' : 'inherit' }}
                 >
-                  <Bookmark size={18} style={{ opacity: 0.8 }} />
-                  <span>Saved</span>
+                  Saved
                 </span>
               </nav>
 
@@ -540,11 +519,6 @@ function App() {
                 )}
               </div>
 
-              {selectedJob && (
-                <div style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem' }}>
-                  <ActionGroup job={selectedJob} onToggleSave={(e) => toggleSaveJob(selectedJob, e)} showBack onBack={handleBackToList} />
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -554,13 +528,32 @@ function App() {
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem', width: '100%', boxSizing: 'border-box', flex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '4rem', alignItems: 'start' }}>
             {/* Sidebar Metadata */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'sticky', top: '80px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'sticky', top: `${headerHeight + 20}px` }}>
               {selectedJob.closing_date && (
                 <div style={{ backgroundColor: '#fef2f2', padding: '1rem', borderRadius: '12px', border: '1px solid #fee2e2' }}>
                   <div style={{ fontSize: '0.55rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Apply By</div>
                   <div style={{ fontSize: '1.125rem', fontWeight: 900, color: '#b91c1c' }}>{formatDate(selectedJob.closing_date)}</div>
                 </div>
               )}
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <a
+                  href={selectedJob.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '0.75rem 0.5rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.8125rem', textDecoration: 'none' }}
+                >
+                  <ExternalLink size={14} />
+                  Apply
+                </a>
+                <button
+                  onClick={(e) => toggleSaveJob(selectedJob, e)}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', backgroundColor: 'white', color: selectedJob.is_saved ? '#0f172a' : '#64748b', border: '1px solid #e2e8f0', padding: '0.75rem 0.5rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.8125rem', cursor: 'pointer' }}
+                >
+                  <Bookmark size={14} fill={selectedJob.is_saved ? '#0f172a' : 'transparent'} />
+                  {selectedJob.is_saved ? 'Saved' : 'Save'}
+                </button>
+              </div>
 
               <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {[
@@ -571,6 +564,7 @@ function App() {
                   { label: 'Employment', val: currentJobDetails?.type },
                   { label: 'Duration', val: currentJobDetails?.duration },
                   { label: 'Union', val: currentJobDetails?.union },
+                  { label: 'Skills / Programs', val: currentJobDetails?.skills },
                   { label: 'Benefits', val: currentJobDetails?.benefits },
                   { label: 'Eligibility', val: currentJobDetails?.future, highlight: true }
                 ].filter(i => i.val).map(item => (
@@ -593,27 +587,17 @@ function App() {
                 >
                   {selectedJob.source}
                 </div>
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: '0 0 2rem 0', letterSpacing: '-0.04em', lineHeight: 1.1 }}>{selectedJob.job_title}</h1>
-
-                <a
-                  href={selectedJob.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#0f172a', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.875rem', textDecoration: 'none' }}
-                >
-                  <ExternalLink size={15} />
-                  View Full Posting
-                </a>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: '0 0 1.5rem 0', letterSpacing: '-0.04em', lineHeight: 1.1 }}>{selectedJob.job_title}</h1>
 
                 {selectedJob.description ? (
-                  <div style={{ marginTop: '2.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '2rem' }}>
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
                     <div
                       style={{ fontSize: '0.9rem', lineHeight: 1.7, color: '#334155' }}
                       dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedJob.description) }}
                     />
                   </div>
                 ) : (
-                  <div style={{ marginTop: '2.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div className="animate-pulse" style={{ height: '1.25rem', backgroundColor: '#f1f5f9', borderRadius: '4px', width: '80%' }} />
                     <div className="animate-pulse" style={{ height: '1.25rem', backgroundColor: '#f1f5f9', borderRadius: '4px', width: '95%' }} />
                     <div className="animate-pulse" style={{ height: '1.25rem', backgroundColor: '#f1f5f9', borderRadius: '4px', width: '60%' }} />
@@ -653,7 +637,7 @@ function App() {
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '4rem' }}>
-              <aside style={{ display: 'flex', flexDirection: 'column', position: 'sticky', top: '100px', alignSelf: 'start' }}>
+              <aside style={{ display: 'flex', flexDirection: 'column', position: 'sticky', top: `${headerHeight + 20}px`, alignSelf: 'start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: '#0f172a' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filters</span>
                 </div>
@@ -693,22 +677,8 @@ function App() {
                     <>
                       {activeCompanies.map(name => (
                         <div key={name} onClick={() => {setMinSalary(null); setSelectedModes([]); setClosingSoon(false); handleNavigate('jobs', name); }} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
-                            {COMPANY_PORTALS[name] && (
-                              <a 
-                                href={COMPANY_PORTALS[name]} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                onClick={(e) => e.stopPropagation()} 
-                                style={{ color: '#cbd5e1', display: 'inline-flex', alignItems: 'center' }}
-                                title="Visit official careers site"
-                              >
-                                <ExternalLink size={14} />
-                              </a>
-                            )}
-                          </div>
-                          <span style={{ fontSize: '0.8125rem', color: '#2563eb', fontWeight: 700 }}>{activeJobsByCompany[name].length} positions</span>
+                          <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
+                          <span style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 700 }}>{activeJobsByCompany[name].length} positions</span>
                         </div>
                       ))}
                       {inactiveCompanies.length > 0 && (
@@ -718,21 +688,7 @@ function App() {
                           </div>
                           {inactiveCompanies.map(name => (
                             <div key={name} onClick={() => {setMinSalary(null); setSelectedModes([]); setClosingSoon(false); handleNavigate('jobs', name); }} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.6 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
-                                {COMPANY_PORTALS[name] && (
-                                  <a 
-                                    href={COMPANY_PORTALS[name]} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    onClick={(e) => e.stopPropagation()} 
-                                    style={{ color: '#cbd5e1', display: 'inline-flex', alignItems: 'center' }}
-                                    title="Visit official careers site"
-                                  >
-                                    <ExternalLink size={14} />
-                                  </a>
-                                )}
-                              </div>
+                              <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
                               <span style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 700 }}>{jobsByCompany[name].length} positions (archived)</span>
                             </div>
                           ))}
