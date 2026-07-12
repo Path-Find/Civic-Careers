@@ -7,6 +7,29 @@ on:
 
 jobs:
   scrape:
+    strategy:
+      fail-fast: false
+      matrix:
+        engine:
+          - successfactors
+          - workday
+          - njoyn
+          - oracle
+          - dayforce
+          - jobs2web
+          - icims
+          - hrsmart
+          - ultipro
+          - adp
+          - taleo
+          - avanti
+          - bamboohr
+          - talentpoolbuilder
+          - custom
+          - rss
+          - jazzhr
+          - workland
+          - jibe
     runs-on: ubuntu-latest
 
     steps:
@@ -25,13 +48,31 @@ jobs:
       - name: Install Playwright Browsers
         run: cd scraper && npx playwright install chromium --with-deps
 
-      - name: Run Scraper
+      - name: Run Scraper (${{ matrix.engine }})
         env:
           TURSO_URL: ${{ secrets.TURSO_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           AI_MODEL: "deepseek-chat"
+          SCRAPE_ENGINE: ${{ matrix.engine }}
         run: cd scraper && npx tsx scraper.ts
+
+  parse:
+    needs: scrape
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: scraper/package-lock.json
+
+      - name: Install dependencies
+        run: cd scraper && npm install
 
       - name: Run Parser
         env:

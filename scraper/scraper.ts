@@ -1,5 +1,6 @@
-import { chromium } from 'playwright';
-import { initDb, cleanupExpiredJobs } from './db';
+import { chromium, BrowserContext } from 'playwright';
+import { Client } from '@libsql/client';
+import { initDb } from './db';
 import { BASE_CONFIG } from './utils';
 
 import { scrapeSuccessFactors } from './engines/successfactors';
@@ -37,105 +38,123 @@ import { scrapeJibe } from './engines/jibe';
 export { scrapeSuccessFactors, scrapeWorkday, scrapeWaterfront, scrapeConservationHalton, scrapeADP };
 export { urlId, scrapeRawAndStage } from './utils';
 
+interface ScrapeTask {
+  engine: string;
+  run: (db: Client, context: BrowserContext) => Promise<void>;
+}
+
+// Grouped by engine (not just region) so CI can run each engine as its own
+// job — a bug in one engine's pagination/DOM handling (see workday.ts) then
+// shows up as one red job instead of being buried in one aggregate log.
+const TASKS: ScrapeTask[] = [
+  // 1. Core Toronto Agencies
+  { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://career17.sapsf.com/career?company=TTCPRODUCTION&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH', 'TTC', 'https://career17.sapsf.com') },
+  { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://jobs.toronto.ca/jobsatcity/', 'City of Toronto', 'https://jobs.toronto.ca') },
+  { engine: 'oracle', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://ehtc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'Metrolinx') },
+
+  // 2. Libraries & Specialized
+  // TPL (Njoyn) blocked by Radware bot protection — cannot scrape headlessly
+  { engine: 'custom', run: (db, ctx) => scrapeWaterfront(db, ctx) },
+  { engine: 'custom', run: (db, ctx) => scrapeVaughanPL(db, ctx) },
+
+  // 3. Crown Corps & Conservation
+  { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.cmhc-schl.gc.ca/search/', 'CMHC') },
+  { engine: 'dayforce', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/trca/CANDIDATEPORTAL', 'TRCA') },
+  { engine: 'dayforce', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/en-US/infrastructureontario/CANDIDATEPORTAL', 'Infrastructure Ontario') },
+  { engine: 'bamboohr', run: (db, ctx) => scrapeCreateTO(db, ctx) },
+  { engine: 'custom', run: (db, ctx) => scrapeBarrie(db, ctx) },
+  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://cityofoshawa.njoyn.com/CL/xweb/Xweb.asp?tbtoken=ZlxYRhoXCBtxZi4lLkAuJF4DNyQmCFQ9dmxEcFFZe0ggUikFE2BcKkocUDcTdmUELiUuQC4kXgkbVRdUT3NsF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=126638', 'City of Oshawa') },
+  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://ajax.wd10.myworkdayjobs.com/Ajax', 'Town of Ajax') },
+  { engine: 'ultipro', run: (db, ctx) => scrapeUltiPro(db, ctx, 'https://recruiting.ultipro.ca/COR5003CALED/JobBoard/55e2803a-385b-47b1-b911-51dd7ed81d1e/?q=&o=postedDateDesc', 'Town of Caledon') },
+  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://niagarafalls.wd10.myworkdayjobs.com/CNF', 'City of Niagara Falls') },
+  { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.london.ca/search/', 'City of London') },
+  { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.kitchener.ca/search/', 'City of Kitchener') },
+  { engine: 'talentpoolbuilder', run: (db, ctx) => scrapeTalentPoolBuilder(db, ctx, 'https://cityofwaterloo.talentpoolbuilder.com/', 'City of Waterloo') },
+  { engine: 'custom', run: (db, ctx) => scrapeCambridge(db, ctx) },
+  { engine: 'custom', run: (db, ctx) => scrapeConservationHalton(db, ctx) },
+  { engine: 'adp', run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=09ed440f-e109-4f6f-ac03-075ea0a3a5e5&ccId=19000101_000001&lang=en_CA', 'Municipality of Clarington') },
+
+  // 4. Federal
+  { engine: 'custom', run: (db, ctx) => scrapeGC(db, ctx) },
+
+  // 5. Province of Ontario
+  { engine: 'custom', run: (db, ctx) => scrapeOPS(db, ctx) },
+
+  // 6. GTHA Regions & Cities
+  { engine: 'custom', run: (db, ctx) => scrapeDurhamRegion(db, ctx) },
+  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://whitby.wd10.myworkdayjobs.com/EXT', 'Town of Whitby') },
+  { engine: 'hrsmart', run: (db, ctx) => scrapeHRSmart(db, ctx, 'https://york.hua.hrsmart.com/hr/ats/JobSearch/viewAll', 'York Region') },
+  { engine: 'adp', run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=04bf51f8-d2dd-4641-ba92-183522f6e8b3&ccId=19000101_000001&type=MP&lang=en_CA', 'City of Markham') },
+  { engine: 'adp', run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=b1fead40-7a8c-4b14-87a0-dc031bab192d&ccId=19000101_000001&lang=en_CA', 'Town of Aurora') },
+  { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.richmondhill.ca/search/', 'City of Richmond Hill') },
+  { engine: 'icims', run: (db, ctx) => scrapeICIMS(db, ctx, 'https://careers-peelregion.icims.com/jobs/search?ss=1', 'Peel Region') },
+  { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://careers.halton.ca/search/', 'Halton Region', 'https://careers.halton.ca') },
+  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://wd10.myworkdaysite.com/recruiting/cityofburlington/cob', 'City of Burlington') },
+  { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=TOWNOFOA&cws=43', 'Town of Oakville') },
+  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://milton.wd10.myworkdayjobs.com/TownOfMilton', 'Town of Milton') },
+  { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://jobs.mississauga.ca/search/', 'Mississauga', 'https://jobs.mississauga.ca') },
+  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://brampton.wd3.myworkdayjobs.com/Brampton_External_Careers', 'City of Brampton') },
+  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://vaughan.njoyn.com/cl4/xweb/xweb.asp?tbtoken=ZlpRRhcXCB8GYwF0NyVccitLdGZfcVVMf0gjV1oMExdbW0UZXUcbBhdxcBEbURRTSXUuX30%3D&chk=ZVpaShM%3D&CLID=52423&page=joblisting', 'City of Vaughan') },
+  { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=COSC&cws=37', 'City of St. Catharines') },
+  { engine: 'avanti', run: (db, ctx) => scrapeAvanti(db, ctx, 'https://welland.myavanti.ca/careers', 'City of Welland') },
+  { engine: 'custom', run: (db, ctx) => scrapeBrantford(db, ctx) },
+  { engine: 'bamboohr', run: (db, ctx) => scrapeBambooHR(db, ctx, 'https://cityofhamilton.bamboohr.com/careers', 'City of Hamilton') },
+  { engine: 'custom', run: (db, ctx) => scrapePeterborough(db, ctx) },
+
+  // 7. Southwestern Ontario
+  { engine: 'jazzhr', run: (db, ctx) => scrapeJazzHR(db, ctx, 'https://cityofwindsor.applytojob.com/apply/', 'City of Windsor', 'windsor') },
+  { engine: 'adp', run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=9ba4d624-1cab-4482-861f-900704c3df0d&ccId=19000101_000001&lang=en_CA', 'City of Sarnia') },
+  { engine: 'dayforce', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/en-CA/stthomas/CANDIDATEPORTAL', 'City of St. Thomas') },
+  { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.regionofwaterloo.ca/RoW/search/', 'Region of Waterloo') },
+
+  // 8. Northern Ontario
+  { engine: 'jibe', run: (db, ctx) => scrapeJibe(db, ctx, 'https://careers.thunderbay.ca/careers-home/jobs', 'City of Thunder Bay', 'thunderbay') },
+
+  // 9. Eastern Ontario
+  { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://career47.sapsf.com/careers/cityofottawa/search', 'City of Ottawa', 'https://career47.sapsf.com') },
+  { engine: 'rss', run: (db, ctx) => scrapeRSS(db, ctx, 'https://careers.cityofkingston.ca/CL2/net/ResumeProcessing/RssFeedOutput.aspx?CLID=61577&lang=1', 'City of Kingston', 'kingston') },
+  { engine: 'jazzhr', run: (db, ctx) => scrapeJazzHR(db, ctx, 'https://cityofbelleville.applytojob.com/apply/', 'City of Belleville', 'belleville') },
+  { engine: 'workland', run: (db, ctx) => scrapeWorkland(db, ctx, 'https://atlas.workland.com/careers/cornwall/jobs?page=1', 'City of Cornwall', 'cornwall') },
+  { engine: 'custom', run: (db, ctx) => scrapeSmithsFalls(db, ctx) },
+
+  // 10. Higher Education (Colleges & Universities)
+  { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.utoronto.ca/search/', 'University of Toronto') },
+  { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=SENECOLL4&cws=42', 'Seneca College') },
+  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://centennial.njoyn.com/CL3/xweb/Xweb.asp?tbtoken=ZVtfSx5cDVBzZXR3NV0nFE9NcmMsaVVfdCRMIit6CnkrUEVqLEsechQDd0AYGhBUQXJjF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=56827', 'Centennial College') },
+  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://uwaterloo.wd3.myworkdayjobs.com/uw_careers', 'University of Waterloo') },
+  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://brocku.wd3.myworkdayjobs.com/brocku_careers', 'Brock University') },
+  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://sheridan.njoyn.com/CL3/xweb/xweb.asp?page=joblisting&CLID=55117', 'Sheridan College') },
+  { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.uoguelph.ca/search/', 'University of Guelph') },
+  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://uottawa.wd3.myworkdayjobs.com/en-US/uOttawa_External_Career_Site', 'University of Ottawa') },
+  { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://algonquincollege.wd3.myworkdayjobs.com/CareerOpportunities', 'Algonquin College') },
+  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://carleton.njoyn.com/CL2/xweb/xweb.asp?CLID=53443&page=joblisting&lang=1', 'Carleton University') },
+  { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=OCADU&cws=37', 'OCAD University') },
+  { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://queensu.njoyn.com/cl4/xweb/xweb.asp?tbtoken=ZVhfShpRDVAFFwd5TSQgFU84BhVfaVVYA1RMWysEf3lfXjUeWkYYcxN2cUwYGhJWQXJjF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=74827', "Queen's University") },
+
+  // 11. Health & Other Agencies
+  { engine: 'oracle', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'EFHC') },
+];
+
 async function main() {
-  const runStartedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
   const headless = !process.env.DISPLAY && process.env.CI !== 'false';
+  const engineFilter = process.env.SCRAPE_ENGINE;
+  const tasks = engineFilter ? TASKS.filter(t => t.engine === engineFilter) : TASKS;
+
+  if (engineFilter && tasks.length === 0) {
+    console.error(`No tasks found for engine "${engineFilter}"`);
+    process.exit(1);
+  }
+
   console.log(`Launching browser (headless: ${headless})...`);
   const browser = await chromium.launch({ headless });
   const context = await browser.newContext(BASE_CONFIG);
   const db = await initDb();
 
-  console.log('--- STARTING TORONTO SCRAPE RUN ---');
+  console.log(`--- STARTING SCRAPE RUN${engineFilter ? ` (engine: ${engineFilter})` : ''} — ${tasks.length} source(s) ---`);
 
-  // 1. Core Toronto Agencies
-  await scrapeSuccessFactors(db, context, 'https://career17.sapsf.com/career?company=TTCPRODUCTION&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH', 'TTC', 'https://career17.sapsf.com');
-  await scrapeSuccessFactors(db, context, 'https://jobs.toronto.ca/jobsatcity/', 'City of Toronto', 'https://jobs.toronto.ca');
-  await scrapeOracleCloud(db, context, 'https://ehtc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'Metrolinx');
-
-  // 2. Libraries & Specialized
-  // TPL (Njoyn) blocked by Radware bot protection — cannot scrape headlessly
-  await scrapeWaterfront(db, context);
-  await scrapeVaughanPL(db, context);
-
-  // 3. Crown Corps & Conservation
-  await scrapeJobs2Web(db, context, 'https://careers.cmhc-schl.gc.ca/search/', 'CMHC');
-  await scrapeDayforce(db, context, 'https://jobs.dayforcehcm.com/trca/CANDIDATEPORTAL', 'TRCA');
-  await scrapeDayforce(db, context, 'https://jobs.dayforcehcm.com/en-US/infrastructureontario/CANDIDATEPORTAL', 'Infrastructure Ontario');
-  await scrapeCreateTO(db, context);
-  await scrapeBarrie(db, context);
-  await scrapeNjoyn(db, context, 'https://cityofoshawa.njoyn.com/CL/xweb/Xweb.asp?tbtoken=ZlxYRhoXCBtxZi4lLkAuJF4DNyQmCFQ9dmxEcFFZe0ggUikFE2BcKkocUDcTdmUELiUuQC4kXgkbVRdUT3NsF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=126638', 'City of Oshawa');
-  await scrapeWorkday(db, context, 'https://ajax.wd10.myworkdayjobs.com/Ajax', 'Town of Ajax');
-  await scrapeUltiPro(db, context, 'https://recruiting.ultipro.ca/COR5003CALED/JobBoard/55e2803a-385b-47b1-b911-51dd7ed81d1e/?q=&o=postedDateDesc', 'Town of Caledon');
-  await scrapeWorkday(db, context, 'https://niagarafalls.wd10.myworkdayjobs.com/CNF', 'City of Niagara Falls');
-  await scrapeJobs2Web(db, context, 'https://careers.london.ca/search/', 'City of London');
-  await scrapeJobs2Web(db, context, 'https://jobs.kitchener.ca/search/', 'City of Kitchener');
-  await scrapeTalentPoolBuilder(db, context, 'https://cityofwaterloo.talentpoolbuilder.com/', 'City of Waterloo');
-  await scrapeCambridge(db, context);
-  await scrapeConservationHalton(db, context);
-  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=09ed440f-e109-4f6f-ac03-075ea0a3a5e5&ccId=19000101_000001&lang=en_CA', 'Municipality of Clarington');
-
-  // 4. Federal
-  await scrapeGC(db, context);
-
-  // 5. Province of Ontario
-  await scrapeOPS(db, context);
-
-  // 6. GTHA Regions & Cities
-  await scrapeDurhamRegion(db, context);
-  await scrapeWorkday(db, context, 'https://whitby.wd10.myworkdayjobs.com/EXT', 'Town of Whitby');
-  await scrapeHRSmart(db, context, 'https://york.hua.hrsmart.com/hr/ats/JobSearch/viewAll', 'York Region');
-  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=04bf51f8-d2dd-4641-ba92-183522f6e8b3&ccId=19000101_000001&type=MP&lang=en_CA', 'City of Markham');
-  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=b1fead40-7a8c-4b14-87a0-dc031bab192d&ccId=19000101_000001&lang=en_CA', 'Town of Aurora');
-  await scrapeJobs2Web(db, context, 'https://jobs.richmondhill.ca/search/', 'City of Richmond Hill');
-  await scrapeICIMS(db, context, 'https://careers-peelregion.icims.com/jobs/search?ss=1', 'Peel Region');
-  await scrapeSuccessFactors(db, context, 'https://careers.halton.ca/search/', 'Halton Region', 'https://careers.halton.ca');
-  await scrapeWorkday(db, context, 'https://wd10.myworkdaysite.com/recruiting/cityofburlington/cob', 'City of Burlington');
-  await scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=TOWNOFOA&cws=43', 'Town of Oakville');
-  await scrapeWorkday(db, context, 'https://milton.wd10.myworkdayjobs.com/TownOfMilton', 'Town of Milton');
-  await scrapeSuccessFactors(db, context, 'https://jobs.mississauga.ca/search/', 'Mississauga', 'https://jobs.mississauga.ca');
-  await scrapeWorkday(db, context, 'https://brampton.wd3.myworkdayjobs.com/Brampton_External_Careers', 'City of Brampton');
-  await scrapeNjoyn(db, context, 'https://vaughan.njoyn.com/cl4/xweb/xweb.asp?tbtoken=ZlpRRhcXCB8GYwF0NyVccitLdGZfcVVMf0gjV1oMExdbW0UZXUcbBhdxcBEbURRTSXUuX30%3D&chk=ZVpaShM%3D&CLID=52423&page=joblisting', 'City of Vaughan');
-  await scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=COSC&cws=37', 'City of St. Catharines');
-  await scrapeAvanti(db, context, 'https://welland.myavanti.ca/careers', 'City of Welland');
-  await scrapeBrantford(db, context);
-  await scrapeBambooHR(db, context, 'https://cityofhamilton.bamboohr.com/careers', 'City of Hamilton');
-  await scrapePeterborough(db, context);
-
-  // 7. Southwestern Ontario
-  await scrapeJazzHR(db, context, 'https://cityofwindsor.applytojob.com/apply/', 'City of Windsor', 'windsor');
-  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=9ba4d624-1cab-4482-861f-900704c3df0d&ccId=19000101_000001&lang=en_CA', 'City of Sarnia');
-  await scrapeDayforce(db, context, 'https://jobs.dayforcehcm.com/en-CA/stthomas/CANDIDATEPORTAL', 'City of St. Thomas');
-  await scrapeJobs2Web(db, context, 'https://careers.regionofwaterloo.ca/RoW/search/', 'Region of Waterloo');
-
-  // 8. Northern Ontario
-  await scrapeJibe(db, context, 'https://careers.thunderbay.ca/careers-home/jobs', 'City of Thunder Bay', 'thunderbay');
-
-  // 9. Eastern Ontario
-  await scrapeSuccessFactors(db, context, 'https://career47.sapsf.com/careers/cityofottawa/search', 'City of Ottawa', 'https://career47.sapsf.com');
-  await scrapeRSS(db, context, 'https://careers.cityofkingston.ca/CL2/net/ResumeProcessing/RssFeedOutput.aspx?CLID=61577&lang=1', 'City of Kingston', 'kingston');
-  await scrapeJazzHR(db, context, 'https://cityofbelleville.applytojob.com/apply/', 'City of Belleville', 'belleville');
-  await scrapeWorkland(db, context, 'https://atlas.workland.com/careers/cornwall/jobs?page=1', 'City of Cornwall', 'cornwall');
-  await scrapeSmithsFalls(db, context);
-
-  // 10. Higher Education (Colleges & Universities)
-  await scrapeJobs2Web(db, context, 'https://jobs.utoronto.ca/search/', 'University of Toronto');
-  await scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=SENECOLL4&cws=42', 'Seneca College');
-  await scrapeNjoyn(db, context, 'https://centennial.njoyn.com/CL3/xweb/Xweb.asp?tbtoken=ZVtfSx5cDVBzZXR3NV0nFE9NcmMsaVVfdCRMIit6CnkrUEVqLEsechQDd0AYGhBUQXJjF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=56827', 'Centennial College');
-  await scrapeWorkday(db, context, 'https://uwaterloo.wd3.myworkdayjobs.com/uw_careers', 'University of Waterloo');
-  await scrapeWorkday(db, context, 'https://brocku.wd3.myworkdayjobs.com/brocku_careers', 'Brock University');
-  await scrapeNjoyn(db, context, 'https://sheridan.njoyn.com/CL3/xweb/xweb.asp?page=joblisting&CLID=55117', 'Sheridan College');
-  await scrapeJobs2Web(db, context, 'https://careers.uoguelph.ca/search/', 'University of Guelph');
-  await scrapeWorkday(db, context, 'https://uottawa.wd3.myworkdayjobs.com/en-US/uOttawa_External_Career_Site', 'University of Ottawa');
-  await scrapeWorkday(db, context, 'https://algonquincollege.wd3.myworkdayjobs.com/CareerOpportunities', 'Algonquin College');
-  await scrapeNjoyn(db, context, 'https://carleton.njoyn.com/CL2/xweb/xweb.asp?CLID=53443&page=joblisting&lang=1', 'Carleton University');
-  await scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=OCADU&cws=37', 'OCAD University');
-  await scrapeNjoyn(db, context, 'https://queensu.njoyn.com/cl4/xweb/xweb.asp?tbtoken=ZVhfShpRDVAFFwd5TSQgFU84BhVfaVVYA1RMWysEf3lfXjUeWkYYcxN2cUwYGhJWQXJjF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=74827', 'Queen\'s University');
-
-  // 11. Health & Other Agencies
-  await scrapeOracleCloud(db, context, 'https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'EFHC');
-
-  console.log('\nCleaning up expired jobs...');
-  await cleanupExpiredJobs(db, runStartedAt);
+  for (const task of tasks) {
+    await task.run(db, context);
+  }
 
   console.log('All scraping tasks complete.');
   await browser.close();
