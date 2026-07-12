@@ -107,6 +107,21 @@ describe('validateParsedJob', () => {
       assert.equal(validateParsedJob({ ...BASE, work_model: 'unknown' })?.work_model, 'On-site');
       assert.equal(validateParsedJob({ ...BASE, work_model: null })?.work_model, 'On-site');
     });
+
+    it('falls back to the job title when the AI misses a delivery-format signal', () => {
+      assert.equal(
+        validateParsedJob({ ...BASE, job_title: 'Teaching Assistant - Machine Learning (Online)', work_model: 'On-site' })?.work_model,
+        'Remote'
+      );
+      assert.equal(
+        validateParsedJob({ ...BASE, job_title: 'Course XYZ (Virtual)', work_model: null })?.work_model,
+        'Remote'
+      );
+      assert.equal(
+        validateParsedJob({ ...BASE, job_title: 'Planner I', work_model: 'On-site' })?.work_model,
+        'On-site'
+      );
+    });
   });
 
   describe('employment_type normalization', () => {
@@ -172,6 +187,53 @@ describe('validateParsedJob', () => {
     it('returns empty array for null/missing', () => {
       assert.deepEqual(validateParsedJob({ ...BASE, benefits: null })?.benefits, []);
       assert.deepEqual(validateParsedJob({ ...BASE, benefits: undefined })?.benefits, []);
+    });
+  });
+
+  describe('required_skills normalization', () => {
+    it('passes through arrays', () => {
+      const result = validateParsedJob({ ...BASE, required_skills: ['Excel', 'AutoCAD'] });
+      assert.deepEqual(result?.required_skills, ['Excel', 'AutoCAD']);
+    });
+
+    it('splits comma-separated strings', () => {
+      const result = validateParsedJob({ ...BASE, required_skills: 'Excel, SQL, AutoCAD' });
+      assert.deepEqual(result?.required_skills, ['Excel', 'SQL', 'AutoCAD']);
+    });
+
+    it('returns empty array for null/missing', () => {
+      assert.deepEqual(validateParsedJob({ ...BASE, required_skills: null })?.required_skills, []);
+      assert.deepEqual(validateParsedJob({ ...BASE, required_skills: undefined })?.required_skills, []);
+    });
+  });
+
+  describe('clean_description safety net', () => {
+    it('drops sections whose body is a placeholder', () => {
+      const result = validateParsedJob({
+        ...BASE,
+        clean_description: '## Qualifications\nMust have a degree.\n\n## Nice to Have\nNone\n\n## Compensation & Benefits\nPension included.',
+      });
+      assert.ok(!result?.clean_description.includes('Nice to Have'));
+      assert.ok(result?.clean_description.includes('Qualifications'));
+      assert.ok(result?.clean_description.includes('Compensation & Benefits'));
+    });
+
+    it('drops sections with an empty body', () => {
+      const result = validateParsedJob({
+        ...BASE,
+        clean_description: '## Qualifications\nMust have a degree.\n\n## Nice to Have\n\n## Compensation & Benefits\nPension included.',
+      });
+      assert.ok(!result?.clean_description.includes('Nice to Have'));
+    });
+
+    it('converts numbered lists to bullets', () => {
+      const result = validateParsedJob({
+        ...BASE,
+        clean_description: '## Qualifications\n1. Degree required.\n2. Experience required.',
+      });
+      assert.ok(result?.clean_description.includes('- Degree required.'));
+      assert.ok(result?.clean_description.includes('- Experience required.'));
+      assert.ok(!result?.clean_description.includes('1. Degree'));
     });
   });
 });

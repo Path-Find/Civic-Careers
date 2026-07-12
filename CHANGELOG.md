@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Skills/programs extraction**: postings now surface named tools/software (Excel, Python, AutoCAD, etc.) as a dedicated field on the job detail page.
+
+### Fixed
+- **Job description cleanup**: removed empty section headers ("Nice to Have" showing with no content), org boilerplate (land acknowledgements, employer awards/taglines), and inconsistent numbered/bulleted lists from parsed descriptions.
+- **Responsibilities/Qualifications bloat**: verbose corporate and legal boilerplate (e.g. collective-agreement citations) is now stripped instead of reproduced, so postings read as tight bullets instead of dense paragraphs.
+- **Work mode mislabeling**: postings described as "Online" only in the title (not the body) were incorrectly shown as In-person.
+- **Salary mislabeling**: flat one-time payments (e.g. per-course academic pay) were shown as an annual salary range ("/yr") instead of a flat rate.
+- **Sticky sidebar clipping**: the "Apply By" box was cut off by the header while scrolling on the job detail page.
+- **Duplicate controls**: removed the redundant header Apply/Save icons and Back button (browser back and the site title already cover navigation) — Apply and Save now live once, in the sidebar.
+- **Deadline wording**: "0d left" now reads "Closes today" and "1d left" reads "1 day left" instead of the odd zero/singular phrasing.
+- **"Jobs" nav link ignoring stale sort state**: clicking "Jobs" in the header no longer carries over sort/filter state left behind by other actions (e.g. the homepage "See more" links) — it now always resets to the default view.
+- **Workday scraper silently capped at 20 jobs per source**: the engine only knew how to load more results via an infinite-scroll "Load More" button. Tenants that instead use classic numbered pagination (Brock University, and likely University of Waterloo and University of Ottawa) were getting only their first page scraped — Brock alone was missing 442 of its 462 listed jobs. The engine now also follows numbered "next" pagination.
+
+### Changed
+- Removed the outlink icon from the Companies list rows — that page is for browsing into a company's jobs within GovJobs, not for jumping straight to their external portal before picking a role.
+- Cleaned up header nav styling (removed a stray icon, fixed off-palette colors, grouped Saved apart from Jobs/Companies) for visual consistency.
+
 ## [1.7.1] - 2026-07-11
 
 ### Changed

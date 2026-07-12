@@ -9,6 +9,7 @@ export async function scrapeWorkday(db: Client, context: BrowserContext, url: st
     await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
     await page.waitForTimeout(10000);
 
+    // Pattern 1: infinite-scroll "Load More" button (appends results to the DOM)
     let loadMore = true;
     while (loadMore) {
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -22,12 +23,31 @@ export async function scrapeWorkday(db: Client, context: BrowserContext, url: st
       }
     }
 
-    const summaries = await page.evaluate(() => {
+    const collectPageLinks = () => page.evaluate(() => {
       const links = Array.from(document.querySelectorAll('a[data-automation-id="jobTitle"]'));
       return links.map(l => ({ title: l.textContent?.trim() || '', url: (l as HTMLAnchorElement).href }))
                   .filter(j => j.title && j.url);
     });
 
+    const seen = new Map<string, { title: string; url: string }>();
+    (await collectPageLinks()).forEach(j => seen.set(j.url, j));
+
+    // Pattern 2: classic numbered pagination with a "next" button (replaces the DOM per page,
+    // no data-automation-id on these tenants — aria-label is the only reliable hook)
+    let nextBtn = await page.$('nav[aria-label="pagination"] button[aria-label="next"]');
+    let guard = 0;
+    while (nextBtn && guard < 100) {
+      const disabled = await nextBtn.getAttribute('disabled');
+      const ariaDisabled = await nextBtn.getAttribute('aria-disabled');
+      if (disabled !== null || ariaDisabled === 'true') break;
+      await nextBtn.click();
+      await page.waitForTimeout(3000);
+      (await collectPageLinks()).forEach(j => seen.set(j.url, j));
+      nextBtn = await page.$('nav[aria-label="pagination"] button[aria-label="next"]');
+      guard++;
+    }
+
+    const summaries = Array.from(seen.values());
     console.log(`[${sourceName}] Found ${summaries.length} jobs`);
     for (const job of summaries) {
       const id = job.url.split('/').filter(Boolean).pop() || urlId(job.url);

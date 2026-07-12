@@ -51,9 +51,18 @@ export async function initDb(): Promise<Client> {
       duration TEXT,
       is_unionized INTEGER,
       union_name TEXT,
-      benefits TEXT
+      benefits TEXT,
+      required_skills TEXT
     )
   `);
+
+  // CREATE TABLE IF NOT EXISTS above won't add columns to an already-existing
+  // table, so new columns need an explicit, idempotent ALTER TABLE here.
+  try {
+    await client.execute(`ALTER TABLE job_details ADD COLUMN required_skills TEXT`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
 
   return client;
 }
@@ -90,14 +99,15 @@ export async function saveJobDetails(client: Client, job: {
   is_unionized?: number;
   union_name?: string;
   benefits?: string;
+  required_skills?: string;
 }) {
   await client.execute({
     sql: `INSERT INTO job_details (
       id, job_title, department, location, salary_range, description, closing_date,
       is_inventory, is_student, salary_min, salary_max, salary_period,
-      work_model, employment_type, duration, is_unionized, union_name, benefits
+      work_model, employment_type, duration, is_unionized, union_name, benefits, required_skills
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET closing_date = excluded.closing_date`,
     args: [
       job.id, job.job_title, job.department, job.location, job.salary_range,
@@ -106,6 +116,7 @@ export async function saveJobDetails(client: Client, job: {
       job.salary_min ?? null, job.salary_max ?? null, job.salary_period ?? null,
       job.work_model ?? null, job.employment_type ?? null, job.duration ?? null,
       job.is_unionized ?? null, job.union_name ?? null, job.benefits ?? null,
+      job.required_skills ?? null,
     ],
   });
 }

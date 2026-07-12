@@ -42,6 +42,7 @@ async function main() {
           is_unionized: aiResult.is_unionized ? 1 : 0,
           union_name: aiResult.union_name,
           benefits: JSON.stringify(aiResult.benefits),
+          required_skills: JSON.stringify(aiResult.required_skills),
         });
         await markJobParsed(db, raw.id);
         done++;

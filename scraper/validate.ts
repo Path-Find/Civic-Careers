@@ -22,17 +22,22 @@ function coerceBool(v: unknown): boolean {
   return false;
 }
 
-function normalizeSalaryPeriod(v: unknown): 'yearly' | 'hourly' | 'monthly' {
+function normalizeSalaryPeriod(v: unknown): 'yearly' | 'hourly' | 'monthly' | 'flat' {
   const s = coerceString(v).toLowerCase();
   if (s.includes('hour') || s === 'hr') return 'hourly';
   if (s.includes('month')) return 'monthly';
+  if (/flat|lump.?sum|per course|one.?time|stipend|per assignment|per project|honorarium/.test(s)) return 'flat';
   return 'yearly';
 }
 
-function normalizeWorkModel(v: unknown): 'Hybrid' | 'Remote' | 'On-site' {
+// titleHint is a safety net: the AI sometimes misses delivery-format words
+// (e.g. "Course Name (Online)") that only appear in the title, not the body,
+// and falls back to the wrong default of On-site.
+function normalizeWorkModel(v: unknown, titleHint = ''): 'Hybrid' | 'Remote' | 'On-site' {
   const s = coerceString(v).toLowerCase().replace(/[\s_-]/g, '');
   if (s.includes('hybrid')) return 'Hybrid';
   if (s.includes('remote')) return 'Remote';
+  if (/\b(online|virtual|remote|distance|e-?learning|asynchronous)\b/i.test(titleHint)) return 'Remote';
   return 'On-site';
 }
 
@@ -54,10 +59,46 @@ function normalizeClosingDate(v: unknown): string | null {
   return null;
 }
 
-function normalizeBenefits(v: unknown): string[] {
+// Also used for required_skills — same shape: array or comma/semicolon list.
+function normalizeStringList(v: unknown): string[] {
   if (Array.isArray(v)) return v.map(coerceString).filter(Boolean);
   if (typeof v === 'string' && v) return v.split(/[,;]/).map(s => s.trim()).filter(Boolean);
   return [];
+}
+
+const EMPTY_SECTION_BODY = /^(none|n\/a|not applicable|not specified|not required|no additional .*)\.?$/i;
+
+// Safety net for cases where the AI ignores prompt instructions: drops
+// sections whose body is just a placeholder, and forces bullet-only lists.
+function cleanDescription(markdown: string): string {
+  if (!markdown) return markdown;
+
+  const lines = markdown.split('\n');
+  const sections: string[][] = [];
+  let current: string[] = [];
+
+  for (const line of lines) {
+    if (/^##\s+/.test(line)) {
+      if (current.length) sections.push(current);
+      current = [line];
+    } else {
+      current.push(line);
+    }
+  }
+  if (current.length) sections.push(current);
+
+  const kept = sections.filter(section => {
+    if (!/^##\s+/.test(section[0])) return true; // leading content before first header
+    const body = section.slice(1).join('\n').trim();
+    return body !== '' && !EMPTY_SECTION_BODY.test(body);
+  });
+
+  return kept
+    .map(section => section.join('\n'))
+    .join('\n')
+    .replace(/^(\s*)\d+\.\s+/gm, '$1- ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export function validateParsedJob(obj: unknown): ParsedJob | null {
@@ -75,14 +116,15 @@ export function validateParsedJob(obj: unknown): ParsedJob | null {
     salary_max: coerceNumber(o['salary_max']),
     salary_period: normalizeSalaryPeriod(o['salary_period']),
     closing_date: normalizeClosingDate(o['closing_date']),
-    work_model: normalizeWorkModel(o['work_model']),
+    work_model: normalizeWorkModel(o['work_model'], job_title),
     employment_type: normalizeEmploymentType(o['employment_type']),
     duration: coerceString(o['duration']),
     is_unionized: coerceBool(o['is_unionized']),
     union_name: coerceString(o['union_name']),
     is_student: coerceBool(o['is_student']),
     is_inventory: coerceBool(o['is_inventory']),
-    benefits: normalizeBenefits(o['benefits']),
-    clean_description: coerceString(o['clean_description']),
+    benefits: normalizeStringList(o['benefits']),
+    required_skills: normalizeStringList(o['required_skills']),
+    clean_description: cleanDescription(coerceString(o['clean_description'])),
   };
 }
