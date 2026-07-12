@@ -1,6 +1,6 @@
 import { Client } from '@libsql/client/http';
 import { BrowserContext } from 'playwright';
-import { scrapeRawAndStage } from '../utils';
+import { scrapeRawAndStage, safeGoto } from '../utils';
 
 export async function scrapeWorkland(
   db: Client,
@@ -11,7 +11,7 @@ export async function scrapeWorkland(
 ) {
   const page = await context.newPage();
   try {
-    await page.goto(listingUrl, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, listingUrl, 60000);
     await page.waitForTimeout(6000);
 
     // Handle pagination: keep clicking next until no new jobs appear

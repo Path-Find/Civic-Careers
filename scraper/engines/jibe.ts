@@ -1,6 +1,6 @@
 import { Client } from '@libsql/client/http';
 import { BrowserContext } from 'playwright';
-import { scrapeRawAndStage } from '../utils';
+import { scrapeRawAndStage, safeGoto } from '../utils';
 
 // Jibe by iCIMS — Angular SPA with infinite scroll
 export async function scrapeJibe(
@@ -12,7 +12,7 @@ export async function scrapeJibe(
 ) {
   const page = await context.newPage();
   try {
-    await page.goto(listingUrl, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, listingUrl, 60000);
     await page.waitForTimeout(5000);
 
     // Infinite scroll: keep scrolling until job count stabilises

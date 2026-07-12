@@ -1,6 +1,6 @@
 import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { urlId } from '../utils';
+import { urlId, safeGoto } from '../utils';
 import { saveRawJob } from '../db';
 
 export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: string, sourceName: string) {
@@ -8,7 +8,7 @@ export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: 
   const page = await context.newPage();
   try {
     const loadPortal = async () => {
-      await page.goto(portalUrl, { waitUntil: 'networkidle', timeout: 60000 });
+      await safeGoto(page, portalUrl, 60000);
       await page.waitForTimeout(5000);
     };
 

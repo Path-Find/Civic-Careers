@@ -1,6 +1,6 @@
 import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { urlId, scrapeRawAndStage } from '../utils';
+import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 import { saveRawJob } from '../db';
 
 export async function scrapeOPS(db: Client, context: BrowserContext) {
@@ -8,7 +8,7 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
   console.log(`Scraping ${sourceName} (OPS)...`);
   const page = await context.newPage();
   try {
-    await page.goto('https://www.gojobs.gov.on.ca/Search.aspx', { waitUntil: 'networkidle' });
+    await safeGoto(page, 'https://www.gojobs.gov.on.ca/Search.aspx');
     const searchInput = await page.$('input[type="text"]');
     if (searchInput) await searchInput.type(' ', { delay: 100 });
     const btn = await page.$('#btnSearch');
@@ -63,7 +63,7 @@ export async function scrapeGC(db: Client, context: BrowserContext) {
   console.log(`Scraping ${sourceName} (GC)...`);
   const page = await context.newPage();
   try {
-    await page.goto('https://emploisfp-psjobs.cfp-psc.gc.ca/psrs-srfp/applicant/page2440?fromMenu=true&toggleLanguage=en', { waitUntil: 'networkidle' });
+    await safeGoto(page, 'https://emploisfp-psjobs.cfp-psc.gc.ca/psrs-srfp/applicant/page2440?fromMenu=true&toggleLanguage=en');
     await page.waitForTimeout(5000);
     let hasNextPage = true;
     let pageNum = 1;
@@ -113,7 +113,7 @@ export async function scrapeWaterfront(db: Client, context: BrowserContext) {
   console.log(`Scraping ${sourceName}...`);
   const page = await context.newPage();
   try {
-    await page.goto('https://www.waterfrontoronto.ca/opportunities/join-our-team', { waitUntil: 'networkidle' });
+    await safeGoto(page, 'https://www.waterfrontoronto.ca/opportunities/join-our-team');
     const jobLinks = await page.$$eval('a', as => as
       .filter(a => a.innerText.toLowerCase().includes('view the job posting'))
       .map(a => ({ title: a.parentElement?.innerText.split('\n')[0] || 'Job Posting', url: (a as HTMLAnchorElement).href })));
@@ -134,7 +134,7 @@ export async function scrapeBarrie(db: Client, context: BrowserContext) {
   console.log(`Scraping ${sourceName}...`);
   const page = await context.newPage();
   try {
-    await page.goto(`${baseUrl}/search/`, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, `${baseUrl}/search/`, 60000);
     await page.waitForTimeout(5000);
 
     let pageNum = 1;
@@ -191,7 +191,7 @@ export async function scrapeCambridge(db: Client, context: BrowserContext) {
   console.log(`Scraping ${sourceName}...`);
   const page = await context.newPage();
   try {
-    await page.goto('https://www.cambridge.ca/mayor-city-council-government/careers-volunteering/current-opportunities/', { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, 'https://www.cambridge.ca/mayor-city-council-government/careers-volunteering/current-opportunities/', 60000);
     await page.waitForTimeout(3000);
 
     const summaries = await page.evaluate(() => {
@@ -221,7 +221,7 @@ export async function scrapeConservationHalton(db: Client, context: BrowserConte
   console.log(`Scraping ${sourceName}...`);
   const page = await context.newPage();
   try {
-    await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, pageUrl, 60000);
     await page.waitForTimeout(3000);
 
     const jobTitles = await page.evaluate(() =>
@@ -269,7 +269,7 @@ export async function scrapeDurhamRegion(db: Client, context: BrowserContext) {
   console.log(`Scraping ${sourceName}...`);
   const page = await context.newPage();
   try {
-    await page.goto(portalUrl, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, portalUrl, 60000);
     await page.waitForTimeout(2000);
 
     await page.click('a:has-text("View All Jobs")');
@@ -352,7 +352,7 @@ export async function scrapeBrantford(db: Client, context: BrowserContext) {
   const page = await context.newPage();
   try {
     for (const subUrl of subPages) {
-      await page.goto(subUrl, { waitUntil: 'networkidle', timeout: 60000 });
+      await safeGoto(page, subUrl, 60000);
       await page.waitForTimeout(2000);
 
       const jobs = await page.evaluate((base) => {
@@ -393,7 +393,7 @@ export async function scrapePeterborough(db: Client, context: BrowserContext) {
   console.log(`Scraping ${sourceName}...`);
   const page = await context.newPage();
   try {
-    await page.goto(`${base}${careersPath}`, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, `${base}${careersPath}`, 60000);
     await page.waitForTimeout(2000);
 
     const jobUrls = await page.evaluate(({ careersPath, staticSlugs }) => {
@@ -431,7 +431,7 @@ export async function scrapeVaughanPL(db: Client, context: BrowserContext) {
   console.log(`Scraping ${sourceName}...`);
   const page = await context.newPage();
   try {
-    await page.goto('https://www.vaughanpl.info/jobs', { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, 'https://www.vaughanpl.info/jobs', 60000);
     await page.waitForTimeout(2000);
 
     const jobs = await page.evaluate(() => {
@@ -464,7 +464,7 @@ export async function scrapeSmithsFalls(db: Client, context: BrowserContext) {
   console.log(`Scraping ${sourceName}...`);
   const page = await context.newPage();
   try {
-    await page.goto(`${base}${careersPath}/`, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, `${base}${careersPath}/`, 60000);
     await page.waitForTimeout(2000);
 
     const jobUrls = await page.evaluate(({ careersPath }) => {

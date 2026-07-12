@@ -1,12 +1,12 @@
 import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { urlId, scrapeRawAndStage } from '../utils';
+import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 
 export async function scrapeHRSmart(db: Client, context: BrowserContext, url: string, sourceName: string) {
   console.log(`Scraping ${sourceName} (HRSmart)...`);
   const page = await context.newPage();
   try {
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, url, 60000);
     await page.waitForTimeout(7000);
     let hasNextPage = true;
     let pageNum = 1;

@@ -7,6 +7,16 @@ export function urlId(url: string): string {
   return createHash('sha256').update(url).digest('hex').substring(0, 12);
 }
 
+// Shared page-load helper for every engine. 'networkidle' hangs/times out on
+// sites with continuous background polling (confirmed on Dayforce and Njoyn,
+// and the same fix was independently re-applied in scrapeRawAndStage below —
+// this is why it's centralized here now instead of staying duplicated
+// per-engine). domcontentloaded + a settle buffer is more reliable.
+export async function safeGoto(page: Page, url: string, timeout = 60000): Promise<void> {
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
+  await page.waitForTimeout(2000);
+}
+
 export interface JobSummary {
   id: string;
   title?: string;
@@ -51,8 +61,8 @@ export async function handleRedirections(page: Page, depth = 0): Promise<boolean
 
     if (externalLink.length > 0 && externalLink[0]) {
       console.log(`   [Redirect Lvl ${depth + 1}] ${externalLink[0].substring(0, 50)}...`);
-      await page.goto(externalLink[0], { waitUntil: 'networkidle', timeout: 60000 });
-      await page.waitForTimeout(5000);
+      await safeGoto(page, externalLink[0], 60000);
+      await page.waitForTimeout(3000);
       return await handleRedirections(page, depth + 1);
     }
   }
@@ -75,11 +85,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
 
   const page = await context.newPage();
   try {
-    // networkidle hangs/times out on sites with continuous background
-    // polling (confirmed on Dayforce and Njoyn job detail pages) —
-    // domcontentloaded + the existing 3s buffer below is more reliable.
-    await page.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-    await page.waitForTimeout(3000);
+    await safeGoto(page, job.url, 45000);
 
     await handleRedirections(page);
     await page.waitForSelector('body', { timeout: 10000 });

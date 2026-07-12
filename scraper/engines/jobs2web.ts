@@ -1,6 +1,6 @@
 import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { urlId, scrapeRawAndStage } from '../utils';
+import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 
 export async function scrapeJobs2Web(db: Client, context: BrowserContext, portalUrl: string, sourceName: string) {
   const baseUrl = new URL(portalUrl).origin;
@@ -12,7 +12,7 @@ export async function scrapeJobs2Web(db: Client, context: BrowserContext, portal
     while (hasMore) {
       const url = `${baseUrl}/search/?q=&sortColumn=referencedate&sortDirection=desc&startrow=${startRow}`;
       console.log(`[${sourceName}] startrow=${startRow}...`);
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+      await safeGoto(page, url, 60000);
       await page.waitForTimeout(3000);
       await page.waitForSelector('a[href*="/job/"]', { timeout: 15000 }).catch(() => {});
 

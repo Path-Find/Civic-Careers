@@ -1,13 +1,13 @@
 import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { urlId, scrapeRawAndStage } from '../utils';
+import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 
 export async function scrapeAvanti(db: Client, context: BrowserContext, portalUrl: string, sourceName: string) {
   const baseUrl = new URL(portalUrl).origin;
   console.log(`Scraping ${sourceName} (Avanti)...`);
   const page = await context.newPage();
   try {
-    await page.goto(portalUrl, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, portalUrl, 60000);
     await page.waitForTimeout(2000);
 
     const summaries = await page.evaluate((base) => {

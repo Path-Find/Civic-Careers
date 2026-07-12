@@ -1,12 +1,12 @@
 import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { urlId, scrapeRawAndStage } from '../utils';
+import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 
 export async function scrapeTaleo(db: Client, context: BrowserContext, searchUrl: string, sourceName: string) {
   console.log(`Scraping ${sourceName} (Taleo)...`);
   const page = await context.newPage();
   try {
-    await page.goto(searchUrl, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, searchUrl, 60000);
     await page.waitForTimeout(2000);
 
     const summaries = await page.evaluate(() => {

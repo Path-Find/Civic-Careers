@@ -1,12 +1,12 @@
 import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { urlId, scrapeRawAndStage } from '../utils';
+import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 
 export async function scrapeTalentPoolBuilder(db: Client, context: BrowserContext, portalUrl: string, sourceName: string) {
   console.log(`Scraping ${sourceName} (TalentPoolBuilder)...`);
   const page = await context.newPage();
   try {
-    await page.goto(portalUrl, { waitUntil: 'networkidle', timeout: 60000 });
+    await safeGoto(page, portalUrl, 60000);
     await page.waitForTimeout(5000);
 
     const host = new URL(portalUrl).hostname;
