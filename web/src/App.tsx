@@ -260,7 +260,7 @@ function App() {
       }
     };
     window.addEventListener('popstate', handlePopState);
-    handlePopState({} as PopStateEvent);
+    handlePopState();
     return () => window.removeEventListener('popstate', handlePopState);
   }, [jobs]);
 
