@@ -2,31 +2,22 @@
 
 Sources that have been identified but are not yet scraped, with notes on why.
 
+Last synced with scraper/scraper.ts: 2026-07-06  
+Names-only backlog expanded: 2026-07-12 (no URL research yet).
+
 ## Needs a new engine
 
 *(none currently)*
 
 ## Engine ready, URL needed
 
-- Region of Waterloo (Jobs2Web) — https://careers.regionofwaterloo.ca/RoW/search/?createNewAlert=false&q=
-
-  Note: base path `/RoW/search/` (Jobs2Web engine currently assumes `/search/` from origin in scraper/engines/jobs2web.ts — may need URL handling fix). Not yet in SOURCES.md active list.
-
 - City of Guelph (iCIMS) — https://careers-guelph.icims.com/jobs/search?ss=1&hashed=-435770267&mobile=false&width=1440&height=500&bga=true&needsRedirect=false&jan1offset=-300&jun1offset=-240
 
-  (iCIMS engine exists and used for Peel; similar structure. Not in current active list.)
+  (iCIMS engine exists and used for Peel; similar structure.)
 
 - Toronto Metropolitan University (PeopleSoft Fluid) — https://careers.torontomu.ca/psc/hrcgprd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
 
-  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine. Not yet implemented.)
-
-- University of Toronto (Jobs2Web) — https://jobs.utoronto.ca/search/?q=&utm_source=CSSearchWidget&startrow=1
-
-  (Jobs2Web engine ready; similar to other /search/ portals like CMHC, London, etc.)
-
-- Seneca College (Taleo) — https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=SENECOLL4&cws=42
-
-  (Taleo engine exists; similar to Oakville and St. Catharines.)
+  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine.)
 
 - George Brown College (Cornerstone/CSOD) — https://georgebrown.csod.com/ux/ats/careersite/4/home?c=georgebrown&lang=en-US
 
@@ -40,25 +31,13 @@ Sources that have been identified but are not yet scraped, with notes on why.
 
   (Taleo engine exists; similar to Oakville and St. Catharines.)
 
-- Centennial College (Njoyn) — https://centennial.njoyn.com/CL3/xweb/Xweb.asp?tbtoken=ZVtfSx5cDVBzZXR3NV0nFE9NcmMsaVVfdCRMIit6CnkrUEVqLEsechQDd0AYGhBUQXJjF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=56827
-
-  (Njoyn engine exists; similar to Vaughan and Oshawa.)
-
 - Western University (PeopleSoft Fluid) — https://recruit.uwo.ca/psc/hrprdwebER/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
 
-  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine. Not yet implemented.)
+  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine.)
 
 - Fanshawe College (Workday) — https://fanshawec.wd3.myworkdayjobs.com/fanshawecareers?_gl=1*8d8f9b*_gcl_au*MTU3MzMwMzUzNi4xNzgzMzU1MDk5*_ga*MTU4MjUwNDQ4MS4xNzgzMzU1MDk5*_ga_VVLLFESQ6F*czE3ODMzNTUwOTgkbzEkZzAkdDE3ODMzNTUwOTgkajYwJGwwJGg0NzI3NjQ4OTc.
 
   (Workday engine exists; similar to other Workday portals like Brampton, Ajax, etc.)
-
-- University of Waterloo (Workday) — https://uwaterloo.wd3.myworkdayjobs.com/uw_careers
-
-  (Workday engine exists; similar to other Workday portals like Brampton, Ajax, etc.)
-
-- University of Guelph (Jobs2Web) — https://careers.uoguelph.ca/search/?createNewAlert=false&q=&optionsFacetsDD_facility=&optionsFacetsDD_dept=&optionsFacetsDD_customfield1=
-
-  (Jobs2Web engine ready; similar to other /search/ portals like CMHC, London, etc.)
 
 - University of Niagara Falls Canada — https://www.unfc.ca/about/careers
 
@@ -66,11 +45,7 @@ Sources that have been identified but are not yet scraped, with notes on why.
 
 - McMaster University (PeopleSoft) — https://careers.mcmaster.ca/psp/prcsprd/EMPLOYEE/HRMS/c/HRS_HRAM.HRS_APP_SCHJOB.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1001&customTab=MCM_STAFF_POS&IgnoreParamTempl=customTab
 
-  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine. Not yet implemented.)
-
-- Brock University (Workday) — https://brocku.wd3.myworkdayjobs.com/brocku_careers
-
-  (Workday engine exists; similar to other Workday portals like Brampton, Ajax, etc.)
+  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine.)
 
 - Mohawk College (Cornerstone/CSOD) — https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege
 
@@ -88,22 +63,6 @@ Sources that have been identified but are not yet scraped, with notes on why.
 
   (New portal type; no existing engine. May need dedicated scraper.)
 
-- Queen's University (Njoyn) — https://queensu.njoyn.com/cl4/xweb/Xweb.asp?tbtoken=ZVhfShpRDVAFFwd5TSQgFU84BhVfaVVYA1RMWysEf3lfXjUeWkYYcxN2cUwYGhJWQXJjF3U%3D&chk=ZVpaShM%3D&page=joblisting&CLID=74827
-
-  (Njoyn engine exists; similar to Vaughan and Oshawa.)
-
-- EFHC (Oracle Cloud) — https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location
-
-  (Oracle Cloud engine exists; similar to Metrolinx.)
-
-- University of Ottawa (Workday) — https://uottawa.wd3.myworkdayjobs.com/en-US/uOttawa_External_Career_Site
-
-  (Workday engine exists; similar to other Workday portals like Brampton, Ajax, etc.)
-
-- Algonquin College (Workday) — https://algonquincollege.wd3.myworkdayjobs.com/CareerOpportunities
-
-  (Workday engine exists; similar to other Workday portals like Brampton, Ajax, etc.)
-
 - Hamilton Public Library — https://www.hpl.ca/jobs
 
   (New portal type; no existing engine. May need dedicated scraper.)
@@ -115,10 +74,6 @@ Sources that have been identified but are not yet scraped, with notes on why.
 - Kingston Frontenac Public Library — https://www.kfpl.ca/your-library/work-and-volunteer/jobs-at-the-library
 
   (New portal type; no existing engine. May need dedicated scraper.)
-
-- Town of Oakville (Taleo) — https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?act=redirectCwsV2&cws=49&org=TOWNOFOA
-
-  (Taleo engine exists; similar to St. Catharines.)
 
 - Brampton Library — https://www.bramptonlibrary.ca/careers
 
@@ -144,14 +99,6 @@ Sources that have been identified but are not yet scraped, with notes on why.
 
   (Workday engine exists; similar to other Workday portals like Brampton, Ajax, etc.)
 
-- Carleton University (Njoyn) — https://carleton.njoyn.com/CL2/xweb/xweb.asp?CLID=53443&page=joblisting&lang=1
-
-  (Njoyn engine exists; similar to Vaughan and Oshawa.)
-
-- OCAD University (Taleo) — https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=OCADU&cws=37
-
-  (Taleo engine exists; similar to St. Catharines.)
-
 - Laurentian University (Administrative Staff) — https://laurentian.ca/about/careers/administrative-vacancies
 
   (New portal type; no existing engine. May need dedicated scraper.)
@@ -162,12 +109,205 @@ Sources that have been identified but are not yet scraped, with notes on why.
 
 - City of Greater Sudbury (PeopleSoft Fluid) — https://myjobs.greatersudbury.ca/psc/MYJOBS/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
 
-  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine. Not yet implemented.)
+  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine.)
 
 - Ontario Tech University (Cornerstone/CSOD) — https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu
 
   (New portal type; no existing CSOD engine. May need dedicated scraper.)
 
-- Sheridan College (Njoyn) — https://sheridan.njoyn.com/CL3/xweb/xweb.asp?page=joblisting&CLID=55117&_gl=1*12zv320*_gcl_au*Nzg1MTc3NjM1LjE3ODMzNTY5NTk.&_ga=2.216424208.78145335.1783356959-1346696375.1783356959
+## Ontario — names only (URL TBD)
 
-  (Njoyn engine exists; similar to Centennial, Queen's, etc.)
+High-value gaps not already active or listed above. Names only; portal/engine TBD when researched.
+
+### Municipal & regional
+
+- Niagara Region
+- Simcoe County
+- City of Pickering
+- Town of Newmarket
+- Town of Halton Hills
+- City of Orillia
+- City of North Bay
+- City of Sault Ste. Marie
+- City of Timmins
+- City of Kawartha Lakes
+- Municipality of Chatham-Kent
+- City of Stratford
+- City of Woodstock
+- Norfolk County
+- Haldimand County
+- County of Brant
+- County of Wellington
+- Essex County
+- Lambton County
+- Grey County
+- Bruce County
+- Renfrew County
+- City of Quinte West
+- Town of Collingwood
+- Town of Bradford West Gwillimbury
+- Town of East Gwillimbury
+- Town of Georgina
+- Town of Whitchurch-Stouffville
+- Township of King
+- City of Port Colborne
+- City of Thorold
+- Town of Grimsby
+- Town of Fort Erie
+
+### Colleges
+
+- Niagara College
+- Georgian College
+- Fleming College
+- Loyalist College
+- St. Clair College
+- Lambton College
+- Confederation College
+- Sault College
+- Canadore College
+- Northern College
+- Collège Boréal
+- La Cité collégiale
+
+### Universities
+
+- Wilfrid Laurier University
+- University of Windsor
+- Nipissing University
+- Algoma University
+- Royal Military College of Canada
+
+### Libraries
+
+- Toronto Public Library (re-enable; previously disabled for bot protection)
+- Ottawa Public Library
+- Mississauga Library System
+- London Public Library
+- Markham Public Library
+- Oakville Public Library
+- Burlington Public Library
+- Richmond Hill Public Library
+- Kitchener Public Library
+- Waterloo Public Library
+- Guelph Public Library
+
+### Conservation authorities
+
+- Credit Valley Conservation
+- Lake Simcoe Region Conservation Authority
+- Grand River Conservation Authority
+- Niagara Peninsula Conservation Authority
+- Central Lake Ontario Conservation Authority
+
+### Crown corps & provincial agencies
+
+- Ontario Power Generation
+- Hydro One
+- LCBO
+- OLG
+- WSIB
+- Ontario Health
+- IESO
+- Ontario Energy Board
+- Ontario Clean Water Agency
+
+### Transit (if separate from municipal portals)
+
+- OC Transpo
+- MiWay
+- York Region Transit
+- Durham Region Transit
+- Brampton Transit
+- Grand River Transit
+- Hamilton Street Railway
+
+### Police services (if separate from municipal portals)
+
+- Toronto Police Service
+- Ontario Provincial Police
+- Peel Regional Police
+- York Regional Police
+- Ottawa Police Service
+
+### School boards (major boards only)
+
+- Toronto District School Board
+- Toronto Catholic District School Board
+- York Region District School Board
+- Peel District School Board
+- Halton District School Board
+- Ottawa-Carleton District School Board
+- Hamilton-Wentworth District School Board
+- Thames Valley District School Board
+- Waterloo Region District School Board
+- Durham District School Board
+
+## Quebec — names only (URL TBD)
+
+Starter expansion set. **Ville de Montréal** and **Ville de Montréal (SIM)** already listed above with URLs.
+
+### Provincial & large cities
+
+- Gouvernement du Québec (fonction publique)
+- Ville de Québec
+- Ville de Laval
+- Ville de Gatineau
+- Ville de Longueuil
+- Ville de Sherbrooke
+- Ville de Lévis
+- Ville de Trois-Rivières
+- Ville de Saguenay
+- Ville de Terrebonne
+- Ville de Brossard
+- Ville de Repentigny
+- Ville de Saint-Jérôme
+- Ville de Drummondville
+- Ville de Granby
+- Ville de Shawinigan
+- Ville de Saint-Hyacinthe
+- Ville de Blainville
+- Ville de Dollard-des-Ormeaux
+- Ville de Mirabel
+
+### Crown / agencies / transit
+
+- Hydro-Québec
+- SAQ
+- Loto-Québec
+- STM (Société de transport de Montréal)
+- Société de transport de Laval
+- Réseau de transport de Longueuil
+- Réseau de transport de la Capitale
+- Sûreté du Québec
+- Bibliothèque et Archives nationales du Québec
+- Investissement Québec
+- Société des traversiers du Québec
+- Revenu Québec
+
+### Universities
+
+- Université de Montréal
+- McGill University
+- Concordia University
+- Université Laval
+- UQAM
+- Université de Sherbrooke
+- École de technologie supérieure
+- HEC Montréal
+- Polytechnique Montréal
+- Université du Québec à Trois-Rivières
+- Université du Québec à Chicoutimi
+- Université du Québec en Outaouais
+- Bishop's University
+
+### Cégeps (sample — high enrollment)
+
+- Cégep du Vieux Montréal
+- Collège Ahuntsic
+- Collège de Maisonneuve
+- Dawson College
+- Vanier College
+- Cégep de Sainte-Foy
+- Cégep de Limoilou
+- Cégep de Sherbrooke
