@@ -5,13 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.9.0] - 2026-07-13
+
+### Added
+- Added 14 new sources, including the first outside Ontario/Quebec (City of Vancouver, City of Brandon, City of Red Deer) and support for two new job-board platforms: CSOD (George Brown, Mohawk, Durham College, Ontario Tech, Fanshawe College) and PeopleSoft Fluid (City of Winnipeg — a platform where postings have no normal browsable link, so this required a different scraping approach than every other source). Also added Humber College, City of Guelph, City of Victoria, Toronto District School Board, and Northumberland County.
 
 ### Fixed
 - **City of Brampton and City of Kitchener jobs were completely missing**: Brampton had migrated off Workday to a new site entirely (scraper still pointed at their old, dead Workday tenant — fixed the URL). Both Brampton and Kitchener also use a newer card-based page layout that our jobs2web selector (which required a `<table>` wrapper) didn't match. Broadened the selector to work with both layouts. Verified: both went from 0 to real job counts.
 - **City of Toronto jobs were undercounted 61 → 4**: scraper URL was a landing page, not the actual results page. Fixed the URL and added a missing row-selector variant used by some SuccessFactors tenants. Verified: 4 → 55 jobs on next scrape.
 - **Dayforce sources (TRCA, Infrastructure Ontario, City of St. Thomas) found zero jobs**: page loads used a wait condition (`networkidle`) that never actually resolves on Dayforce's site (nor on Njoyn's, same fix applied there), so it timed out before finding anything — including on the individual job detail page visits used by every engine. Switched to `domcontentloaded`. Verified: TRCA 0 → 18/18 jobs saved, Infrastructure Ontario 0 → 16/16, all succeeding with no timeouts.
 - **City of Oshawa, City of Vaughan, Centennial College, and Queen's University jobs were completely missing**: their scraper URLs had a hardcoded session token baked in, and those tokens had expired (Vaughan's tenant had also moved to a new subdomain and ID entirely). Switched all four to the token-free entry URL, which the site uses to issue a fresh session automatically — this also means these can't silently expire again the same way.
+- **Peel Region jobs had never appeared once since the source was added**: the scraper was reading from the wrong part of the page (a hidden branding wrapper instead of the real content frame) and using a link pattern that never matched this site's actual URLs. Same fix also unblocked two pending sources, City of Guelph and City of Victoria, promoted alongside it.
+- **Halton Region and Mississauga jobs were completely missing**: the scraper's job-link selector was matching an unrelated wrapper element instead of the real link on every single posting.
+- **Four ADP sources (Municipality of Clarington, City of Markham, Town of Aurora, City of Sarnia) had zero jobs**: ADP's site redesign moved to a UI framework the scraper no longer recognized, and a page-size limit was silently capping results at whatever fit on one screen for tenants with more postings than that.
+- **Four Taleo sources (Town of Oakville, City of St. Catharines, Seneca College, OCAD University) were silently capped at 10 jobs** regardless of how many were actually posted — OCAD alone was missing 18 additional postings.
+- **Humber College jobs were completely missing**: Taleo scraper didn't recognize a newer page template used by this tenant.
+- **City of Kingston jobs were completely missing**: the job feed's links required a browser session that wasn't being established first.
 
 ## [1.8.1] - 2026-07-12
 
