@@ -2,7 +2,7 @@
 
 This document tracks **all active** job portals currently scraped by GovJobs, grouped by scraping engine (see `scraper/engines/`) rather than by region — that's the axis that actually matters for maintenance, since a bug in one engine (e.g. Workday pagination) affects every source in that group at once.
 
-**Total active: 70** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there).
+**Total active: 75** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there). First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
 
 See [PENDING.md](PENDING.md) for sources not yet active, with notes on status and blockers.
 
@@ -45,8 +45,9 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Vaughan Public Library** — [Jobs](https://www.vaughanpl.info/jobs)
 - **Waterfront Toronto** — [Opportunities](https://www.waterfrontoronto.ca/opportunities/join-our-team)
 
-## Dayforce HCM (4)
+## Dayforce HCM (5)
 
+- **City of Brandon** — [Candidate Portal](https://jobs.dayforcehcm.com/brandon/COB)
 - **City of St. Thomas** — [Candidate Portal](https://jobs.dayforcehcm.com/en-CA/stthomas/CANDIDATEPORTAL)
 - **Infrastructure Ontario** — [Candidate Portal](https://jobs.dayforcehcm.com/en-US/infrastructureontario/CANDIDATEPORTAL)
 - **TRCA** — [Candidate Portal](https://jobs.dayforcehcm.com/trca/CANDIDATEPORTAL)
@@ -56,20 +57,23 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 
 - **York Region** — [Job Search](https://york.hua.hrsmart.com/hr/ats/JobSearch/viewAll)
 
-## iCIMS (1)
+## iCIMS (3)
 
+- **City of Guelph** — [Careers](https://careers-guelph.icims.com/jobs/search?ss=1)
+- **City of Victoria** — [Careers](https://careersen-victoria.icims.com/jobs/search?ss=1)
 - **Peel Region** — [Careers](https://careers-peelregion.icims.com/jobs/search?ss=1)
 
 ## Jibe (1)
 
 - **City of Thunder Bay** — [Careers](https://careers.thunderbay.ca/careers-home/jobs)
 
-## Jobs2Web (8)
+## Jobs2Web (9)
 
 - **City of Brampton** — [Search](https://careers.brampton.ca/search/)
 - **City of Kitchener** — [Search](https://jobs.kitchener.ca/search/)
 - **City of London** — [Careers](https://careers.london.ca/search/)
 - **City of Richmond Hill** — [Search](https://jobs.richmondhill.ca/search/)
+- **City of Vancouver** — [Search](https://jobs.vancouver.ca/search/)
 - **CMHC** — [Careers](https://careers.cmhc-schl.gc.ca/search/)
 - **Region of Waterloo** — [Search](https://careers.regionofwaterloo.ca/RoW/search/)
 - **University of Guelph** — [Careers](https://careers.uoguelph.ca/search/)
@@ -89,8 +93,9 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Queen's University** — [Job Listing](https://queensu.njoyn.com/cl4/xweb/xweb.asp?page=joblisting&CLID=74827)
 - **Sheridan College** — [Job Listing](https://sheridan.njoyn.com/CL3/xweb/xweb.asp?page=joblisting&CLID=55117)
 
-## Oracle Cloud (2)
+## Oracle Cloud (3)
 
+- **City of Red Deer** — [Careers](https://fa-eyjj-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location)
 - **EFHC** — [Careers](https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location)
 - **Metrolinx** — [Careers](https://ehtc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs)
 

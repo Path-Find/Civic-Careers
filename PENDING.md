@@ -11,85 +11,86 @@ Names-only backlog expanded: 2026-07-12 (no URL research yet). Manitoba added 20
 
 ## Engine ready, URL needed
 
-- City of Guelph (iCIMS) — https://careers-guelph.icims.com/jobs/search?ss=1
+Grouped by platform, same convention as `SOURCES.md` — that's the axis that determines how much shared engine work unlocks at once.
 
-  **Tried 2026-07-12, blocked.** URL loads an iCIMS-branded iframe wrapping the City of Guelph's own site chrome, but the actual job table doesn't render within the frame the standard selector finds — same "needs interaction/search submission" symptom as issues #32 (SuccessFactors) and #35 (Njoyn). Not a quick selector swap; needs the same investigation as those.
+### PeopleSoft Fluid (7 sources, no engine yet — highest-leverage new build)
 
-- Toronto Metropolitan University (PeopleSoft Fluid) — https://careers.torontomu.ca/psc/hrcgprd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
+**Investigated 2026-07-12 (City of Winnipeg).** Earlier notes on this platform said the job list was "virtualized/scroll-loaded" — that was wrong, corrected after deeper digging on Winnipeg's tenant. All rows (confirmed 29/29) are actually present in the DOM at once; the real blocker is that each row's "View Details" link is `javascript:submitAction_win0(...)` — a stateful form postback, not a real navigable URL, so there's no per-job link to hand to `scrapeRawAndStage` directly. However: clicking one row's "View Details" lands on a detail view that has working **"Previous Job" / "Next Job"** controls and a "Search Results" breadcrumb back link — meaning the whole list is walkable from a single click without ever returning to the search page. Buildable, but needs a bespoke click-and-walk loop (not the standard collect-links-then-visit-each pattern every other engine uses) plus a synthetic `id`/`url` per job (real per-job identifier is the "Job ID" field shown on each detail view, e.g. `127144` for Winnipeg's first result — use that for `urlId`/dedup since the browser URL never changes). Calgary and TransLink (Metro Vancouver transit) found 2026-07-12 as more tenants on the same platform — didn't re-verify the postback pattern on those two individually, but same URL shape (`psc/.../HRS_HRAM_FL...`) as the others.
 
-  **Investigated 2026-07-12.** Job list is virtualized/scroll-loaded (only 1 of ~77 job elements in the DOM at once) — needs real new-engine work (scroll-to-load handling), not a quick add. See also Western, McMaster, Greater Sudbury below — same PeopleSoft Fluid platform, likely one shared engine covers all four.
+- Toronto Metropolitan University — https://careers.torontomu.ca/psc/hrcgprd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
+- Western University — https://recruit.uwo.ca/psc/hrprdwebER/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
+- McMaster University — https://careers.mcmaster.ca/psp/prcsprd/EMPLOYEE/HRMS/c/HRS_HRAM.HRS_APP_SCHJOB.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1001&customTab=MCM_STAFF_POS&IgnoreParamTempl=customTab
+- City of Greater Sudbury — https://myjobs.greatersudbury.ca/psc/MYJOBS/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
+- City of Winnipeg — https://careers.winnipeg.ca/psc/cgext/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U (found via Google search for "City of Winnipeg jobs", not guessed — an earlier guess at `winnipeg.ca/hr/JobOpportunities/` 404'd)
+- City of Calgary — https://recruiting.calgary.ca/psc/hcm/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1
+- TransLink (Metro Vancouver transit) — https://careersconnect.translink.ca/psc/EXT/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U&FOCUS=Applicant&SiteId=2
 
-- York University (Technomedia) — https://jobs-ca.technomedia.com/yorkuniversity/
+### Taleo (existing engine, blocked)
 
-  (New portal type; no existing Technomedia engine. May need dedicated scraper.)
-
-- Humber College (Taleo) — https://humber.taleo.net/careersection/hbr_ex/jobsearch.ftl?lang=en
+- Humber College — https://humber.taleo.net/careersection/hbr_ex/jobsearch.ftl?lang=en
 
   **Tried 2026-07-12, blocked.** Page shows "Job Openings 1-12 of 12" and real facet counts, but this tenant's template renders zero `<a href>` job links anywhere on the page (checked broadly, not just the `h4 a[href*="viewRequisition"]` selector used for Oakville/St. Catharines) — likely a different/newer Taleo Career Section template using JS click handlers instead of hrefs. Needs deeper DOM investigation before the existing Taleo engine can be reused.
 
-- Western University (PeopleSoft Fluid) — https://recruit.uwo.ca/psc/hrprdwebER/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
+### HRSmart (existing engine, needs selector work)
 
-  (Same PeopleSoft Fluid platform as TMU above — bundle into one engine build.)
+- Simcoe County — https://simcoe.hua.hrsmart.com/hr/ats/JobSearch/viewAll
 
-- University of Niagara Falls Canada — https://www.unfc.ca/about/careers
+  **Tried 2026-07-12, inconclusive.** Page title loads ("Career Opportunities") but the York Region-style selector guess found 0 links — haven't confirmed the actual selector this tenant uses yet, may just need the real DOM inspected rather than guessed.
 
-  (New portal type; no existing engine. May need dedicated scraper.)
+### BrassRing / Kenexa (no engine, one confirmed-clean tenant)
 
-- McMaster University (PeopleSoft) — https://careers.mcmaster.ca/psp/prcsprd/EMPLOYEE/HRMS/c/HRS_HRAM.HRS_APP_SCHJOB.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1001&customTab=MCM_STAFF_POS&IgnoreParamTempl=customTab
+- Halifax Regional Municipality — https://sjobs.brassring.com/TGnewUI/Search/Home/Home?partnerid=25749&siteid=5764
 
-  (Same PeopleSoft Fluid platform as TMU above — bundle into one engine build.)
+  **Found 2026-07-12.** Real, clean job links confirmed (e.g. "Project Manager, Transit Infrastructure" → `.../HomeWithPreLoad?...&jobid=770720`). New portal type, no engine yet, but looks tractable — normal `<a href>` links with a `jobid` query param, not a postback-only pattern like PeopleSoft.
 
-- St. Lawrence College — https://www.stlawrencecollege.ca/about/careers-at-slc/current-job-opportunities
+### Njoyn (existing engine, one confirmed-blocked tenant)
 
-  (New portal type; no existing engine. May need dedicated scraper.)
+- Unidentified Njoyn tenant (CLID=61430) — blocked by Radware bot-protection captcha before the entity name could even be confirmed. Same dead-end as Toronto Public Library — not fixable without CAPTCHA bypass, which is out of scope.
 
-- Lakehead University (Administrative Staff) — https://www.lakeheadu.ca/faculty-and-staff/departments/services/hr/employment-opportunities/administrative-staff
+### Jobs2Web (existing engine, partial)
 
-  (New portal type; no existing engine. May need dedicated scraper.)
-
-- Hamilton Public Library — https://www.hpl.ca/jobs
-
-  (New portal type; no existing engine. May need dedicated scraper.)
-
-- City of Ottawa (Jobs2Web) — https://jobs-emplois.ottawa.ca/city-jobs/search/
+- City of Ottawa — https://jobs-emplois.ottawa.ca/city-jobs/search/
 
   **Tried 2026-07-12, partial.** Job discovery works fine (found 74 real, correctly-titled postings). But detail pages render client-side and are slower than other Jobs2Web tenants — the standard 2s post-load buffer captures a "Loading..." placeholder instead of the actual job text, which would poison the AI parser with junk. Needs a longer/selector-based wait specifically for this tenant's detail pages before promoting. Note: production already has a separate "City of Ottawa" source via SuccessFactors (`career47.sapsf.com`, currently broken — see issue #32) — worth confirming these are genuinely two different systems (e.g. corporate vs. union postings) and not a portal migration, so we don't end up double-listing the same jobs under one source name once both work.
 
-- Kingston Frontenac Public Library — https://www.kfpl.ca/your-library/work-and-volunteer/jobs-at-the-library
+### Technomedia (no engine)
 
-  (New portal type; no existing engine. May need dedicated scraper.)
+- York University — https://jobs-ca.technomedia.com/yorkuniversity/
 
-- Brampton Library — https://www.bramptonlibrary.ca/careers
+### NEOGOV (no engine)
 
-  (New portal type; no existing engine. May need dedicated scraper.)
+- Cambrian College — https://gjobs.neogov.ca/careers/cambriancollege
 
-- Cambrian College (NEOGOV) — https://gjobs.neogov.ca/careers/cambriancollege
+### Custom, no per-job links found (harder than typical custom.ts sources)
 
-  (New portal type; no existing NEOGOV engine. May need dedicated scraper.)
-
-- Ville de Montréal — https://montreal.ca/en/jobs
-
-  (Complex site; new portal type; no existing engine. May need dedicated scraper.)
-
-- Ville de Montréal (SIM) — https://simenligne.montreal.ca/OA_HTML/RF.jsp?function_id=1011530&resp_id=23350&resp_appl_id=800&security_group_id=0&lang_code=FRC&params=78Yf57C4XSZOMFAg6ESOdTqziLKxVJYVFVWXogPijaRd67sVhNa2ic-20jG1-lSI
-
-  (Complex Oracle EBS site; new portal type; no existing engine. May need dedicated scraper.)
+Unlike Peterborough/Barrie/Brantford (real `<a href>` per job), these two have job data on the page but no clickable per-job URL at all — closer in shape to the PeopleSoft postback problem than a normal custom scraper.
 
 - Conestoga College — https://employment.conestogac.on.ca/
 
-  **Corrected 2026-07-12.** Not Workday — a previously-staged `conestoga.wd3.myworkdayjobs.com` guess redirected straight to Workday's maintenance page (invalid tenant, not a temp outage). The real site above is a bespoke page with no obvious ATS backend — needs a custom scraper (`scraper/engines/custom.ts` pattern), same as Peterborough/Barrie/Brantford.
-
-- Laurentian University (Administrative Staff) — https://laurentian.ca/about/careers/administrative-vacancies
-
-  (New portal type; no existing engine. May need dedicated scraper.)
+  **Corrected 2026-07-12.** Not Workday — a previously-staged `conestoga.wd3.myworkdayjobs.com` guess redirected straight to Workday's maintenance page (invalid tenant, not a temp outage). Real site is a bespoke page with a plain HTML table (Requisition Number / Job Title / Location / Closing) — real data, but zero hrefs on any row. There's an "RSS feed" link for "Current Academic Openings" mentioned in the page text (distinct from the site's general news RSS at `blogs1.conestogac.on.ca/news/index.xml`, which is NOT job postings) — worth checking if that job-specific feed URL can be extracted and fed through `scrapeRSS` instead of a custom DOM scraper.
 
 - Trent University — https://employment.trentu.ca/default
 
-  (New portal type; no existing engine. May need dedicated scraper.)
+  **Tried 2026-07-12, blocked.** Real listings ARE visible after page load ("HVAC Technician (Facilities Management)", etc.) but rendered by a heavy proprietary grid widget (obfuscated auto-generated classes like `gonly lay-7 sty-1 dfs-47`) — rows have no `<a href>`, clicks are handled via JS event delegation with no exposed per-job URL. Same complexity tier as the PeopleSoft postback problem, not a quick add.
 
-- City of Greater Sudbury (PeopleSoft Fluid) — https://myjobs.greatersudbury.ca/psc/MYJOBS/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
+### Custom, staged in test-new-sources.ts, verification pending (2026-07-12)
 
-  (Similar to Durham Region scraper; may adapt scrapeDurhamRegion or needs dedicated engine.)
+- Toronto District School Board — https://www.tdsb.on.ca/jobpostings/list.html — new `scrapeTDSB()` built, clean per-job links confirmed by hand (`jobpostings/details.html?jobId=N`), 6 jobs visible, no pagination hit yet.
+- Northumberland County — https://northumberland.ca/county-government/careers/ — new `scrapeNorthumberland()` built, WordPress-style `/job/{slug}/` links confirmed by hand.
+
+### Custom, not yet investigated
+
+- University of Niagara Falls Canada — https://www.unfc.ca/about/careers
+- St. Lawrence College — https://www.stlawrencecollege.ca/about/careers-at-slc/current-job-opportunities
+- Lakehead University (Administrative Staff) — https://www.lakeheadu.ca/faculty-and-staff/departments/services/hr/employment-opportunities/administrative-staff
+- Hamilton Public Library — https://www.hpl.ca/jobs
+- Kingston Frontenac Public Library — https://www.kfpl.ca/your-library/work-and-volunteer/jobs-at-the-library
+- Brampton Library — https://www.bramptonlibrary.ca/careers
+- Laurentian University (Administrative Staff) — https://laurentian.ca/about/careers/administrative-vacancies
+- Cape Breton Regional Municipality — https://cbrm.ns.ca/about-cbrm/employment/current-opportunities/ (checked 2026-07-12: page loads but shows only site nav, no visible job listings in the DOM — may be a JS widget that needs a longer wait, or genuinely has zero current postings)
+- Toronto Catholic District School Board — real job-listing URL not yet found; `tcdsb.org/page/jobs` is a nav landing page with no postings, same "wrong URL" issue Winnipeg's first guess had
+- Ville de Montréal — https://montreal.ca/en/jobs (complex site)
+- Ville de Montréal (SIM) — https://simenligne.montreal.ca/OA_HTML/RF.jsp?function_id=1011530&resp_id=23350&resp_appl_id=800&security_group_id=0&lang_code=FRC&params=78Yf57C4XSZOMFAg6ESOdTqziLKxVJYVFVWXogPijaRd67sVhNa2ic-20jG1-lSI (complex Oracle EBS site)
 
 ## Ontario — names only (URL TBD)
 
@@ -295,8 +296,8 @@ English-speaking, so no translation-handling gap like the Quebec set above — p
 ### Provincial & municipal
 
 - Government of Manitoba (jobsearch.gov.mb.ca — provincial portal, likely similar structure to Ontario's OPS scraper)
-- City of Winnipeg
-- City of Brandon
+- City of Winnipeg — moved to "Engine ready" above (PeopleSoft Fluid, URL confirmed 2026-07-12)
+- City of Brandon — promoted to active 2026-07-12 (Dayforce)
 - City of Steinbach
 - City of Portage la Prairie
 - City of Thompson

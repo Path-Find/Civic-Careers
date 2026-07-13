@@ -89,6 +89,8 @@ const TASKS: ScrapeTask[] = [
   { engine: 'adp', run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=b1fead40-7a8c-4b14-87a0-dc031bab192d&ccId=19000101_000001&lang=en_CA', 'Town of Aurora') },
   { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.richmondhill.ca/search/', 'City of Richmond Hill') },
   { engine: 'icims', run: (db, ctx) => scrapeICIMS(db, ctx, 'https://careers-peelregion.icims.com/jobs/search?ss=1', 'Peel Region') },
+  { engine: 'icims', run: (db, ctx) => scrapeICIMS(db, ctx, 'https://careers-guelph.icims.com/jobs/search?ss=1', 'City of Guelph') },
+  { engine: 'icims', run: (db, ctx) => scrapeICIMS(db, ctx, 'https://careersen-victoria.icims.com/jobs/search?ss=1', 'City of Victoria') },
   { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://careers.halton.ca/search/', 'Halton Region', 'https://careers.halton.ca') },
   { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://wd10.myworkdaysite.com/recruiting/cityofburlington/cob', 'City of Burlington') },
   { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=TOWNOFOA&cws=43', 'Town of Oakville') },
@@ -140,6 +142,11 @@ const TASKS: ScrapeTask[] = [
 
   // 11. Health & Other Agencies
   { engine: 'oracle', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'EFHC') },
+
+  // 12. Western Canada (first sources outside Ontario/Quebec)
+  { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.vancouver.ca/search/', 'City of Vancouver') },
+  { engine: 'dayforce', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/brandon/COB', 'City of Brandon') },
+  { engine: 'oracle', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://fa-eyjj-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'City of Red Deer') },
 ];
 
 async function main() {
