@@ -2,7 +2,7 @@
 
 This document tracks **all active** job portals currently scraped by GovJobs, grouped by scraping engine (see `scraper/engines/`) rather than by region — that's the axis that actually matters for maintenance, since a bug in one engine (e.g. Workday pagination) affects every source in that group at once.
 
-**Total active: 75** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there). First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
+**Total active: 77** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there). First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
 
 See [PENDING.md](PENDING.md) for sources not yet active, with notes on status and blockers.
 
@@ -31,7 +31,7 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Mohawk College** — [Home](https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege)
 - **Ontario Tech University** — [Home](https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu)
 
-## Custom (11)
+## Custom (13)
 
 - **City of Barrie** — [Search](https://careers.barrie.ca/search/)
 - **City of Brantford** — [Current Opportunities](https://www.brantford.ca/your-government/careers/current-opportunities/)
@@ -40,7 +40,9 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Conservation Halton** — [Employment](https://www.conservationhalton.ca/about-us/employment/)
 - **Durham Region** — [Job Search](https://recruitregion.durham.ca/psc/recruit_rmd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=3)
 - **Government of Canada** — [GC Jobs](https://emploisfp-psjobs.cfp-psc.gc.ca/psrs-srfp/applicant/page2440?fromMenu=true&toggleLanguage=en) (covers Transport Canada, Statistics Canada, Infrastructure Canada, and many other federal departments)
+- **Northumberland County** — [Careers](https://northumberland.ca/county-government/careers/)
 - **Province of Ontario (OPS)** — [Ontario Public Service Jobs](https://www.gojobs.gov.on.ca/Search.aspx)
+- **Toronto District School Board** — [Job Postings](https://www.tdsb.on.ca/jobpostings/list.html)
 - **Town of Smiths Falls** — [Careers](https://www.smithsfalls.ca/)
 - **Vaughan Public Library** — [Jobs](https://www.vaughanpl.info/jobs)
 - **Waterfront Toronto** — [Opportunities](https://www.waterfrontoronto.ca/opportunities/join-our-team)

@@ -47,11 +47,13 @@ Grouped by platform, same convention as `SOURCES.md` — that's the axis that de
 
 - Unidentified Njoyn tenant (CLID=61430) — blocked by Radware bot-protection captcha before the entity name could even be confirmed. Same dead-end as Toronto Public Library — not fixable without CAPTCHA bypass, which is out of scope.
 
-### Jobs2Web (existing engine, partial)
+### Jobs2Web (existing engine, detail-page render bug — confirmed on 3 tenants)
 
-- City of Ottawa — https://jobs-emplois.ottawa.ca/city-jobs/search/
+**Confirmed 2026-07-12 on three separate tenants**, so this is a real engine-level pattern, not a one-off: job discovery (search results page) works fine on all three, but detail pages render client-side slower than tenants like CMHC/Vancouver/Brampton — the standard ~2s post-load buffer captures a literal "Loading..." placeholder instead of the actual job text. Confirmed via direct `raw_text` inspection (searched for the string `"Loading..."` in stored content, not just eyeballing a snippet — a snippet-only check gave a false positive earlier on University of Toronto, which turned out fine on full-text inspection). Tried polling for text-length stabilization (up to 5s extra) — did not help; the content genuinely never finishes loading within a reasonable window, so this needs a different approach (a specific wait-for-selector on real content, or investigating why these particular tenants hang) rather than "wait longer."
 
-  **Tried 2026-07-12, partial.** Job discovery works fine (found 74 real, correctly-titled postings). But detail pages render client-side and are slower than other Jobs2Web tenants — the standard 2s post-load buffer captures a "Loading..." placeholder instead of the actual job text, which would poison the AI parser with junk. Needs a longer/selector-based wait specifically for this tenant's detail pages before promoting. Note: production already has a separate "City of Ottawa" source via SuccessFactors (`career47.sapsf.com`, currently broken — see issue #32) — worth confirming these are genuinely two different systems (e.g. corporate vs. union postings) and not a portal migration, so we don't end up double-listing the same jobs under one source name once both work.
+- City of Ottawa — https://jobs-emplois.ottawa.ca/city-jobs/search/ — note: production already has a separate "City of Ottawa" source via SuccessFactors (`career47.sapsf.com`, currently broken — see issue #32) — worth confirming these are genuinely two different systems and not a portal migration, so we don't end up double-listing the same jobs under one source name once both work.
+- BC Transit — https://jobs.bctransit.com/search/ — job discovery confirmed (6 real jobs), detail pages stuck on "Loading...".
+- Regional Municipality of Wood Buffalo — https://jobs.rmwb.ca/search/ — job discovery confirmed (82 real jobs across 2 pages), detail pages stuck on "Loading...".
 
 ### Technomedia (no engine)
 
@@ -72,11 +74,6 @@ Unlike Peterborough/Barrie/Brantford (real `<a href>` per job), these two have j
 - Trent University — https://employment.trentu.ca/default
 
   **Tried 2026-07-12, blocked.** Real listings ARE visible after page load ("HVAC Technician (Facilities Management)", etc.) but rendered by a heavy proprietary grid widget (obfuscated auto-generated classes like `gonly lay-7 sty-1 dfs-47`) — rows have no `<a href>`, clicks are handled via JS event delegation with no exposed per-job URL. Same complexity tier as the PeopleSoft postback problem, not a quick add.
-
-### Custom, staged in test-new-sources.ts, verification pending (2026-07-12)
-
-- Toronto District School Board — https://www.tdsb.on.ca/jobpostings/list.html — new `scrapeTDSB()` built, clean per-job links confirmed by hand (`jobpostings/details.html?jobId=N`), 6 jobs visible, no pagination hit yet.
-- Northumberland County — https://northumberland.ca/county-government/careers/ — new `scrapeNorthumberland()` built, WordPress-style `/job/{slug}/` links confirmed by hand.
 
 ### Custom, not yet investigated
 

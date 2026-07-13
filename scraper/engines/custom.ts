@@ -494,3 +494,74 @@ export async function scrapeSmithsFalls(db: Client, context: BrowserContext) {
     await page.close();
   }
 }
+
+export async function scrapeNorthumberland(db: Client, context: BrowserContext) {
+  const sourceName = 'Northumberland County';
+  const base = 'https://northumberland.ca';
+
+  console.log(`Scraping ${sourceName}...`);
+  const page = await context.newPage();
+  try {
+    await safeGoto(page, `${base}/county-government/careers/`, 60000);
+    await page.waitForTimeout(2000);
+
+    const jobUrls = await page.evaluate(() => {
+      const seen = new Set<string>();
+      return Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href*="/job/"]'))
+        .map(a => a.href)
+        .filter(href => {
+          try {
+            const path = new URL(href).pathname.replace(/\/$/, '');
+            if (!/^\/job\/[^/]+$/.test(path)) return false;
+            if (seen.has(href)) return false;
+            seen.add(href);
+            return true;
+          } catch { return false; }
+        });
+    });
+
+    console.log(`[${sourceName}] Found ${jobUrls.length} job pages`);
+    for (const url of jobUrls) {
+      const slug = new URL(url).pathname.replace(/\/$/, '').split('/').pop() || '';
+      await scrapeRawAndStage(db, context, { id: `northumberland_${slug}`, url }, sourceName);
+    }
+    console.log(`\n[${sourceName}] Done.`);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
+export async function scrapeTDSB(db: Client, context: BrowserContext) {
+  const sourceName = 'Toronto District School Board';
+  const base = 'https://www.tdsb.on.ca';
+
+  console.log(`Scraping ${sourceName}...`);
+  const page = await context.newPage();
+  try {
+    await safeGoto(page, `${base}/jobpostings/list.html`, 60000);
+    await page.waitForTimeout(2000);
+
+    const jobs = await page.evaluate(() => {
+      const seen = new Set<string>();
+      return Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href*="jobpostings/details.html"]'))
+        .map(a => ({ url: a.href, jobId: new URL(a.href).searchParams.get('jobId') }))
+        .filter(j => {
+          if (!j.jobId || seen.has(j.jobId)) return false;
+          seen.add(j.jobId);
+          return true;
+        });
+    });
+
+    console.log(`[${sourceName}] Found ${jobs.length} job pages`);
+    for (const job of jobs) {
+      await scrapeRawAndStage(db, context, { id: `tdsb_${job.jobId}`, url: job.url }, sourceName);
+    }
+    console.log(`\n[${sourceName}] Done.`);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+  } finally {
+    await page.close();
+  }
+}

@@ -29,6 +29,8 @@ import {
   scrapePeterborough,
   scrapeSmithsFalls,
   scrapeVaughanPL,
+  scrapeNorthumberland,
+  scrapeTDSB,
 } from './engines/custom';
 import { scrapeRSS } from './engines/rss';
 import { scrapeJazzHR } from './engines/jazzhhr';
@@ -147,6 +149,10 @@ const TASKS: ScrapeTask[] = [
   { engine: 'jobs2web', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.vancouver.ca/search/', 'City of Vancouver') },
   { engine: 'dayforce', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/brandon/COB', 'City of Brandon') },
   { engine: 'oracle', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://fa-eyjj-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'City of Red Deer') },
+
+  // 13. Additional custom sources
+  { engine: 'custom', run: (db, ctx) => scrapeNorthumberland(db, ctx) },
+  { engine: 'custom', run: (db, ctx) => scrapeTDSB(db, ctx) },
 ];
 
 async function main() {
