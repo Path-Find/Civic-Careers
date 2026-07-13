@@ -220,9 +220,12 @@ async function main() {
 
     const engineLabel = engineFilter ? `${engineFilter} scrape` : 'Full scrape';
     const postingWord = touched === 1 ? 'posting' : 'postings';
-    const statusLines = results
-      .map(r => r.ok ? `OK     ${r.label}` : `FAILED ${r.label} — ${r.error}`)
-      .join('\n');
+    const okLabels = results.filter(r => r.ok).map(r => r.label);
+    const failLabels = results.filter(r => !r.ok).map(r => r.label);
+    const statusLines = [
+      ...(okLabels.length > 0 ? [`OK     ${okLabels.join(', ')}`] : []),
+      ...(failLabels.length > 0 ? [`FAILED ${failLabels.join(', ')}`] : []),
+    ].join('\n');
 
     const content = `${engineLabel} done — ${touched} job ${postingWord} touched (${netNew >= 0 ? '+' : ''}${netNew} new).\n\`\`\`\n${statusLines}\n\`\`\``;
 
