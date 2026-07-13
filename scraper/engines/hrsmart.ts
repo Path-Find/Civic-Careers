@@ -38,6 +38,7 @@ export async function scrapeHRSmart(db: Client, context: BrowserContext, url: st
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

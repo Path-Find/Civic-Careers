@@ -68,6 +68,7 @@ export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: 
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

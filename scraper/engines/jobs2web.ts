@@ -49,6 +49,7 @@ export async function scrapeJobs2Web(db: Client, context: BrowserContext, portal
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

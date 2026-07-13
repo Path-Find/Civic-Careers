@@ -53,6 +53,7 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -103,6 +104,7 @@ export async function scrapeGC(db: Client, context: BrowserContext) {
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -123,6 +125,7 @@ export async function scrapeWaterfront(db: Client, context: BrowserContext) {
     }
   } catch (err: any) {
     console.error(`Error scraping Waterfront: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -181,6 +184,7 @@ export async function scrapeBarrie(db: Client, context: BrowserContext) {
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -210,6 +214,7 @@ export async function scrapeCambridge(db: Client, context: BrowserContext) {
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -257,6 +262,7 @@ export async function scrapeConservationHalton(db: Client, context: BrowserConte
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -333,6 +339,7 @@ export async function scrapeDurhamRegion(db: Client, context: BrowserContext) {
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -379,6 +386,7 @@ export async function scrapeBrantford(db: Client, context: BrowserContext) {
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -421,6 +429,7 @@ export async function scrapePeterborough(db: Client, context: BrowserContext) {
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -451,6 +460,7 @@ export async function scrapeVaughanPL(db: Client, context: BrowserContext) {
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -490,6 +500,7 @@ export async function scrapeSmithsFalls(db: Client, context: BrowserContext) {
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -528,6 +539,7 @@ export async function scrapeNorthumberland(db: Client, context: BrowserContext) 
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -561,6 +573,7 @@ export async function scrapeTDSB(db: Client, context: BrowserContext) {
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

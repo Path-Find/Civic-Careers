@@ -44,6 +44,7 @@ export async function scrapeCSOD(db: Client, context: BrowserContext, url: strin
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

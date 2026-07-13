@@ -33,6 +33,7 @@ export async function scrapeAvanti(db: Client, context: BrowserContext, portalUr
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

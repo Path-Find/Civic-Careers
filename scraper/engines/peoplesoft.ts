@@ -74,6 +74,7 @@ export async function scrapePeopleSoft(db: Client, context: BrowserContext, sear
     console.log(`\n[${sourceName}] Done — ${count} jobs.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

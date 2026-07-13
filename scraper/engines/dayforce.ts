@@ -59,6 +59,7 @@ export async function scrapeDayforce(db: Client, context: BrowserContext, portal
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

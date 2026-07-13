@@ -97,6 +97,7 @@ export async function scrapeSuccessFactors(db: Client, context: BrowserContext, 
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

@@ -43,6 +43,7 @@ export async function scrapeNjoyn(db: Client, context: BrowserContext, url: stri
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

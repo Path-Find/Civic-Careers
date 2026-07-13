@@ -43,6 +43,7 @@ export async function scrapeUltiPro(db: Client, context: BrowserContext, portalU
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

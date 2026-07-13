@@ -28,6 +28,7 @@ export async function scrapeTalentPoolBuilder(db: Client, context: BrowserContex
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

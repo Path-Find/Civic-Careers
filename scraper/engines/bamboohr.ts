@@ -29,6 +29,7 @@ export async function scrapeBambooHR(db: Client, context: BrowserContext, portal
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
@@ -59,6 +60,7 @@ export async function scrapeCreateTO(db: Client, context: BrowserContext) {
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }

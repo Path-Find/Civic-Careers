@@ -43,6 +43,7 @@ export async function scrapeOracleCloud(db: Client, context: BrowserContext, url
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
   } finally {
     await page.close();
   }
