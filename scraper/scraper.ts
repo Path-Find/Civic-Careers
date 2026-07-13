@@ -218,15 +218,13 @@ async function main() {
     });
     const touched = Number(touchedResult.rows[0]?.n ?? 0);
 
-    const failed = results.filter(r => !r.ok);
-    const succeeded = results.filter(r => r.ok);
     const engineLabel = engineFilter ? `${engineFilter} scrape` : 'Full scrape';
     const postingWord = touched === 1 ? 'posting' : 'postings';
+    const statusLines = results
+      .map(r => r.ok ? `OK     ${r.label}` : `FAILED ${r.label} — ${r.error}`)
+      .join('\n');
 
-    let content = `${engineLabel} done — ${succeeded.length}/${tasks.length} companies succeeded, ${touched} job ${postingWord} touched (${netNew >= 0 ? '+' : ''}${netNew} new).`;
-    if (failed.length > 0) {
-      content += `\nFailed: ${failed.map(f => `${f.label} (${f.error})`).join(', ')}`;
-    }
+    const content = `${engineLabel} done — ${touched} job ${postingWord} touched (${netNew >= 0 ? '+' : ''}${netNew} new).\n\`\`\`\n${statusLines}\n\`\`\``;
 
     await fetch(process.env.DISCORD_WEBHOOK_URL, {
       method: 'POST',
