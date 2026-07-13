@@ -118,7 +118,7 @@ const TASKS: ScrapeTask[] = [
 
   // 9. Eastern Ontario
   { engine: 'successfactors', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://career47.sapsf.com/careers/cityofottawa/search', 'City of Ottawa', 'https://career47.sapsf.com') },
-  { engine: 'rss', run: (db, ctx) => scrapeRSS(db, ctx, 'https://careers.cityofkingston.ca/CL2/net/ResumeProcessing/RssFeedOutput.aspx?CLID=61577&lang=1', 'City of Kingston', 'kingston') },
+  { engine: 'rss', run: (db, ctx) => scrapeRSS(db, ctx, 'https://careers.cityofkingston.ca/CL2/net/ResumeProcessing/RssFeedOutput.aspx?CLID=61577&lang=1', 'City of Kingston', 'kingston', 'https://careers.cityofkingston.ca/CL2/xweb/xweb.asp?CLID=61577&page=joblisting&lang=1') },
   { engine: 'jazzhr', run: (db, ctx) => scrapeJazzHR(db, ctx, 'https://cityofbelleville.applytojob.com/apply/', 'City of Belleville', 'belleville') },
   { engine: 'workland', run: (db, ctx) => scrapeWorkland(db, ctx, 'https://atlas.workland.com/careers/cornwall/jobs?page=1', 'City of Cornwall', 'cornwall') },
   { engine: 'custom', run: (db, ctx) => scrapeSmithsFalls(db, ctx) },

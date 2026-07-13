@@ -7,13 +7,27 @@ export async function scrapeRSS(
   context: BrowserContext,
   feedUrl: string,
   sourceName: string,
-  idPrefix: string
+  idPrefix: string,
+  warmupUrl?: string
 ) {
   const res = await fetch(feedUrl);
   const xml = await res.text();
 
   const items = [...xml.matchAll(/<item[^>]*>([\s\S]*?)<\/item>/g)];
   console.log(`\nScraping ${sourceName} (RSS) — ${items.length} jobs`);
+
+  // Njoyn-backed feeds (confirmed on City of Kingston) reject deep links to
+  // individual job detail pages with "Invalid request XWPGN01" unless the
+  // browser session first visited the site's own job-listing page — the RSS
+  // feed's <link> URLs work fine once a real session/referrer exists, but
+  // fail 100% of the time hit cold. One warmup navigation fixes every
+  // subsequent job in the same browser context.
+  if (warmupUrl) {
+    const page = await context.newPage();
+    await page.goto(warmupUrl, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+    await page.waitForTimeout(3000);
+    await page.close();
+  }
 
   for (const [, body] of items) {
     if (!body) continue;
