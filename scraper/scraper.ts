@@ -36,6 +36,7 @@ import { scrapeRSS } from './engines/rss';
 import { scrapeJazzHR } from './engines/jazzhhr';
 import { scrapeWorkland } from './engines/workland';
 import { scrapeJibe } from './engines/jibe';
+import { scrapePeopleSoft } from './engines/peoplesoft';
 import { scrapeCSOD } from './engines/csod';
 
 export { scrapeSuccessFactors, scrapeWorkday, scrapeWaterfront, scrapeConservationHalton, scrapeADP };
@@ -154,6 +155,9 @@ const TASKS: ScrapeTask[] = [
   // 13. Additional custom sources
   { engine: 'custom', run: (db, ctx) => scrapeNorthumberland(db, ctx) },
   { engine: 'custom', run: (db, ctx) => scrapeTDSB(db, ctx) },
+
+  // 14. PeopleSoft Fluid (only tenants confirmed working so far — see issue #37)
+  { engine: 'peoplesoft', run: (db, ctx) => scrapePeopleSoft(db, ctx, 'https://careers.winnipeg.ca/psc/cgext/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U', 'City of Winnipeg') },
 ];
 
 async function main() {
