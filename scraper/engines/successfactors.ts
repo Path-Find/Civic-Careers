@@ -54,7 +54,13 @@ export async function scrapeSuccessFactors(db: Client, context: BrowserContext, 
       const summaries = await page.evaluate((baseUrl) => {
         const items = Array.from(document.querySelectorAll('.job-row, .jobResultItem, .job-list-item, tr.job-row, div[role="listitem"], tr.data-row'));
         return items.map(row => {
-          const link = row.querySelector('.jobTitle-link, .jobTitle, a.job-link, a.job-title-link, a[role="link"], a') as HTMLAnchorElement;
+          // querySelector returns the first match in DOCUMENT order, not
+          // selector-list order — some tenants (Halton, Mississauga) wrap the
+          // real <a class="jobTitle-link"> inside a <span class="jobTitle">,
+          // so the old unqualified ".jobTitle" alternative matched the span
+          // (which has no .href) before ever reaching the anchor. Every
+          // alternative below is now anchor-qualified to avoid that trap.
+          const link = row.querySelector('a.jobTitle-link, a.jobTitle, a.job-link, a.job-title-link, a[role="link"], a') as HTMLAnchorElement;
           if (!link) return null;
           const title = link.textContent?.trim() || '';
           const href = link.href;
