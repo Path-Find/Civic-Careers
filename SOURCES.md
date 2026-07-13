@@ -2,7 +2,7 @@
 
 This document tracks **all active** job portals currently scraped by GovJobs, grouped by scraping engine (see `scraper/engines/`) rather than by region — that's the axis that actually matters for maintenance, since a bug in one engine (e.g. Workday pagination) affects every source in that group at once.
 
-**Total active: 77** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there). First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
+**Total active: 78** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there). First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
 
 See [PENDING.md](PENDING.md) for sources not yet active, with notes on status and blockers.
 
@@ -113,9 +113,10 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Mississauga** — [Search](https://jobs.mississauga.ca/search/)
 - **TTC** — [Careers](https://career17.sapsf.com/career?company=TTCPRODUCTION&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH)
 
-## Taleo (4)
+## Taleo (5)
 
 - **City of St. Catharines** — [Careers](https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=COSC&cws=37)
+- **Humber College** — [Careers](https://humber.taleo.net/careersection/hbr_ex/jobsearch.ftl?lang=en)
 - **OCAD University** — [Careers](https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=OCADU&cws=37)
 - **Seneca College** — [Careers](https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=SENECOLL4&cws=42)
 - **Town of Oakville** — [Careers](https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=TOWNOFOA&cws=43)

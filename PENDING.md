@@ -25,12 +25,6 @@ Grouped by platform, same convention as `SOURCES.md` — that's the axis that de
 - City of Calgary — https://recruiting.calgary.ca/psc/hcm/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1
 - TransLink (Metro Vancouver transit) — https://careersconnect.translink.ca/psc/EXT/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U&FOCUS=Applicant&SiteId=2
 
-### Taleo (existing engine, blocked)
-
-- Humber College — https://humber.taleo.net/careersection/hbr_ex/jobsearch.ftl?lang=en
-
-  **Tried 2026-07-12, blocked.** Page shows "Job Openings 1-12 of 12" and real facet counts, but this tenant's template renders zero `<a href>` job links anywhere on the page (checked broadly, not just the `h4 a[href*="viewRequisition"]` selector used for Oakville/St. Catharines) — likely a different/newer Taleo Career Section template using JS click handlers instead of hrefs. Needs deeper DOM investigation before the existing Taleo engine can be reused.
-
 ### HRSmart (existing engine, needs selector work)
 
 - Simcoe County — https://simcoe.hua.hrsmart.com/hr/ats/JobSearch/viewAll

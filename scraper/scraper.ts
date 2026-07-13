@@ -136,6 +136,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'workday', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://fanshawec.wd3.myworkdayjobs.com/fanshawecareers', 'Fanshawe College') },
   { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://carleton.njoyn.com/CL2/xweb/xweb.asp?CLID=53443&page=joblisting&lang=1', 'Carleton University') },
   { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=OCADU&cws=37', 'OCAD University') },
+  { engine: 'taleo', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://humber.taleo.net/careersection/hbr_ex/jobsearch.ftl?lang=en', 'Humber College') },
   { engine: 'njoyn', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://queensu.njoyn.com/cl4/xweb/xweb.asp?page=joblisting&CLID=74827', "Queen's University") },
   { engine: 'csod', run: (db, ctx) => scrapeCSOD(db, ctx, 'https://georgebrown.csod.com/ux/ats/careersite/4/home?c=georgebrown&lang=en-US', 'George Brown College') },
   { engine: 'csod', run: (db, ctx) => scrapeCSOD(db, ctx, 'https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege', 'Mohawk College') },
