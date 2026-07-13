@@ -7,18 +7,27 @@ export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: 
   console.log(`Scraping ${sourceName} (ADP)...`);
   const page = await context.newPage();
   try {
+    // ADP migrated its widget to web components (<sdf-*> custom elements) at
+    // some point — there are no real <a href="#"> job links anymore, and the
+    // h1's "(N of M)" heading only reflects the first page (N), not the true
+    // total (M), so parsing it for the loop count silently undercounted.
+    // The list is capped at ~10 items until a "View All" button
+    // (#recruitment_careerCenter_showAllJobs, itself an <sdf-button>) is
+    // clicked; job rows are div.current-openings-item elements with their
+    // own onclick handler instead of a wrapping anchor.
     const loadPortal = async () => {
       await safeGoto(page, portalUrl, 60000);
       await page.waitForTimeout(5000);
+      const viewAllBtn = await page.$('#recruitment_careerCenter_showAllJobs');
+      if (viewAllBtn && await viewAllBtn.isVisible().catch(() => false)) {
+        await viewAllBtn.click();
+        await page.waitForTimeout(6000);
+      }
     };
 
     await loadPortal();
 
-    const count = await page.evaluate(() => {
-      const heading = document.querySelector('h1');
-      const match = heading?.textContent?.match(/\((\d+) of \d+\)/);
-      return match ? parseInt(match[1]) : 0;
-    });
+    const count = await page.evaluate(() => document.querySelectorAll('div.current-openings-item').length);
 
     console.log(`[${sourceName}] Found ${count} jobs`);
 
@@ -26,11 +35,10 @@ export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: 
       process.stdout.write(`\r[${sourceName}] ${i + 1}/${count}`);
 
       const clicked = await page.evaluate((idx) => {
-        const candidates = Array.from(document.querySelectorAll('a[href="#"]'))
-          .filter(a => !a.querySelector('img') && (a.textContent?.trim().length || 0) > 3);
-        const link = candidates[idx] as HTMLElement;
-        if (!link) return false;
-        link.click();
+        const candidates = Array.from(document.querySelectorAll('div.current-openings-item'));
+        const item = candidates[idx] as HTMLElement;
+        if (!item) return false;
+        item.click();
         return true;
       }, i);
 
@@ -47,7 +55,11 @@ export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: 
       const title = await page.evaluate(() => document.querySelector('h1, h2')?.textContent?.trim() || '');
 
       if (rawText.length > 100) {
-        const id = urlId(portalUrl + i);
+        // Prefer the real "Requisition ID: N" shown on the detail view over an
+        // index-based hash — index isn't stable across scrapes if job order
+        // shifts, which would otherwise create duplicate rows for the same posting.
+        const reqIdMatch = rawText.match(/Requisition ID:\s*(\d+)/i);
+        const id = reqIdMatch ? `adp_${reqIdMatch[1]}` : urlId(portalUrl + i);
         await saveRawJob(db, { id, url: portalUrl, source: sourceName, raw_text: `${title}\n\n${rawText}` });
       }
 
