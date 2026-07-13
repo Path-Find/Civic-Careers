@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { Page, BrowserContext } from 'playwright';
+import { Page, Frame, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import { saveRawJob } from './db';
 
@@ -90,12 +90,19 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
     await handleRedirections(page);
     await page.waitForSelector('body', { timeout: 10000 });
 
-    const rawText = await page.evaluate(() => {
+    const extractFrom = (target: Page | Frame) => target.evaluate(() => {
       const clone = document.body.cloneNode(true) as HTMLElement;
       const noise = 'script, style, link, meta, noscript, nav, footer, header, #header, #footer';
       clone.querySelectorAll(noise).forEach(e => e.remove());
       return clone.innerText?.trim() || '';
     });
+
+    // Branded iCIMS tenants (confirmed on Peel Region, City of Guelph) serve the
+    // real job content inside a nested frame with "in_iframe=1" in its URL —
+    // the top-level page is just the tenant's own site chrome. This URL
+    // convention is iCIMS-specific, so it's a no-op for every other engine.
+    const contentFrame = page.frames().find(f => f.url().includes('in_iframe=1'));
+    const rawText = await extractFrom(contentFrame ?? page);
 
     if (!rawText || rawText.length < 100) return;
 
