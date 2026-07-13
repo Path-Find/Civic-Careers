@@ -21,7 +21,20 @@ export async function scrapePeopleSoft(db: Client, context: BrowserContext, sear
     await safeGoto(page, searchUrl, 60000);
     await page.waitForTimeout(8000);
 
-    const firstBtn = await page.$('[id^="HRS_VIEW_DETAILSPB"]');
+    // Some tenants (TMU confirmed) show facet counts on load but don't
+    // populate real results until the search is explicitly submitted —
+    // clicking this is a safe no-op on tenants that already auto-populate
+    // (Winnipeg confirmed).
+    const searchBtn = await page.$('#HRS_SCH_WRK_FLU_HRS_SEARCH_BTN, [id*="HRS_SEARCH_BTN"]');
+    if (searchBtn) {
+      await searchBtn.click();
+      await page.waitForTimeout(6000);
+    }
+
+    // Row-level "view details" elements use different ID suffixes across
+    // tenants — Winnipeg: HRS_VIEW_DETAILSPB$N (a button), TMU:
+    // HRS_VIEW_DETAILS$N (a div) — the shared prefix catches both.
+    const firstBtn = await page.$('[id^="HRS_VIEW_DETAILS"]');
     if (!firstBtn) {
       console.log(`[${sourceName}] No job rows found`);
       return;
