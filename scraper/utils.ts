@@ -69,6 +69,16 @@ export async function handleRedirections(page: Page, depth = 0): Promise<boolean
   return depth > 0;
 }
 
+// Some SPA job-detail pages (confirmed on Workday — University of Ottawa,
+// University of Waterloo) return their nav/footer chrome before the real
+// content has hydrated: "Skip to main content...Loading...Follow Us...".
+// That shell is ~136 chars — over the naive length-only cutoff below — so it
+// was slipping through as if it were a real posting, then silently failing
+// AI parsing (no job_title to extract) on every single parse run forever.
+export function looksUnrendered(text: string): boolean {
+  return /skip to main content/i.test(text) && text.length < 400;
+}
+
 export async function scrapeRawAndStage(db: Client, context: BrowserContext, job: JobSummary, sourceName: string) {
   const existing = await db.execute({ sql: `SELECT parsed_at FROM raw_jobs WHERE id = ?`, args: [job.id!] });
   if (existing.rows.length > 0 && existing.rows[0]!['parsed_at'] !== null) {
@@ -102,9 +112,18 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
     // the top-level page is just the tenant's own site chrome. This URL
     // convention is iCIMS-specific, so it's a no-op for every other engine.
     const contentFrame = page.frames().find(f => f.url().includes('in_iframe=1'));
-    const rawText = await extractFrom(contentFrame ?? page);
+    let rawText = await extractFrom(contentFrame ?? page);
 
-    if (!rawText || rawText.length < 100) return;
+    if (looksUnrendered(rawText)) {
+      // Page hadn't finished hydrating yet — give it one more chance before bailing.
+      await page.waitForTimeout(5000);
+      rawText = await extractFrom(contentFrame ?? page);
+    }
+
+    if (!rawText || rawText.length < 100 || looksUnrendered(rawText)) {
+      console.warn(`\n   ⚠️  [${sourceName}] Page never rendered real content: ${job.url}`);
+      return;
+    }
 
     await saveRawJob(db, { id: job.id!, url: job.url, source: sourceName, raw_text: rawText });
     process.stdout.write(' ✅');

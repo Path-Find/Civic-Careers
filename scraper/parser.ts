@@ -1,5 +1,6 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs } from './db';
 import { parseJobWithAI } from './ai_parser';
+import { looksUnrendered } from './utils';
 
 const CONCURRENCY = 5;
 
@@ -18,6 +19,14 @@ async function main() {
   for (let i = 0; i < rawJobs.length; i += CONCURRENCY) {
     const batch = rawJobs.slice(i, i + CONCURRENCY);
     await Promise.all(batch.map(async (raw) => {
+      // Guards against raw_text that's just an unrendered SPA shell (see utils.ts) —
+      // reject it locally, for free, instead of paying the AI to fail on it.
+      // Also covers rows that were saved with this bug before the scraper fix went in;
+      // they'll self-heal once the next scrape overwrites raw_text with real content.
+      if (looksUnrendered(raw.raw_text)) {
+        process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ❌ (${raw.source}: unrendered page, skipped before AI call)`);
+        return;
+      }
       const aiResult = await parseJobWithAI(raw.raw_text);
       if (aiResult) {
         await saveJob(db, { id: raw.id, url: raw.url, source: raw.source });

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Scrape notifications didn't say which sources succeeded or failed**: a source silently erroring (bot detection, a broken selector, etc.) was invisible — the message reported a company/job count as if everything had succeeded. Notifications now list every source's pass/fail status individually (with the error for failures), and split out net-new postings found from the total touched.
+- **University of Ottawa and University of Waterloo (Workday) were burning paid AI parsing calls on empty pages**: their job-detail pages were sometimes scraped before the real content had rendered, capturing just the site's nav/footer shell instead. That shell was long enough (~136 chars) to slip past the "did we actually get content" check, got saved as if it were a real posting, then silently failed AI extraction on every parse run — 812 and 23 postings respectively, indefinitely, since a failed parse never stops a row from being retried. The scraper now detects and retries an unrendered page before giving up, and the parser now rejects that shell locally (no API cost) as a second layer of defense.
 
 ## [1.9.0] - 2026-07-13
 
