@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { inject } from '@vercel/analytics';
-import { renderMarkdown, slugify, formatDate } from './utils';
-import type { Job, JobDetails, View } from './types/jobs';
+import { slugify } from './utils';
+import type { Job, View } from './types/jobs';
 import { parseJobDetails } from './modules/jobs/jobUtils';
 import { useJobs } from './modules/jobs/hooks/useJobs';
 import { useJobFilters } from './modules/jobs/hooks/useJobFilters';
 import { JobRow } from './modules/jobs/components/JobRow';
 import { JobFiltersSidebar } from './modules/jobs/components/JobFiltersSidebar';
+import { JobDetailView } from './modules/jobs/components/JobDetailView';
+import { CompanyDirectory } from './modules/jobs/components/CompanyDirectory';
 
-import { Search, ExternalLink, X, Bookmark } from 'lucide-react';
+import { Search, ExternalLink, X } from 'lucide-react';
 
 const COMPANY_PORTALS: Record<string, string> = {
   'City of Toronto': 'https://jobs.toronto.ca/jobsatcity/',
@@ -62,114 +64,6 @@ const COMPANY_PORTALS: Record<string, string> = {
   'Town of Halton Hills': 'https://www.haltonhills.ca/en/your-government/careers.aspx',
   'Conservation Halton': 'https://www.conservationhalton.ca/careers/'
 };
-
-const JobDetailView = ({
-  job,
-  details,
-  headerHeight,
-  onNavigate,
-  onToggleSave,
-}: {
-  job: Job;
-  details: JobDetails;
-  headerHeight: number;
-  onNavigate: (view: View, companyFilter?: string) => void;
-  onToggleSave: (job: Job, event: React.MouseEvent) => void;
-}) => (
-  <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem', width: '100%', boxSizing: 'border-box', flex: 1 }}>
-    <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '4rem', alignItems: 'start' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'sticky', top: `${headerHeight + 20}px` }}>
-        {job.closing_date && (
-          <div style={{ backgroundColor: '#fef2f2', padding: '1rem', borderRadius: '12px', border: '1px solid #fee2e2' }}>
-            <div style={{ fontSize: '0.55rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Apply By</div>
-            <div style={{ fontSize: '1.125rem', fontWeight: 900, color: '#b91c1c' }}>{formatDate(job.closing_date)}</div>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <a href={job.url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '0.75rem 0.5rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.8125rem', textDecoration: 'none' }}>
-            <ExternalLink size={14} /> Apply
-          </a>
-          <button onClick={(event) => onToggleSave(job, event)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', backgroundColor: 'white', color: job.is_saved ? '#0f172a' : '#64748b', border: '1px solid #e2e8f0', padding: '0.75rem 0.5rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.8125rem', cursor: 'pointer' }}>
-            <Bookmark size={14} fill={job.is_saved ? '#0f172a' : 'transparent'} />
-            {job.is_saved ? 'Saved' : 'Save'}
-          </button>
-        </div>
-
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {[
-            { label: 'Department', val: job.department },
-            { label: 'Location', val: job.location },
-            { label: 'Salary', val: details.salary },
-            { label: 'Work Mode', val: details.mode },
-            { label: 'Employment', val: details.type },
-            { label: 'Duration', val: details.duration },
-            { label: 'Union', val: details.union },
-            { label: 'Skills / Programs', val: details.skills },
-            { label: 'Benefits', val: details.benefits },
-            { label: 'Eligibility', val: details.future, highlight: true }
-          ].filter(i => i.val).map(item => (
-            <div key={item.label}>
-              <div style={{ fontSize: '0.55rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.15rem' }}>{item.label}</div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: item.highlight ? '#9a3412' : '#1e293b', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{item.val}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div style={{ backgroundColor: 'white', padding: '0', borderRadius: '0' }}>
-          <div onClick={() => onNavigate('jobs', job.source)} style={{ color: '#2563eb', fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.5rem', cursor: 'pointer' }}>{job.source}</div>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: '0 0 1.5rem 0', letterSpacing: '-0.04em', lineHeight: 1.1 }}>{job.job_title}</h1>
-
-          {job.description ? (
-            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
-              <div style={{ fontSize: '0.9rem', lineHeight: 1.5, color: '#334155', minWidth: 0, overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(job.description) }} />
-            </div>
-          ) : (
-            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {[80, 95, 60, 90, 40].map(width => <div key={width} className="animate-pulse" style={{ height: '1.25rem', backgroundColor: '#f1f5f9', borderRadius: '4px', width: `${width}%` }} />)}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  </main>
-);
-
-const CompanyDirectory = ({
-  activeCompanies,
-  inactiveCompanies,
-  activeJobsByCompany,
-  jobsByCompany,
-  onSelectCompany,
-}: {
-  activeCompanies: string[];
-  inactiveCompanies: string[];
-  activeJobsByCompany: Record<string, Job[]>;
-  jobsByCompany: Record<string, Job[]>;
-  onSelectCompany: (name: string) => void;
-}) => (
-  <>
-    {activeCompanies.map(name => (
-      <div key={name} onClick={() => onSelectCompany(name)} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
-        <span style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 700 }}>{activeJobsByCompany[name].length} positions</span>
-      </div>
-    ))}
-    {inactiveCompanies.length > 0 && (
-      <>
-        <div style={{ marginTop: '1rem', marginBottom: '0.25rem', fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Not currently hiring</div>
-        {inactiveCompanies.map(name => (
-          <div key={name} onClick={() => onSelectCompany(name)} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.6 }}>
-            <span style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
-            <span style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 700 }}>{jobsByCompany[name].length} positions (archived)</span>
-          </div>
-        ))}
-      </>
-    )}
-  </>
-);
 
 inject();
 
@@ -287,46 +181,39 @@ function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'white', color: '#0f172a', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', flexDirection: 'column' }}>
+    <div className="app-shell">
       {/* Universal Sticky Header */}
-      <header ref={headerRef} style={{ borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
-        <div style={{ padding: '2rem 2rem 1.5rem 2rem', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center' }}>
-            <h1 onClick={reset} style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, letterSpacing: '-0.04em', cursor: 'pointer', lineHeight: 1 }}>GovJobs</h1>
+      <header ref={headerRef} className="app-header">
+        <div className="app-header-inner">
+          <div className="app-header-grid">
+            <h1 onClick={reset} className="app-logo">GovJobs</h1>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-              <nav style={{ 
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2rem',
-                fontSize: '1rem', 
-                fontWeight: 600, 
-                color: '#64748b'
-              }}>
+            <div className="app-nav-wrap">
+              <nav className="app-nav">
                 <span
                   onClick={() => { setSortNewest(false); setClosingSoon(false); handleNavigate('jobs'); }}
-                  style={{ cursor: 'pointer', color: (currentView === 'jobs' && !selectedJob) ? '#0f172a' : 'inherit' }}
+                  className={`app-nav-link ${(currentView === 'jobs' && !selectedJob) ? 'active' : ''}`}
                 >
                   Jobs
                 </span>
                 <span
                   onClick={() => handleNavigate('companies')}
-                  style={{ cursor: 'pointer', color: (currentView === 'companies' && !selectedJob) ? '#0f172a' : 'inherit' }}
+                  className={`app-nav-link ${(currentView === 'companies' && !selectedJob) ? 'active' : ''}`}
                 >
                   Companies
                 </span>
-                <div style={{ width: '1px', height: '16px', backgroundColor: '#e2e8f0' }} />
+                <div className="app-nav-divider" />
                 <span
                   onClick={() => handleNavigate('saved')}
-                  style={{ cursor: 'pointer', color: (currentView === 'saved' && !selectedJob) ? '#0f172a' : 'inherit' }}
+                  className={`app-nav-link ${(currentView === 'saved' && !selectedJob) ? 'active' : ''}`}
                 >
                   Saved
                 </span>
               </nav>
 
               {/* Permanent Search Input */}
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '220px' }}>
-                <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <div className="search-wrap">
+                <Search size={16} className="search-icon" />
                 <input 
                   type="text" 
                   placeholder="Search positions..." 
@@ -338,18 +225,7 @@ function App() {
                       window.history.pushState(null, '', '/jobs');
                     }
                   }}
-                  style={{ 
-                    width: '100%', 
-                    padding: '0.4rem 0.75rem 0.4rem 2.25rem', 
-                    borderRadius: '20px', 
-                    border: '1px solid #e2e8f0', 
-                    outline: 'none', 
-                    fontSize: '0.875rem', 
-                    fontWeight: 500, 
-                    color: '#0f172a', 
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.15s ease'
-                  }}
+                  className="search-input"
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = '#0f172a';
                     e.currentTarget.style.backgroundColor = 'white';
@@ -362,7 +238,7 @@ function App() {
                 {searchTerm && (
                   <button 
                     onClick={() => setSearchTerm('')} 
-                    style={{ position: 'absolute', right: '0.75rem', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', color: '#94a3b8', display: 'flex', padding: 0 }}
+                    className="search-clear"
                   >
                     <X size={14} />
                   </button>
@@ -377,7 +253,7 @@ function App() {
       {selectedJob ? (
         <JobDetailView job={selectedJob} details={currentJobDetails!} headerHeight={headerHeight} onNavigate={handleNavigate} onToggleSave={toggleSaveJob} />
       ) : (
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem', width: '100%', boxSizing: 'border-box', flex: 1 }}>
+        <main className="feed-main">
           {loading ? (
             <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Loading jobs...</div>
           ) : currentView === 'home' ? (

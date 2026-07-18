@@ -66,6 +66,7 @@
 .company-name { font-size: 1rem; font-weight: 700; }
 .company-count { font-size: 0.8125rem; color: #94a3b8; font-weight: 700; }
 .company-section-label { margin-top: 1rem; margin-bottom: 0.25rem; font-size: 0.65rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+.feed-main { max-width: 1200px; margin: 0 auto; padding: 2rem; width: 100%; box-sizing: border-box; flex: 1; }
 
 @media (max-width: 800px) {
   .app-header-inner { padding: 1.25rem; }
