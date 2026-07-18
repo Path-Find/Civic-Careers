@@ -65,7 +65,7 @@ jobs:
           cache-dependency-path: scraper/package-lock.json
 
       - name: Install dependencies
-        run: cd scraper && npm install
+        run: cd scraper && npm ci
 
       - name: Install Playwright Browsers
         run: cd scraper && npx playwright install chromium --with-deps

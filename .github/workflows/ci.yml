@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  scraper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: scraper/package-lock.json
+
+      - name: Install dependencies
+        working-directory: scraper
+        run: npm ci
+
+      - name: Run tests
+        working-directory: scraper
+        run: npm test
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build
+        working-directory: web
+        run: npm run build
+
+      - name: Lint
+        working-directory: web
+        run: npm run lint
