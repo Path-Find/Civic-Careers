@@ -107,16 +107,16 @@ const JobRow = ({ job, onClick }: { job: Job, onClick: () => void }) => (
     onMouseLeave={(e) => (e.currentTarget.style.opacity = job.is_active ? '1' : '0.6')}
   >
     <div style={{ minWidth: 0, flex: 1 }}>
-      <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.1rem' }}>
-        {job.job_title}
+      <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.35rem', fontSize: '0.9375rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.1rem' }}>
+        <span style={{ minWidth: 0 }}>{job.job_title}</span>
         {!job.is_active && (
-          <span style={{ marginLeft: '0.6rem', fontSize: '0.6rem', padding: '0.1rem 0.4rem', backgroundColor: '#f1f5f9', color: '#94a3b8', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.025em', fontWeight: 800 }}>Expired</span>
+          <span style={{ whiteSpace: 'nowrap', fontSize: '0.6rem', padding: '0.1rem 0.4rem', backgroundColor: '#f1f5f9', color: '#94a3b8', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.025em', fontWeight: 800 }}>Expired</span>
         )}
         {job.is_inventory === 1 && (
-          <span style={{ marginLeft: '0.6rem', fontSize: '0.6rem', padding: '0.1rem 0.4rem', backgroundColor: '#f0fdf4', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.025em', fontWeight: 800 }}>Inventory</span>
+          <span style={{ whiteSpace: 'nowrap', fontSize: '0.6rem', padding: '0.1rem 0.4rem', backgroundColor: '#f0fdf4', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.025em', fontWeight: 800 }}>Inventory</span>
         )}
         {job.is_student === 1 && (
-          <span style={{ marginLeft: '0.6rem', fontSize: '0.6rem', padding: '0.1rem 0.4rem', backgroundColor: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.025em', fontWeight: 800 }}>Student/Co-op</span>
+          <span style={{ whiteSpace: 'nowrap', fontSize: '0.6rem', padding: '0.1rem 0.4rem', backgroundColor: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.025em', fontWeight: 800 }}>Student/Co-op</span>
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: '#64748b' }}>
@@ -579,7 +579,7 @@ function App() {
             </div>
 
             {/* Main Content */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{ backgroundColor: 'white', padding: '0', borderRadius: '0' }}>
                 <div
                   onClick={() => handleNavigate('jobs', selectedJob.source)}
@@ -592,7 +592,7 @@ function App() {
                 {selectedJob.description ? (
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
                     <div
-                      style={{ fontSize: '0.9rem', lineHeight: 1.7, color: '#334155' }}
+                      style={{ fontSize: '0.9rem', lineHeight: 1.5, color: '#334155', minWidth: 0, overflowWrap: 'anywhere' }}
                       dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedJob.description) }}
                     />
                   </div>

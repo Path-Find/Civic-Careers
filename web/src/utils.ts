@@ -2,7 +2,10 @@ import DOMPurify from 'dompurify';
 
 export const renderMarkdown = (md: string | null): string => {
   if (!md) return '';
-  const html = md
+  const normalized = md
+    // Blank lines between bullets should not turn each item into a separate paragraph.
+    .replace(/(^\s*[-•]\s+.+)\n+(?=\s*[-•]\s+)/gm, '$1\n');
+  const html = normalized
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
