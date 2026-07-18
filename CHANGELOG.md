@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Parse failures were invisible after the fact**: a failed batch only ever surfaced as a raw count in Discord ("346 failed"), with no record of why any individual job failed or whether it was a permanently broken source vs. a one-off. Failures are now tracked per-job with a reason (unrendered page, AI/validation error) and an attempt count; a job stops being retried after 2 failed attempts instead of burning an AI call on it forever, and the Discord summary now flags how many hit that cap.
+- **Parse failures were invisible after the fact**: a failed batch only ever surfaced as a raw count in Discord ("346 failed"), with no record of why any individual job failed or whether it was a permanently broken source vs. a one-off. Failures are now tracked per-job with a reason (unrendered page, AI/validation error) and an attempt count; a job stops being retried after 2 failed attempts instead of burning an AI call on it forever, and the Discord summary now flags how many hit that cap. A fresh rescrape overrides the cap (new content means a scraper fix may have resolved the original cause), and failure records for jobs that stop showing up in scrapes entirely get cleaned up automatically.
 
 ## [1.9.1] - 2026-07-13
 

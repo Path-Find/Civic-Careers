@@ -4,7 +4,9 @@ dotenv.config();
 
 // After this many failed parse attempts, a job is excluded from getUnparsedJobs
 // (stops burning AI calls on something permanently broken) but stays in
-// parse_failures for manual review.
+// parse_failures for manual review. A fresh rescrape (raw_jobs.scraped_at
+// past the last failure) overrides the cap, since new raw_text means a
+// scraper fix may have actually resolved the underlying cause.
 export const MAX_PARSE_ATTEMPTS = 2;
 
 export async function initDb(): Promise<Client> {
@@ -166,7 +168,11 @@ export async function getUnparsedJobs(client: Client): Promise<Array<{ id: strin
       LEFT JOIN parse_failures f ON r.id = f.id
       WHERE r.parsed_at IS NULL
         AND (j.is_active IS NULL OR j.is_active = 1)
-        AND (f.attempt_count IS NULL OR f.attempt_count < ?)
+        AND (
+          f.attempt_count IS NULL
+          OR f.attempt_count < ?
+          OR r.scraped_at > f.last_failed_at
+        )
       ORDER BY r.scraped_at ASC
     `,
     args: [MAX_PARSE_ATTEMPTS],
@@ -227,6 +233,16 @@ export async function toggleSaveJob(client: Client, id: string) {
 export async function cleanupExpiredJobs(client: Client, runStartedAt: string) {
   await client.execute({
     sql: `UPDATE jobs SET is_active = 0 WHERE id NOT IN (
+      SELECT id FROM raw_jobs WHERE scraped_at >= ?
+    )`,
+    args: [runStartedAt],
+  });
+
+  // A job no longer showing up in scrapes at all (delisted, or source removed)
+  // has no future rescrape to reset its cap via — its failure record would
+  // otherwise sit there forever. Safe to drop since it can't be retried anyway.
+  await client.execute({
+    sql: `DELETE FROM parse_failures WHERE id NOT IN (
       SELECT id FROM raw_jobs WHERE scraped_at >= ?
     )`,
     args: [runStartedAt],
