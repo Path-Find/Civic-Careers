@@ -1,6 +1,6 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI } from './ai_parser';
-import { looksUnrendered } from './utils';
+import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 
 const CONCURRENCY = 5;
 
@@ -15,6 +15,7 @@ async function main() {
 
   console.log(`[Parser] Parsing ${rawJobs.length} jobs (${CONCURRENCY} concurrent)...`);
   let done = 0;
+  const failedSources = new Set<string>();
 
   for (let i = 0; i < rawJobs.length; i += CONCURRENCY) {
     const batch = rawJobs.slice(i, i + CONCURRENCY);
@@ -24,6 +25,7 @@ async function main() {
       // Also covers rows that were saved with this bug before the scraper fix went in;
       // they'll self-heal once the next scrape overwrites raw_text with real content.
       if (looksUnrendered(raw.raw_text)) {
+        failedSources.add(raw.source);
         await recordParseFailure(db, { id: raw.id, url: raw.url, source: raw.source, reason: 'unrendered page (SPA shell, skipped before AI call)' });
         process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ❌ (${raw.source}: unrendered page, skipped before AI call)`);
         return;
@@ -59,6 +61,7 @@ async function main() {
         done++;
         process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ✅`);
       } else {
+        failedSources.add(raw.source);
         await recordParseFailure(db, { id: raw.id, url: raw.url, source: raw.source, reason: error });
         process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ❌ (${raw.source}: ${error})`);
       }
@@ -81,16 +84,16 @@ async function main() {
   if (process.env.DISCORD_WEBHOOK_URL) {
     const postingWord = rawJobs.length === 1 ? 'posting' : 'postings';
     const stalled = await countStalledParseFailures(db);
-    const failedNote = failed > 0 ? ` (${failed} failed${stalled > 0 ? `, ${stalled} maxed out retries` : ''})` : '';
-    await fetch(process.env.DISCORD_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: 'GovJobs',
-        content: `Parse done — processed ${done} of ${rawJobs.length} job ${postingWord}${failedNote}.`,
-      }),
-    });
+    const runLink = githubRunUrl();
+    const content = failed > 0
+      ? `🚨 GovJobs parser needs attention\n${failed} ${postingWord} failed to parse${failedSources.size > 0 ? ` from: ${[...failedSources].join(', ')}` : ''}${stalled > 0 ? `; ${stalled} reached the retry limit` : ''}.\nStart a conversation with Codex to investigate and fix the parser.${runLink ? `\nRun: ${runLink}` : ''}`
+      : `✅ GovJobs parser complete — processed ${done} ${postingWord}.${runLink ? `\nRun: ${runLink}` : ''}`;
+    await notifyDiscord(content);
   }
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+main().catch(async err => {
+  console.error(err);
+  await notifyDiscord(`🚨 GovJobs parser stopped before completion.\nStart a conversation with Codex to investigate and fix the parser.${githubRunUrl() ? `\nRun: ${githubRunUrl()}` : ''}`);
+  process.exit(1);
+});

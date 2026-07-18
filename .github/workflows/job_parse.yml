@@ -30,13 +30,3 @@ jobs:
           AI_MODEL: "deepseek-chat"
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: cd scraper && npx tsx parser.ts
-
-      - name: Notify Discord on failure
-        if: failure()
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          curl -sf -H "Content-Type: application/json" -X POST -d "$(cat <<EOF
-          {"username": "GovJobs", "content": "Parse failed\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}
-          EOF
-          )" "$DISCORD_WEBHOOK_URL"

@@ -1,7 +1,7 @@
 import { chromium, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import { initDb } from './db';
-import { BASE_CONFIG } from './utils';
+import { BASE_CONFIG, githubRunUrl, notifyDiscord } from './utils';
 
 import { scrapeSuccessFactors } from './engines/successfactors';
 import { scrapeWorkday } from './engines/workday';
@@ -227,18 +227,21 @@ async function main() {
       ...(failLabels.length > 0 ? [`FAILED ${failLabels.join(', ')}`] : []),
     ].join('\n');
 
-    const content = `${engineLabel} done — ${touched} job ${postingWord} touched (${netNew >= 0 ? '+' : ''}${netNew} new).\n\`\`\`\n${statusLines}\n\`\`\``;
+    const runLink = githubRunUrl();
+    const content = failLabels.length > 0
+      ? `🚨 GovJobs scraper needs attention\nFailed sites: ${failLabels.join(', ')}.\nStart a conversation with Codex to investigate and fix the scraper.${runLink ? `\nRun: ${runLink}` : ''}`
+      : `✅ ${engineLabel} complete — ${touched} job ${postingWord} touched (${netNew >= 0 ? '+' : ''}${netNew} new).${runLink ? `\nRun: ${runLink}` : ''}`;
 
-    await fetch(process.env.DISCORD_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'GovJobs', content }),
-    });
+    await notifyDiscord(content);
   }
 
   if (results.some(result => !result.ok)) process.exitCode = 1;
 }
 
 if (require.main === module) {
-  main().catch(err => { console.error(err); process.exit(1); });
+  main().catch(async err => {
+    console.error(err);
+    await notifyDiscord(`🚨 GovJobs scraper stopped before completion.\nStart a conversation with Codex to investigate and fix the scraper.${githubRunUrl() ? `\nRun: ${githubRunUrl()}` : ''}`);
+    process.exit(1);
+  });
 }

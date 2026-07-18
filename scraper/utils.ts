@@ -32,6 +32,29 @@ export const BASE_CONFIG = {
   viewport: { width: 1280, height: 800 }
 };
 
+export function githubRunUrl(): string | null {
+  const server = process.env.GITHUB_SERVER_URL;
+  const repository = process.env.GITHUB_REPOSITORY;
+  const runId = process.env.GITHUB_RUN_ID;
+  return server && repository && runId ? `${server}/${repository}/actions/runs/${runId}` : null;
+}
+
+export async function notifyDiscord(content: string): Promise<void> {
+  const webhook = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhook) return;
+
+  try {
+    const response = await fetch(webhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'GovJobs', content }),
+    });
+    if (!response.ok) console.error(`[Discord] Notification failed: HTTP ${response.status}`);
+  } catch (err) {
+    console.error('[Discord] Notification failed:', err);
+  }
+}
+
 // Handles interstitial "Leaving GC Jobs" warning pages or similar redirects recursively.
 export async function handleRedirections(page: Page, depth = 0): Promise<boolean> {
   if (depth > 3) return false;
