@@ -177,6 +177,15 @@ export async function saveRawJob(client: Client, job: {
   });
 }
 
+// A detail page that never renders usable content must not remain queued for
+// parsing forever. The next scrape can recreate the row if the source recovers.
+export async function discardRawJob(client: Client, id: string) {
+  await client.batch([
+    { sql: `DELETE FROM raw_jobs WHERE id = ? AND parsed_at IS NULL`, args: [id] },
+    { sql: `DELETE FROM parse_failures WHERE id = ?`, args: [id] },
+  ], 'write');
+}
+
 export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; source: string; raw_text: string }>> {
   const result = await client.execute({
     sql: `

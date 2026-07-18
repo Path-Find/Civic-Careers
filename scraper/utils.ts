@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { Page, Frame, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { saveRawJob } from './db';
+import { discardRawJob, saveRawJob } from './db';
 
 export function urlId(url: string): string {
   return createHash('sha256').update(url).digest('hex').substring(0, 12);
@@ -102,7 +102,7 @@ export function looksUnrendered(text: string): boolean {
   return /skip to main content/i.test(text) && text.length < 400;
 }
 
-export async function scrapeRawAndStage(db: Client, context: BrowserContext, job: JobSummary, sourceName: string) {
+export async function scrapeRawAndStage(db: Client, context: BrowserContext, job: JobSummary, sourceName: string): Promise<boolean> {
   const existing = await db.execute({ sql: `SELECT parsed_at FROM raw_jobs WHERE id = ?`, args: [job.id!] });
   if (existing.rows.length > 0 && existing.rows[0]!['parsed_at'] !== null) {
     await db.execute({ sql: `UPDATE raw_jobs SET scraped_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [job.id!] });
@@ -113,7 +113,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       args: [job.id!, job.url, sourceName]
     });
     process.stdout.write(' ⏭');
-    return;
+    return true;
   }
 
   const page = await context.newPage();
@@ -145,13 +145,17 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
 
     if (!rawText || rawText.length < 100 || looksUnrendered(rawText)) {
       console.warn(`\n   ⚠️  [${sourceName}] Page never rendered real content: ${job.url}`);
-      return;
+      await discardRawJob(db, job.id!);
+      return false;
     }
 
     await saveRawJob(db, { id: job.id!, url: job.url, source: sourceName, raw_text: rawText });
     process.stdout.write(' ✅');
+    return true;
   } catch (err: any) {
     console.warn(`\n   ⚠️  [${sourceName}] Failed ${job.url}: ${err.message}`);
+    await discardRawJob(db, job.id!).catch(() => {});
+    return false;
   } finally {
     await page.close();
   }

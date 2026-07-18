@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API and deployment failures were opaque**: Vercel now installs dependencies once from the lockfile, while job endpoints return clear JSON errors for missing configuration, missing jobs, and database failures.
 - **Discord alerts were too technical and duplicated**: scraper and parser notifications now name the failed sites, explain that Codex should investigate, and link to the run without dumping raw errors; workflow-level duplicate alerts were removed.
 - **Scrape and parse failures could still look successful to CI**: source-level failures and fatal parser errors now exit nonzero so automated alerts and workflow status reflect the actual run.
+- **Stale SPA shells kept returning to the parser**: unusable detail pages are discarded during rescraping, and Workday detail-page failures now fail the source job after processing the rest of its listings.
 - **Human-readable closing dates could gain a timezone-shifted time**: date-only values now stay date-only instead of becoming timestamps at local midnight.
 - **Reparsed jobs could keep stale details**: corrected descriptions, salary, benefits, and classifications now replace the previous parsed values instead of updating only the closing date.
 - **Job detail pages no longer waste space between bullets or clip long lines**: descriptions now wrap within the content column and use compact list spacing, so more of each posting is visible while scrolling.
