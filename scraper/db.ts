@@ -2,6 +2,11 @@ import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
 dotenv.config();
 
+// After this many failed parse attempts, a job is excluded from getUnparsedJobs
+// (stops burning AI calls on something permanently broken) but stays in
+// parse_failures for manual review.
+export const MAX_PARSE_ATTEMPTS = 2;
+
 export async function initDb(): Promise<Client> {
   const client = createClient({
     url: process.env.TURSO_URL!,
@@ -63,6 +68,19 @@ export async function initDb(): Promise<Client> {
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
+
+  // Records why a raw job failed to parse, so a batch failure count is
+  // diagnosable after the fact instead of only existing in transient stdout.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS parse_failures (
+      id TEXT PRIMARY KEY,
+      url TEXT NOT NULL,
+      source TEXT NOT NULL,
+      reason TEXT,
+      attempt_count INTEGER DEFAULT 1,
+      last_failed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
   return client;
 }
@@ -140,14 +158,19 @@ export async function saveRawJob(client: Client, job: {
 }
 
 export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; source: string; raw_text: string }>> {
-  const result = await client.execute(`
-    SELECT r.id, r.url, r.source, r.raw_text
-    FROM raw_jobs r
-    LEFT JOIN jobs j ON r.id = j.id
-    WHERE r.parsed_at IS NULL
-      AND (j.is_active IS NULL OR j.is_active = 1)
-    ORDER BY r.scraped_at ASC
-  `);
+  const result = await client.execute({
+    sql: `
+      SELECT r.id, r.url, r.source, r.raw_text
+      FROM raw_jobs r
+      LEFT JOIN jobs j ON r.id = j.id
+      LEFT JOIN parse_failures f ON r.id = f.id
+      WHERE r.parsed_at IS NULL
+        AND (j.is_active IS NULL OR j.is_active = 1)
+        AND (f.attempt_count IS NULL OR f.attempt_count < ?)
+      ORDER BY r.scraped_at ASC
+    `,
+    args: [MAX_PARSE_ATTEMPTS],
+  });
   return result.rows.map(row => ({
     id: row.id as string,
     url: row.url as string,
@@ -161,6 +184,37 @@ export async function markJobParsed(client: Client, id: string) {
     sql: `UPDATE raw_jobs SET parsed_at = CURRENT_TIMESTAMP WHERE id = ?`,
     args: [id],
   });
+}
+
+// Called on parse failure — upserts so repeated failures on the same job
+// increment attempt_count instead of creating duplicate rows.
+export async function recordParseFailure(client: Client, failure: { id: string; url: string; source: string; reason: string }) {
+  await client.execute({
+    sql: `INSERT INTO parse_failures (id, url, source, reason, attempt_count, last_failed_at)
+          VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+          ON CONFLICT(id) DO UPDATE SET
+            reason = excluded.reason,
+            attempt_count = attempt_count + 1,
+            last_failed_at = CURRENT_TIMESTAMP`,
+    args: [failure.id, failure.url, failure.source, failure.reason],
+  });
+}
+
+// Called on parse success — clears any prior failure record so a job that
+// eventually succeeds doesn't linger in parse_failures.
+export async function clearParseFailure(client: Client, id: string) {
+  await client.execute({
+    sql: `DELETE FROM parse_failures WHERE id = ?`,
+    args: [id],
+  });
+}
+
+export async function countStalledParseFailures(client: Client): Promise<number> {
+  const result = await client.execute({
+    sql: `SELECT COUNT(*) as count FROM parse_failures WHERE attempt_count >= ?`,
+    args: [MAX_PARSE_ATTEMPTS],
+  });
+  return Number(result.rows[0]?.count ?? 0);
 }
 
 export async function toggleSaveJob(client: Client, id: string) {

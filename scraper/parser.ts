@@ -1,4 +1,4 @@
-import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs } from './db';
+import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI } from './ai_parser';
 import { looksUnrendered } from './utils';
 
@@ -24,10 +24,11 @@ async function main() {
       // Also covers rows that were saved with this bug before the scraper fix went in;
       // they'll self-heal once the next scrape overwrites raw_text with real content.
       if (looksUnrendered(raw.raw_text)) {
+        await recordParseFailure(db, { id: raw.id, url: raw.url, source: raw.source, reason: 'unrendered page (SPA shell, skipped before AI call)' });
         process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ❌ (${raw.source}: unrendered page, skipped before AI call)`);
         return;
       }
-      const aiResult = await parseJobWithAI(raw.raw_text);
+      const { data: aiResult, error } = await parseJobWithAI(raw.raw_text);
       if (aiResult) {
         await saveJob(db, { id: raw.id, url: raw.url, source: raw.source });
         await saveJobDetails(db, {
@@ -54,10 +55,12 @@ async function main() {
           required_skills: JSON.stringify(aiResult.required_skills),
         });
         await markJobParsed(db, raw.id);
+        await clearParseFailure(db, raw.id);
         done++;
         process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ✅`);
       } else {
-        process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ❌ (${raw.source}: ${raw.url.slice(-40)})`);
+        await recordParseFailure(db, { id: raw.id, url: raw.url, source: raw.source, reason: error });
+        process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ❌ (${raw.source}: ${error})`);
       }
     }));
   }
@@ -76,7 +79,8 @@ async function main() {
   if (process.env.DISCORD_WEBHOOK_URL) {
     const postingWord = rawJobs.length === 1 ? 'posting' : 'postings';
     const failed = rawJobs.length - done;
-    const failedNote = failed > 0 ? ` (${failed} failed)` : '';
+    const stalled = await countStalledParseFailures(db);
+    const failedNote = failed > 0 ? ` (${failed} failed${stalled > 0 ? `, ${stalled} maxed out retries` : ''})` : '';
     await fetch(process.env.DISCORD_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

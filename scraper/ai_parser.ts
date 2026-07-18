@@ -41,7 +41,11 @@ function msUntilOffPeak(): number {
     return (targetMins - mins) * 60 * 1000 - now.getUTCSeconds() * 1000;
 }
 
-export async function parseJobWithAI(description: string): Promise<ParsedJob | null> {
+export type ParseResult =
+  | { data: ParsedJob; error?: undefined }
+  | { data: null; error: string };
+
+export async function parseJobWithAI(description: string): Promise<ParseResult> {
     const wait = msUntilOffPeak();
     if (wait > 0) {
         console.log(`\n[Parser] DeepSeek peak hours — waiting ${Math.ceil(wait / 60000)} min until off-peak...`);
@@ -96,12 +100,16 @@ export async function parseJobWithAI(description: string): Promise<ParsedJob | n
         const content = completion.choices[0].message.content;
         if (!content) {
             console.error("AI returned empty content");
-            return null;
+            return { data: null, error: "AI returned empty content" };
         }
 
-        return validateParsedJob(JSON.parse(content));
+        const validated = validateParsedJob(JSON.parse(content));
+        if (!validated) {
+            return { data: null, error: "validation failed (missing job_title or malformed response)" };
+        }
+        return { data: validated };
     } catch (error: any) {
         console.error(`AI parsing error (${AI_MODEL}):`, error.message);
-        return null;
+        return { data: null, error: `AI parsing error (${AI_MODEL}): ${error.message}` };
     }
 }
