@@ -128,7 +128,25 @@ export async function saveJobDetails(client: Client, job: {
       work_model, employment_type, duration, is_unionized, union_name, benefits, required_skills
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET closing_date = excluded.closing_date`,
+    ON CONFLICT(id) DO UPDATE SET
+      job_title = excluded.job_title,
+      department = excluded.department,
+      location = excluded.location,
+      salary_range = excluded.salary_range,
+      description = excluded.description,
+      closing_date = excluded.closing_date,
+      is_inventory = excluded.is_inventory,
+      is_student = excluded.is_student,
+      salary_min = excluded.salary_min,
+      salary_max = excluded.salary_max,
+      salary_period = excluded.salary_period,
+      work_model = excluded.work_model,
+      employment_type = excluded.employment_type,
+      duration = excluded.duration,
+      is_unionized = excluded.is_unionized,
+      union_name = excluded.union_name,
+      benefits = excluded.benefits,
+      required_skills = excluded.required_skills`,
     args: [
       job.id, job.job_title, job.department, job.location, job.salary_range,
       job.description, job.closing_date,
