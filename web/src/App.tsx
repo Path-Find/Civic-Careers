@@ -1,12 +1,14 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { inject } from '@vercel/analytics';
-import { renderMarkdown, daysUntilClose, slugify, formatDate } from './utils';
+import { renderMarkdown, slugify, formatDate } from './utils';
 import type { Job, JobDetails, View } from './types/jobs';
 import { parseJobDetails } from './modules/jobs/jobUtils';
 import { useJobs } from './modules/jobs/hooks/useJobs';
 import { useJobFilters } from './modules/jobs/hooks/useJobFilters';
+import { JobRow } from './modules/jobs/components/JobRow';
+import { JobFiltersSidebar } from './modules/jobs/components/JobFiltersSidebar';
 
-import { Search, ExternalLink, ChevronRight, X, ChevronDown, ChevronUp, Bookmark } from 'lucide-react';
+import { Search, ExternalLink, X, Bookmark } from 'lucide-react';
 
 const COMPANY_PORTALS: Record<string, string> = {
   'City of Toronto': 'https://jobs.toronto.ca/jobsatcity/',
@@ -60,96 +62,6 @@ const COMPANY_PORTALS: Record<string, string> = {
   'Town of Halton Hills': 'https://www.haltonhills.ca/en/your-government/careers.aspx',
   'Conservation Halton': 'https://www.conservationhalton.ca/careers/'
 };
-
-const JobRow = ({ job, onClick }: { job: Job, onClick: () => void }) => (
-  <div 
-    onClick={onClick}
-    style={{ 
-      padding: '0.4rem 0',
-      backgroundColor: 'white',
-      borderBottom: '1px solid #f8fafc',
-      cursor: job.is_active ? 'pointer' : 'default',
-      transition: 'opacity 0.1s ease',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: '2rem',
-      opacity: job.is_active ? 1 : 0.6
-    }}
-    onMouseEnter={(e) => (e.currentTarget.style.opacity = job.is_active ? '0.7' : '0.6')}
-    onMouseLeave={(e) => (e.currentTarget.style.opacity = job.is_active ? '1' : '0.6')}
-  >
-    <div style={{ minWidth: 0, flex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.35rem', fontSize: '0.9375rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.1rem' }}>
-        <span style={{ minWidth: 0 }}>{job.job_title}</span>
-        {!job.is_active && (
-          <span style={{ whiteSpace: 'nowrap', fontSize: '0.6rem', padding: '0.1rem 0.4rem', backgroundColor: '#f1f5f9', color: '#94a3b8', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.025em', fontWeight: 800 }}>Expired</span>
-        )}
-        {job.is_inventory === 1 && (
-          <span style={{ whiteSpace: 'nowrap', fontSize: '0.6rem', padding: '0.1rem 0.4rem', backgroundColor: '#f0fdf4', color: '#0ea5e9', border: '1px solid #bae6fd', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.025em', fontWeight: 800 }}>Inventory</span>
-        )}
-        {job.is_student === 1 && (
-          <span style={{ whiteSpace: 'nowrap', fontSize: '0.6rem', padding: '0.1rem 0.4rem', backgroundColor: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.025em', fontWeight: 800 }}>Student/Co-op</span>
-        )}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: '#64748b' }}>
-        <span style={{ color: '#0f172a', fontWeight: 600 }}>{job.source}</span>
-        {job.department && <span>• {job.department}</span>}
-      </div>
-    </div>
-    
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexShrink: 0 }}>
-      {job.closing_date && (() => {
-        const days = daysUntilClose(job.closing_date);
-        const urgent = days !== null && days >= 0 && days <= 7;
-        return (
-          <div style={{ fontSize: '0.75rem', textAlign: 'right', fontWeight: 500, color: urgent ? '#dc2626' : '#94a3b8' }}>
-            {urgent ? (days === 0 ? 'Closes today' : days === 1 ? '1 day left' : `${days}d left`) : formatDate(job.closing_date)}
-          </div>
-        );
-      })()}
-      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-        <ChevronRight size={16} style={{ color: '#cbd5e1' }} />
-      </div>
-    </div>
-  </div>
-);
-
-const FilterSection = ({ title, children, defaultOpen = true }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  return (
-    <div style={{ paddingBottom: '0.75rem', marginBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 'none', backgroundColor: 'transparent', padding: '0.25rem 0', cursor: 'pointer', marginBottom: isOpen ? '0.35rem' : 0 }}
-      >
-        <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#0f172a', letterSpacing: '0.05em' }}>{title}</span>
-        {isOpen ? <ChevronUp size={12} color="#0f172a" /> : <ChevronDown size={12} color="#0f172a" />}
-      </button>
-      {isOpen && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>{children}</div>}
-    </div>
-  );
-};
-
-const FilterButton = ({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) => (
-  <button 
-    onClick={onClick}
-    style={{ 
-      padding: '0.25rem 0.5rem', 
-      borderRadius: '4px', 
-      fontSize: '0.65rem', 
-      fontWeight: 600, 
-      border: '1px solid',
-      borderColor: active ? '#0f172a' : '#e2e8f0',
-      backgroundColor: active ? '#0f172a' : 'white',
-      color: active ? 'white' : '#64748b',
-      cursor: 'pointer',
-      transition: 'all 0.1s ease'
-    }}
-  >
-    {label}
-  </button>
-);
 
 const JobDetailView = ({
   job,
@@ -223,41 +135,6 @@ const JobDetailView = ({
       </div>
     </div>
   </main>
-);
-
-const JobFiltersSidebar = ({
-  headerHeight,
-  minSalary,
-  selectedModes,
-  closingSoon,
-  showInventories,
-  onMinSalaryChange,
-  onModesChange,
-  onClosingSoonChange,
-  onInventoriesChange,
-  onReset,
-}: {
-  headerHeight: number;
-  minSalary: number | null;
-  selectedModes: string[];
-  closingSoon: boolean;
-  showInventories: boolean;
-  onMinSalaryChange: (value: number | null) => void;
-  onModesChange: (mode: string) => void;
-  onClosingSoonChange: () => void;
-  onInventoriesChange: () => void;
-  onReset: () => void;
-}) => (
-  <aside style={{ display: 'flex', flexDirection: 'column', position: 'sticky', top: `${headerHeight + 20}px`, alignSelf: 'start' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: '#0f172a' }}>
-      <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filters</span>
-    </div>
-    <FilterSection title="Salary Min">{[50000, 75000, 100000, 125000].map(value => <FilterButton key={value} label={`$${value / 1000}k+`} active={minSalary === value} onClick={() => onMinSalaryChange(minSalary === value ? null : value)} />)}</FilterSection>
-    <FilterSection title="Work Mode">{['In-person', 'Hybrid', 'Remote'].map(mode => <FilterButton key={mode} label={mode} active={selectedModes.includes(mode)} onClick={() => onModesChange(mode)} />)}</FilterSection>
-    <FilterSection title="Deadline"><FilterButton label="Closing soon" active={closingSoon} onClick={onClosingSoonChange} /></FilterSection>
-    <FilterSection title="Job Type"><FilterButton label="Ongoing/Inventory" active={showInventories} onClick={onInventoriesChange} /></FilterSection>
-    <div style={{ marginTop: '1.5rem' }}><button onClick={onReset} style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid #e2e8f0', backgroundColor: 'transparent', color: '#64748b', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>Reset filters</button></div>
-  </aside>
 );
 
 const CompanyDirectory = ({
