@@ -636,8 +636,8 @@ function App() {
               </section>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '4rem' }}>
-              <aside style={{ display: 'flex', flexDirection: 'column', position: 'sticky', top: `${headerHeight + 20}px`, alignSelf: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: currentView === 'companies' ? '1fr' : '200px 1fr', gap: '4rem' }}>
+              {currentView !== 'companies' && <aside style={{ display: 'flex', flexDirection: 'column', position: 'sticky', top: `${headerHeight + 20}px`, alignSelf: 'start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: '#0f172a' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filters</span>
                 </div>
@@ -646,7 +646,7 @@ function App() {
                 <FilterSection title="Deadline"><FilterButton label="Closing soon" active={closingSoon} onClick={() => setClosingSoon(!closingSoon)} /></FilterSection>
                 <FilterSection title="Job Type"><FilterButton label="Ongoing/Inventory" active={showInventories} onClick={() => setShowInventories(!showInventories)} /></FilterSection>
                 <div style={{ marginTop: '1.5rem' }}><button onClick={() => {reset(); setShowInventories(false);}} style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid #e2e8f0', backgroundColor: 'transparent', color: '#64748b', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>Reset filters</button></div>
-              </aside>
+              </aside>}
 
               <div style={{ minWidth: 0 }}>
                 <div style={{ marginBottom: '1rem', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
