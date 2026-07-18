@@ -338,16 +338,16 @@ function App() {
     catch { return null; }
   };
 
-  const parseJobDetails = (job: Job) => ({
-    salary: formatSalary(job),
-    mode: job.work_model === 'On-site' ? 'In-person' : (job.work_model || null),
-    type: job.employment_type || null,
-    duration: job.duration || null,
-    union: job.is_unionized ? (job.union_name || 'Unionized') : null,
-    benefits: joinJsonArray(job.benefits),
-    skills: joinJsonArray(job.required_skills),
-    future: (job.description || '').toLowerCase().includes('future requirements') ? 'Eligible for future requirements' : null,
-  });
+  const parseJobDetails = useCallback((job: Job) => ({
+      salary: formatSalary(job),
+      mode: job.work_model === 'On-site' ? 'In-person' : (job.work_model || null),
+      type: job.employment_type || null,
+      duration: job.duration || null,
+      union: job.is_unionized ? (job.union_name || 'Unionized') : null,
+      benefits: joinJsonArray(job.benefits),
+      skills: joinJsonArray(job.required_skills),
+      future: (job.description || '').toLowerCase().includes('future requirements') ? 'Eligible for future requirements' : null,
+    }), []);
 
   const isExpired = useCallback((j: Job): boolean => {
     if (j.is_active === 0) return true;
@@ -393,7 +393,7 @@ function App() {
       if (urgentA && urgentB) return (dA ?? 0) - (dB ?? 0);
       return b.scraped_at.localeCompare(a.scraped_at);
     });
-  }, [jobs, searchTerm, selectedModes, minSalary, closingSoon, currentView, showInventories, sortNewest, isExpired]);
+  }, [jobs, searchTerm, selectedModes, minSalary, closingSoon, currentView, showInventories, sortNewest, isExpired, parseJobDetails]);
 
   const recentJobs = useMemo(() => [...jobs].filter(j => !isExpired(j)).sort((a, b) => b.scraped_at.localeCompare(a.scraped_at)).slice(0, 5), [jobs, isExpired]);
   const closingSoonJobs = useMemo(() => {
@@ -429,7 +429,7 @@ function App() {
     ).sort()
   , [jobsByCompany, isExpired]);
 
-  const currentJobDetails = useMemo(() => selectedJob ? parseJobDetails(selectedJob) : null, [selectedJob]);
+  const currentJobDetails = useMemo(() => selectedJob ? parseJobDetails(selectedJob) : null, [selectedJob, parseJobDetails]);
 
   const reset = () => {
     setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setMinSalary(null); setClosingSoon(false); setShowInventories(false); setSortNewest(false);
