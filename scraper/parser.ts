@@ -80,6 +80,7 @@ async function main() {
   console.log('[Parser] Done.');
 
   const failed = rawJobs.length - done;
+  if (failed > 0) process.exitCode = 1;
 
   if (process.env.DISCORD_WEBHOOK_URL) {
     const postingWord = rawJobs.length === 1 ? 'posting' : 'postings';

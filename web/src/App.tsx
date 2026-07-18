@@ -1,8 +1,11 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { inject } from '@vercel/analytics';
-import { renderMarkdown, formatSalary, daysUntilClose, fixCasing, slugify, formatDate } from './utils';
+import { renderMarkdown, daysUntilClose, slugify, formatDate } from './utils';
+import type { Job, JobDetails, View } from './types/jobs';
+import { parseJobDetails } from './modules/jobs/jobUtils';
+import { useJobs } from './modules/jobs/hooks/useJobs';
+import { useJobFilters } from './modules/jobs/hooks/useJobFilters';
 
-const API = import.meta.env.VITE_API_URL ?? '';
 import { Search, ExternalLink, ChevronRight, X, ChevronDown, ChevronUp, Bookmark } from 'lucide-react';
 
 const COMPANY_PORTALS: Record<string, string> = {
@@ -57,36 +60,6 @@ const COMPANY_PORTALS: Record<string, string> = {
   'Town of Halton Hills': 'https://www.haltonhills.ca/en/your-government/careers.aspx',
   'Conservation Halton': 'https://www.conservationhalton.ca/careers/'
 };
-
-interface Job {
-  id: string;
-  job_title: string | null;
-  department: string | null;
-  location: string | null;
-  salary_range: string | null;
-  salary_min: number | null;
-  salary_max: number | null;
-  salary_period: string | null;
-  work_model: string | null;
-  employment_type: string | null;
-  duration: string | null;
-  is_unionized: number | null;
-  union_name: string | null;
-  benefits: string | null;
-  required_skills: string | null;
-  description?: string | null;
-  closing_date: string | null;
-  url: string;
-  source: string;
-  scraped_at: string;
-  is_saved: number;
-  is_active: number;
-  is_inventory: number;
-  is_student: number;
-  rid: number;
-}
-
-type View = 'home' | 'jobs' | 'saved' | 'companies';
 
 const JobRow = ({ job, onClick }: { job: Job, onClick: () => void }) => (
   <div 
@@ -177,17 +150,6 @@ const FilterButton = ({ label, active, onClick }: { label: string, active: boole
     {label}
   </button>
 );
-
-interface JobDetails {
-  salary: string | null;
-  mode: string | null;
-  type: string | null;
-  duration: string | null;
-  union: string | null;
-  benefits: string | null;
-  skills: string | null;
-  future: string | null;
-}
 
 const JobDetailView = ({
   job,
@@ -335,18 +297,17 @@ const CompanyDirectory = ({
 inject();
 
 function App() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { jobs, loading, loadDescription, toggleSaved } = useJobs();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [currentView, setCurrentView] = useState<View>('home');
-  
-  // Advanced Filters
-  const [minSalary, setMinSalary] = useState<number | null>(null);
-  const [selectedModes, setSelectedModes] = useState<string[]>([]);
-  const [closingSoon, setClosingSoon] = useState(false);
-  const [showInventories, setShowInventories] = useState(false);
-  const [sortNewest, setSortNewest] = useState(false);
+  const filters = useJobFilters(jobs, currentView, searchTerm);
+  const {
+    minSalary, setMinSalary, selectedModes, setSelectedModes, closingSoon, setClosingSoon,
+    showInventories, setShowInventories, setSortNewest, filteredJobs,
+    recentJobs, closingSoonJobs, jobsByCompany, activeJobsByCompany, activeCompanies,
+    inactiveCompanies,
+  } = filters;
 
   // Sticky sidebars offset by the header's real height (it grows on the job
   // detail page), not a guessed pixel value.
@@ -402,57 +363,13 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [jobs]);
 
-  // Lazy-load job description when a job is selected
   useEffect(() => {
     if (!selectedJob) return;
     if (selectedJob.description) return;
-
-    fetch(`${API}/api/jobs?id=${selectedJob.id}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.description) {
-          setSelectedJob(prev => prev && prev.id === selectedJob.id ? { ...prev, description: data.description } : prev);
-          setJobs(prev => prev.map(j => j.id === selectedJob.id ? { ...j, description: data.description } : j));
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching job description:', err);
-      });
-  }, [selectedJob]);
-
-  const fetchJobs = () => {
-    fetch(`${API}/api/jobs`)
-      .then(res => res.json())
-      .then(data => {
-        const normalized = data.map((j: Job) => ({
-          ...j,
-          job_title: fixCasing((j.job_title || '')
-            .replace(/^Available Position:\s+/i, '')
-            .replace(/\(\d+\)\s*$/, '')
-            .replace(/\d+$/, '')
-            .replace(/ -([A-Z])/, ' - $1')
-            .trim()),
-          department: (j.department || '')
-            .replace(/\(\d+\)/g, '')
-            .replace(/\s*[-–—]\s*Job Opportunity.*/i, '')
-            .replace(/\s*[-–—].*/, '')
-            .replace(/^General$/i, '')
-            .trim(),
-          closing_date: (j.closing_date || '').replace(/Posted on\s+/i, '').trim(),
-          source: j.source === 'WATERFRONT TORONTO' ? 'Waterfront Toronto' : j.source
-        }));
-        setJobs(normalized);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error fetching jobs:', err);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchJobs();
-  }, []);
+    loadDescription(selectedJob).then(description => {
+      if (description) setSelectedJob(prev => prev && prev.id === selectedJob.id ? { ...prev, description } : prev);
+    });
+  }, [selectedJob, loadDescription]);
 
   const handleNavigate = (view: View, companyFilter?: string) => {
     setCurrentView(view);
@@ -474,10 +391,8 @@ function App() {
   const toggleSaveJob = async (job: Job, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`${API}/api/jobs/${job.id}/toggle-save`, { method: 'POST' });
-      if (res.ok) {
-        const { is_saved } = await res.json();
-        setJobs(prev => prev.map(j => j.id === job.id ? { ...j, is_saved } : j));
+      const is_saved = await toggleSaved(job);
+      if (is_saved !== null) {
         if (selectedJob?.id === job.id) {
           setSelectedJob(prev => prev ? { ...prev, is_saved } : null);
         }
@@ -487,103 +402,7 @@ function App() {
     }
   };
 
-  const joinJsonArray = (raw: string | null): string | null => {
-    try { const arr = JSON.parse(raw || '[]'); return Array.isArray(arr) && arr.length ? arr.join(', ') : null; }
-    catch { return null; }
-  };
-
-  const parseJobDetails = useCallback((job: Job) => ({
-      salary: formatSalary(job),
-      mode: job.work_model === 'On-site' ? 'In-person' : (job.work_model || null),
-      type: job.employment_type || null,
-      duration: job.duration || null,
-      union: job.is_unionized ? (job.union_name || 'Unionized') : null,
-      benefits: joinJsonArray(job.benefits),
-      skills: joinJsonArray(job.required_skills),
-      future: (job.description || '').toLowerCase().includes('future requirements') ? 'Eligible for future requirements' : null,
-    }), []);
-
-  const isExpired = useCallback((j: Job): boolean => {
-    if (j.is_active === 0) return true;
-    if (j.closing_date) {
-      const days = daysUntilClose(j.closing_date);
-      return days !== null && days < 0;
-    }
-    return false;
-  }, []);
-
-  const CLOSING_SOON_DAYS = 14;
-
-  const filteredJobs = useMemo(() => {
-    let pool = jobs;
-    if (currentView === 'saved') { pool = jobs.filter(j => j.is_saved); }
-    else { pool = pool.filter(j => !isExpired(j)); }
-    const filtered = pool.filter(job => {
-      if (!showInventories && job.is_inventory) return false;
-      const matchesSearch = (job.job_title ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (job.department ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           job.source.toLowerCase().includes(searchTerm.toLowerCase());
-      const details = parseJobDetails(job);
-      const matchesMode = selectedModes.length === 0 || (details.mode !== null && selectedModes.includes(details.mode));
-      let matchesSalary = true;
-      if (minSalary) {
-        matchesSalary = job.salary_min !== null && job.salary_min >= minSalary;
-      }
-      let matchesDeadline = true;
-      if (closingSoon) {
-        const days = daysUntilClose(job.closing_date);
-        matchesDeadline = !isExpired(job) && days !== null && days >= 0 && days <= CLOSING_SOON_DAYS;
-      }
-      return matchesSearch && matchesMode && matchesSalary && matchesDeadline;
-    });
-    if (sortNewest) return filtered.sort((a, b) => b.scraped_at.localeCompare(a.scraped_at));
-    return filtered.sort((a, b) => {
-      const dA = daysUntilClose(a.closing_date);
-      const dB = daysUntilClose(b.closing_date);
-      const urgentA = dA !== null && dA >= 0 && dA <= CLOSING_SOON_DAYS;
-      const urgentB = dB !== null && dB >= 0 && dB <= CLOSING_SOON_DAYS;
-      if (urgentA && !urgentB) return -1;
-      if (!urgentA && urgentB) return 1;
-      if (urgentA && urgentB) return (dA ?? 0) - (dB ?? 0);
-      return b.scraped_at.localeCompare(a.scraped_at);
-    });
-  }, [jobs, searchTerm, selectedModes, minSalary, closingSoon, currentView, showInventories, sortNewest, isExpired, parseJobDetails]);
-
-  const recentJobs = useMemo(() => [...jobs].filter(j => !isExpired(j)).sort((a, b) => b.scraped_at.localeCompare(a.scraped_at)).slice(0, 5), [jobs, isExpired]);
-  const closingSoonJobs = useMemo(() => {
-    // Show the 5 active jobs closing soonest (any future deadline), for useful home panel
-    return jobs
-      .filter(j => !isExpired(j))
-      .map(j => ({ job: j, days: daysUntilClose(j.closing_date) ?? 999 }))
-      .filter(({ days }) => days >= 0)
-      .sort((a, b) => a.days - b.days)
-      .slice(0, 5)
-      .map(({ job }) => job);
-  }, [jobs, isExpired]);
-
-  const jobsByCompany = useMemo(() => jobs.reduce((acc, job) => {
-    if (!acc[job.source]) acc[job.source] = [];
-    acc[job.source].push(job);
-    return acc;
-  }, {} as Record<string, Job[]>), [jobs]);
-
-  const activeJobsByCompany = useMemo(() => {
-    const active: Record<string, Job[]> = {};
-    Object.keys(jobsByCompany).forEach(name => {
-      const act = jobsByCompany[name].filter(j => !isExpired(j));
-      if (act.length > 0) active[name] = act;
-    });
-    return active;
-  }, [jobsByCompany, isExpired]);
-
-  const activeCompanies = useMemo(() => Object.keys(activeJobsByCompany).sort(), [activeJobsByCompany]);
-  const inactiveCompanies = useMemo(() => 
-    Object.keys(jobsByCompany).filter(name => 
-      !jobsByCompany[name].some(j => !isExpired(j))
-    ).sort()
-  , [jobsByCompany, isExpired]);
-
-  const currentJobDetails = useMemo(() => selectedJob ? parseJobDetails(selectedJob) : null, [selectedJob, parseJobDetails]);
+  const currentJobDetails = selectedJob ? parseJobDetails(selectedJob) : null;
 
   const reset = () => {
     setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setMinSalary(null); setClosingSoon(false); setShowInventories(false); setSortNewest(false);
