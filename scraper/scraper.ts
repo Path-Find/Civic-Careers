@@ -235,6 +235,8 @@ async function main() {
       body: JSON.stringify({ username: 'GovJobs', content }),
     });
   }
+
+  if (results.some(result => !result.ok)) process.exitCode = 1;
 }
 
 if (require.main === module) {

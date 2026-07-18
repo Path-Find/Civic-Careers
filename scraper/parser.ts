@@ -76,9 +76,10 @@ async function main() {
 
   console.log('[Parser] Done.');
 
+  const failed = rawJobs.length - done;
+
   if (process.env.DISCORD_WEBHOOK_URL) {
     const postingWord = rawJobs.length === 1 ? 'posting' : 'postings';
-    const failed = rawJobs.length - done;
     const stalled = await countStalledParseFailures(db);
     const failedNote = failed > 0 ? ` (${failed} failed${stalled > 0 ? `, ${stalled} maxed out retries` : ''})` : '';
     await fetch(process.env.DISCORD_WEBHOOK_URL, {
@@ -92,4 +93,4 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+main().catch(err => { console.error(err); process.exit(1); });
