@@ -1,6 +1,6 @@
 {
-  "installCommand": "npm install --include=dev",
-  "buildCommand": "npm install --include=dev && npm run build",
+  "installCommand": "npm ci --include=dev",
+  "buildCommand": "npm run build",
   "rewrites": [
     { "source": "/job/:id", "destination": "/index.html" },
     { "source": "/companies", "destination": "/index.html" },
