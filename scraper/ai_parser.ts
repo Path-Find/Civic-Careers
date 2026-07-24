@@ -45,7 +45,7 @@ export type ParseResult =
   | { data: ParsedJob; error?: undefined }
   | { data: null; error: string };
 
-export async function parseJobWithAI(description: string): Promise<ParseResult> {
+export async function parseJobWithAI(description: string, titleHint?: string): Promise<ParseResult> {
     const wait = msUntilOffPeak();
     if (wait > 0) {
         console.log(`\n[Parser] DeepSeek peak hours — waiting ${Math.ceil(wait / 60000)} min until off-peak...`);
@@ -54,6 +54,11 @@ export async function parseJobWithAI(description: string): Promise<ParseResult> 
 
     const today = new Date().toISOString().split('T')[0];
     
+    const knownTitle = titleHint?.trim();
+    const titleInstruction = knownTitle
+      ? `A trusted listing title was captured from the source results page: "${knownTitle}". Use this exact value for job_title unless the posting clearly shows a more specific expanded title.`
+      : 'No trusted listing title is available; extract job_title from the posting text.';
+
     const prompt = `
     Extract the following information from the job description text provided. 
     Return the data in a valid JSON format. Be extremely precise. Prioritize accurate extraction of closing_date above all else.
@@ -87,6 +92,9 @@ export async function parseJobWithAI(description: string): Promise<ParseResult> 
 
     Text:
     ${description}
+
+    TITLE INSTRUCTION:
+    ${titleInstruction}
     `;
 
     try {
@@ -103,12 +111,19 @@ export async function parseJobWithAI(description: string): Promise<ParseResult> 
             return { data: null, error: "AI returned empty content" };
         }
 
-        const validated = validateParsedJob(JSON.parse(content));
+        const parsed = JSON.parse(content);
+        const validated = validateParsedJob(parsed, knownTitle);
         if (!validated) {
-            return { data: null, error: "validation failed (missing job_title or malformed response)" };
+            const keys = parsed && typeof parsed === 'object' ? Object.keys(parsed).join(', ') : typeof parsed;
+            const preview = content.replace(/\s+/g, ' ').slice(0, 240);
+            return { data: null, error: `permanent: AI response missing usable job_title (keys: ${keys || 'none'}; preview: ${preview})` };
         }
         return { data: validated };
     } catch (error: any) {
+        if (error instanceof SyntaxError) {
+            const preview = String(error.message).slice(0, 180);
+            return { data: null, error: `permanent: AI returned invalid JSON (${preview})` };
+        }
         console.error(`AI parsing error (${AI_MODEL}):`, error.message);
         return { data: null, error: `AI parsing error (${AI_MODEL}): ${error.message}` };
     }

@@ -21,10 +21,17 @@ export async function initDb(): Promise<Client> {
       url TEXT NOT NULL,
       source TEXT NOT NULL,
       raw_text TEXT NOT NULL,
+      title TEXT,
       scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       parsed_at DATETIME
     )
   `);
+
+  try {
+    await client.execute(`ALTER TABLE raw_jobs ADD COLUMN title TEXT`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
 
   // Scraper-owned fields only
   await client.execute(`
@@ -164,16 +171,18 @@ export async function saveRawJob(client: Client, job: {
   url: string;
   source: string;
   raw_text: string;
+  title?: string | undefined;
 }) {
   await client.execute({
-    sql: `INSERT INTO raw_jobs (id, url, source, raw_text, scraped_at, parsed_at)
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, NULL)
+    sql: `INSERT INTO raw_jobs (id, url, source, raw_text, title, scraped_at, parsed_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, NULL)
       ON CONFLICT(id) DO UPDATE SET
         url = excluded.url,
         source = excluded.source,
         raw_text = excluded.raw_text,
+        title = COALESCE(excluded.title, raw_jobs.title),
         scraped_at = CURRENT_TIMESTAMP`,
-    args: [job.id, job.url, job.source, job.raw_text],
+    args: [job.id, job.url, job.source, job.raw_text, job.title ?? null],
   });
 }
 
@@ -186,19 +195,24 @@ export async function discardRawJob(client: Client, id: string) {
   ], 'write');
 }
 
-export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; source: string; raw_text: string }>> {
+export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; source: string; raw_text: string; title: string | null }>> {
   const result = await client.execute({
     sql: `
-      SELECT r.id, r.url, r.source, r.raw_text
+      SELECT r.id, r.url, r.source, r.raw_text, r.title
       FROM raw_jobs r
       LEFT JOIN jobs j ON r.id = j.id
       LEFT JOIN parse_failures f ON r.id = f.id
       WHERE r.parsed_at IS NULL
         AND (j.is_active IS NULL OR j.is_active = 1)
         AND (
-          f.attempt_count IS NULL
-          OR f.attempt_count < ?
+          f.id IS NULL
           OR r.scraped_at > f.last_failed_at
+          OR (
+            f.reason NOT LIKE 'permanent:%'
+            AND f.reason NOT LIKE 'validation failed%'
+            AND f.reason NOT LIKE 'unrendered page%'
+            AND f.attempt_count < ?
+          )
         )
       ORDER BY r.scraped_at ASC
     `,
@@ -209,6 +223,7 @@ export async function getUnparsedJobs(client: Client): Promise<Array<{ id: strin
     url: row.url as string,
     source: row.source as string,
     raw_text: row.raw_text as string,
+    title: row.title as string | null,
   }));
 }
 

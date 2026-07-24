@@ -48,6 +48,10 @@ describe('validateParsedJob', () => {
     assert.equal(validateParsedJob({ ...BASE, job_title: undefined }), null);
   });
 
+  it('uses a trusted source title when AI omits job_title', () => {
+    assert.equal(validateParsedJob({ ...BASE, job_title: '' }, 'Policy Analyst')?.job_title, 'Policy Analyst');
+  });
+
   describe('salary normalization', () => {
     it('coerces salary from currency strings', () => {
       const result = validateParsedJob({ ...BASE, salary_min: '$80,000', salary_max: '$100,000.00' });

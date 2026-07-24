@@ -26,11 +26,11 @@ async function main() {
       // they'll self-heal once the next scrape overwrites raw_text with real content.
       if (looksUnrendered(raw.raw_text)) {
         failedSources.add(raw.source);
-        await recordParseFailure(db, { id: raw.id, url: raw.url, source: raw.source, reason: 'unrendered page (SPA shell, skipped before AI call)' });
+        await recordParseFailure(db, { id: raw.id, url: raw.url, source: raw.source, reason: 'permanent: unrendered page (SPA shell, skipped before AI call)' });
         process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ❌ (${raw.source}: unrendered page, skipped before AI call)`);
         return;
       }
-      const { data: aiResult, error } = await parseJobWithAI(raw.raw_text);
+      const { data: aiResult, error } = await parseJobWithAI(raw.raw_text, raw.title ?? undefined);
       if (aiResult) {
         await saveJob(db, { id: raw.id, url: raw.url, source: raw.source });
         await saveJobDetails(db, {
@@ -63,7 +63,7 @@ async function main() {
       } else {
         failedSources.add(raw.source);
         await recordParseFailure(db, { id: raw.id, url: raw.url, source: raw.source, reason: error });
-        process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ❌ (${raw.source}: ${error})`);
+        process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ❌ (${raw.source} ${raw.id}: ${error})`);
       }
     }));
   }

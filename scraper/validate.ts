@@ -109,11 +109,11 @@ function cleanDescription(markdown: string): string {
     .trim();
 }
 
-export function validateParsedJob(obj: unknown): ParsedJob | null {
+export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | null {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
   const o = obj as Record<string, unknown>;
 
-  const job_title = coerceString(o['job_title']);
+  const job_title = coerceString(o['job_title']) || coerceString(titleHint);
   if (!job_title) return null;
 
   return {

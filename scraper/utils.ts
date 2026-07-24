@@ -149,7 +149,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       return false;
     }
 
-    await saveRawJob(db, { id: job.id!, url: job.url, source: sourceName, raw_text: rawText });
+    await saveRawJob(db, { id: job.id!, url: job.url, source: sourceName, title: job.title, raw_text: rawText });
     process.stdout.write(' ✅');
     return true;
   } catch (err: any) {
