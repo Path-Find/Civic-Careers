@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Web deployments could render a blank screen after a React update**: `react` and `react-dom` now stay on the same release so the client can mount reliably.
 - **Parser retries could repeatedly spend AI credits on permanently unusable input**: source listing titles now survive into parsing, malformed responses and unrendered shells stop retrying until fresh content arrives, and failure logs identify the affected job and response shape.
 
 ## [1.9.2] - 2026-07-18
