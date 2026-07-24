@@ -43,11 +43,13 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
               if (!isLongSection) {
                 return <div key={section.heading} dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${section.heading}\n${section.body}`) }} />;
               }
-              return <details className="detail-section-collapsible" key={section.heading}>
-                <summary><span>{section.heading}</span><span className="detail-section-count">{section.body.split('\n').filter(line => /^\s*[-•]\s+/.test(line)).length || 'Details'}</span></summary>
+              return <div className="detail-section-collapsible" key={section.heading}>
+                <details>
+                  <summary><span>{section.heading}</span><span className="detail-section-count">{section.body.split('\n').filter(line => /^\s*[-•]\s+/.test(line)).length || 'Details'}</span></summary>
+                  <div className="detail-section-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(section.body) }} />
+                </details>
                 {labels.length > 0 && <div className="detail-quick-scan" aria-label={`${section.heading} quick scan`}>{labels.map(label => <span className="detail-quick-chip" key={label}>{label}</span>)}</div>}
-                <div className="detail-section-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(section.body) }} />
-              </details>;
+              </div>;
             })}
           </div> : <div className="detail-loading">{[80, 95, 60, 90, 40].map(width => <div key={width} className="detail-loading-line animate-pulse" style={{ width: `${width}%` }} />)}</div>}
         </div>

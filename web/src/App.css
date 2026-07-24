@@ -63,7 +63,7 @@
 .detail-section-collapsible summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; list-style: none; color: #0f172a; font-size: 1rem; font-weight: 800; }
 .detail-section-collapsible summary::-webkit-details-marker { display: none; }
 .detail-section-collapsible summary::before { content: '+'; width: 1.25rem; color: #2563eb; font-size: 1.25rem; font-weight: 500; }
-.detail-section-collapsible[open] summary::before { content: '−'; }
+.detail-section-collapsible details[open] summary::before { content: '−'; }
 .detail-section-count { color: #94a3b8; font-size: 0.7rem; font-weight: 700; }
 .detail-quick-scan { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.75rem 0 0; padding-left: 1.65rem; }
 .detail-quick-chip { padding: 0.35rem 0.6rem; border: 1px solid #dbeafe; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 0.7rem; font-weight: 700; }
