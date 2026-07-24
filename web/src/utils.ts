@@ -1,5 +1,39 @@
 import DOMPurify from 'dompurify';
 
+export interface MarkdownSection {
+  heading: string;
+  body: string;
+}
+
+export const parseMarkdownSections = (md: string | null): MarkdownSection[] => {
+  if (!md) return [];
+  return md.split(/(?=^#{1,3}\s+)/m).map(chunk => {
+    const match = chunk.match(/^#{1,3}\s+(.+?)(?:\n|$)/);
+    return match
+      ? { heading: match[1].trim(), body: chunk.slice(match[0].length).trim() }
+      : { heading: '', body: chunk.trim() };
+  }).filter(section => section.heading || section.body);
+};
+
+const QUICK_SCAN_GROUPS: Array<[string, RegExp]> = [
+  ['Client care', /client|patient|student|family|community|customer|resident/i],
+  ['Planning & evaluation', /plan|implement|evaluate|strategy|program|assess/i],
+  ['Collaboration', /collaborat|partner|relationship|network|liais|intersector/i],
+  ['Education & mentoring', /teach|mentor|train|educat|counsel|orient|facilitat/i],
+  ['Equity & advocacy', /advocat|equity|inclus|divers|social justice|access/i],
+  ['Research & improvement', /research|evidence|quality|workgroup|change management/i],
+  ['Operations & compliance', /maintain|monitor|legal|ethical|policy|emergency|documentation|record/i],
+];
+
+export const getQuickScanLabels = (heading: string, body: string): string[] => {
+  const bullets = body.split('\n').filter(line => /^\s*[-•]\s+/.test(line)).join(' ');
+  if (!bullets) return [];
+  const groups = heading.toLowerCase().includes('qualif')
+    ? QUICK_SCAN_GROUPS.filter(([label]) => !['Client care', 'Planning & evaluation'].includes(label))
+    : QUICK_SCAN_GROUPS;
+  return groups.filter(([, pattern]) => pattern.test(bullets)).map(([label]) => label);
+};
+
 export const renderMarkdown = (md: string | null): string => {
   if (!md) return '';
   const normalized = md

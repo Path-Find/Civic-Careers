@@ -1,6 +1,6 @@
 import { Bookmark, ExternalLink } from 'lucide-react';
 import type { MouseEvent } from 'react';
-import { formatDate, renderMarkdown } from '../../../utils';
+import { formatDate, getQuickScanLabels, parseMarkdownSections, renderMarkdown } from '../../../utils';
 import type { Job, JobDetails, View } from '../../../types/jobs';
 
 export function JobDetailView({ job, details, headerHeight, onNavigate, onToggleSave }: {
@@ -10,6 +10,9 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   onNavigate: (view: View, companyFilter?: string) => void;
   onToggleSave: (job: Job, event: MouseEvent) => void;
 }) {
+  const descriptionSections = parseMarkdownSections(job.description ?? null);
+  const overview = descriptionSections.find(section => section.heading.toLowerCase() === 'overview');
+  const detailSections = descriptionSections.filter(section => section !== overview && section.body);
   const metadata = [
     { label: 'Department', value: job.department }, { label: 'Location', value: job.location },
     { label: 'Salary', value: details.salary }, { label: 'Work Mode', value: details.mode },
@@ -32,7 +35,21 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
         <div className="detail-card">
           <div className="detail-source" onClick={() => onNavigate('jobs', job.source)}>{job.source}</div>
           <h1 className="detail-title">{job.job_title}</h1>
-          {job.description ? <div className="detail-description" dangerouslySetInnerHTML={{ __html: renderMarkdown(job.description) }} /> : <div className="detail-loading">{[80, 95, 60, 90, 40].map(width => <div key={width} className="detail-loading-line animate-pulse" style={{ width: `${width}%` }} />)}</div>}
+          {job.description ? <div className="detail-description">
+            {overview && <div className="detail-overview" dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${overview.heading}\n${overview.body}`) }} />}
+            {detailSections.map(section => {
+              const labels = getQuickScanLabels(section.heading, section.body);
+              const isLongSection = /responsibilit|qualif/i.test(section.heading);
+              if (!isLongSection) {
+                return <div key={section.heading} dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${section.heading}\n${section.body}`) }} />;
+              }
+              return <details className="detail-section-collapsible" key={section.heading}>
+                <summary><span>{section.heading}</span><span className="detail-section-count">{section.body.split('\n').filter(line => /^\s*[-•]\s+/.test(line)).length || 'Details'}</span></summary>
+                {labels.length > 0 && <div className="detail-quick-scan" aria-label={`${section.heading} quick scan`}>{labels.map(label => <span className="detail-quick-chip" key={label}>{label}</span>)}</div>}
+                <div className="detail-section-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(section.body) }} />
+              </details>;
+            })}
+          </div> : <div className="detail-loading">{[80, 95, 60, 90, 40].map(width => <div key={width} className="detail-loading-line animate-pulse" style={{ width: `${width}%` }} />)}</div>}
         </div>
       </div>
     </div>
