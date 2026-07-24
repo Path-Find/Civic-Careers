@@ -57,7 +57,7 @@
 .detail-card { background: white; }
 .detail-source { color: #2563eb; font-size: 0.8125rem; font-weight: 700; margin-bottom: 0.5rem; cursor: pointer; }
 .detail-title { font-size: 2.5rem; font-weight: 800; margin: 0 0 1.5rem; letter-spacing: -0.04em; line-height: 1.1; }
-.detail-description { border-top: 1px solid #f1f5f9; padding-top: 1.5rem; font-size: 0.9rem; line-height: 1.5; color: #334155; min-width: 0; overflow-wrap: anywhere; }
+.detail-description { border-top: 1px solid #f1f5f9; padding-top: 1.5rem; font-size: 0.9rem; line-height: 1.35; color: #334155; min-width: 0; overflow-wrap: anywhere; }
 .detail-loading { border-top: 1px solid #f1f5f9; padding-top: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
 .detail-loading-line { height: 1.25rem; background: #f1f5f9; border-radius: 4px; }
 
