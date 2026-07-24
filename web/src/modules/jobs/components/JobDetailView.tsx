@@ -38,17 +38,17 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           {job.description ? <div className="detail-description">
             {overview && <div className="detail-overview" dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${overview.heading}\n${compactOverview(overview.body)}`) }} />}
             {detailSections.map(section => {
-              const labels = getQuickScanLabels(section.heading, section.body);
-              const isLongSection = /responsibilit|qualif/i.test(section.heading);
+              const isGroupedSection = /responsibilit|qualif/i.test(section.heading);
+              const labels = isGroupedSection
+                ? getQuickScanLabels(section.heading, section.body)
+                : section.body.split('\n').filter(line => /^\s*[-•]\s+/.test(line)).map(line => line.replace(/^\s*[-•]\s+/, '').trim());
+              const isLongSection = isGroupedSection || /nice to have/i.test(section.heading);
               if (!isLongSection) {
                 return <div key={section.heading} dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${section.heading}\n${section.body}`) }} />;
               }
               return <div className="detail-section-collapsible" key={section.heading}>
-                <details>
-                  <summary><span>{section.heading}</span><span className="detail-section-count">{section.body.split('\n').filter(line => /^\s*[-•]\s+/.test(line)).length || 'Details'}</span></summary>
-                  <div className="detail-section-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(section.body) }} />
-                </details>
-                {labels.length > 0 && <div className="detail-quick-scan" aria-label={`${section.heading} quick scan`}>{labels.map(label => <span className="detail-quick-chip" key={label}>{label}</span>)}</div>}
+                <h3>{section.heading}</h3>
+                {labels.length > 0 && <div className="detail-quick-scan" aria-label={`${section.heading} summary`}>{labels.map(label => <span className="detail-quick-chip" key={label}>{label}</span>)}</div>}
               </div>;
             })}
           </div> : <div className="detail-loading">{[80, 95, 60, 90, 40].map(width => <div key={width} className="detail-loading-line animate-pulse" style={{ width: `${width}%` }} />)}</div>}
