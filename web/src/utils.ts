@@ -34,6 +34,18 @@ export const getQuickScanLabels = (heading: string, body: string): string[] => {
   return groups.filter(([, pattern]) => pattern.test(bullets)).map(([label]) => label);
 };
 
+export const compactOverview = (overview: string): string => {
+  const sentences = overview.split(/(?<=[.!?])\s+(?=[A-Z0-9])/).filter(Boolean);
+  if (sentences.length < 2) return overview;
+  const boilerplate = /^(?:[A-Z][\w &'’-]+\s+)?(?:is|are)\s+(?:committed|dedicated|proud|pleased)\s+to\b|^(?:known as|founded in|established in)\b/i;
+  return boilerplate.test(sentences[0]) ? sentences.slice(1).join(' ') : overview;
+};
+
+export const isRedundantCompensation = (heading: string, body: string): boolean => {
+  if (!/compensation|benefit/i.test(heading)) return false;
+  return /^\s*(?:salary|pay|rate)\s*:\s*\$?[\d,.]+\s*(?:to|[-–])\s*\$?[\d,.]+\s+per\s+hour(?:\s+as\s+per\s+the\s+collective\s+agreement)?\.?\s*$/i.test(body);
+};
+
 export const renderMarkdown = (md: string | null): string => {
   if (!md) return '';
   const normalized = md

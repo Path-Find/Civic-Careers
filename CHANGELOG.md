@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Job detail summaries were visually noisy and repetitive**: requirement tags are now neutral and compact, expandable sections no longer use a plus icon, employer mission copy is omitted from Overview, and salary-only compensation text is hidden when the same value is already in the sidebar.
+
 ## [1.9.5] - 2026-07-24
 
 ### Fixed

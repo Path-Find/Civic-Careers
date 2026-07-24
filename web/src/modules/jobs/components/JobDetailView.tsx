@@ -1,6 +1,6 @@
 import { Bookmark, ExternalLink } from 'lucide-react';
 import type { MouseEvent } from 'react';
-import { formatDate, getQuickScanLabels, parseMarkdownSections, renderMarkdown } from '../../../utils';
+import { compactOverview, formatDate, getQuickScanLabels, isRedundantCompensation, parseMarkdownSections, renderMarkdown } from '../../../utils';
 import type { Job, JobDetails, View } from '../../../types/jobs';
 
 export function JobDetailView({ job, details, headerHeight, onNavigate, onToggleSave }: {
@@ -12,7 +12,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
 }) {
   const descriptionSections = parseMarkdownSections(job.description ?? null);
   const overview = descriptionSections.find(section => section.heading.toLowerCase() === 'overview');
-  const detailSections = descriptionSections.filter(section => section !== overview && section.body);
+  const detailSections = descriptionSections.filter(section => section !== overview && section.body && !isRedundantCompensation(section.heading, section.body));
   const metadata = [
     { label: 'Department', value: job.department }, { label: 'Location', value: job.location },
     { label: 'Salary', value: details.salary }, { label: 'Work Mode', value: details.mode },
@@ -36,7 +36,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           <div className="detail-source" onClick={() => onNavigate('jobs', job.source)}>{job.source}</div>
           <h1 className="detail-title">{job.job_title}</h1>
           {job.description ? <div className="detail-description">
-            {overview && <div className="detail-overview" dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${overview.heading}\n${overview.body}`) }} />}
+            {overview && <div className="detail-overview" dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${overview.heading}\n${compactOverview(overview.body)}`) }} />}
             {detailSections.map(section => {
               const labels = getQuickScanLabels(section.heading, section.body);
               const isLongSection = /responsibilit|qualif/i.test(section.heading);
