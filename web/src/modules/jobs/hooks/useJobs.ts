@@ -8,17 +8,19 @@ export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(() => {
+  const refresh = useCallback((singleRid?: number) => {
     setLoading(true);
-    fetch(`${API}/api/jobs`)
+    const endpoint = singleRid === undefined ? `${API}/api/jobs` : `${API}/api/jobs?rid=${singleRid}`;
+    fetch(endpoint)
       .then(response => response.json())
-      .then(data => setJobs(data.map(normalizeJob)))
+      .then(data => setJobs((Array.isArray(data) ? data : [data]).map(normalizeJob)))
       .catch(error => console.error('Error fetching jobs:', error))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    void Promise.resolve().then(refresh);
+    const match = window.location.pathname.match(/^\/job\/(\d+)$/);
+    void Promise.resolve().then(() => refresh(match ? Number(match[1]) : undefined));
   }, [refresh]);
 
   const updateJob = useCallback((id: string, changes: Partial<Job>) => {

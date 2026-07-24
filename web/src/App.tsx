@@ -68,7 +68,7 @@ const COMPANY_PORTALS: Record<string, string> = {
 inject();
 
 function App() {
-  const { jobs, loading, loadDescription, toggleSaved } = useJobs();
+  const { jobs, loading, refresh, loadDescription, toggleSaved } = useJobs();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [currentView, setCurrentView] = useState<View>('home');
@@ -125,6 +125,7 @@ function App() {
         setCurrentView('jobs');
         setSelectedJob(null);
       } else {
+        if (jobs.length <= 1) refresh();
         setCurrentView('home');
         setSelectedJob(null);
       }
@@ -132,7 +133,7 @@ function App() {
     window.addEventListener('popstate', handlePopState);
     handlePopState();
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [jobs]);
+  }, [jobs, refresh]);
 
   useEffect(() => {
     if (!selectedJob) return;
@@ -143,6 +144,7 @@ function App() {
   }, [selectedJob, loadDescription]);
 
   const handleNavigate = (view: View, companyFilter?: string) => {
+    refresh();
     setCurrentView(view);
     setSelectedJob(null);
     if (companyFilter) {
