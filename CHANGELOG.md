@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Existing job overviews needed an AI rerun to remove employer boilerplate**: a read-only, paragraph-safe cleanup beta can identify removable copy without spending parser credits or changing the database.
 - **Job overviews could repeat employer marketing copy**: AI extraction now limits Overview to a short, role-specific summary and removes company/facility descriptions.
 - **Job descriptions were vertically bloated**: rendered bullet lists no longer insert an extra blank line between every item, making long postings much easier to scan.
 - **Save controls could appear blank on the job detail page**: the button now sets its own readable text color and font instead of inheriting an invisible browser default.
