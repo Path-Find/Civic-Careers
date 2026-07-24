@@ -48,7 +48,7 @@
 .detail-actions { display: flex; gap: 0.5rem; }
 .detail-action { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.75rem 0.5rem; border-radius: 8px; font-weight: 700; font-size: 0.8125rem; }
 .apply-button { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; text-decoration: none; }
-.save-button { background: white; border: 1px solid #e2e8f0; cursor: pointer; }
+.save-button { background: white; color: #0f172a; border: 1px solid #e2e8f0; cursor: pointer; font: inherit; }
 .detail-metadata { background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 1rem; }
 .metadata-label { font-size: 0.55rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.15rem; }
 .metadata-value { font-size: 0.875rem; font-weight: 600; color: #1e293b; overflow-wrap: break-word; word-break: break-word; }
