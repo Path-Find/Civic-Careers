@@ -11,6 +11,12 @@ const deepseekClient = new OpenAI({
 
 const AI_MODEL = process.env.AI_MODEL || "deepseek-v4-flash";
 
+// Bump whenever the prompt below (or AI_MODEL) changes meaningfully enough that
+// old parses may no longer match what the current prompt would produce. Stamped
+// onto every job_details row so stale-version jobs can be found and selectively
+// reparsed via reparse-stale.ts instead of reparsing (and re-billing) everything.
+export const PARSER_VERSION = 1;
+
 export interface ParsedJob {
     job_title: string;
     department: string;

@@ -1,5 +1,5 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
-import { parseJobWithAI } from './ai_parser';
+import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 
 const CONCURRENCY = 5;
@@ -55,6 +55,7 @@ async function main() {
           union_name: aiResult.union_name,
           benefits: JSON.stringify(aiResult.benefits),
           required_skills: JSON.stringify(aiResult.required_skills),
+          parser_version: PARSER_VERSION,
         });
         await markJobParsed(db, raw.id);
         await clearParseFailure(db, raw.id);

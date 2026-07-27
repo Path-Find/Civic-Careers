@@ -78,6 +78,12 @@ export async function initDb(): Promise<Client> {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
 
+  try {
+    await client.execute(`ALTER TABLE job_details ADD COLUMN parser_version INTEGER`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+
   // Records why a raw job failed to parse, so a batch failure count is
   // diagnosable after the fact instead of only existing in transient stdout.
   await client.execute(`
@@ -127,14 +133,15 @@ export async function saveJobDetails(client: Client, job: {
   union_name?: string;
   benefits?: string;
   required_skills?: string;
+  parser_version?: number;
 }) {
   await client.execute({
     sql: `INSERT INTO job_details (
       id, job_title, department, location, salary_range, description, closing_date,
       is_inventory, is_student, salary_min, salary_max, salary_period,
-      work_model, employment_type, duration, is_unionized, union_name, benefits, required_skills
+      work_model, employment_type, duration, is_unionized, union_name, benefits, required_skills, parser_version
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
       department = excluded.department,
@@ -153,7 +160,8 @@ export async function saveJobDetails(client: Client, job: {
       is_unionized = excluded.is_unionized,
       union_name = excluded.union_name,
       benefits = excluded.benefits,
-      required_skills = excluded.required_skills`,
+      required_skills = excluded.required_skills,
+      parser_version = excluded.parser_version`,
     args: [
       job.id, job.job_title, job.department, job.location, job.salary_range,
       job.description, job.closing_date,
@@ -161,7 +169,7 @@ export async function saveJobDetails(client: Client, job: {
       job.salary_min ?? null, job.salary_max ?? null, job.salary_period ?? null,
       job.work_model ?? null, job.employment_type ?? null, job.duration ?? null,
       job.is_unionized ?? null, job.union_name ?? null, job.benefits ?? null,
-      job.required_skills ?? null,
+      job.required_skills ?? null, job.parser_version ?? null,
     ],
   });
 }
@@ -263,6 +271,37 @@ export async function countStalledParseFailures(client: Client): Promise<number>
     args: [MAX_PARSE_ATTEMPTS],
   });
   return Number(result.rows[0]?.count ?? 0);
+}
+
+// Jobs successfully parsed under an older prompt/model version — raw_jobs.parsed_at
+// being set means getUnparsedJobs will never pick these back up on its own.
+export async function countStaleParses(client: Client, currentVersion: number): Promise<Array<{ source: string; count: number }>> {
+  const result = await client.execute({
+    sql: `SELECT r.source as source, COUNT(*) as count
+          FROM raw_jobs r
+          JOIN job_details d ON r.id = d.id
+          WHERE r.parsed_at IS NOT NULL
+            AND (d.parser_version IS NULL OR d.parser_version < ?)
+          GROUP BY r.source
+          ORDER BY count DESC`,
+    args: [currentVersion],
+  });
+  return result.rows.map(row => ({ source: row.source as string, count: Number(row.count) }));
+}
+
+// Clears parsed_at on stale-version jobs so the next `npm run parse` picks them
+// back up through the normal queue — same concurrency, retry tracking, and
+// Discord reporting as any other parse run, just re-targeted at old rows.
+export async function queueStaleParsesForReparse(client: Client, currentVersion: number): Promise<number> {
+  const result = await client.execute({
+    sql: `UPDATE raw_jobs SET parsed_at = NULL
+          WHERE parsed_at IS NOT NULL
+            AND id IN (
+              SELECT id FROM job_details WHERE parser_version IS NULL OR parser_version < ?
+            )`,
+    args: [currentVersion],
+  });
+  return Number(result.rowsAffected ?? 0);
 }
 
 export async function toggleSaveJob(client: Client, id: string) {
