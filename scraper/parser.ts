@@ -80,15 +80,20 @@ async function main() {
   console.log('[Parser] Done.');
 
   const failed = rawJobs.length - done;
-  if (failed > 0) process.exitCode = 1;
+  const stalled = await countStalledParseFailures(db);
+  // Most per-run misses are transient (a page didn't render, one AI call came back
+  // empty) — the job stays unparsed and just gets retried next run. Only jobs that
+  // keep failing past MAX_PARSE_ATTEMPTS are a real, persistent problem worth a red run.
+  if (stalled > 0) process.exitCode = 1;
 
   if (process.env.DISCORD_WEBHOOK_URL) {
     const postingWord = rawJobs.length === 1 ? 'posting' : 'postings';
-    const stalled = await countStalledParseFailures(db);
     const runLink = githubRunUrl();
-    const content = failed > 0
-      ? `🚨 GovJobs parser needs attention\n${failed} ${postingWord} failed to parse${failedSources.size > 0 ? ` from: ${[...failedSources].join(', ')}` : ''}${stalled > 0 ? `; ${stalled} reached the retry limit` : ''}.\nStart a conversation with Codex to investigate and fix the parser.${runLink ? `\nRun: ${runLink}` : ''}`
-      : `✅ GovJobs parser complete — processed ${done} ${postingWord}.${runLink ? `\nRun: ${runLink}` : ''}`;
+    const content = stalled > 0
+      ? `🚨 GovJobs parser needs attention\n${stalled} ${postingWord} reached the retry limit${failedSources.size > 0 ? ` (sources: ${[...failedSources].join(', ')})` : ''}.\nStart a conversation with Codex to investigate and fix the parser.${runLink ? `\nRun: ${runLink}` : ''}`
+      : failed > 0
+        ? `⚠️ GovJobs parser: ${failed} ${postingWord} failed to parse this run (will retry automatically)${failedSources.size > 0 ? ` — sources: ${[...failedSources].join(', ')}` : ''}.${runLink ? `\nRun: ${runLink}` : ''}`
+        : `✅ GovJobs parser complete — processed ${done} ${postingWord}.${runLink ? `\nRun: ${runLink}` : ''}`;
     await notifyDiscord(content);
   }
 }

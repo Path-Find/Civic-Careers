@@ -50,6 +50,12 @@ export async function scrapeWorkday(db: Client, context: BrowserContext, url: st
     const summaries = Array.from(seen.values());
     console.log(`[${sourceName}] Found ${summaries.length} jobs`);
 
+    // Zero jobs almost always means the site's markup changed underneath us
+    // (selectors above stopped matching), not a fluke — that's worth flagging.
+    if (summaries.length === 0) {
+      throw new Error(`${sourceName}: found 0 jobs — site structure may have changed`);
+    }
+
     // Visiting each new job's detail page is the slow part (individual page
     // load, not the pagination) — run a handful concurrently instead of one
     // at a time, same pattern as parser.ts's CONCURRENCY.
@@ -63,8 +69,16 @@ export async function scrapeWorkday(db: Client, context: BrowserContext, url: st
       }));
       failedDetails += results.filter(result => !result).length;
     }
+    // Jobs that rendered fine are already saved above (scrapeRawAndStage stages
+    // per-job, not per-batch) — a handful of one-off render timeouts shouldn't
+    // discard that. Only escalate once failures look like a real problem.
+    const FAILURE_RATE_THRESHOLD = 0.1;
     if (failedDetails > 0) {
-      throw new Error(`${failedDetails} ${sourceName} detail pages failed to render`);
+      const rate = failedDetails / summaries.length;
+      if (rate > FAILURE_RATE_THRESHOLD) {
+        throw new Error(`${failedDetails}/${summaries.length} ${sourceName} detail pages failed to render`);
+      }
+      console.warn(`[${sourceName}] ${failedDetails}/${summaries.length} detail pages failed to render (within tolerance, not failing the run)`);
     }
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
