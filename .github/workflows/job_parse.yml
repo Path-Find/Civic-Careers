@@ -1,8 +1,11 @@
 name: Job Feed Parse
 
 on:
-  schedule:
-    - cron: '30 10 * * 1,4' # Run Mon and Thu at 6:30 AM EDT (10:30 AM UTC) — off-peak for DeepSeek pricing, and after the 3 AM scrape has had time to finish
+  # schedule trigger paused while the parser/prompt is being actively tuned —
+  # an automatic run would parse under a version about to be replaced anyway.
+  # Re-enable once PARSER_VERSION has stabilized:
+  # schedule:
+  #   - cron: '30 10 * * 1,4' # Run Mon and Thu at 6:30 AM EDT (10:30 AM UTC) — off-peak for DeepSeek pricing, and after the 3 AM scrape has had time to finish
   workflow_dispatch: # Allow manual runs
 
 jobs:
