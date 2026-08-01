@@ -9,6 +9,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
   const [closingSoon, setClosingSoon] = useState(false);
   const [showInventories, setShowInventories] = useState(false);
   const [sortNewest, setSortNewest] = useState(false);
+  const [now] = useState(() => Date.now());
 
   const filteredJobs = useMemo(() => {
     const pool = currentView === 'saved' ? jobs.filter(job => job.is_saved) : jobs.filter(job => !isExpired(job));
@@ -46,6 +47,11 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
     .filter(name => !jobsByCompany[name].some(job => !isExpired(job))).sort(), [jobsByCompany]);
   const recentJobs = useMemo(() => jobs.filter(job => !isExpired(job))
     .sort((a, b) => b.scraped_at.localeCompare(a.scraped_at)).slice(0, 5), [jobs]);
+  const availableJobs = useMemo(() => jobs.filter(job => !isExpired(job) && !job.is_inventory), [jobs]);
+  const recentlyAddedCount = useMemo(() => {
+    const cutoff = now - 7 * 24 * 60 * 60 * 1000;
+    return availableJobs.filter(job => Date.parse(`${job.first_seen_at.replace(' ', 'T')}Z`) >= cutoff).length;
+  }, [availableJobs, now]);
   const closingSoonJobs = useMemo(() => jobs.filter(job => !isExpired(job))
     .map(job => ({ job, days: daysUntilClose(job.closing_date) ?? 999 }))
     .filter(({ days }) => days >= 0).sort((a, b) => a.days - b.days).slice(0, 5).map(({ job }) => job), [jobs]);
@@ -57,6 +63,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
   return {
     minSalary, setMinSalary, selectedModes, setSelectedModes, closingSoon, setClosingSoon,
     showInventories, setShowInventories, sortNewest, setSortNewest, filteredJobs,
-    recentJobs, closingSoonJobs, jobsByCompany, activeJobsByCompany, activeCompanies, inactiveCompanies, resetFilters,
+    recentJobs, closingSoonJobs, availableJobCount: availableJobs.length, recentlyAddedCount,
+    jobsByCompany, activeJobsByCompany, activeCompanies, inactiveCompanies, resetFilters,
   };
 }

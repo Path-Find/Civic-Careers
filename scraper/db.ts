@@ -22,6 +22,7 @@ export async function initDb(): Promise<Client> {
       source TEXT NOT NULL,
       raw_text TEXT NOT NULL,
       title TEXT,
+      first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       parsed_at DATETIME
     )
@@ -33,6 +34,13 @@ export async function initDb(): Promise<Client> {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
 
+  try {
+    await client.execute(`ALTER TABLE raw_jobs ADD COLUMN first_seen_at DATETIME`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  await client.execute(`UPDATE raw_jobs SET first_seen_at = COALESCE(first_seen_at, scraped_at) WHERE first_seen_at IS NULL`);
+
   // Scraper-owned fields only
   await client.execute(`
     CREATE TABLE IF NOT EXISTS jobs (
@@ -41,8 +49,24 @@ export async function initDb(): Promise<Client> {
       source TEXT,
       is_active INTEGER DEFAULT 1,
       is_saved INTEGER DEFAULT 0,
+      first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
+  `);
+
+  try {
+    await client.execute(`ALTER TABLE jobs ADD COLUMN first_seen_at DATETIME`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  await client.execute(`
+    UPDATE jobs
+    SET first_seen_at = COALESCE(
+      first_seen_at,
+      (SELECT first_seen_at FROM raw_jobs WHERE raw_jobs.id = jobs.id),
+      scraped_at
+    )
+    WHERE first_seen_at IS NULL
   `);
 
   // AI-owned fields — never touched by the scraper
@@ -101,14 +125,14 @@ export async function initDb(): Promise<Client> {
 }
 
 // Called by parser — writes base job row so job_details FK is satisfiable
-export async function saveJob(client: Client, job: { id: string; url: string; source: string }) {
+export async function saveJob(client: Client, job: { id: string; url: string; source: string; first_seen_at: string }) {
   await client.execute({
-    sql: `INSERT INTO jobs (id, url, source, is_active, scraped_at)
-          VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP)
+    sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
+          VALUES (?, ?, ?, 1, ?, CURRENT_TIMESTAMP)
           ON CONFLICT(id) DO UPDATE SET
             is_active = 1,
             scraped_at = CURRENT_TIMESTAMP`,
-    args: [job.id, job.url, job.source],
+    args: [job.id, job.url, job.source, job.first_seen_at],
   });
 }
 
@@ -182,8 +206,8 @@ export async function saveRawJob(client: Client, job: {
   title?: string | undefined;
 }) {
   await client.execute({
-    sql: `INSERT INTO raw_jobs (id, url, source, raw_text, title, scraped_at, parsed_at)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, NULL)
+    sql: `INSERT INTO raw_jobs (id, url, source, raw_text, title, first_seen_at, scraped_at, parsed_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL)
       ON CONFLICT(id) DO UPDATE SET
         url = excluded.url,
         source = excluded.source,
@@ -203,10 +227,10 @@ export async function discardRawJob(client: Client, id: string) {
   ], 'write');
 }
 
-export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; source: string; raw_text: string; title: string | null }>> {
+export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; source: string; raw_text: string; title: string | null; first_seen_at: string }>> {
   const result = await client.execute({
     sql: `
-      SELECT r.id, r.url, r.source, r.raw_text, r.title
+      SELECT r.id, r.url, r.source, r.raw_text, r.title, r.first_seen_at
       FROM raw_jobs r
       LEFT JOIN jobs j ON r.id = j.id
       LEFT JOIN parse_failures f ON r.id = f.id

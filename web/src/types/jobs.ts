@@ -18,6 +18,7 @@ export interface Job {
   closing_date: string | null;
   url: string;
   source: string;
+  first_seen_at: string;
   scraped_at: string;
   is_saved: number;
   is_active: number;

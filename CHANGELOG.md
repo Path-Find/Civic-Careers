@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Homepage freshness is now visible at a glance**: the active job total is shown alongside the number added in the last seven days.
+
 ## [1.9.7] - 2026-07-27
 
 ### Fixed

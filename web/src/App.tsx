@@ -76,7 +76,7 @@ function App() {
   const {
     minSalary, setMinSalary, selectedModes, setSelectedModes, closingSoon, setClosingSoon,
     showInventories, setShowInventories, setSortNewest, filteredJobs,
-    recentJobs, closingSoonJobs, jobsByCompany, activeJobsByCompany, activeCompanies,
+    recentJobs, closingSoonJobs, availableJobCount, recentlyAddedCount, jobsByCompany, activeJobsByCompany, activeCompanies,
     inactiveCompanies,
   } = filters;
 
@@ -263,6 +263,7 @@ function App() {
               <section>
                 <div style={{ marginBottom: '2rem' }}>
                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, letterSpacing: '-0.03em' }}>Most Recent Postings</h2>
+                   <div className="home-freshness"><strong>{availableJobCount.toLocaleString()} jobs available</strong><span>+{recentlyAddedCount.toLocaleString()} added in the last 7 days</span></div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {recentJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
