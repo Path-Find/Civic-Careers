@@ -24,6 +24,7 @@ import { scrapeLever } from './engines/lever';
 import { scrapePrevue } from './engines/prevue';
 import { scrapeSelkirk } from './engines/selkirk';
 import { scrapeHiringPlatform } from './engines/hiringplatform';
+import { scrapeApplyToEducation } from './engines/applytoeducation';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -617,6 +618,14 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       context,
       'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=628c6eb9-02b8-492d-b651-c4f1a4220344&ccId=9201548179279_3&lang=en_CA&selectedMenuKey=CurrentOpenings',
       'Credit Valley Conservation',
+    ),
+  },
+  'applytoeducation-1': {
+    'Toronto Catholic District School Board': (db, context) => scrapeApplyToEducation(
+      db,
+      context,
+      'https://www.tcdsb.org/page/jobs',
+      'Toronto Catholic District School Board',
     ),
   },
   'municipal-custom-1': {
