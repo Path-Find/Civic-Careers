@@ -2,7 +2,7 @@
 
 This document tracks **all active** job portals currently scraped by GovJobs, grouped by scraping engine (see `scraper/engines/`) rather than by region — that's the axis that actually matters for maintenance, since a bug in one engine (e.g. Workday pagination) affects every source in that group at once.
 
-**Total active: 78** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there). First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
+The active list below is derived from `scraper/scraper.ts`'s `TASKS` array and should be re-synced whenever sources are added or removed there. First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
 
 See [PENDING.md](PENDING.md) for sources not yet active, with notes on status and blockers.
 

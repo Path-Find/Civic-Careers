@@ -14,6 +14,7 @@ import { scrapeUltiPro } from './engines/ultipro';
 import { scrapeDayforce } from './engines/dayforce';
 import { scrapeJobs2Web } from './engines/jobs2web';
 import { scrapeICIMS } from './engines/icims';
+import { scrapePeopleAdmin } from './engines/peopleadmin';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -69,6 +70,16 @@ const SOURCES = {
     scrapeOracleCloud(db, context, 'https://wsib-iaepup.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs?mode=location', 'WSIB'),
   'Ontario Health atHome': (db: Client, context: BrowserContext) =>
     scrapeICIMS(db, context, 'https://healthcareathomejobs-en.icims.com/jobs/search?ss=1', 'Ontario Health atHome'),
+  'Dalhousie University': (db: Client, context: BrowserContext) =>
+    scrapePeopleAdmin(db, context, 'https://dal.peopleadmin.ca/postings/search', 'Dalhousie University'),
+  'University of Lethbridge': (db: Client, context: BrowserContext) =>
+    scrapePeopleAdmin(db, context, 'https://uleth.peopleadmin.ca/postings/search', 'University of Lethbridge'),
+  'Confederation College': (db: Client, context: BrowserContext) =>
+    scrapePeopleAdmin(db, context, 'https://confederationcollege.peopleadmin.ca/postings/search', 'Confederation College'),
+  'British Columbia Institute of Technology': (db: Client, context: BrowserContext) =>
+    scrapePeopleAdmin(db, context, 'https://careers.bcit.ca/postings/search', 'British Columbia Institute of Technology'),
+  'Douglas College': (db: Client, context: BrowserContext) =>
+    scrapePeopleAdmin(db, context, 'https://www.douglascollegecareers.ca/postings/search', 'Douglas College'),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {
