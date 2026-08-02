@@ -20,6 +20,7 @@ import { scrapeNorthStar } from './engines/northstar';
 import { scrapeJazzHR } from './engines/jazzhhr';
 import { scrapeNeogov } from './engines/neogov';
 import { scrapePeopleAdmin } from './engines/peopleadmin';
+import { scrapeStClairCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
 
@@ -571,6 +572,10 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       'https://www.douglascollegecareers.ca/postings/search',
       'Douglas College',
     ),
+  },
+  'pdf-1': {
+    'Vaughan Public Library': (db, context) => scrapeVaughanPL(db, context),
+    'St. Clair College': (db, context) => scrapeStClairCollege(db, context),
   },
   'manual-ready-5': {
     'Essex County': (db, context) => scrapeJazzHR(

@@ -32,7 +32,7 @@ async function main() {
       }
       const { data: aiResult, error } = await parseJobWithAI(raw.raw_text, raw.title ?? undefined);
       if (aiResult) {
-        await saveJob(db, { id: raw.id, url: raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
+        await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
         await saveJobDetails(db, {
           id: raw.id,
           job_title: aiResult.job_title,

@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { Page, Frame, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
+import pdfParse from 'pdf-parse';
 import { discardRawJob, saveRawJob } from './db';
 
 export function urlId(url: string): string {
@@ -21,6 +22,8 @@ export interface JobSummary {
   id: string;
   title?: string;
   url: string;
+  descriptionUrl?: string;
+  applicationUrl?: string;
   department?: string;
   location?: string;
   closingDate?: string;
@@ -103,6 +106,8 @@ export function looksUnrendered(text: string): boolean {
 }
 
 export async function scrapeRawAndStage(db: Client, context: BrowserContext, job: JobSummary, sourceName: string): Promise<boolean> {
+  const descriptionUrl = job.descriptionUrl ?? job.url;
+  const applicationUrl = job.applicationUrl ?? job.url;
   const existing = await db.execute({ sql: `SELECT parsed_at FROM raw_jobs WHERE id = ?`, args: [job.id!] });
   if (existing.rows.length > 0 && existing.rows[0]!['parsed_at'] !== null) {
     await db.execute({ sql: `UPDATE raw_jobs SET scraped_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [job.id!] });
@@ -110,7 +115,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       sql: `INSERT INTO jobs (id, url, source, is_active, scraped_at)
             VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP)
             ON CONFLICT(id) DO UPDATE SET is_active = 1, scraped_at = CURRENT_TIMESTAMP`,
-      args: [job.id!, job.url, sourceName]
+      args: [job.id!, applicationUrl, sourceName]
     });
     process.stdout.write(' ⏭');
     return true;
@@ -118,12 +123,34 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
 
   const page = await context.newPage();
   try {
-    await safeGoto(page, job.url, 45000);
+    if (/\.pdf(?:[?#]|$)/i.test(descriptionUrl)) {
+      const response = await fetch(descriptionUrl);
+      if (!response.ok) throw new Error(`PDF returned HTTP ${response.status}`);
+      const parsed = await pdfParse(Buffer.from(await response.arrayBuffer()));
+      const rawText = parsed.text.trim();
+      if (rawText.length < 100) {
+        console.warn(`\n   ⚠️  [${sourceName}] PDF contained no usable text: ${descriptionUrl}`);
+        await discardRawJob(db, job.id!);
+        return false;
+      }
+      await saveRawJob(db, {
+        id: job.id!,
+        url: descriptionUrl,
+        application_url: applicationUrl,
+        source: sourceName,
+        title: job.title,
+        raw_text: rawText,
+      });
+      process.stdout.write(' ✅');
+      return true;
+    }
+
+    await safeGoto(page, descriptionUrl, 45000);
 
     // Dayforce detail pages contain normal external-site copy in their footer;
     // the generic interstitial handler would mistake that text for a redirect
     // warning and navigate away from the actual posting.
-    if (!/jobs\.dayforcehcm\.com\/.*\/jobs\/\d+/i.test(job.url)) {
+    if (!/jobs\.dayforcehcm\.com\/.*\/jobs\/\d+/i.test(descriptionUrl)) {
       await handleRedirections(page);
     }
     await page.waitForSelector('body', { timeout: 10000 });
@@ -151,7 +178,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
     // Workday detail pages can expose the shell before the job content hydrates.
     // Wait for the actual posting container on those pages before treating the
     // shell as an unrendered listing.
-    if (/myworkday(?:jobs|site)\.com/i.test(job.url)) {
+    if (/myworkday(?:jobs|site)\.com/i.test(descriptionUrl)) {
       await page.waitForSelector(
         '[data-automation-id="jobPostingPage"], [data-automation-id="jobPostingDescription"]',
         { timeout: 15000 }
@@ -160,12 +187,12 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
 
     // CSOD detail pages can render their shell before the requisition fields.
     // Wait for those fields so slow postings are not discarded as empty.
-    if (/\.csod\.com\/ux\/ats\/careersite\/\d+\/home\/requisition\//i.test(job.url)) {
+    if (/\.csod\.com\/ux\/ats\/careersite\/\d+\/home\/requisition\//i.test(descriptionUrl)) {
       await page.waitForSelector('[data-tag="ReqTitle"], [data-tag="postingDates"]', { timeout: 15000 }).catch(() => {});
     }
 
     // Dayforce detail pages can expose the shell before the posting body.
-    if (/jobs\.dayforcehcm\.com\/.*\/jobs\/\d+/i.test(job.url)) {
+    if (/jobs\.dayforcehcm\.com\/.*\/jobs\/\d+/i.test(descriptionUrl)) {
       await page.waitForSelector('h1', { timeout: 15000 }).catch(() => {});
     }
 
@@ -191,7 +218,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
     }
 
     if (!rawText || rawText.length < 100 || looksUnrendered(rawText)) {
-      console.warn(`\n   ⚠️  [${sourceName}] Page never rendered real content: ${job.url}`);
+      console.warn(`\n   ⚠️  [${sourceName}] Page never rendered real content: ${descriptionUrl}`);
       await discardRawJob(db, job.id!);
       return false;
     }
@@ -206,11 +233,11 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
         ? rawText.match(/date\s+posted\s*[:\-]?\s*(\d{2}[-\/]\d{2}[-\/]\d{4})/i)?.[1] ?? null
       : null;
     const postedAt = metadataPostedAt || structuredPostedAt || labeledPostedAt;
-    await saveRawJob(db, { id: job.id!, url: job.url, source: sourceName, title: job.title, raw_text: rawText, posted_at: postedAt });
+    await saveRawJob(db, { id: job.id!, url: descriptionUrl, application_url: applicationUrl, source: sourceName, title: job.title, raw_text: rawText, posted_at: postedAt });
     process.stdout.write(' ✅');
     return true;
   } catch (err: any) {
-    console.warn(`\n   ⚠️  [${sourceName}] Failed ${job.url}: ${err.message}`);
+    console.warn(`\n   ⚠️  [${sourceName}] Failed ${descriptionUrl}: ${err.message}`);
     await discardRawJob(db, job.id!).catch(() => {});
     return false;
   } finally {

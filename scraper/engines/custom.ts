@@ -446,18 +446,70 @@ export async function scrapeVaughanPL(db: Client, context: BrowserContext) {
     const jobs = await page.evaluate(() => {
       const rows = Array.from(document.querySelectorAll('#ats table tbody tr'));
       return rows.map(tr => {
+        const descriptionLink = tr.querySelector<HTMLAnchorElement>('a[href*="/files/job_descriptions/"]');
         const applyLink = tr.querySelector<HTMLAnchorElement>('a[href*="/jobs-applications/add/"]');
-        return applyLink ? applyLink.href : null;
-      }).filter(Boolean) as string[];
+        if (!descriptionLink || !applyLink) return null;
+        return {
+          title: descriptionLink.getAttribute('title') || descriptionLink.textContent?.trim() || undefined,
+          descriptionUrl: descriptionLink.href,
+          applicationUrl: applyLink.href,
+        };
+      }).filter(Boolean) as Array<{ title?: string; descriptionUrl: string; applicationUrl: string }>;
     });
 
     console.log(`[${sourceName}] Found ${jobs.length} jobs`);
-    for (const url of jobs) {
-      const m = url.match(/\/jobs-applications\/add\/(\d+)/);
+    for (const job of jobs) {
+      const m = job.applicationUrl.match(/\/jobs-applications\/add\/(\d+)/);
       if (!m?.[1]) continue;
-      await scrapeRawAndStage(db, context, { id: `vaughanpl_${m[1]}`, url }, sourceName);
+      await scrapeRawAndStage(db, context, {
+        id: `vaughanpl_${m[1]}`,
+        url: job.applicationUrl,
+        applicationUrl: job.applicationUrl,
+        descriptionUrl: job.descriptionUrl,
+        ...(job.title ? { title: job.title } : {}),
+      }, sourceName);
     }
     console.log(`\n[${sourceName}] Done.`);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
+  } finally {
+    await page.close();
+  }
+}
+
+export async function scrapeStClairCollege(db: Client, context: BrowserContext) {
+  const sourceName = 'St. Clair College';
+  const base = 'https://www.stclaircollege.ca';
+  const listingUrls = [
+    `${base}/careers/current-opportunities/ft`,
+    `${base}/careers/current-opportunities/rpt`,
+    `${base}/careers/current-opportunities/pt`,
+  ];
+  const applicationUrl = `${base}/careers/apply`;
+  const seen = new Set<string>();
+  console.log(`Scraping ${sourceName}...`);
+  const page = await context.newPage();
+  try {
+    for (const listingUrl of listingUrls) {
+      await safeGoto(page, listingUrl, 60000);
+      const jobs = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href*="/sites/default/files/careers/"]'))
+        .map(link => ({ title: link.textContent?.trim() || undefined, url: link.href }))
+        .filter(job => job.url.toLowerCase().endsWith('.pdf')));
+
+      for (const job of jobs) {
+        if (seen.has(job.url)) continue;
+        seen.add(job.url);
+        await scrapeRawAndStage(db, context, {
+          id: `stclair_${urlId(job.url)}`,
+          url: applicationUrl,
+          applicationUrl,
+          descriptionUrl: job.url,
+          ...(job.title ? { title: job.title } : {}),
+        }, sourceName);
+      }
+    }
+    console.log(`\n[${sourceName}] Done — ${seen.size} jobs discovered.`);
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
     throw err;

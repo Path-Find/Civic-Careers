@@ -25,7 +25,8 @@ export async function initDb(): Promise<Client> {
       first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       parsed_at DATETIME,
-      posted_at TEXT
+      posted_at TEXT,
+      application_url TEXT
     )
   `);
 
@@ -42,6 +43,11 @@ export async function initDb(): Promise<Client> {
   }
   try {
     await client.execute(`ALTER TABLE raw_jobs ADD COLUMN posted_at TEXT`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  try {
+    await client.execute(`ALTER TABLE raw_jobs ADD COLUMN application_url TEXT`);
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
@@ -250,22 +256,24 @@ export async function saveJobDetails(client: Client, job: {
 export async function saveRawJob(client: Client, job: {
   id: string;
   url: string;
+  application_url?: string | null;
   source: string;
   raw_text: string;
   title?: string | undefined;
   posted_at?: string | null;
 }) {
   await client.execute({
-    sql: `INSERT INTO raw_jobs (id, url, source, raw_text, title, first_seen_at, scraped_at, parsed_at, posted_at)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
+    sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, first_seen_at, scraped_at, parsed_at, posted_at)
+      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
       ON CONFLICT(id) DO UPDATE SET
         url = excluded.url,
+        application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
         source = excluded.source,
         raw_text = excluded.raw_text,
         title = COALESCE(excluded.title, raw_jobs.title),
         scraped_at = CURRENT_TIMESTAMP,
         posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-    args: [job.id, job.url, job.source, job.raw_text, job.title ?? null, job.posted_at ?? null],
+    args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, job.title ?? null, job.posted_at ?? null],
   });
 }
 
@@ -278,10 +286,10 @@ export async function discardRawJob(client: Client, id: string) {
   ], 'write');
 }
 
-export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; source: string; raw_text: string; title: string | null; first_seen_at: string; posted_at: string | null }>> {
+export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; application_url: string | null; source: string; raw_text: string; title: string | null; first_seen_at: string; posted_at: string | null }>> {
   const result = await client.execute({
     sql: `
-      SELECT r.id, r.url, r.source, r.raw_text, r.title, r.first_seen_at, r.posted_at
+      SELECT r.id, r.url, r.application_url, r.source, r.raw_text, r.title, r.first_seen_at, r.posted_at
       FROM raw_jobs r
       LEFT JOIN jobs j ON r.id = j.id
       LEFT JOIN parse_failures f ON r.id = f.id
@@ -304,9 +312,12 @@ export async function getUnparsedJobs(client: Client): Promise<Array<{ id: strin
   return result.rows.map(row => ({
     id: row.id as string,
     url: row.url as string,
+    application_url: row.application_url as string | null,
     source: row.source as string,
     raw_text: row.raw_text as string,
     title: row.title as string | null,
+    first_seen_at: row.first_seen_at as string,
+    posted_at: row.posted_at as string | null,
   }));
 }
 

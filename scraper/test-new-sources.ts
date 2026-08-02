@@ -15,6 +15,7 @@ import { scrapeDayforce } from './engines/dayforce';
 import { scrapeJobs2Web } from './engines/jobs2web';
 import { scrapeICIMS } from './engines/icims';
 import { scrapePeopleAdmin } from './engines/peopleadmin';
+import { scrapeStClairCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -80,6 +81,10 @@ const SOURCES = {
     scrapePeopleAdmin(db, context, 'https://careers.bcit.ca/postings/search', 'British Columbia Institute of Technology'),
   'Douglas College': (db: Client, context: BrowserContext) =>
     scrapePeopleAdmin(db, context, 'https://www.douglascollegecareers.ca/postings/search', 'Douglas College'),
+  'Vaughan Public Library': (db: Client, context: BrowserContext) =>
+    scrapeVaughanPL(db, context),
+  'St. Clair College': (db: Client, context: BrowserContext) =>
+    scrapeStClairCollege(db, context),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {
