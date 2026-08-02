@@ -489,7 +489,7 @@ English-speaking, so no translation-handling gap like the Quebec set above — p
 
 - University of Winnipeg — https://www.uwinnipeg.ca/hr/employment.html (official page links to the NorthStar ATS board at https://www.northstarats.com/University-of-Winnipeg; stable popup detail URLs, tracked in issue #91)
 - Brandon University — https://www.brandonu.ca/jobs/ (server-rendered grouped listings with direct detail links and separate student/support/faculty categories; candidate for the shared custom HTML work in issue #79)
-- Université de Saint-Boniface — https://carrieres.ustboniface.ca/ (Dayforce board at `jobs.dayforcehcm.com`; trial discovered 18 listings but stored only 5 because several detail links redirect to old or unrelated pages; tracked in issue #92)
+- Université de Saint-Boniface — https://carrieres.ustboniface.ca/ (Dayforce board at `jobs.dayforcehcm.com`; the board exposes 9 unique postings—the prior 18-count included duplicate title/“Learn more” links; detail handling fixed in issue #92)
 - Canadian Mennonite University
 - Red River College Polytechnic
 - Assiniboine Community College

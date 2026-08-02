@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Deduplicate Dayforce listing links, avoid cross-tenant requisition-ID collisions, and wait for detail content so valid postings are not lost or scraped twice.
 - Classify occasional or substitute roles as `Occasional` instead of incorrectly defaulting them to Full-time.
 - Add browser-only Recently viewed jobs and anonymous aggregate Apply-click counts by job.
 - Show equal salary endpoints once instead of as a duplicate range such as `$53.78/hr – $53.78/hr`.

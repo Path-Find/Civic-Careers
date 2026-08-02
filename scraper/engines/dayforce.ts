@@ -25,19 +25,26 @@ export async function scrapeDayforce(db: Client, context: BrowserContext, portal
       await page.waitForSelector('a[href*="/jobs/"]', { timeout: 15000 }).catch(() => {});
 
       const summaries = await page.evaluate(() => {
+        const seen = new Set<string>();
         return Array.from(document.querySelectorAll('a[href*="/jobs/"]'))
           .filter(l => /\/jobs\/\d+/.test((l as HTMLAnchorElement).href))
           .map(l => ({
             title: (l.querySelector('h2') || l).textContent?.trim() || '',
             url: (l as HTMLAnchorElement).href,
           }))
-          .filter(j => j.title && j.url);
+          .filter(j => {
+            if (!j.title || !j.url || seen.has(j.url)) return false;
+            seen.add(j.url);
+            return true;
+          });
       });
 
       let count = 0;
       for (const job of summaries) {
         count++;
-        const id = job.url.split('/').filter(Boolean).pop() || urlId(job.url);
+        const legacyId = job.url.split('/').filter(Boolean).pop() || urlId(job.url);
+        const existing = await db.execute({ sql: 'SELECT url FROM raw_jobs WHERE id = ?', args: [legacyId] });
+        const id = existing.rows.length > 0 && String(existing.rows[0].url) !== job.url ? urlId(job.url) : legacyId;
         process.stdout.write(`\r[${sourceName}] ${count}/${summaries.length}`);
         await scrapeRawAndStage(db, context, { ...job, id }, sourceName);
       }

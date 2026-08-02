@@ -120,7 +120,12 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
   try {
     await safeGoto(page, job.url, 45000);
 
-    await handleRedirections(page);
+    // Dayforce detail pages contain normal external-site copy in their footer;
+    // the generic interstitial handler would mistake that text for a redirect
+    // warning and navigate away from the actual posting.
+    if (!/jobs\.dayforcehcm\.com\/.*\/jobs\/\d+/i.test(job.url)) {
+      await handleRedirections(page);
+    }
     await page.waitForSelector('body', { timeout: 10000 });
 
     const metadataPostedAt = ['City of Toronto', 'University of Toronto', 'CMHC', 'Region of Waterloo', 'City of London', 'Mississauga', 'City of Vancouver', 'University of Waterloo', 'City of Waterloo', 'City of Richmond Hill'].includes(sourceName)
@@ -157,6 +162,11 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
     // Wait for those fields so slow postings are not discarded as empty.
     if (/\.csod\.com\/ux\/ats\/careersite\/\d+\/home\/requisition\//i.test(job.url)) {
       await page.waitForSelector('[data-tag="ReqTitle"], [data-tag="postingDates"]', { timeout: 15000 }).catch(() => {});
+    }
+
+    // Dayforce detail pages can expose the shell before the posting body.
+    if (/jobs\.dayforcehcm\.com\/.*\/jobs\/\d+/i.test(job.url)) {
+      await page.waitForSelector('h1', { timeout: 15000 }).catch(() => {});
     }
 
     const extractFrom = (target: Page | Frame) => target.evaluate((selector) => {
