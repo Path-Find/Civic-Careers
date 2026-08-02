@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractPhenomJobs, extractStLawrenceJobs } from '../engines/custom';
+import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractNanaimoJobs, extractPhenomJobs, extractStLawrenceJobs } from '../engines/custom';
 
 test('extracts and deduplicates St. Lawrence College job links', () => {
   const html = `<a href="/jobs/admn-pt-26-27-052" title="Talent Management Consultant">Talent Management Consultant</a>
@@ -101,4 +101,16 @@ test('extracts and deduplicates Halton Hills job cards', () => {
       url: 'https://www.haltonhills.ca/town-hall/get-involved/careers/lifeguard-(202646)',
     },
   ]);
+});
+
+test('extracts Nanaimo detail pages with their PDF descriptions', () => {
+  const html = `<div class="grid-item"><h3><a href="/docs/external-ad-(26-91).pdf">Director, Facilities</a></h3><div class="time">Opens: Jul 20, 2026</div><div class="time">Closes: Aug 17, 2026 4:30 AM</div><div class="date">Competition: 26-91</div><a href="/your-government/careers/job-postings/director--facilities">View Job Posting and Job Description</a></div>`;
+
+  assert.deepEqual(extractNanaimoJobs(html, 'https://www.nanaimo.ca/your-government/careers/job-postings'), [{
+    id: 'nanaimo_26_91',
+    title: 'Director, Facilities',
+    url: 'https://www.nanaimo.ca/your-government/careers/job-postings/director--facilities',
+    descriptionUrl: 'https://www.nanaimo.ca/docs/external-ad-(26-91).pdf',
+    applicationUrl: 'https://www.nanaimo.ca/your-government/careers/job-postings/director--facilities',
+  }]);
 });

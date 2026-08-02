@@ -746,7 +746,7 @@ export function extractCustomHtmlJobs(
   html: string,
   portalUrl: string,
   pathPrefix: string,
-  options: { requireHrefLang?: string; titleClass?: string } = {},
+  options: { requireHrefLang?: string; titleClass?: string; idPrefix?: string } = {},
 ): CustomHtmlJob[] {
   const jobs: CustomHtmlJob[] = [];
   const seen = new Set<string>();
@@ -774,10 +774,114 @@ export function extractCustomHtmlJobs(
     if (!title || /^apply now$/i.test(title)) continue;
 
     seen.add(url.href);
-    jobs.push({ id: `custom_${urlId(url.href)}`, title, url: url.href });
+    jobs.push({ id: `${options.idPrefix ?? 'custom'}_${urlId(url.href)}`, title, url: url.href });
   }
 
   return jobs;
+}
+
+async function scrapeMunicipalHtml(
+  db: Client,
+  context: BrowserContext,
+  listingUrl: string,
+  sourceName: string,
+  pathPrefix: string,
+  idPrefix: string,
+) {
+  console.log(`Scraping ${sourceName}...`);
+  const page = await context.newPage();
+  try {
+    await safeGoto(page, listingUrl, 60000);
+    const jobs = extractCustomHtmlJobs(await page.content(), listingUrl, pathPrefix, { idPrefix });
+    console.log(`[${sourceName}] Found ${jobs.length} postings.`);
+    for (const job of jobs) await scrapeRawAndStage(db, context, job, sourceName);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
+  } finally {
+    await page.close();
+  }
+}
+
+export function scrapeNorthBay(db: Client, context: BrowserContext) {
+  return scrapeMunicipalHtml(
+    db,
+    context,
+    'https://northbay.ca/city-government/careers/',
+    'City of North Bay',
+    '/current-employment-opportunities',
+    'northbay',
+  );
+}
+
+export function scrapeCollingwood(db: Client, context: BrowserContext) {
+  return scrapeMunicipalHtml(
+    db,
+    context,
+    'https://www.collingwood.ca/governance-engagement/careers-employment',
+    'Town of Collingwood',
+    '/governance-engagement/careers-employment',
+    'collingwood',
+  );
+}
+
+export type NanaimoJob = {
+  id: string;
+  title: string;
+  url: string;
+  descriptionUrl: string;
+  applicationUrl: string;
+};
+
+export function extractNanaimoJobs(html: string, listingUrl: string): NanaimoJob[] {
+  const starts = Array.from(html.matchAll(/<div\b[^>]*class=["'][^"']*\bgrid-item\b[^"']*["'][^>]*>/gi))
+    .map(match => match.index ?? -1)
+    .filter(index => index >= 0);
+  const jobs: NanaimoJob[] = [];
+
+  for (let index = 0; index < starts.length; index++) {
+    const block = html.slice(starts[index], starts[index + 1] ?? html.length);
+    const detailMatch = block.match(/<a\b[^>]*href=["']([^"']*\/your-government\/careers\/job-postings\/[^"']+)["'][^>]*>\s*View Job Posting and Job Description\s*<\/a>/i);
+    const titleMatch = block.match(/<h3\b[^>]*>\s*<a\b[^>]*>([\s\S]*?)<\/a>/i);
+    const pdfMatch = block.match(/<h3\b[^>]*>\s*<a\b[^>]*href=["']([^"']+\.pdf(?:\?[^"']*)?)["']/i);
+    if (!detailMatch || !titleMatch || !pdfMatch) continue;
+
+    const detailUrl = new URL(detailMatch[1], listingUrl).href;
+    const descriptionUrl = new URL(pdfMatch[1], listingUrl).href;
+    const title = decodeHtmlEntities(titleMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+    const competition = block.match(/Competition:\s*([^<\r\n]+)/i)?.[1]?.trim();
+    if (!title || jobs.some(job => job.url === detailUrl)) continue;
+
+    jobs.push({
+      id: competition && !/^n\/a$/i.test(competition)
+        ? `nanaimo_${competition.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '').toLowerCase()}`
+        : `nanaimo_${urlId(detailUrl)}`,
+      title,
+      url: detailUrl,
+      descriptionUrl,
+      applicationUrl: detailUrl,
+    });
+  }
+
+  return jobs;
+}
+
+export async function scrapeNanaimo(db: Client, context: BrowserContext) {
+  const sourceName = 'City of Nanaimo';
+  const listingUrl = 'https://www.nanaimo.ca/your-government/careers/job-postings';
+  console.log(`Scraping ${sourceName}...`);
+  const page = await context.newPage();
+  try {
+    await safeGoto(page, listingUrl, 60000);
+    const jobs = extractNanaimoJobs(await page.content(), listingUrl);
+    console.log(`[${sourceName}] Found ${jobs.length} postings.`);
+    for (const job of jobs) await scrapeRawAndStage(db, context, job, sourceName);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
+  } finally {
+    await page.close();
+  }
 }
 
 async function scrapeCustomHtmlPortal(

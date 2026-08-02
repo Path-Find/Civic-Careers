@@ -30,7 +30,7 @@ import { scrapeAvanti } from './engines/avanti';
 import { scrapeVipCloud } from './engines/vipcloud';
 import { scrapeWorkzoom } from './engines/workzoom';
 import { scrapeSapWebDynpro } from './engines/sap-webdynpro';
-import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
+import { scrapeBrassRing, scrapeCollingwood, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNanaimo, scrapeNipissing, scrapeNorthBay, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
 
@@ -678,6 +678,11 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
     'City of Pickering': (db, context) => scrapePickering(db, context, 'City of Pickering'),
     'Pickering Public Library': (db, context) => scrapePickering(db, context, 'Pickering Public Library'),
     'Town of Halton Hills': (db, context) => scrapeHaltonHills(db, context),
+  },
+  'municipal-custom-2': {
+    'City of North Bay': (db, context) => scrapeNorthBay(db, context),
+    'Town of Collingwood': (db, context) => scrapeCollingwood(db, context),
+    'City of Nanaimo': (db, context) => scrapeNanaimo(db, context),
   },
   'manual-ready-5': {
     'Essex County': (db, context) => scrapeJazzHR(

@@ -26,7 +26,7 @@ import { scrapeAvanti } from './engines/avanti';
 import { scrapeVipCloud } from './engines/vipcloud';
 import { scrapeWorkzoom } from './engines/workzoom';
 import { scrapeSapWebDynpro } from './engines/sap-webdynpro';
-import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
+import { scrapeBrassRing, scrapeCollingwood, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNanaimo, scrapeNipissing, scrapeNorthBay, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -118,6 +118,12 @@ const SOURCES = {
     scrapePickering(db, context, 'Pickering Public Library'),
   'Town of Halton Hills': (db: Client, context: BrowserContext) =>
     scrapeHaltonHills(db, context),
+  'City of North Bay': (db: Client, context: BrowserContext) =>
+    scrapeNorthBay(db, context),
+  'Town of Collingwood': (db: Client, context: BrowserContext) =>
+    scrapeCollingwood(db, context),
+  'City of Nanaimo': (db: Client, context: BrowserContext) =>
+    scrapeNanaimo(db, context),
   'City of Orillia': (db: Client, context: BrowserContext) =>
     scrapeHiringPlatform(db, context, 'https://orillia.hiringplatform.ca/list/careers', 'City of Orillia'),
   'Credit Valley Conservation': (db: Client, context: BrowserContext) =>

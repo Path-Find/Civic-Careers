@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **College of the Rockies can now be tested through a shared PrevueAPS scraper**: its public JSON board returned 9 current postings with detail URLs and closing dates.
 - **Selkirk College can now be tested through a shared Hireserve scraper**: its public JSON feed returned 9 current postings with substantive detail pages.
 - **Pickering and Halton Hills municipal postings can now be tested through shared custom scrapers**: City and library records keep separate source names, while current Halton Hills detail pages are stored directly.
+- **North Bay, Collingwood, and Nanaimo municipal postings can now be tested through the shared custom scraper family**: current HTML detail pages and Nanaimo PDF descriptions are collected with separate municipal source names.
 - **City of Orillia can now be tested through a shared HiringPlatform scraper**: all 8 public process pages and their separate application links are collected.
 - **Credit Valley Conservation can now be tested through the shared ADP scraper**: its embedded ADP board returned 3 current postings with substantive descriptions.
 - **ApplyToEducation feeds can now be collected through one shared engine**: Toronto Catholic District School Board’s three public feeds returned 6 postings with full descriptions, application URLs, and posted dates.

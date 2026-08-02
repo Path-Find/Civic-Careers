@@ -37,6 +37,7 @@ on:
           - platform-ready-1
           - platform-ready-2
           - peoplesoft-ready-1
+          - municipal-custom-2
 
 jobs:
   test:
