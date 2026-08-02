@@ -93,10 +93,9 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Queen's University** — [Job Listing](https://queensu.njoyn.com/cl4/xweb/xweb.asp?page=joblisting&CLID=74827)
 - **Sheridan College** — [Job Listing](https://sheridan.njoyn.com/CL3/xweb/xweb.asp?page=joblisting&CLID=55117)
 
-## PeopleSoft Fluid (2)
+## PeopleSoft Fluid (1)
 
 - **City of Winnipeg** — [Careers](https://careers.winnipeg.ca/psc/cgext/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U) — click-and-walk pattern (no real per-job URLs on this platform).
-- **Durham Region** — [Job Search](https://recruitregion.durham.ca/psc/recruit_rmd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=3) — click-and-walk pattern; includes Durham Region Transit postings.
 
 ## Oracle Cloud (3)
 

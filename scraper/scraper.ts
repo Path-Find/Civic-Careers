@@ -83,7 +83,6 @@ const TASKS: ScrapeTask[] = [
   { engine: 'custom', label: 'Province of Ontario', run: (db, ctx) => scrapeOPS(db, ctx) },
 
   // 6. GTHA Regions & Cities
-  { engine: 'peoplesoft', label: 'Durham Region', run: (db, ctx) => scrapePeopleSoft(db, ctx, 'https://recruitregion.durham.ca/psc/recruit_rmd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=3', 'Durham Region') },
   { engine: 'workday', label: 'Town of Whitby', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://whitby.wd10.myworkdayjobs.com/EXT', 'Town of Whitby') },
   { engine: 'hrsmart', label: 'York Region', run: (db, ctx) => scrapeHRSmart(db, ctx, 'https://york.hua.hrsmart.com/hr/ats/JobSearch/viewAll', 'York Region') },
   { engine: 'adp', label: 'City of Markham', run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=04bf51f8-d2dd-4641-ba92-183522f6e8b3&ccId=19000101_000001&type=MP&lang=en_CA', 'City of Markham') },

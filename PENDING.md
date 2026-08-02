@@ -17,11 +17,13 @@ Grouped by platform, same convention as `SOURCES.md` — that's the axis that de
 
 **Engine built 2026-07-12** (`scraper/engines/peoplesoft.ts`) — click-and-walk pattern (click first result, use the page's own "Next Job" control to walk the rest, since there are no real per-job URLs on this platform — every link is a `javascript:submitAction_win0(...)` postback). **City of Winnipeg confirmed working end-to-end (29/29). TransLink confirmed working end-to-end (90/90 stored in manual run 30726059105).** The other 7 tenants still need validation.
 
-- Toronto Metropolitan University — https://careers.torontomu.ca/psc/hrcgprd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
+- Toronto Metropolitan University — https://careers.torontomu.ca/psc/hrcgprd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U (staged in the Trial Action)
 - Western University — https://recruit.uwo.ca/psc/hrprdwebER/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U (staged in the Trial Action)
-- McMaster University — https://careers.mcmaster.ca/psp/prcsprd/EMPLOYEE/HRMS/c/HRS_HRAM.HRS_APP_SCHJOB.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1001&customTab=MCM_STAFF_POS&IgnoreParamTempl=customTab
+- McMaster University — https://careers.mcmaster.ca/psp/prcsprd/EMPLOYEE/HRMS/c/HRS_HRAM.HRS_APP_SCHJOB.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1001&customTab=MCM_STAFF_POS&IgnoreParamTempl=customTab (staged in the Trial Action)
 - City of Greater Sudbury — https://myjobs.greatersudbury.ca/psc/MYJOBS/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
-- City of Calgary — https://recruiting.calgary.ca/psc/hcm/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1
+- City of Calgary — https://recruiting.calgary.ca/psc/hcm/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1 (staged in the Trial Action)
+- Durham Region — https://recruitregion.durham.ca/psc/recruit_rmd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=3 (staged in the Trial Action; includes Durham Region Transit postings)
+- Niagara Region — https://careers.niagararegion.ca/psc/careers/EMPLOYEE/PSFT_HR/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Siteid=1002 (staged in the Trial Action)
 
 ### HRSmart (existing engine, needs selector work)
 
@@ -104,7 +106,6 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 ### Municipal & regional
 
 - City of Abbotsford — https://www.abbotsford.ca/city-hall/human-resources/career-opportunities (Njoyn; 8 jobs stored in manual run 30725466168)
-- Niagara Region — https://careers.niagararegion.ca/psc/careers/EMPLOYEE/PSFT_HR/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Siteid=1002 (PeopleSoft; portal returned an upstream error during verification)
 - Simcoe County
 - City of Pickering — https://www.pickering.ca/council-city-administration/employment-opportunities/ (server-rendered job table with direct detail links, plus Pickering Public Library jobs linked from the same page; candidate for shared custom municipal HTML work in issue #86)
 - Town of Newmarket — https://sire.newmarket.ca/TownGovernment/Pages/Job-Opportunities.aspx (main and recreation postings use HRSmart at https://newmarket.hua.hrsmart.com/hr/ats/JobSearch/viewAll; 14 jobs stored in manual run 30725902033)
