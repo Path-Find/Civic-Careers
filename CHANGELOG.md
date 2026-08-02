@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Include the internal job ID in prefilled problem reports so reported postings can be located reliably.
 - Hide placeholder-only Nice to Have sections and clean 67 existing stored descriptions so job details no longer show `None` as a requirement.
 - Fix paginated CSOD boards and slow requisition pages so Saskatchewan's 93 open jobs are collected instead of only the first 25.
 - Fix PeopleSoft boards that require selecting “View All Jobs” before job results load.

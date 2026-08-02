@@ -11,7 +11,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   onNavigate: (view: View, companyFilter?: string) => void;
   onToggleSave: (job: Job, event: MouseEvent) => void;
 }) {
-  const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.job_title}`)}&body=${encodeURIComponent(`Job: ${job.job_title}\nCompany: ${job.source}\nURL: ${job.url}\n\nProblem:`)}`;
+  const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.job_title}`)}&body=${encodeURIComponent(`Job: ${job.job_title}\nCompany: ${job.source}\nInternal job ID: ${job.id}\nURL: ${job.url}\n\nProblem:`)}`;
   const descriptionSections = reclassifyMandatoryNiceToHave(parseMarkdownSections(job.description ?? null));
   const overview = descriptionSections.find(section => section.heading.toLowerCase() === 'overview');
   const detailSections = descriptionSections.filter(section => section !== overview && section.body && !isPlaceholderSection(section.body) && !isRedundantCompensation(section.heading, section.body));
