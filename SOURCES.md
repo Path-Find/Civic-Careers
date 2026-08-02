@@ -4,7 +4,7 @@ This document tracks **all active** job portals currently scraped by GovJobs, gr
 
 The active list below is derived from `scraper/scraper.ts`'s `TASKS` array and should be re-synced whenever sources are added or removed there. First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
 
-See [PENDING.md](PENDING.md) for sources not yet active, with notes on status and blockers.
+Detailed pending-source notes are kept locally and are not part of the tracked source documentation.
 
 Toronto Public Library is currently disabled (blocked by Radware bot protection).
 
@@ -150,4 +150,4 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 
 ---
 
-See [PENDING.md](PENDING.md) for sources not yet active, with notes on status and blockers.
+Detailed pending-source notes are kept locally and are not part of the tracked source documentation.
