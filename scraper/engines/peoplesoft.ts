@@ -89,7 +89,7 @@ export async function scrapePeopleSoft(db: Client, context: BrowserContext, sear
       }
       count++;
 
-      const nextBtn = await target.$('a:has-text("Next Job"), button:has-text("Next Job"), [id*="HRS_NEXT_PB"]');
+      const nextBtn = await target.$('a:has-text("Next Job"), button:has-text("Next Job"), [id*="HRS_NEXT_PB"], [id*="NEXT_PB"]');
       if (!nextBtn || !(await nextBtn.isVisible().catch(() => false))) break;
       await nextBtn.click();
       await page.waitForTimeout(2500);

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - Fix PeopleSoft boards that require selecting “View All Jobs” before job results load.
+- Move Durham Region onto the shared PeopleSoft scraper so its current postings are collected again.
 
 ### Added
 - **University of Winnipeg postings can now be collected from its NorthStar ATS board**: stable posting detail URLs are extracted from the board's popup links.

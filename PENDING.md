@@ -13,7 +13,7 @@ Names-only backlog expanded: 2026-07-12 (no URL research yet). Manitoba added 20
 
 Grouped by platform, same convention as `SOURCES.md` — that's the axis that determines how much shared engine work unlocks at once.
 
-### PeopleSoft Fluid (engine built, 1/8 tenants working — see issue #37)
+### PeopleSoft Fluid (engine built, 2/8 tenants working — see issue #37)
 
 **Engine built 2026-07-12** (`scraper/engines/peoplesoft.ts`) — click-and-walk pattern (click first result, use the page's own "Next Job" control to walk the rest, since there are no real per-job URLs on this platform — every link is a `javascript:submitAction_win0(...)` postback). **City of Winnipeg confirmed working end-to-end (29/29). TransLink confirmed working end-to-end (90/90 stored in manual run 30726059105).** The other 7 tenants still need validation.
 
@@ -22,7 +22,6 @@ Grouped by platform, same convention as `SOURCES.md` — that's the axis that de
 - McMaster University — https://careers.mcmaster.ca/psp/prcsprd/EMPLOYEE/HRMS/c/HRS_HRAM.HRS_APP_SCHJOB.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1001&customTab=MCM_STAFF_POS&IgnoreParamTempl=customTab
 - City of Greater Sudbury — https://myjobs.greatersudbury.ca/psc/MYJOBS/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U
 - City of Calgary — https://recruiting.calgary.ca/psc/hcm/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1
-- Durham Region — https://recruitregion.durham.ca/psc/recruit_rmd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=3 (already active in production via a broken bespoke `scrapeDurhamRegion` scraper predating this platform migration — needs the same search-click fix before it can switch over to `scrapePeopleSoft`)
 
 ### HRSmart (existing engine, needs selector work)
 

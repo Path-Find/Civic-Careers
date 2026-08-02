@@ -31,14 +31,13 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Mohawk College** — [Home](https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege)
 - **Ontario Tech University** — [Home](https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu)
 
-## Custom (12)
+## Custom (11)
 
 - **City of Barrie** — [Search](https://careers.barrie.ca/search/)
 - **City of Brantford** — [Current Opportunities](https://www.brantford.ca/your-government/careers/current-opportunities/)
 - **City of Cambridge** — [Opportunities](https://www.cambridge.ca/mayor-city-council-government/careers-volunteering/current-opportunities/)
 - **City of Peterborough** — [Careers](https://www.peterborough.ca/en/city-services/jobs.aspx)
 - **Conservation Halton** — [Employment](https://www.conservationhalton.ca/about-us/employment/)
-- **Durham Region** — [Job Search](https://recruitregion.durham.ca/psc/recruit_rmd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=3)
 - **Government of Canada** — [GC Jobs](https://emploisfp-psjobs.cfp-psc.gc.ca/psrs-srfp/applicant/page2440?fromMenu=true&toggleLanguage=en) (covers Transport Canada, Statistics Canada, Infrastructure Canada, and many other federal departments)
 - **Northumberland County** — [Careers](https://northumberland.ca/county-government/careers/)
 - **Province of Ontario (OPS)** — [Ontario Public Service Jobs](https://www.gojobs.gov.on.ca/Search.aspx)
@@ -94,9 +93,10 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Queen's University** — [Job Listing](https://queensu.njoyn.com/cl4/xweb/xweb.asp?page=joblisting&CLID=74827)
 - **Sheridan College** — [Job Listing](https://sheridan.njoyn.com/CL3/xweb/xweb.asp?page=joblisting&CLID=55117)
 
-## PeopleSoft Fluid (1)
+## PeopleSoft Fluid (2)
 
-- **City of Winnipeg** — [Careers](https://careers.winnipeg.ca/psc/cgext/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U) — new engine, click-and-walk pattern (no real per-job URLs on this platform). 7 more tenants identified but not yet working — see issue #37.
+- **City of Winnipeg** — [Careers](https://careers.winnipeg.ca/psc/cgext/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U) — click-and-walk pattern (no real per-job URLs on this platform).
+- **Durham Region** — [Job Search](https://recruitregion.durham.ca/psc/recruit_rmd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=3) — click-and-walk pattern; includes Durham Region Transit postings.
 
 ## Oracle Cloud (3)
 
