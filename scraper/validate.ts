@@ -81,7 +81,12 @@ function normalizeTags(v: unknown): string[] {
   );
 }
 
-const EMPTY_SECTION_BODY = /^(none|n\/a|not applicable|not specified|not required|no additional .*)\.?$/i;
+const EMPTY_SECTION_LINE = /^(none|n\/a|not applicable|not specified|not required|no additional .*)\.?$/i;
+
+function isEmptySectionBody(body: string): boolean {
+  const lines = body.split('\n').map(line => line.replace(/^\s*[-•]\s*/, '').trim()).filter(Boolean);
+  return lines.length > 0 && lines.every(line => EMPTY_SECTION_LINE.test(line));
+}
 
 // Safety net for cases where the AI ignores prompt instructions: drops
 // sections whose body is just a placeholder, and forces bullet-only lists.
@@ -105,7 +110,7 @@ function cleanDescription(markdown: string): string {
   const kept = sections.filter(section => {
     if (!/^##\s+/.test(section[0])) return true; // leading content before first header
     const body = section.slice(1).join('\n').trim();
-    return body !== '' && !EMPTY_SECTION_BODY.test(body);
+    return body !== '' && !isEmptySectionBody(body);
   });
 
   return kept

@@ -230,6 +230,14 @@ describe('validateParsedJob', () => {
       assert.ok(!result?.clean_description.includes('Nice to Have'));
     });
 
+    it('drops bullet placeholder sections', () => {
+      const result = validateParsedJob({
+        ...BASE,
+        clean_description: '## Qualifications\nMust have a degree.\n\n## Nice to Have\n- None\n\n## Compensation & Benefits\nPension included.',
+      });
+      assert.ok(!result?.clean_description.includes('Nice to Have'));
+    });
+
     it('converts numbered lists to bullets', () => {
       const result = validateParsedJob({
         ...BASE,

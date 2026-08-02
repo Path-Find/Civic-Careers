@@ -90,7 +90,12 @@ export const isRedundantCompensation = (heading: string, body: string): boolean 
   return /^\s*(?:salary|pay|rate)\s*:\s*\$?[\d,.]+\s*(?:to|[-–])\s*\$?[\d,.]+\s+per\s+hour(?:\s+as\s+per\s+the\s+collective\s+agreement)?\.?\s*$/i.test(body);
 };
 
-export const isPlaceholderSection = (body: string): boolean => /^(?:\(?(?:none|n\/a|not applicable|not specified|not provided)\)?[.!]?)$/i.test(body.trim());
+const PLACEHOLDER_LINE = /^(?:\(?(?:none|n\/a|not applicable|not specified|not provided)\)?[.!]?)$/i;
+
+export const isPlaceholderSection = (body: string): boolean => {
+  const lines = body.split('\n').map(line => line.replace(/^\s*[-•]\s*/, '').trim()).filter(Boolean);
+  return lines.length > 0 && lines.every(line => PLACEHOLDER_LINE.test(line));
+};
 
 export const renderMarkdown = (md: string | null): string => {
   if (!md) return '';
