@@ -15,7 +15,7 @@ export function useJobs() {
   const refresh = useCallback((singleRid?: number) => {
     setLoading(true);
     const path = window.location.pathname;
-    const view = path === '/' || path === '/about' ? 'home' : path === '/companies' ? 'companies' : path === '/jobs' ? 'jobs' : null;
+    const view = path === '/' || path === '/about' ? 'home' : path === '/companies' ? 'companies' : path === '/jobs' ? 'jobs' : path === '/saved' ? 'saved' : null;
     const endpoint = singleRid !== undefined
       ? `${API}/api/jobs?rid=${singleRid}`
       : view ? `${API}/api/jobs?view=${view}` : `${API}/api/jobs`;

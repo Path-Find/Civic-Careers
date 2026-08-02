@@ -27,6 +27,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store');
     res.end(JSON.stringify(result.rows[0]));
   } catch (error) {
     console.error('[API] Failed to toggle saved job:', error);

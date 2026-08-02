@@ -125,6 +125,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
 
+    if (view === 'saved') {
+      const result = await db.execute(`
+        SELECT ${jobColumns}
+        ${jobJoins}
+        WHERE j.is_saved = 1
+        ORDER BY j.is_active DESC, j.scraped_at DESC
+      `);
+      res.setHeader('Cache-Control', 'no-store');
+      res.end(JSON.stringify(result.rows));
+      return;
+    }
+
     const result = await db.execute(`
       SELECT ${jobColumns}
       ${jobJoins}
