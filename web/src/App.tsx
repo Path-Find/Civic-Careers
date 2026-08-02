@@ -331,6 +331,10 @@ function App() {
           ) : currentView === 'home' ? (
             <section className="home-preview">
               <div className="home-preview-heading">
+                <div className="home-stats" aria-label="Job totals">
+                  <div className="home-stat-primary"><strong>{displayAvailableJobCount.toLocaleString()}</strong> jobs available</div>
+                  <div><strong>+{displayRecentlyAddedCount.toLocaleString()}</strong> added in the last 7 days</div>
+                </div>
                 <ListSortControls className="list-sort-options" sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setNewlyAdded(false); setDeadlineDays(null); handleNavigate('jobs'); }} onClosingSoon={() => { setSortNewest(false); setNewlyAdded(false); setDeadlineDays(14); handleNavigate('jobs'); }} onNewlyAdded={() => { setSortNewest(false); setNewlyAdded(true); setDeadlineDays(null); handleNavigate('jobs'); }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
