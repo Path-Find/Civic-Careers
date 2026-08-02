@@ -1,45 +1,92 @@
-import { chromium } from 'playwright';
+import { chromium, BrowserContext } from 'playwright';
+import { Client } from '@libsql/client';
 import { initDb } from './db';
 import { BASE_CONFIG } from './utils';
-import { scrapeSuccessFactors } from './engines/successfactors';
-import { scrapeJobs2Web } from './engines/jobs2web';
-import { scrapeDayforce } from './engines/dayforce';
-import { scrapeJazzHR } from './engines/jazzhhr';
-import { scrapeWorkland } from './engines/workland';
-import { scrapeJibe } from './engines/jibe';
-import { scrapeADP } from './engines/adp';
-import { scrapeWorkday } from './engines/workday';
-import { scrapePeterborough, scrapeSmithsFalls, scrapeVaughanPL } from './engines/custom';
+import { scrapePeopleSoft } from './engines/peoplesoft';
+import { scrapeTaleo } from './engines/taleo';
+import { scrapeOracleCloud } from './engines/oracle';
+
+const REQUIRED_SUCCESSFUL_RUNS = 3;
+type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
+
+const SOURCES = {
+  'Niagara College': (db: Client, context: BrowserContext) =>
+    scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?act=redirectCwsV2&cws=38&org=NIAGARACOLLEGE', 'Niagara College'),
+  'Fleming College': (db: Client, context: BrowserContext) =>
+    scrapePeopleSoft(db, context, 'https://rsprd.flemingc.on.ca/psc/RSPRD/EMPLOYEE/RSMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant', 'Fleming College'),
+  'Western University': (db: Client, context: BrowserContext) =>
+    scrapePeopleSoft(db, context, 'https://recruit.uwo.ca/psc/hrprdwebER/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U', 'Western University'),
+  'University of Alberta': (db: Client, context: BrowserContext) =>
+    scrapeOracleCloud(db, context, 'https://iaejup.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/UOA-Careers/jobs', 'University of Alberta'),
+} satisfies Record<string, SourceRunner>;
 
 async function main() {
   const headless = !process.env.DISPLAY && process.env.CI !== 'false';
   const browser = await chromium.launch({ headless });
   const context = await browser.newContext(BASE_CONFIG);
   const db = await initDb();
+  let failed = false;
 
-  // Eastern Ontario (batch 1)
-  await scrapePeterborough(db, context);
-  await scrapeSuccessFactors(db, context, 'https://career47.sapsf.com/careers/cityofottawa/search', 'City of Ottawa', 'https://career47.sapsf.com');
-  await scrapeJazzHR(db, context, 'https://cityofbelleville.applytojob.com/apply/', 'City of Belleville', 'belleville');
-  await scrapeWorkland(db, context, 'https://atlas.workland.com/careers/cornwall/jobs?page=1', 'City of Cornwall', 'cornwall');
-  await scrapeSmithsFalls(db, context);
+  async function runTrialSource(source: string, run: () => Promise<void>) {
+    console.log(`\n=== ${source} ===`);
+    try {
+      await run();
+      const count = await db.execute({
+        sql: 'SELECT COUNT(*) AS count FROM raw_jobs WHERE source = ?',
+        args: [source],
+      });
+      const jobCount = Number(count.rows[0]?.count ?? 0);
+      await db.execute({
+        sql: `INSERT INTO trial_source_results
+                (source, consecutive_successes, last_status, last_job_count, last_run_at)
+              VALUES (?, 1, 'success', ?, CURRENT_TIMESTAMP)
+              ON CONFLICT(source) DO UPDATE SET
+                consecutive_successes = trial_source_results.consecutive_successes + 1,
+                last_status = 'success',
+                last_job_count = excluded.last_job_count,
+                last_run_at = CURRENT_TIMESTAMP`,
+        args: [source, jobCount],
+      });
+      console.log(`[${source}] Trial success (${jobCount} stored jobs).`);
+    } catch (err: any) {
+      failed = true;
+      await db.execute({
+        sql: `INSERT INTO trial_source_results
+                (source, consecutive_successes, last_status, last_job_count, last_run_at)
+              VALUES (?, 0, 'failed', 0, CURRENT_TIMESTAMP)
+              ON CONFLICT(source) DO UPDATE SET
+                consecutive_successes = 0,
+                last_status = 'failed',
+                last_job_count = 0,
+                last_run_at = CURRENT_TIMESTAMP`,
+        args: [source],
+      });
+      console.error(`[${source}] Trial failed: ${err.message}`);
+    }
+  }
 
-  // Southwestern & Northern Ontario (batch 2)
-  await scrapeJazzHR(db, context, 'https://cityofwindsor.applytojob.com/apply/', 'City of Windsor', 'windsor');
-  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=9ba4d624-1cab-4482-861f-900704c3df0d&ccId=19000101_000001&lang=en_CA', 'City of Sarnia');
-  await scrapeDayforce(db, context, 'https://jobs.dayforcehcm.com/en-CA/stthomas/CANDIDATEPORTAL', 'City of St. Thomas');
-  await scrapeJobs2Web(db, context, 'https://careers.regionofwaterloo.ca/RoW/search/', 'Region of Waterloo');
-  await scrapeJibe(db, context, 'https://careers.thunderbay.ca/careers-home/jobs', 'City of Thunder Bay', 'thunderbay');
+  const sourceEntries = Object.entries(SOURCES);
+  for (const [source, run] of sourceEntries) {
+    await runTrialSource(source, () => run(db, context));
+  }
 
-  // GTHA additions (batch 3)
-  await scrapeWorkday(db, context, 'https://whitby.wd10.myworkdayjobs.com/EXT', 'Town of Whitby');
-  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=04bf51f8-d2dd-4641-ba92-183522f6e8b3&ccId=19000101_000001&type=MP&lang=en_CA', 'City of Markham');
-  await scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=b1fead40-7a8c-4b14-87a0-dc031bab192d&ccId=19000101_000001&lang=en_CA', 'Town of Aurora');
-  await scrapeJobs2Web(db, context, 'https://jobs.richmondhill.ca/search/', 'City of Richmond Hill');
-  await scrapeVaughanPL(db, context);
+  console.log('\n=== Trial pass counts ===');
+  const results = await db.execute({
+    sql: `SELECT source, consecutive_successes, last_status, last_job_count
+          FROM trial_source_results
+          WHERE source IN (${sourceEntries.map(() => '?').join(',')})
+          ORDER BY source`,
+    args: sourceEntries.map(([source]) => source),
+  });
+  for (const row of results.rows) {
+    const status = row.last_status === 'success' && Number(row.consecutive_successes) >= REQUIRED_SUCCESSFUL_RUNS
+      ? 'READY FOR PROMOTION'
+      : 'KEEP IN TRIAL';
+    console.log(`${row.source}: ${row.last_status}, ${row.consecutive_successes}/${REQUIRED_SUCCESSFUL_RUNS} consecutive passes, ${row.last_job_count} stored jobs — ${status}`);
+  }
 
   await browser.close();
-  process.exit(0);
+  if (failed) process.exitCode = 1;
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
