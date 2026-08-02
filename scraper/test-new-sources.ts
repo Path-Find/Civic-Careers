@@ -7,6 +7,13 @@ import { scrapeTaleo } from './engines/taleo';
 import { scrapeOracleCloud } from './engines/oracle';
 import { scrapeCSOD } from './engines/csod';
 import { scrapeNeogov } from './engines/neogov';
+import { scrapeNjoyn } from './engines/njoyn';
+import { scrapeHRSmart } from './engines/hrsmart';
+import { scrapeJazzHR } from './engines/jazzhhr';
+import { scrapeUltiPro } from './engines/ultipro';
+import { scrapeDayforce } from './engines/dayforce';
+import { scrapeJobs2Web } from './engines/jobs2web';
+import { scrapeICIMS } from './engines/icims';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -34,6 +41,34 @@ const SOURCES = {
     scrapeCSOD(db, context, 'https://usask.csod.com/ux/ats/careersite/14/home?c=usask', 'University of Saskatchewan'),
   'Cambrian College': (db: Client, context: BrowserContext) =>
     scrapeNeogov(db, context, 'https://gjobs.neogov.ca/careers/cambriancollege', 'Cambrian College'),
+  'City of Abbotsford': (db: Client, context: BrowserContext) =>
+    scrapeNjoyn(db, context, 'https://abbotsford.njoyn.com/CL3/xweb/Xweb.asp?CLID=55227&page=joblisting', 'City of Abbotsford'),
+  'Town of Newmarket': (db: Client, context: BrowserContext) =>
+    scrapeHRSmart(db, context, 'https://newmarket.hua.hrsmart.com/hr/ats/JobSearch/viewAll', 'Town of Newmarket'),
+  'County of Brant': (db: Client, context: BrowserContext) =>
+    scrapeJazzHR(db, context, 'https://countyofbrant.applytojob.com/apply/', 'County of Brant', 'brant'),
+  'Lambton County': (db: Client, context: BrowserContext) =>
+    scrapeUltiPro(db, context, 'https://recruiting.ultipro.ca/COR5004CLMB/JobBoard/6b014206-1003-40c3-98a0-b2340f1971da/?o=postedDateDesc&q=', 'Lambton County'),
+  'Essex County': (db: Client, context: BrowserContext) =>
+    scrapeJazzHR(db, context, 'https://app.jazz.co/widgets/basic/create/countyofessex', 'Essex County', 'essex'),
+  'Grey County': (db: Client, context: BrowserContext) =>
+    scrapeDayforce(db, context, 'https://jobs.dayforcehcm.com/en-CA/greycounty/CANDIDATEPORTAL', 'Grey County'),
+  'City of Quinte West': (db: Client, context: BrowserContext) =>
+    scrapeDayforce(db, context, 'https://canr58.dayforcehcm.com/CandidatePortal/en-CA/quintewest', 'City of Quinte West'),
+  'County of Wellington': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://careers.wellington.ca/search/', 'County of Wellington'),
+  'Loyalist College': (db: Client, context: BrowserContext) =>
+    scrapeNeogov(db, context, 'https://gjobs.neogov.ca/careers/loyalistcollege', 'Loyalist College'),
+  LCBO: (db: Client, context: BrowserContext) =>
+    scrapeWorkday(db, context, 'https://lcbo.wd3.myworkdayjobs.com/LCBOCareerSite', 'LCBO'),
+  OLG: (db: Client, context: BrowserContext) =>
+    scrapeWorkday(db, context, 'https://olg.wd3.myworkdayjobs.com/Careers', 'OLG'),
+  'Public Health Ontario': (db: Client, context: BrowserContext) =>
+    scrapeWorkday(db, context, 'https://publichealthontario.wd10.myworkdayjobs.com/PHOCareerSite', 'Public Health Ontario'),
+  WSIB: (db: Client, context: BrowserContext) =>
+    scrapeOracleCloud(db, context, 'https://wsib-iaepup.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs?mode=location', 'WSIB'),
+  'Ontario Health atHome': (db: Client, context: BrowserContext) =>
+    scrapeICIMS(db, context, 'https://healthcareathomejobs-en.icims.com/jobs/search?ss=1', 'Ontario Health atHome'),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {

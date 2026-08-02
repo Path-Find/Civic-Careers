@@ -539,6 +539,39 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       'Cambrian College',
     ),
   },
+  'manual-ready-5': {
+    'Essex County': (db, context) => scrapeJazzHR(
+      db,
+      context,
+      'https://app.jazz.co/widgets/basic/create/countyofessex',
+      'Essex County',
+      'essex',
+    ),
+    'Grey County': (db, context) => scrapeDayforce(
+      db,
+      context,
+      'https://jobs.dayforcehcm.com/en-CA/greycounty/CANDIDATEPORTAL',
+      'Grey County',
+    ),
+    'City of Quinte West': (db, context) => scrapeDayforce(
+      db,
+      context,
+      'https://canr58.dayforcehcm.com/CandidatePortal/en-CA/quintewest',
+      'City of Quinte West',
+    ),
+    'County of Wellington': (db, context) => scrapeJobs2Web(
+      db,
+      context,
+      'https://careers.wellington.ca/search/',
+      'County of Wellington',
+    ),
+    'Loyalist College': (db, context) => scrapeNeogov(
+      db,
+      context,
+      'https://gjobs.neogov.ca/careers/loyalistcollege',
+      'Loyalist College',
+    ),
+  },
 };
 
 async function main() {
