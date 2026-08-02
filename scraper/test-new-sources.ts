@@ -15,6 +15,7 @@ import { scrapeDayforce } from './engines/dayforce';
 import { scrapeJobs2Web } from './engines/jobs2web';
 import { scrapeICIMS } from './engines/icims';
 import { scrapePeopleAdmin } from './engines/peopleadmin';
+import { scrapeLever } from './engines/lever';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeNipissing, scrapeNorthernCollege, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
@@ -95,6 +96,8 @@ const SOURCES = {
     scrapeNorthernCollege(db, context),
   'City of Edmonton': (db: Client, context: BrowserContext) =>
     scrapeEdmontonPhenom(db, context),
+  'Okanagan College': (db: Client, context: BrowserContext) =>
+    scrapeLever(db, context, 'okanagan', 'Okanagan College'),
   'Government of Alberta': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/', 'Government of Alberta'),
   'Ontario Energy Board': (db: Client, context: BrowserContext) =>

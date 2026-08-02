@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Nipissing University and Northern College can now be tested through shared custom HTML scraping**: current detail links are collected from both server-rendered boards.
 - **City of Edmonton can now be tested through a shared Phenom People scraper**: external and internal pages are paginated, and the student view is checked as well.
 - **Five additional Jobs2Web sources can now run in recurring trial validation**: Government of Alberta, Ontario Energy Board, City of Ottawa, City of Saskatoon, and Regional Municipality of Wood Buffalo all passed one-time scrape checks.
+- **Okanagan College can now be tested through a shared Lever scraper**: its public board returned 49 current postings with substantive detail pages.
 - **NEOGOV job boards can now be collected through one shared engine**: Cambrian College's 28 current postings were collected across all three result pages.
 - **University of Winnipeg postings can now be collected from its NorthStar ATS board**: stable posting detail URLs are extracted from the board's popup links.
 - **Conestoga College's support postings can now be imported from its RSS feed**: the RSS scraper accepts the feed's `id=` detail links.

@@ -20,6 +20,7 @@ import { scrapeNorthStar } from './engines/northstar';
 import { scrapeJazzHR } from './engines/jazzhhr';
 import { scrapeNeogov } from './engines/neogov';
 import { scrapePeopleAdmin } from './engines/peopleadmin';
+import { scrapeLever } from './engines/lever';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeNipissing, scrapeNorthernCollege, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -589,6 +590,9 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
   },
   'phenom-1': {
     'City of Edmonton': (db, context) => scrapeEdmontonPhenom(db, context),
+  },
+  'lever-1': {
+    'Okanagan College': (db, context) => scrapeLever(db, context, 'okanagan', 'Okanagan College'),
   },
   'manual-ready-5': {
     'Essex County': (db, context) => scrapeJazzHR(
