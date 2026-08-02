@@ -15,27 +15,50 @@ export async function scrapeCSOD(db: Client, context: BrowserContext, url: strin
     await safeGoto(page, url, 60000);
     await page.waitForTimeout(5000);
 
-    let lastCount = 0;
-    for (let i = 0; i < 5; i++) {
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(2000);
-      const count = await page.$$eval('a[data-tag="displayJobTitle"]', els => els.length);
-      if (count === lastCount) break;
-      lastCount = count;
-    }
+    const summaries: Array<{ title: string; url: string; location: string }> = [];
+    const seenUrls = new Set<string>();
 
-    const summaries = await page.evaluate((baseUrl) => {
-      return Array.from(document.querySelectorAll('a[data-tag="displayJobTitle"]')).map(link => {
-        const href = link.getAttribute('href') || '';
-        const card = link.closest('.p-panel');
-        const location = card?.querySelector('[data-tag="displayJobLocation"]')?.textContent?.trim() || '';
-        return {
-          title: link.textContent?.trim() || '',
-          url: href.startsWith('http') ? href : baseUrl + href,
-          location,
-        };
-      }).filter(j => j.title && j.url);
-    }, baseUrl);
+    for (let pageNumber = 1; pageNumber <= 100; pageNumber++) {
+      let lastCount = 0;
+      for (let i = 0; i < 5; i++) {
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(2000);
+        const count = await page.$$eval('a[data-tag="displayJobTitle"]', els => els.length);
+        if (count === lastCount) break;
+        lastCount = count;
+      }
+
+      const pageSummaries = await page.evaluate((baseUrl) => {
+        return Array.from(document.querySelectorAll('a[data-tag="displayJobTitle"]')).map(link => {
+          const href = link.getAttribute('href') || '';
+          const card = link.closest('.p-panel');
+          const location = card?.querySelector('[data-tag="displayJobLocation"]')?.textContent?.trim() || '';
+          return {
+            title: link.textContent?.trim() || '',
+            url: href.startsWith('http') ? href : baseUrl + href,
+            location,
+          };
+        }).filter(j => j.title && j.url);
+      }, baseUrl);
+
+      for (const job of pageSummaries) {
+        if (!seenUrls.has(job.url)) {
+          seenUrls.add(job.url);
+          summaries.push(job);
+        }
+      }
+
+      console.log(`[${sourceName}] Page ${pageNumber}: ${pageSummaries.length} jobs`);
+
+      const nextButton = page.locator('button.page-nav-caret.next:not([disabled])').first();
+      if (await nextButton.count() === 0 || !(await nextButton.isVisible())) break;
+
+      const firstUrl = pageSummaries[0]?.url;
+      await nextButton.click();
+      await page.waitForTimeout(2000);
+      const nextFirstHref = await page.locator('a[data-tag="displayJobTitle"]').first().getAttribute('href');
+      if (!nextFirstHref || nextFirstHref === firstUrl) break;
+    }
 
     console.log(`[${sourceName}] Found ${summaries.length} jobs`);
     for (const job of summaries) {

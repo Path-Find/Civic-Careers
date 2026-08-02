@@ -153,6 +153,12 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       ).catch(() => {});
     }
 
+    // CSOD detail pages can render their shell before the requisition fields.
+    // Wait for those fields so slow postings are not discarded as empty.
+    if (/\.csod\.com\/ux\/ats\/careersite\/\d+\/home\/requisition\//i.test(job.url)) {
+      await page.waitForSelector('[data-tag="ReqTitle"], [data-tag="postingDates"]', { timeout: 15000 }).catch(() => {});
+    }
+
     const extractFrom = (target: Page | Frame) => target.evaluate((selector) => {
       const root = selector ? document.querySelector(selector) : document.body;
       const clone = (root ?? document.body).cloneNode(true) as HTMLElement;

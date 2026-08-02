@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fix paginated CSOD boards and slow requisition pages so Saskatchewan's 93 open jobs are collected instead of only the first 25.
 - Fix PeopleSoft boards that require selecting “View All Jobs” before job results load.
 - Move Durham Region onto the shared PeopleSoft scraper so its current postings are collected again.
 
