@@ -18,6 +18,7 @@ import { scrapeSuccessFactors } from './engines/successfactors';
 import { scrapeDayforce } from './engines/dayforce';
 import { scrapeNorthStar } from './engines/northstar';
 import { scrapeJazzHR } from './engines/jazzhhr';
+import { scrapeNeogov } from './engines/neogov';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
 
@@ -528,6 +529,14 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       context,
       'https://careersconnect.translink.bc.ca/psc/EXT/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U&FOCUS=Applicant&SiteId=2',
       'TransLink',
+    ),
+  },
+  'neogov-1': {
+    'Cambrian College': (db, context) => scrapeNeogov(
+      db,
+      context,
+      'https://gjobs.neogov.ca/careers/cambriancollege',
+      'Cambrian College',
     ),
   },
 };

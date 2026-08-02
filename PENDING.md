@@ -57,9 +57,9 @@ Grouped by platform, same convention as `SOURCES.md` — that's the axis that de
 
 - York University — https://jobs-ca.technomedia.com/yorkuniversity/
 
-### NEOGOV (no engine)
+### NEOGOV (engine built; Cambrian manually validated — see issue #74)
 
-- Cambrian College — https://gjobs.neogov.ca/careers/cambriancollege
+- Cambrian College — https://gjobs.neogov.ca/careers/cambriancollege (shared engine validated in manual batch `neogov-1`; still pending promotion)
 
 ### Custom, no per-job links found (harder than typical custom.ts sources)
 
