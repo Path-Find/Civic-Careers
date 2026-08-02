@@ -5,6 +5,7 @@ import type { Job, View } from './types/jobs';
 import { parseJobDetails } from './modules/jobs/jobUtils';
 import { useJobs } from './modules/jobs/hooks/useJobs';
 import { useJobFilters } from './modules/jobs/hooks/useJobFilters';
+import { useRecentlyViewed } from './modules/jobs/hooks/useRecentlyViewed';
 import { JobRow } from './modules/jobs/components/JobRow';
 import { JobFiltersSidebar } from './modules/jobs/components/JobFiltersSidebar';
 import { JobDetailView } from './modules/jobs/components/JobDetailView';
@@ -80,6 +81,7 @@ function formatCheckedAt(timestamp: string | null) {
 
 function App() {
   const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
+  const { recentlyViewedJobs, recordViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [currentView, setCurrentView] = useState<View>('home');
@@ -188,11 +190,12 @@ function App() {
 
   useEffect(() => {
     if (!selectedJob) return;
+    recordViewed(selectedJob);
     if (selectedJob.description) return;
     loadDescription(selectedJob).then(description => {
       if (description) setSelectedJob(prev => prev && prev.id === selectedJob.id ? { ...prev, description } : prev);
     });
-  }, [selectedJob, loadDescription]);
+  }, [selectedJob, loadDescription, recordViewed]);
 
   const handleNavigate = (view: View, companyFilter?: string) => {
     setCurrentView(view);
@@ -381,7 +384,15 @@ function App() {
                 {isCompanyPage && <div className="company-match-count">{filteredJobs.length.toLocaleString()} matches found</div>}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {(currentView === 'jobs' || currentView === 'saved') ? (
-                    filteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)
+                    <>
+                      {filteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
+                      {currentView === 'saved' && <section className="recently-viewed-section">
+                        <h2>Recently viewed</h2>
+                        {recentlyViewedJobs.length > 0
+                          ? recentlyViewedJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)
+                          : <p className="recently-viewed-empty">Jobs you open will appear here for 30 days.</p>}
+                      </section>}
+                    </>
                   ) : <>
                     <CompanyDirectory
                       companies={companySummaries}

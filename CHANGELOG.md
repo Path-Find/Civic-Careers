@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add browser-only Recently viewed jobs and anonymous aggregate Apply-click counts by job.
 - Show equal salary endpoints once instead of as a duplicate range such as `$53.78/hr – $53.78/hr`.
 - Include the internal job ID in prefilled problem reports so reported postings can be located reliably.
 - Hide placeholder-only Nice to Have sections and clean 67 existing stored descriptions so job details no longer show `None` as a requirement.

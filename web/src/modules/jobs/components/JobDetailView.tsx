@@ -11,7 +11,11 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   onNavigate: (view: View, companyFilter?: string) => void;
   onToggleSave: (job: Job, event: MouseEvent) => void;
 }) {
+  const API = import.meta.env.VITE_API_URL ?? '';
   const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.job_title}`)}&body=${encodeURIComponent(`Job: ${job.job_title}\nCompany: ${job.source}\nInternal job ID: ${job.id}\nURL: ${job.url}\n\nProblem:`)}`;
+  const recordApplyClick = () => {
+    void fetch(`${API}/api/jobs/${job.id}/apply-click`, { method: 'POST', keepalive: true }).catch(() => {});
+  };
   const descriptionSections = reclassifyMandatoryNiceToHave(parseMarkdownSections(job.description ?? null));
   const overview = descriptionSections.find(section => section.heading.toLowerCase() === 'overview');
   const detailSections = descriptionSections.filter(section => section !== overview && section.body && !isPlaceholderSection(section.body) && !isRedundantCompensation(section.heading, section.body));
@@ -30,7 +34,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
       <div className="detail-sidebar" style={{ top: `${headerHeight + 20}px` }}>
         {job.closing_date && <div className="deadline-card"><div className="deadline-label">Apply By</div><div className="deadline-value">{formatDate(job.closing_date)}</div></div>}
         <div className="detail-actions">
-          <a className="detail-action apply-button" href={job.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Apply</a>
+          <a className="detail-action apply-button" href={job.url} target="_blank" rel="noopener noreferrer" onClick={recordApplyClick}><ExternalLink size={14} /> Apply</a>
           <button className="detail-action save-button" onClick={event => onToggleSave(job, event)}><Bookmark size={14} fill={job.is_saved ? '#0f172a' : 'transparent'} />{job.is_saved ? 'Saved' : 'Save'}</button>
         </div>
         <div className="detail-metadata">{metadata.filter(item => item.value).map(item => <div key={item.label}><div className="metadata-label">{item.label}</div><div className={`metadata-value ${item.highlight ? 'highlight' : ''}`}>{item.value}</div></div>)}</div>
