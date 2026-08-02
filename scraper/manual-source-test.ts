@@ -5,6 +5,7 @@ import { scrapePeopleSoft } from './engines/peoplesoft';
 import { scrapeTaleo } from './engines/taleo';
 import { scrapeOracleCloud } from './engines/oracle';
 import { scrapeTechnomedia } from './engines/technomedia';
+import { scrapeCSOD } from './engines/csod';
 
 const source = process.env.MANUAL_SOURCE;
 
@@ -21,6 +22,7 @@ async function main() {
     'Western University': () => scrapePeopleSoft(db, context, 'https://recruit.uwo.ca/psc/hrprdwebER/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U', source),
     'University of Alberta': () => scrapeOracleCloud(db, context, 'https://iaejup.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/UOA-Careers/jobs', source),
     'York University': () => scrapeTechnomedia(db, context),
+    'University of Saskatchewan': () => scrapeCSOD(db, context, 'https://usask.csod.com/ux/ats/careersite/14/home?c=usask', source),
   };
 
   if (!runners[source]) throw new Error(`Manual source is not configured: ${source}`);
