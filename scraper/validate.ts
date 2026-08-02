@@ -42,8 +42,9 @@ function normalizeWorkModel(v: unknown, titleHint = ''): 'Hybrid' | 'Remote' | '
   return 'On-site';
 }
 
-function normalizeEmploymentType(v: unknown): 'Full-time' | 'Part-time' | 'Contract' | 'Permanent' {
+function normalizeEmploymentType(v: unknown): 'Full-time' | 'Part-time' | 'Contract' | 'Permanent' | 'Occasional' {
   const s = coerceString(v).toLowerCase().replace(/[\s_-]/g, '');
+  if (s.includes('occasional') || s.includes('substitute') || s.includes('oncall')) return 'Occasional';
   if (s.includes('part')) return 'Part-time';
   if (s.includes('contract') || s.includes('temp') || s.includes('casual')) return 'Contract';
   if (s.includes('permanent')) return 'Permanent';

@@ -143,6 +143,7 @@ describe('validateParsedJob', () => {
       assert.equal(validateParsedJob({ ...BASE, employment_type: 'Temporary' })?.employment_type, 'Contract');
       assert.equal(validateParsedJob({ ...BASE, employment_type: 'temp' })?.employment_type, 'Contract');
       assert.equal(validateParsedJob({ ...BASE, employment_type: 'Casual' })?.employment_type, 'Contract');
+      assert.equal(validateParsedJob({ ...BASE, employment_type: 'Occasional Teacher / Eligible to Hire' })?.employment_type, 'Occasional');
     });
   });
 

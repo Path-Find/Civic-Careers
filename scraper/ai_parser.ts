@@ -26,7 +26,7 @@ export interface ParsedJob {
     salary_period: 'yearly' | 'hourly' | 'monthly' | 'flat';
     closing_date: string | null;
     work_model: 'Hybrid' | 'Remote' | 'On-site';
-    employment_type: 'Full-time' | 'Part-time' | 'Contract' | 'Permanent';
+    employment_type: 'Full-time' | 'Part-time' | 'Contract' | 'Permanent' | 'Occasional';
     duration: string;
     is_unionized: boolean;
     union_name: string;
@@ -81,7 +81,7 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
       "salary_max": number | null,
       "salary_period": "yearly" | "hourly" | "monthly" | "flat" (flat = a single lump-sum payment for the whole assignment, not a recurring rate — use for per-course, per-assignment, stipend, honorarium, or one-time project fees. e.g. '$7,887.59 per half course' is flat, NOT yearly, even though it's the only pay mentioned),
       "work_model": "Hybrid" | "Remote" | "On-site",
-      "employment_type": "Full-time" | "Part-time" | "Contract" | "Permanent",
+      "employment_type": "Full-time" | "Part-time" | "Contract" | "Permanent" | "Occasional" (use Occasional for substitute, on-call, or occasional teaching roles),
       "duration": "Length of contract if applicable",
       "is_unionized": boolean,
       "union_name": "Union name or Non-Union",
