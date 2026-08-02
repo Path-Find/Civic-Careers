@@ -1,26 +1,26 @@
 # Roadmap
 
-Civic Careers is the automated intelligence layer spun out from Navigator. It monitors public-sector portals and normalizes messy job data into structured assets.
+Civic Careers collects public-sector job postings and presents them in a searchable feed with consistent fields and filters.
 
-- **[Sources](./SOURCES.md)**: Inventory of active and planned job portals.
-- **[Changelog](./CHANGELOG.md)**: Detailed history of scraper engine updates.
+## Current state
 
-### Scraper Architecture
-- [x] **AI-Powered Parsing**: Migration to DeepSeek V3 for 100% reliable extraction and description normalization.
-- [x] **Recursive Redirections**: Robust handling of interstitial "Warning" pages on government portals.
-- [x] **Automated Scheduling**: Bi-weekly scraping (Mon/Thu) via GitHub Actions.
-- [ ] **Multi-Model Fallback**: Logic to switch to Gemini if DeepSeek is unavailable.
-- [ ] **Direct-to-Cloud Storage**: Move from local SQLite to direct Supabase/PostgreSQL ingestion.
+- **Sources:** [`SOURCES.md`](./SOURCES.md) lists the active portals. [`PENDING.md`](./PENDING.md) is the private working list for sources that are not active yet.
+- **Regular scraping:** The live scraper runs on Monday and Thursday.
+- **Trial sources:** New sources run in the recurring trial action on the same schedule. One-off manual tests are available for focused validation. A successful source is promoted to the live scraper after the configured trial-success requirement.
+- **Parsing:** Scraping and parsing are separate steps. The parser is currently manually triggered while the extraction prompt is being tuned.
+- **Website:** The feed has Jobs, Companies, and Saved views, with filters for the fields currently stored in the database.
 
-### Intelligence & Quality
-- [ ] **Job Similarity Detection**: Grouping duplicate postings that appear across different portal types.
-- [ ] **Salary Normalization**: Intelligent conversion of hourly/monthly rates to standardized annual benchmarks.
-- [ ] **Benefit Classification**: Categorizing perks into standardized tags (Pension, Health, Dental).
+## Confirmed remaining work
 
-### Future Targets
-- **Regional Expansion**: Adding remaining GTHA regions (Durham, Niagara).
-- **Provincial Expansion**: Porting the custom PSC engine to other provinces (BC, Alberta).
-- **Public Boards**: Scaping LinkedIn/Indeed for specific "Government" keyword filters.
+- Continue reviewing and validating public Canadian job boards from `PENDING.md`.
+- Capture official posted dates when a source provides them and backfill existing records when the data is available.
+- Continue correcting parser output when a posting is misclassified, incomplete, or contains employer boilerplate.
+- Decide when the parser prompt is stable enough to restore its scheduled workflow.
+
+## Documentation
+
+- [`SOURCES.md`](./SOURCES.md): active source inventory.
+- [`CHANGELOG.md`](./CHANGELOG.md): released product and scraper changes.
 
 ---
 

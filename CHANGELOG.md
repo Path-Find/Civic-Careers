@@ -5,95 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-- Deduplicate Dayforce listing links, avoid cross-tenant requisition-ID collisions, and wait for detail content so valid postings are not lost or scraped twice.
-- Classify occasional or substitute roles as `Occasional` instead of incorrectly defaulting them to Full-time.
-- Add browser-only Recently viewed jobs and anonymous aggregate Apply-click counts by job.
-- Show equal salary endpoints once instead of as a duplicate range such as `$53.78/hr – $53.78/hr`.
-- Include the internal job ID in prefilled problem reports so reported postings can be located reliably.
-- Hide placeholder-only Nice to Have sections and clean 67 existing stored descriptions so job details no longer show `None` as a requirement.
-- Fix paginated CSOD boards and slow requisition pages so Saskatchewan's 93 open jobs are collected instead of only the first 25.
-- Fix PeopleSoft boards that require selecting “View All Jobs” before job results load.
-- Move Durham Region onto the shared PeopleSoft scraper so its current postings are collected again.
+## [1.9.8] - 2026-08-02
 
 ### Added
-- **PDF job postings can now keep their real description separate from the Apply link**: Vaughan Public Library and St. Clair College were validated with PDF descriptions and independent application URLs.
-- **Companies can now be filtered by organization type**: stable classifications cover public libraries, transit agencies, universities and colleges, municipal governments, public agencies, and health organizations.
-- **PeopleAdmin boards can now be collected through one shared engine**: live paginated postings are discovered across Canadian university and college portals, then each detail page is stored for parsing.
-- **St. Lawrence College can now be tested through its custom HTML board**: all six current stable detail links are collected for recurring trial validation.
-- **Halifax Regional Municipality can now be tested through a shared BrassRing engine**: all 44 current postings are collected after opening the board's full job list.
-- **Nipissing University and Northern College can now be tested through shared custom HTML scraping**: current detail links are collected from both server-rendered boards.
-- **City of Edmonton can now be tested through a shared Phenom People scraper**: external and internal pages are paginated, and the student view is checked as well.
-- **Five additional Jobs2Web sources can now run in recurring trial validation**: Government of Alberta, Ontario Energy Board, City of Ottawa, City of Saskatoon, and Regional Municipality of Wood Buffalo all passed one-time scrape checks.
-- **Okanagan College can now be tested through a shared Lever scraper**: its public board returned 49 current postings with substantive detail pages.
-- **College of the Rockies can now be tested through a shared PrevueAPS scraper**: its public JSON board returned 9 current postings with detail URLs and closing dates.
-- **Selkirk College can now be tested through a shared Hireserve scraper**: its public JSON feed returned 9 current postings with substantive detail pages.
-- **Pickering and Halton Hills municipal postings can now be tested through shared custom scrapers**: City and library records keep separate source names, while current Halton Hills detail pages are stored directly.
-- **North Bay, Collingwood, and Nanaimo municipal postings can now be tested through the shared custom scraper family**: current HTML detail pages and Nanaimo PDF descriptions are collected with separate municipal source names.
-- **City of Orillia can now be tested through a shared HiringPlatform scraper**: all 8 public process pages and their separate application links are collected.
-- **Credit Valley Conservation can now be tested through the shared ADP scraper**: its embedded ADP board returned 3 current postings with substantive descriptions.
-- **ApplyToEducation feeds can now be collected through one shared engine**: Toronto Catholic District School Board’s three public feeds returned 6 postings with full descriptions, application URLs, and posted dates.
-- **Workable boards can now be collected through one shared API engine**: Norfolk County’s 9 current postings are stored with full descriptions, application URLs, and posted dates.
-- **Bruce County can now be tested through the shared Avanti scraper**: its dynamic Career Connector board is loaded in the browser so current county postings are collected.
-- **Whitchurch-Stouffville and Georgina can now be tested through one shared VIP Cloud scraper**: browser-rendered listings and their detail iframes are collected as separate municipal sources.
-- **County of Renfrew can now be tested through a shared Workzoom/CUROS scraper**: stable requisition detail URLs are collected with the full current posting text.
-- **Manitoba Hydro can now be tested through a dedicated SAP Web Dynpro scraper**: current rows, posted dates, and PDF job descriptions are collected from the public portal.
-- **NEOGOV job boards can now be collected through one shared engine**: Cambrian College's 28 current postings were collected across all three result pages.
-- **University of Winnipeg postings can now be collected from its NorthStar ATS board**: stable posting detail URLs are extracted from the board's popup links.
-- **Conestoga College's support postings can now be imported from its RSS feed**: the RSS scraper accepts the feed's `id=` detail links.
-- **Homepage freshness is now visible at a glance**: the active job total is shown alongside the number added in the last seven days.
-- **Site context is now visible**: the homepage footer shows the latest successful data check, copyright, and an About page explains the source and update process.
+- **Expanded trial scraper coverage**: shared engines now cover PeopleAdmin, BrassRing, Lever, PrevueAPS, Hireserve, Phenom, Jobs2Web, ApplyToEducation, Workable, Avanti, VIP Cloud, Workzoom, SAP Web Dynpro, NEOGOV, NorthStar, RSS, and municipal HTML/PDF boards across Canada.
+- **PDF postings can keep their real description separate from the Apply link**: validated sources include Vaughan Public Library, St. Clair College, Pickering, and Nanaimo.
+- **Companies can be filtered by organization type**: classifications cover public libraries, transit agencies, universities and colleges, municipal governments, public agencies, and health organizations.
+- **Job freshness and site context are visible**: the homepage shows active and recently added totals, the footer shows the latest check, and the About page explains the source and update process.
+- **Job details now support canonical responsibility and qualification tags, Recently viewed jobs, apply-click tracking, internal-ID reports, and clean salary and employment-type display.**
 
 ### Fixed
-- **Cookie-gated Workday boards could return zero jobs**: the scraper now accepts the site's legal notice before reading listings.
-- **Njoyn boards with direct `JobDetails` links could return zero jobs**: the shared scraper now recognizes those links and their case-insensitive job IDs.
-- **Vaughan Public Library postings were being treated as a supported live source**: the source is now pending until its PDF descriptions and separate application forms are handled correctly.
-- **Job detail summaries could show only one broad bubble per section**: responsibility and qualification tags now use a shared checked-all-that-apply taxonomy, are stored with each job, and were backfilled for existing active jobs.
-- **Listing sidebars could drift between pages**: Jobs, Saved, and Companies now share one centralized layout and filter-column style.
-- **Qualification bubbles appeared in an arbitrary order**: they now start with the most-used categories.
-- **Student eligibility could appear as a full sentence in a requirement pill**: it now displays as `Student`.
-- **Mandatory eligibility text could appear as a Nice to Have pill**: required conditions now move to Qualifications in the detail view.
-- **Infinite scrolling could trigger repeated loads at the bottom of Jobs**: the next batch now waits for a fresh sentinel entry instead of chaining requests while the sentinel remains visible.
-- **York Region postings exposed a labeled posted date but we did not store it**: the scraper now captures the displayed `Date Posted` value.
-- **St. Catharines and Niagara Falls postings exposed posted dates but we did not store them**: the scraper now captures their official structured dates.
-- **Belleville, Burlington, and Richmond Hill postings exposed posted dates but we did not store them**: the scraper now captures their official dates.
-- **City of Windsor and City of Thunder Bay postings exposed posted dates but we did not store them**: the scraper now captures their official structured dates.
-- **City of Brampton and City of Barrie postings exposed posted dates but we did not store them**: the scraper now captures their official labeled or structured dates.
-- **City of Waterloo postings exposed posted dates but we did not store them**: the scraper now captures their official `datePosted` metadata.
-- **University of Waterloo postings exposed posted dates but we did not store them**: the scraper now captures their official `datePosted` metadata.
-- **City of Vancouver postings exposed posted dates but we did not store them**: the scraper now captures their official `datePosted` metadata.
-- **Some Mississauga postings exposed posted dates but we did not store them**: the scraper now captures official `datePosted` metadata when present.
-- **City of London postings exposed posted dates but we did not store them**: the scraper now captures their official `datePosted` metadata.
-- **Region of Waterloo postings exposed posted dates but we did not store them**: the scraper now captures their official `datePosted` metadata.
-- **CMHC postings exposed posted dates but we did not store them**: the scraper now captures their official `datePosted` metadata when present.
-- **Some University of Toronto postings exposed posted dates but we did not store them**: the scraper now captures their official `datePosted` metadata when present.
-- **City of Toronto postings exposed a real posted date but we were not storing it**: the scraper now captures the official `datePosted` metadata when present.
-- **Homepage, Jobs, and company-job pages duplicated sort controls**: they now share one consistent sort component.
-- **University of Windsor postings had no stored posted-date field**: the Oracle scraper now captures an explicit `Posting Date` when it appears in the raw posting text.
-- **Placeholder Compensation & Benefits sections were still visible**: sections containing only `(none)` or equivalent placeholders are now hidden.
-- **The homepage preview could be dominated by one company’s scrape batch**: recent previews now include at most one job per company.
-- **Long Nice to Have sentences and an overloaded footer hurt scanability**: asset wording is removed from compact requirement labels, while totals and check time now live on About.
-- **The footer was wider than the rest of the site**: it now uses the same content width as the header and main pages.
-- **Companies used a different page structure from Jobs**: the directory now has a matching sidebar for switching between currently hiring and all companies.
-- **Jobs sorting sat below the result count**: the count and sort controls now share one row.
-- **Sort labels were ambiguous and homepage buttons used a different colour**: deadline sorting now says “Closing within 14 days” and all list sort controls share one style.
-- **Sort controls were placed differently on Jobs and Companies**: both now show sorting above the list, while the Jobs sidebar is reserved for filters.
-- **Some job locations appeared in all caps**: locations now use readable casing while preserving province and territory abbreviations.
-- **The Jobs page still showed a manual Load more button after automatic loading was added**: the button is gone and only a small loading status appears while more jobs arrive.
-- **The Jobs page showed only the loaded batch as the total**: its unfiltered count now reflects the full catalogue even while more jobs load automatically.
-- **Jobs stopped at a manual Load more button**: the next batch now loads automatically near the bottom, with the button retained as a fallback.
-- **Footer information was not separated into clear sides**: copyright stays left and the About link sits right, with a mobile stacked layout.
-- **Report a problem was separated from the job actions**: it now appears at the bottom of the sidebar as a matching secondary button.
-- **The site header and page content used different widths**: both now share the same content boundary.
-- **Deadline and homepage labels were vague or visually distracting**: deadline windows now use exact ranges, the location field stays readable, and the homepage no longer repeats a generic jobs heading.
-- **Company and job lists had no clear ordering controls**: Companies now default to A–Z, while Jobs defaults to Most recent and exposes Closing soon and Newly added views.
-- **Jobs could be filtered by work details but not location**: the Jobs page now supports location searches such as Toronto or Waterloo.
-- **Student and co-op postings were labelled but not filterable, and large counts were hard to scan**: the Jobs page now filters them directly and formats counts with thousands separators.
-- **The catalogue page loaded every job at once and long text crowded the interface**: jobs now load in batches, long requirement and title summaries stay readable, company names use clear display names, and job details include a report link.
-- **Some Workday postings were captured before their details loaded**: Workday pages now wait for the real posting content before being marked as failed.
-- **Niagara College’s Taleo board showed open jobs behind a results control**: the scraper now opens that control before collecting the four requisitions.
-- **The homepage could render blank when the check-time query was slow**: the API now uses the existing per-job scrape time directly.
+- **Posted dates were inconsistently omitted**: official metadata or labelled dates are now captured where available across York, Toronto, Waterloo, Vancouver, London, Mississauga, CMHC, Windsor, Barrie, Brampton, Belleville, Burlington, Richmond Hill, St. Catharines, Niagara Falls, and related university boards; unavailable dates remain empty.
+- **Scraper runs could lose or duplicate jobs**: detail-content waits, pagination fixes, cross-tenant IDs, direct-link handling, Workday legal-notice handling, and the CSOD, Njoyn, Taleo, Dayforce, and PeopleSoft fixes now preserve valid postings.
+- **PeopleSoft coverage was incomplete**: the shared click-and-walk engine now handles Winnipeg, Durham Region, McMaster, and other Fluid tenants, with remaining unreachable tenants left out of production.
+- **Job browsing was slow and inconsistent**: lightweight homepage and Companies responses, batched infinite loading, full catalogue counts, shared layouts, and consistent sorting/filter controls now work together.
+- **Job detail content was noisy or misleading**: placeholder sections are hidden, mandatory eligibility moves to Qualifications, long requirement labels are compacted, locations use readable casing, and duplicate salary endpoints collapse to one value.
+- **Reports, Saved, and empty states were unclear**: reports include the internal job ID, Saved says “saved jobs,” and the sidebar, footer, header, and page widths now align consistently.
 
 ## [1.9.7] - 2026-07-27
 

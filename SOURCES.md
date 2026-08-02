@@ -4,8 +4,6 @@ This document tracks **all active** job portals currently scraped by Civic Caree
 
 The active list below is derived from `scraper/scraper.ts`'s `TASKS` array and should be re-synced whenever sources are added or removed there. First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
 
-Detailed pending-source notes are kept locally and are not part of the tracked source documentation.
-
 Toronto Public Library is currently disabled (blocked by Radware bot protection).
 
 ## ADP WorkforceNow (4)
@@ -149,5 +147,3 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **City of Cornwall** — [Careers](https://atlas.workland.com/careers/cornwall/jobs)
 
 ---
-
-Detailed pending-source notes are kept locally and are not part of the tracked source documentation.
