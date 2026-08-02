@@ -28,6 +28,7 @@ import { scrapeApplyToEducation } from './engines/applytoeducation';
 import { scrapeWorkable } from './engines/workable';
 import { scrapeAvanti } from './engines/avanti';
 import { scrapeVipCloud } from './engines/vipcloud';
+import { scrapeWorkzoom } from './engines/workzoom';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -654,6 +655,14 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       context,
       'https://georgina-careers.vipcloud.ca/default',
       'Town of Georgina',
+    ),
+  },
+  'workzoom-1': {
+    'County of Renfrew': (db, context) => scrapeWorkzoom(
+      db,
+      context,
+      'https://curos.ca/curos/COR2302/V/TRBJO_PUBLIC',
+      'County of Renfrew',
     ),
   },
   'municipal-custom-1': {

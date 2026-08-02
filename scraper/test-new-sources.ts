@@ -24,6 +24,7 @@ import { scrapeApplyToEducation } from './engines/applytoeducation';
 import { scrapeWorkable } from './engines/workable';
 import { scrapeAvanti } from './engines/avanti';
 import { scrapeVipCloud } from './engines/vipcloud';
+import { scrapeWorkzoom } from './engines/workzoom';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
@@ -130,6 +131,8 @@ const SOURCES = {
     scrapeVipCloud(db, context, 'https://townofws-careers.vipcloud.ca/default', 'Town of Whitchurch-Stouffville'),
   'Town of Georgina': (db: Client, context: BrowserContext) =>
     scrapeVipCloud(db, context, 'https://georgina-careers.vipcloud.ca/default', 'Town of Georgina'),
+  'County of Renfrew': (db: Client, context: BrowserContext) =>
+    scrapeWorkzoom(db, context, 'https://curos.ca/curos/COR2302/V/TRBJO_PUBLIC', 'County of Renfrew'),
   'Government of Alberta': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/', 'Government of Alberta'),
   'Ontario Energy Board': (db: Client, context: BrowserContext) =>
