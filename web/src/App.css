@@ -37,7 +37,7 @@
 .filter-section { padding-bottom: 0.75rem; margin-bottom: 0.75rem; border-bottom: 1px solid #f1f5f9; }
 .filter-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; border: none; background: transparent; padding: 0.25rem 0; cursor: pointer; }
 .filter-toggle-open { margin-bottom: 0.35rem; }
-.filter-title { font-size: 0.6rem; font-weight: 800; color: #0f172a; letter-spacing: 0.05em; }
+.filter-title { font-size: 0.75rem; font-weight: 700; color: #64748b; letter-spacing: normal; }
 .filter-options { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 .location-filter-input { width: 100%; box-sizing: border-box; padding: 0.4rem 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; color: #0f172a; background: white; font: inherit; font-size: 0.7rem; outline: none; }
 .filter-button { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; transition: all 0.1s ease; }
@@ -84,8 +84,8 @@
 .company-sort-options button { border: 0; padding: 0; background: transparent; color: #64748b; font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 .company-sort-options button.active { color: #0f172a; }
 .list-sort-options { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
-.list-heading-row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
-.list-count-label { font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.list-heading-row { position: sticky; top: 0; z-index: 10; display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding: 0.75rem 0; background: white; flex-wrap: wrap; }
+.list-count-label { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
 .listing-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 4rem; }
 .single-column-layout { display: grid; grid-template-columns: 1fr; }
 .listing-sidebar { display: flex; flex-direction: column; position: sticky; top: 100px; align-self: start; }

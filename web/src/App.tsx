@@ -366,7 +366,7 @@ function App() {
               )}
 
               <div style={{ minWidth: 0 }}>
-                <div className="list-heading-row">
+                <div className="list-heading-row" style={{ top: `${headerHeight}px` }}>
                   <div className="list-count-label">
                   {currentView === 'companies' ? `${visibleCompanySummaries.length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${filteredJobs.length.toLocaleString()} saved jobs` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
                   </div>

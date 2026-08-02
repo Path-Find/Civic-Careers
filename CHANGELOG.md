@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Saved jobs could disappear after refresh**: Saved now loads the current saved set without the catalogue cache.
 - **Saved page headings were inconsistent**: Recently viewed now uses the same heading treatment as the saved-job count.
+- **Listing controls disappeared while scrolling**: Job and company counts and sort controls now stay visible at the top of their results.
+- **Filter and results labels used different type treatments**: Sidebar labels now match the listing controls in font and color.
 
 ## [1.9.8] - 2026-08-02
 
