@@ -23,6 +23,7 @@ import { scrapePeopleAdmin } from './engines/peopleadmin';
 import { scrapeLever } from './engines/lever';
 import { scrapePrevue } from './engines/prevue';
 import { scrapeSelkirk } from './engines/selkirk';
+import { scrapeHiringPlatform } from './engines/hiringplatform';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -601,6 +602,14 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
   },
   'selkirk-1': {
     'Selkirk College': (db, context) => scrapeSelkirk(db, context, 'Selkirk College'),
+  },
+  'hiringplatform-1': {
+    'City of Orillia': (db, context) => scrapeHiringPlatform(
+      db,
+      context,
+      'https://orillia.hiringplatform.ca/list/careers',
+      'City of Orillia',
+    ),
   },
   'municipal-custom-1': {
     'City of Pickering': (db, context) => scrapePickering(db, context, 'City of Pickering'),

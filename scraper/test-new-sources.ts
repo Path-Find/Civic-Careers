@@ -18,6 +18,7 @@ import { scrapePeopleAdmin } from './engines/peopleadmin';
 import { scrapeLever } from './engines/lever';
 import { scrapePrevue } from './engines/prevue';
 import { scrapeSelkirk } from './engines/selkirk';
+import { scrapeHiringPlatform } from './engines/hiringplatform';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
@@ -110,6 +111,8 @@ const SOURCES = {
     scrapePickering(db, context, 'Pickering Public Library'),
   'Town of Halton Hills': (db: Client, context: BrowserContext) =>
     scrapeHaltonHills(db, context),
+  'City of Orillia': (db: Client, context: BrowserContext) =>
+    scrapeHiringPlatform(db, context, 'https://orillia.hiringplatform.ca/list/careers', 'City of Orillia'),
   'Government of Alberta': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/', 'Government of Alberta'),
   'Ontario Energy Board': (db: Client, context: BrowserContext) =>
