@@ -227,7 +227,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       rawText = rawText.replace(/The University welcomes applications from all qualified individuals,[\s\S]*?(?=#LI-DNI\b|Click here for more details)/i, '').trim();
     }
 
-    const labeledPostedAt = sourceName === 'EFHC' || sourceName === 'City of Brampton'
+    const labeledPostedAt = sourceName === 'EFHC' || sourceName === 'City of Brampton' || sourceName === 'City of Edmonton'
       ? rawText.match(/posting\s+date\s*[:\-]?\s*([A-Za-z]+\s+\d{1,2},\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1] ?? null
       : sourceName === 'York Region' || sourceName === 'York University'
         ? rawText.match(/date\s+posted\s*[:\-]?\s*(\d{2}[-\/]\d{2}[-\/]\d{4})/i)?.[1] ?? null

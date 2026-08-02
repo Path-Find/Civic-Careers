@@ -15,7 +15,7 @@ import { scrapeDayforce } from './engines/dayforce';
 import { scrapeJobs2Web } from './engines/jobs2web';
 import { scrapeICIMS } from './engines/icims';
 import { scrapePeopleAdmin } from './engines/peopleadmin';
-import { scrapeBrassRing, scrapeNipissing, scrapeNorthernCollege, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
+import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeNipissing, scrapeNorthernCollege, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -93,6 +93,8 @@ const SOURCES = {
     scrapeNipissing(db, context),
   'Northern College': (db: Client, context: BrowserContext) =>
     scrapeNorthernCollege(db, context),
+  'City of Edmonton': (db: Client, context: BrowserContext) =>
+    scrapeEdmontonPhenom(db, context),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {

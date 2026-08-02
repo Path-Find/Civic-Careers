@@ -724,6 +724,73 @@ export async function scrapeNorthernCollege(db: Client, context: BrowserContext)
   });
 }
 
+export type PhenomJob = { id: string; title: string; url: string };
+
+function getHtmlAttribute(attributes: string, name: string): string | undefined {
+  const match = attributes.match(new RegExp(`${name}=["']([^"']*)["']`, 'i'));
+  return match?.[1] ? decodeHtmlEntities(match[1]) : undefined;
+}
+
+export function extractPhenomJobs(html: string, portalUrl: string): PhenomJob[] {
+  const jobs: PhenomJob[] = [];
+  const seen = new Set<string>();
+  const anchorPattern = /<a\b([^>]*href=["']([^"']*\/job\/(\d+)\/[^"']+)["'][^>]*)>/gi;
+
+  for (const match of html.matchAll(anchorPattern)) {
+    const attributes = match[1] || '';
+    const href = match[2];
+    const jobId = match[3];
+    if (!href || !jobId || seen.has(jobId)) continue;
+
+    const url = new URL(href, portalUrl).href;
+    const title = getHtmlAttribute(attributes, 'data-ph-at-job-title-text');
+    if (!title) continue;
+
+    seen.add(jobId);
+    jobs.push({ id: `phenom_${jobId}`, title, url });
+  }
+
+  return jobs;
+}
+
+export async function scrapeEdmontonPhenom(db: Client, context: BrowserContext) {
+  const sourceName = 'City of Edmonton';
+  const base = 'https://recruitment.edmonton.ca';
+  const views = ['/search-results', '/int/search-results', '/student/search-results'];
+  const seenJobs = new Set<string>();
+  const seenPages = new Set<string>();
+  console.log(`Scraping ${sourceName} (Phenom People)...`);
+  const page = await context.newPage();
+  try {
+    for (const view of views) {
+      let nextUrl = `${base}${view}`;
+      while (!seenPages.has(nextUrl)) {
+        seenPages.add(nextUrl);
+        await safeGoto(page, nextUrl, 60000);
+        const jobs = extractPhenomJobs(await page.content(), nextUrl);
+        console.log(`[${sourceName}] ${view} ${nextUrl.includes('from=') ? 'next page' : 'first page'}: ${jobs.length} jobs`);
+        for (const job of jobs) {
+          if (seenJobs.has(job.id)) continue;
+          seenJobs.add(job.id);
+          await scrapeRawAndStage(db, context, job, sourceName);
+        }
+
+        const nextHref = await page.locator('a').evaluateAll((links) =>
+          links.find((link) => link.textContent?.trim() === 'Next')?.getAttribute('href') ?? null,
+        );
+        if (!nextHref) break;
+        nextUrl = new URL(nextHref, nextUrl).href;
+      }
+    }
+    console.log(`\n[${sourceName}] Done — ${seenJobs.size} jobs discovered across all views.`);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
+  } finally {
+    await page.close();
+  }
+}
+
 export async function scrapeSmithsFalls(db: Client, context: BrowserContext) {
   const sourceName = 'Town of Smiths Falls';
   const base = 'https://www.smithsfalls.ca';

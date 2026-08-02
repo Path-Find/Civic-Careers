@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractBrassRingJobs, extractCustomHtmlJobs, extractStLawrenceJobs } from '../engines/custom';
+import { extractBrassRingJobs, extractCustomHtmlJobs, extractPhenomJobs, extractStLawrenceJobs } from '../engines/custom';
 
 test('extracts and deduplicates St. Lawrence College job links', () => {
   const html = `<a href="/jobs/admn-pt-26-27-052" title="Talent Management Consultant">Talent Management Consultant</a>
@@ -63,4 +63,23 @@ test('extracts custom HTML job links while ignoring category and apply links', (
     title: 'Invigilator (26-26)',
     url: 'https://www.northerncollege.ca/careers/jobs/invigilator-26-26/',
   }]);
+});
+
+test('extracts stable Phenom job IDs and titles from rendered result links', () => {
+  const html = `<a href="https://recruitment.edmonton.ca/job/55582/Project-Delivery-and-QA-Analyst" data-ph-at-job-title-text="Project Delivery and QA Analyst"></a>
+    <a href="https://recruitment.edmonton.ca/job/55699/Arborist-I" data-ph-at-job-title-text="Arborist I - ISA Certified"></a>
+    <a href="https://recruitment.edmonton.ca/job/55582/Project-Delivery-and-QA-Analyst" data-ph-at-job-title-text="Duplicate"></a>`;
+
+  assert.deepEqual(extractPhenomJobs(html, 'https://recruitment.edmonton.ca/search-results'), [
+    {
+      id: 'phenom_55582',
+      title: 'Project Delivery and QA Analyst',
+      url: 'https://recruitment.edmonton.ca/job/55582/Project-Delivery-and-QA-Analyst',
+    },
+    {
+      id: 'phenom_55699',
+      title: 'Arborist I - ISA Certified',
+      url: 'https://recruitment.edmonton.ca/job/55699/Arborist-I',
+    },
+  ]);
 });

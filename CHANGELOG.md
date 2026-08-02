@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **St. Lawrence College can now be tested through its custom HTML board**: all six current stable detail links are collected for recurring trial validation.
 - **Halifax Regional Municipality can now be tested through a shared BrassRing engine**: all 44 current postings are collected after opening the board's full job list.
 - **Nipissing University and Northern College can now be tested through shared custom HTML scraping**: current detail links are collected from both server-rendered boards.
+- **City of Edmonton can now be tested through a shared Phenom People scraper**: external and internal pages are paginated, and the student view is checked as well.
 - **NEOGOV job boards can now be collected through one shared engine**: Cambrian College's 28 current postings were collected across all three result pages.
 - **University of Winnipeg postings can now be collected from its NorthStar ATS board**: stable posting detail URLs are extracted from the board's popup links.
 - **Conestoga College's support postings can now be imported from its RSS feed**: the RSS scraper accepts the feed's `id=` detail links.
