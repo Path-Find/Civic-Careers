@@ -3,7 +3,8 @@
 Sources that have been identified but are not yet scraped, with notes on why.
 
 Last synced with scraper/scraper.ts: 2026-07-06  
-Names-only backlog expanded: 2026-07-12 (no URL research yet). Manitoba added 2026-07-12 as the first out-of-province expansion — English-speaking, no French-parsing gap.
+Names-only backlog expanded: 2026-07-12 (no URL research yet). Manitoba added 2026-07-12 as the first out-of-province expansion — English-speaking, no French-parsing gap.  
+Deep-dive gap research (net-new boards): 2026-08-02 — see section at end of this file.
 
 ## Needs a new engine
 
@@ -509,3 +510,133 @@ English-speaking, so no translation-handling gap like the Quebec set above — p
 - Seven Oaks School Division
 - River East Transcona School Division
 - St. James-Assiniboia School Division
+
+---
+
+## Deep-dive research — net-new boards (2026-08-02)
+
+Gap research against active `SOURCES.md` + existing PENDING entries. **Only sources that were missing or names-only without a usable apply URL.** Skipped: Alberta GoA Jobs2Web (already staged), BC Public Service HRSmart (already staged), Calgary/Sudbury/Halifax/Saskatoon/TransLink/BC Transit PeopleSoft-Jobs2Web tenants already listed above, Edmonton Phenom (issue #81 via ETS line), VIA Rail / most ON mid-size munis already in the Ontario section.
+
+Platform guesses are from public URL patterns, not verified scrapes.
+
+### Provincial & territorial public service portals
+
+Highest-value white space — full civil-service boards outside OPS/GC Jobs.
+
+- **Government of Saskatchewan** — https://careers.saskatchewan.ca/?sortBy=POSTING_DATES_DESC#en/sites/CX_1/ (Oracle HCM Cloud CX; ~12k public service). Hub: https://www.saskatchewan.ca/residents/jobs-working-and-training/careers-in-the-saskatchewan-public-service/find-and-apply-for-jobs
+- **Government of Nova Scotia** — https://jobs.novascotia.ca/go/All-Opportunities/502817/ (Jobs2Web / SuccessFactors-style; 70+ public postings typical). Hub: https://jobs.novascotia.ca/
+- **Government of New Brunswick** — https://emgi.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs (Oracle HCM Cloud; new primary board). Legacy list still at https://www.ere.gnb.ca/competition.aspx — prefer Oracle once confirmed complete.
+- **Government of Newfoundland and Labrador** — https://www.hiring.gov.nl.ca/public-jobs (custom Strategic Staffing / e-recruit portal)
+- **Government of Prince Edward Island** — PeopleSoft Fluid external: https://psgateway.gov.pe.ca/psc/PSPROD92/EXTERNAL/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&SiteId=4 · public hub JobsPEI: https://jobspei.ca/ (also routes health + Public Schools Branch)
+- **Government of Yukon** — https://yukongovernment.hua.hrsmart.com/hr/ats/JobSearch/viewAll (HRSmart; use existing engine). Hub: https://yukon.ca/en/view-all-current-job-postings
+- **Government of Northwest Territories (GNWT)** — https://www.gov.nt.ca/careers/en/search/job (custom Drupal-fronted board; ~100 concurrent posts typical)
+- **Government of Nunavut** — https://www.gov.nu.ca/en/careers/jobs (custom territorial board; EN + Inuktitut)
+- **Government of Manitoba** *(was names-only)* — https://jobsearch.gov.mb.ca/search.action (legacy e-recruit; structure closer to OPS custom than Jobs2Web)
+
+*Already staged elsewhere in this file (do not re-add as new work): BC Public Service HRSmart, Alberta Jobs2Web (`jobpostings.alberta.ca`), Québec fonction publique names-only section, OPS + GC Jobs active.*
+
+### Large municipalities (not already detailed)
+
+- **City of Surrey** — https://careers.surrey.ca/psc/CAREERS/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant (PeopleSoft Fluid; BC’s 2nd-largest city, ~27 concurrent jobs observed). Engine already built.
+- **City of Burnaby** — https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?org=CITYBURNABY&cws=37 (Taleo; 40+ posts typical). Use existing Taleo engine.
+- **City of Regina** — https://jobs.regina.ca/ (Jobs2Web; was only referenced under Regina Transit). Label source as City of Regina (includes transit when posted).
+- **City of Lethbridge** — Taleo (library page previously 404’d the city link): re-resolve from https://www.lethbridge.ca/careers/ — prior public URL pattern was `tre.tbe.taleo.net` / `org=COLBRIDGE`; confirm live org before scrape. Do not add a separate library source.
+- **City of Medicine Hat** — https://medicinehat.prevueaps.ca/jobs/ (Prevue APS; same family as College of the Rockies — issue #84)
+- **City of Coquitlam** — https://careers.coquitlam.ca/ (apply board linked from https://www.coquitlam.ca/414/Career-Opportunities; ~150k Metro Van muni; ATS type needs browser confirm)
+- **City of Kelowna** — https://careeropportunities.kelowna.ca/postings/search (PeopleAdmin-style `/postings/<id>`; use issue #77)
+- **City of Chilliwack** — https://jobs.chilliwack.com/ (custom municipal board)
+- **City of Moncton** — https://www.moncton.ca/en/careers (ADP Workforce Now career centre; Codiac Transpo is city-board only — do not split transit)
+- **City of Edmonton** — already tracked as Phenom People in issue #81 (`https://recruitment.edmonton.ca/`); elevating here so it is not only under the ETS transit bullet. Residual Taleo: `edmonton.taleo.net` may still appear in older links.
+
+*Already in PENDING/ACTIVE: Calgary PeopleSoft, Winnipeg PeopleSoft, Vancouver Jobs2Web, Victoria iCIMS, Halifax BrassRing, Saskatoon Jobs2Web, Greater Sudbury PeopleSoft, Abbotsford Njoyn, Montréal complex, most GTHA munis.*
+
+### Federal crowns & agencies outside GC Jobs
+
+GC Jobs covers most departments; these run **separate** boards at scale.
+
+- **Canada Post** — https://jobs.canadapost.ca/go/Canada-Post-All-Current-Opportunities/2319117/ (Jobs2Web; often 500–1000+ open roles nationwide)
+- **Bank of Canada** — https://careers.bankofcanada.ca/go/All-Job-Opportunities/2400817/ (Jobs2Web)
+- **NAV CANADA** — https://navcanada.wd10.myworkdayjobs.com/NAV_Careers (Workday; air navigation — not Transport Canada / GC Jobs)
+- **CBC / Radio-Canada** — hub https://cbc.radio-canada.ca/en/working-with-us/jobs · Workday tenant often at `cbcrc.wd3.myworkdayjobs.com/CBC_Radio-Canada_Jobs` (confirm live path; crown corporation, not GC Jobs)
+- **Export Development Canada (EDC)** — https://apply.workable.com/export-development-canada/ (Workable; same family as Norfolk County issue #93)
+- **Farm Credit Canada (FCC)** — start at https://www.fcc-fac.ca/en/about-fcc/careers (confirm live apply URL; agricultural Crown)
+
+### Western / Atlantic crown utilities & agencies
+
+- **BC Hydro** — SAP e-Recruit Web Dynpro: https://app.bchydro.com/sap/bc/webdynpro/sap/hrrcf_a_unreg_job_search?sap-wd-configId=ZHRRCF_A_UNREG_JOB_SEARCH&sap-theme=sap_belize&saml2=disabled# (same hard platform class as Manitoba Hydro issue #99)
+- **ICBC** — https://careers.icbc.com/go/All-Current-Job-Opportunities/2681517/ (Jobs2Web)
+- **SaskPower** — https://jobs.saskpower.com/search/?q (Jobs2Web)
+- **SaskTel** — https://jobs.sasktel.com/go/Current-Opportunities/2684517/ (Jobs2Web; SuccessFactors alerts also referenced)
+- **SGI (Saskatchewan Government Insurance)** — https://sgico.wd10.myworkdayjobs.com/en-US/sgi (Workday)
+- **NB Power** — https://www.careers.nbpower.com/psc/prod/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=2 (PeopleSoft Fluid; engine ready)
+- **Ontario Power Generation** *(was names-only)* — https://jobs.opg.com/go/View-All-Jobs/2398117/ (Jobs2Web; note mid-2026 recruitment-system transition may pause posts)
+- **Bruce Power** — https://brucepower.wd3.myworkdayjobs.com/BrucePower (Workday; major ON nuclear operator, not OPS)
+
+*Already staged: Hydro One, Toronto Hydro, Hydro Ottawa, LCBO, OLG, WSIB, Ontario Health, PHO, IESO, OEB, OCWA, Manitoba Hydro (SAP), MPI (iCIMS), Shared Health MB.*
+
+### Provincial health authorities (public boards)
+
+Large volume; separate from municipal/provincial civil service. Scope call if/when health is in product scope.
+
+- **Alberta Health Services (AHS)** — https://careers.albertahealthservices.ca/ (Taleo historically; very high volume province-wide)
+- **Fraser Health** — https://jobs.fraserhealth.ca/ · iCIMS pattern `jd-fraserhealth.icims.com` (use existing iCIMS engine if confirmed)
+- **Vancouver Coastal Health** — https://careers-vch.icims.com/jobs/intro (iCIMS)
+- **Island Health** — https://islandhealth.hua.hrsmart.com/hr/ats/JobSearch/index (HRSmart; hub https://careers.islandhealth.ca/)
+- **Interior Health** — https://jobs.interiorhealth.ca/ (custom modern portal)
+- **PHSA (Provincial Health Services Authority)** — https://jobs.phsa.ca/ (BC specialty / provincial services)
+- **Nova Scotia Health** — https://jobs.nshealth.ca/ (paired with NS public service above)
+
+### Ontario — URL upgrades for names-only + mid-tier gaps
+
+#### Police (were names-only)
+
+- **Ontario Provincial Police** — constable recruitment: https://recruitment.opp.ca · civilian roles usually post on active OPS (`gojobs.gov.on.ca`) — prefer tagging OPS posts rather than a separate civilian scraper
+- **Toronto Police Service** — https://www.tps.ca/careers/ (confirm live ATS / application path; often multi-stream: uniform vs civilian)
+- **Peel / York / Ottawa police** — still names-only; research next (often separate from regional municipal boards)
+
+#### School boards (were names-only; shared ApplyToEducation / Simplication stack)
+
+Most major ON boards use **ApplyToEducation** (`network.applytoeducation.com` / `*.simplication.com`) — no engine yet; one engine unlocks many boards.
+
+- **York Region District School Board** — hub https://www2.yrdsb.ca/about-us/working-yrdsb/careers · postings via ApplyToEducation/Simplication
+- **York Catholic DSB** — https://www.ycdsb.ca/careers/ (Simplication)
+- **Waterloo Region DSB** — https://www.wrdsb.ca/careers/
+- **Peel / Halton / Durham / Ottawa-Carleton / Hamilton-Wentworth / Thames Valley DSBs** — still need per-board apply URLs; same ApplyToEducation family likely
+
+#### Municipal / regional gaps (Ontario mid-tier not already listed)
+
+- **District of Muskoka** — https://www.muskoka.on.ca/en/careers-and-volunteering/career-oportunities.aspx (confirm live ATS from district page)
+- **Oxford County** — https://www.oxfordcounty.ca/your-government/career-opportunities (server-rendered / county board; candidate for shared municipal custom issue #86)
+- **City of Airdrie / Grande Prairie / Nanaimo / Kamloops / Prince George / Langley / Maple Ridge / Delta** — 50k–150k western munis not yet named; batch-research next pass (Kamloops city board already noted under library line)
+
+### Platform patterns unlocked by this pass
+
+| Platform | New candidates | Engine status |
+|---|---|---|
+| **Oracle HCM Cloud** | SK public service, NB public service | Existing Oracle engine (validate CX site paths) |
+| **PeopleSoft Fluid** | Surrey, NB Power, PEI | Engine built (Winnipeg/TransLink proven) |
+| **Jobs2Web** | Canada Post, Bank of Canada, ICBC, SaskPower, SaskTel, NS, OPG | Engine ready |
+| **Workday** | NAV CANADA, SGI, Bruce Power, CBC (confirm) | Engine ready |
+| **Taleo** | Burnaby, AHS, Lethbridge (confirm) | Engine ready |
+| **HRSmart** | Yukon, Island Health | Engine ready (selector work still open on some tenants) |
+| **iCIMS** | Fraser Health, VCH | Engine ready |
+| **Prevue APS** | Medicine Hat (+ College of the Rockies) | Issue #84 |
+| **PeopleAdmin** | Kelowna | Issue #77 |
+| **Workable** | EDC (+ Norfolk) | Issue #93 |
+| **SAP e-Recruit / Web Dynpro** | BC Hydro (+ Manitoba Hydro) | Issue #99 |
+| **ApplyToEducation / Simplication** | YRDSB + most ON school boards | **No engine yet** |
+| **Custom / Drupal** | NL hiring.gov.nl.ca, GNWT, Nunavut, Chilliwack, Muskoka | Custom / new investigation |
+
+### Suggested priority order (scrape-ready first)
+
+1. **Jobs2Web batch:** Canada Post, Bank of Canada, ICBC, SaskPower, SaskTel, NS public service, OPG  
+2. **PeopleSoft batch:** City of Surrey, NB Power, PEI public service  
+3. **Workday batch:** NAV CANADA, SGI, Bruce Power  
+4. **Oracle HCM:** Saskatchewan + New Brunswick public service  
+5. **Taleo:** City of Burnaby (+ AHS if health is in scope)  
+6. **HRSmart:** Yukon (+ Island Health if health is in scope)  
+7. **New engines only when needed:** ApplyToEducation (school boards), Phenom (Edmonton #81), Prevue, SAP Web Dynpro  
+
+### Explicitly not re-listed
+
+Alberta GoA, BC Public Service, Calgary, Winnipeg, Vancouver, Victoria, Halifax BrassRing, TransLink, BC Transit, Saskatoon Jobs2Web, Greater Sudbury, most GTHA/Ontario PENDING munis-colleges-unis, Québec names-only section, Manitoba city names, Edmonton Phenom (issue #81).
