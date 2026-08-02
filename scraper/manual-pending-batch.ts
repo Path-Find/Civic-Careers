@@ -19,6 +19,7 @@ import { scrapeDayforce } from './engines/dayforce';
 import { scrapeNorthStar } from './engines/northstar';
 import { scrapeJazzHR } from './engines/jazzhhr';
 import { scrapeNeogov } from './engines/neogov';
+import { scrapePeopleAdmin } from './engines/peopleadmin';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
 
@@ -537,6 +538,38 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       context,
       'https://gjobs.neogov.ca/careers/cambriancollege',
       'Cambrian College',
+    ),
+  },
+  'peopleadmin-1': {
+    'Dalhousie University': (db, context) => scrapePeopleAdmin(
+      db,
+      context,
+      'https://dal.peopleadmin.ca/postings/search',
+      'Dalhousie University',
+    ),
+    'University of Lethbridge': (db, context) => scrapePeopleAdmin(
+      db,
+      context,
+      'https://uleth.peopleadmin.ca/postings/search',
+      'University of Lethbridge',
+    ),
+    'Confederation College': (db, context) => scrapePeopleAdmin(
+      db,
+      context,
+      'https://confederationcollege.peopleadmin.ca/postings/search',
+      'Confederation College',
+    ),
+    'British Columbia Institute of Technology': (db, context) => scrapePeopleAdmin(
+      db,
+      context,
+      'https://careers.bcit.ca/postings/search',
+      'British Columbia Institute of Technology',
+    ),
+    'Douglas College': (db, context) => scrapePeopleAdmin(
+      db,
+      context,
+      'https://www.douglascollegecareers.ca/postings/search',
+      'Douglas College',
     ),
   },
   'manual-ready-5': {
