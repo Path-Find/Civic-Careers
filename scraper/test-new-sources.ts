@@ -17,6 +17,7 @@ import { scrapeICIMS } from './engines/icims';
 import { scrapePeopleAdmin } from './engines/peopleadmin';
 import { scrapeLever } from './engines/lever';
 import { scrapePrevue } from './engines/prevue';
+import { scrapeSelkirk } from './engines/selkirk';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeNipissing, scrapeNorthernCollege, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
@@ -101,6 +102,8 @@ const SOURCES = {
     scrapeLever(db, context, 'okanagan', 'Okanagan College'),
   'College of the Rockies': (db: Client, context: BrowserContext) =>
     scrapePrevue(db, context, 'cotr', 886, 'College of the Rockies'),
+  'Selkirk College': (db: Client, context: BrowserContext) =>
+    scrapeSelkirk(db, context, 'Selkirk College'),
   'Government of Alberta': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/', 'Government of Alberta'),
   'Ontario Energy Board': (db: Client, context: BrowserContext) =>
