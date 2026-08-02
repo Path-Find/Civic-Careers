@@ -6,6 +6,7 @@ import { scrapePeopleSoft } from './engines/peoplesoft';
 import { scrapeTaleo } from './engines/taleo';
 import { scrapeOracleCloud } from './engines/oracle';
 import { scrapeCSOD } from './engines/csod';
+import { scrapeNeogov } from './engines/neogov';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -31,6 +32,8 @@ const SOURCES = {
     scrapeOracleCloud(db, context, 'https://iaejup.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/UOA-Careers/jobs', 'University of Alberta'),
   'University of Saskatchewan': (db: Client, context: BrowserContext) =>
     scrapeCSOD(db, context, 'https://usask.csod.com/ux/ats/careersite/14/home?c=usask', 'University of Saskatchewan'),
+  'Cambrian College': (db: Client, context: BrowserContext) =>
+    scrapeNeogov(db, context, 'https://gjobs.neogov.ca/careers/cambriancollege', 'Cambrian College'),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {
