@@ -93,6 +93,26 @@ export async function scrapeSuccessFactors(db: Client, context: BrowserContext, 
           continue;
         }
       }
+
+      // Some SuccessFactors-hosted boards (for example Wilfrid Laurier)
+      // expose numbered pagination without a Next link. Follow the next
+      // numbered page only, rather than the "Last Page" link, so page 2 does
+      // not loop forever on its own URL.
+      const numberedNextHref = await page.evaluate(() => {
+        const currentTitle = document.querySelector('a.current-page')?.getAttribute('title') || '';
+        const currentNumber = Number(currentTitle.match(/\d+/)?.[0] || 1);
+        const nextTitle = `Page ${currentNumber + 1}`;
+        const next = Array.from(document.querySelectorAll('ul.pagination a[title^="Page "]'))
+          .find(link => link.getAttribute('title') === nextTitle) as HTMLAnchorElement | undefined;
+        return next?.href || null;
+      });
+      if (numberedNextHref && numberedNextHref !== page.url()) {
+        await page.goto(numberedNextHref, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(10000);
+        pageNum++;
+        if (pageNum > 10) break;
+        continue;
+      }
       hasNextPage = false;
     }
   } catch (err: any) {

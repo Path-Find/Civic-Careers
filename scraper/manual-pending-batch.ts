@@ -478,7 +478,7 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
     'Wilfrid Laurier University': (db, context) => scrapeSuccessFactors(
       db,
       context,
-      'https://careers.wlu.ca/viewalljobs/',
+      'https://careers.wlu.ca/go/All-jobs/504947/',
       'Wilfrid Laurier University',
       'https://careers.wlu.ca',
     ),
