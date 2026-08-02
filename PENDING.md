@@ -158,6 +158,10 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 
 ### Universities
 
+- University of Manitoba — https://viprecprod.ad.umanitoba.ca/ (official UM Careers portal with separate academic, staff, student, and trades posting categories)
+- University of Saskatchewan — https://usask.csod.com/ux/ats/careersite/14/home?c=usask (CSOD staff/faculty careers board linked from the official careers page)
+- University of Regina — https://urcareers.uregina.ca/postings/search (e-Recruit postings board with 12 current postings during verification)
+- University of Calgary — https://careers.ucalgary.ca/jobs/search (official careers board with 151 current opportunities during verification)
 - University of New Brunswick — support staff: https://www.unb.ca/hr/careers/support-staff.php; academic: https://www.unb.ca/hr/careers/academic.php (support page injects an Alongside/CareerBeacon widget with current detail URLs; academic postings are direct PDFs; tracked in issues #78 and #75)
 - Dalhousie University — https://dal.peopleadmin.ca/postings/search (PeopleAdmin; stable `/postings/<id>` links and Atom feed; tracked in issue #77)
 - McGill University — https://mcgill.wd3.myworkdayjobs.com/mcgill_careers (Workday; 173 jobs currently visible; staged in manual batch engine-ready-10)
@@ -418,7 +422,6 @@ Starter expansion set. **Ville de Montréal** and **Ville de Montréal (SIM)** a
 
 ### Alberta
 
-- University of Calgary — https://careers.ucalgary.ca/
 - Athabasca University — https://www.athabascau.ca/about-au/careers.html
 - Mount Royal University — https://www.mtroyal.ca/AboutMountRoyal/Careers/
 - MacEwan University — https://www.macewan.ca/about-macewan/careers/
@@ -435,8 +438,6 @@ Starter expansion set. **Ville de Montréal** and **Ville de Montréal (SIM)** a
 
 ### Saskatchewan
 
-- University of Saskatchewan — https://jobs.usask.ca/
-- University of Regina — https://www.uregina.ca/career-opportunities/
 - Saskatchewan Polytechnic — https://saskpolytech.ca/about/careers.aspx
 - Saskatchewan Indian Institute of Technologies — https://siit.ca/about-us/careers/
 
@@ -486,7 +487,6 @@ English-speaking, so no translation-handling gap like the Quebec set above — p
 
 ### Universities & colleges
 
-- University of Manitoba — https://umanitoba.ca/careers/ (faculty, staff, student, and trades links all point to the `viprecprod.ad.umanitoba.ca` career portal; initial HTML only shows a browser-check/loading shell, so inspect its browser network/API before choosing an engine)
 - University of Winnipeg — https://www.uwinnipeg.ca/hr/employment.html (official page links to the NorthStar ATS board at https://www.northstarats.com/University-of-Winnipeg; stable popup detail URLs, tracked in issue #91)
 - Brandon University — https://www.brandonu.ca/jobs/ (server-rendered grouped listings with direct detail links and separate student/support/faculty categories; candidate for the shared custom HTML work in issue #79)
 - Université de Saint-Boniface — https://carrieres.ustboniface.ca/ (Dayforce board at `jobs.dayforcehcm.com`; trial discovered 18 listings but stored only 5 because several detail links redirect to old or unrelated pages; tracked in issue #92)
