@@ -123,6 +123,7 @@ export const formatSalary = (job: { salary_min: number | null; salary_max: numbe
   if (!min && !max) return null;
   const fmt = (n: number) => period === 'hourly' ? `$${n}/hr` : period === 'flat' ? `$${Math.round(n).toLocaleString()}` : `$${Math.round(n / 1000)}K`;
   const periodLabel = period === 'hourly' ? '' : period === 'monthly' ? ' / mo' : period === 'flat' ? ' flat' : ' / yr';
+  if (min !== null && max !== null && min === max) return `${fmt(min)}${periodLabel}`;
   if (min && max) return `${fmt(min)} – ${fmt(max)}${periodLabel}`;
   return `${fmt((min ?? max)!)}${periodLabel}`;
 };
