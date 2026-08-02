@@ -3,6 +3,12 @@ import { Client } from '@libsql/client';
 import { urlId, safeGoto } from '../utils';
 import { saveRawJob } from '../db';
 
+export function adpTitleFromRaw(rawText: string, pageTitle = ''): string | undefined {
+  if (pageTitle.trim()) return pageTitle.trim();
+  const firstLine = rawText.split(/\r?\n/).map(line => line.trim()).find(Boolean);
+  return firstLine || undefined;
+}
+
 export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: string, sourceName: string) {
   console.log(`Scraping ${sourceName} (ADP)...`);
   const page = await context.newPage();
@@ -60,7 +66,8 @@ export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: 
         // shifts, which would otherwise create duplicate rows for the same posting.
         const reqIdMatch = rawText.match(/Requisition ID:\s*(\d+)/i);
         const id = reqIdMatch ? `adp_${reqIdMatch[1]}` : urlId(portalUrl + i);
-        await saveRawJob(db, { id, url: portalUrl, source: sourceName, raw_text: `${title}\n\n${rawText}` });
+        const resolvedTitle = adpTitleFromRaw(rawText, title);
+        await saveRawJob(db, { id, url: portalUrl, source: sourceName, title: resolvedTitle, raw_text: `${resolvedTitle || ''}\n\n${rawText}` });
       }
 
       await loadPortal();

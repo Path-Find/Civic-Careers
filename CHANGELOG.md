@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Selkirk College can now be tested through a shared Hireserve scraper**: its public JSON feed returned 9 current postings with substantive detail pages.
 - **Pickering and Halton Hills municipal postings can now be tested through shared custom scrapers**: City and library records keep separate source names, while current Halton Hills detail pages are stored directly.
 - **City of Orillia can now be tested through a shared HiringPlatform scraper**: all 8 public process pages and their separate application links are collected.
+- **Credit Valley Conservation can now be tested through the shared ADP scraper**: its embedded ADP board returned 3 current postings with substantive descriptions.
 - **NEOGOV job boards can now be collected through one shared engine**: Cambrian College's 28 current postings were collected across all three result pages.
 - **University of Winnipeg postings can now be collected from its NorthStar ATS board**: stable posting detail URLs are extracted from the board's popup links.
 - **Conestoga College's support postings can now be imported from its RSS feed**: the RSS scraper accepts the feed's `id=` detail links.

@@ -611,6 +611,14 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       'City of Orillia',
     ),
   },
+  'adp-2': {
+    'Credit Valley Conservation': (db, context) => scrapeADP(
+      db,
+      context,
+      'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=628c6eb9-02b8-492d-b651-c4f1a4220344&ccId=9201548179279_3&lang=en_CA&selectedMenuKey=CurrentOpenings',
+      'Credit Valley Conservation',
+    ),
+  },
   'municipal-custom-1': {
     'City of Pickering': (db, context) => scrapePickering(db, context, 'City of Pickering'),
     'Pickering Public Library': (db, context) => scrapePickering(db, context, 'Pickering Public Library'),
