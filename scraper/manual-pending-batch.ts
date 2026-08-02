@@ -29,6 +29,7 @@ import { scrapeWorkable } from './engines/workable';
 import { scrapeAvanti } from './engines/avanti';
 import { scrapeVipCloud } from './engines/vipcloud';
 import { scrapeWorkzoom } from './engines/workzoom';
+import { scrapeSapWebDynpro } from './engines/sap-webdynpro';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -663,6 +664,14 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       context,
       'https://curos.ca/curos/COR2302/V/TRBJO_PUBLIC',
       'County of Renfrew',
+    ),
+  },
+  'sap-1': {
+    'Manitoba Hydro': (db, context) => scrapeSapWebDynpro(
+      db,
+      context,
+      'https://careers.hydro.mb.ca/sap/bc/webdynpro/sap/hrrcf_a_unreg_job_search',
+      'Manitoba Hydro',
     ),
   },
   'municipal-custom-1': {

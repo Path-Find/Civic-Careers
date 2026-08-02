@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bruce County can now be tested through the shared Avanti scraper**: its dynamic Career Connector board is loaded in the browser so current county postings are collected.
 - **Whitchurch-Stouffville and Georgina can now be tested through one shared VIP Cloud scraper**: browser-rendered listings and their detail iframes are collected as separate municipal sources.
 - **County of Renfrew can now be tested through a shared Workzoom/CUROS scraper**: stable requisition detail URLs are collected with the full current posting text.
+- **Manitoba Hydro can now be tested through a dedicated SAP Web Dynpro scraper**: current rows, posted dates, and PDF job descriptions are collected from the public portal.
 - **NEOGOV job boards can now be collected through one shared engine**: Cambrian College's 28 current postings were collected across all three result pages.
 - **University of Winnipeg postings can now be collected from its NorthStar ATS board**: stable posting detail URLs are extracted from the board's popup links.
 - **Conestoga College's support postings can now be imported from its RSS feed**: the RSS scraper accepts the feed's `id=` detail links.
