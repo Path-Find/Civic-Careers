@@ -12,6 +12,7 @@ import { JobDetailView } from './modules/jobs/components/JobDetailView';
 import { CompanyDirectory } from './modules/jobs/components/CompanyDirectory';
 import { CompanyFiltersSidebar } from './modules/jobs/components/CompanyFiltersSidebar';
 import { ListSortControls } from './modules/jobs/components/ListSortControls';
+import { companyTypes, type CompanyType } from './modules/jobs/companyTypes';
 
 import { Search, ExternalLink, X } from 'lucide-react';
 
@@ -87,6 +88,7 @@ function App() {
   const [currentView, setCurrentView] = useState<View>('home');
   const [companySort, setCompanySort] = useState<'alphabetical' | 'mostJobs' | 'recent'>('alphabetical');
   const [companyStatus, setCompanyStatus] = useState<'hiring' | 'all'>('hiring');
+  const [selectedCompanyTypes, setSelectedCompanyTypes] = useState<CompanyType[]>([]);
   const filters = useJobFilters(jobs, currentView, searchTerm);
   const {
     minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
@@ -106,6 +108,10 @@ function App() {
   const displayedJobCount = currentView === 'jobs' && !hasJobFilters ? jobsTotal : filteredJobs.length;
   const isCompanyPage = currentView === 'jobs' && Boolean(searchTerm) && (activeCompanies.includes(searchTerm) || inactiveCompanies.includes(searchTerm));
   const isListingView = currentView === 'jobs' || currentView === 'saved' || currentView === 'companies';
+  const filteredCompanySummaries = companySummaries.filter(company => selectedCompanyTypes.length === 0 || selectedCompanyTypes.some(type => companyTypes(company.name).includes(type)));
+  const visibleCompanySummaries = companyStatus === 'hiring'
+    ? filteredCompanySummaries.filter(company => Number(company.active_job_count) > 0)
+    : filteredCompanySummaries;
 
   // Sticky sidebars offset by the header's real height (it grows on the job
   // detail page), not a guessed pixel value.
@@ -233,7 +239,7 @@ function App() {
 
   const reset = () => {
     setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setMinSalary(null); setDeadlineDays(null); setShowInventories(false); setSortNewest(false);
-    setLocationTerm(''); setShowStudentJobs(false);
+    setLocationTerm(''); setShowStudentJobs(false); setSelectedCompanyTypes([]);
     window.history.pushState(null, '', '/');
     refresh();
   };
@@ -334,7 +340,12 @@ function App() {
           ) : (
             <div className={isListingView ? 'listing-layout' : 'single-column-layout'}>
               {currentView === 'companies' ? (
-                <CompanyFiltersSidebar status={companyStatus} onStatusChange={setCompanyStatus} />
+                <CompanyFiltersSidebar
+                  status={companyStatus}
+                  selectedTypes={selectedCompanyTypes}
+                  onStatusChange={setCompanyStatus}
+                  onTypeToggle={type => setSelectedCompanyTypes(previous => previous.includes(type) ? previous.filter(value => value !== type) : [...previous, type])}
+                />
               ) : (
                 <JobFiltersSidebar
                   headerHeight={headerHeight}
@@ -357,7 +368,7 @@ function App() {
               <div style={{ minWidth: 0 }}>
                 <div className="list-heading-row">
                   <div className="list-count-label">
-                  {currentView === 'companies' ? `${(companyStatus === 'hiring' ? companySummaries.filter(company => Number(company.active_job_count) > 0) : companySummaries).length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${filteredJobs.length.toLocaleString()} saved jobs` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
+                  {currentView === 'companies' ? `${visibleCompanySummaries.length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${filteredJobs.length.toLocaleString()} saved jobs` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
                   </div>
                   {currentView === 'companies' && <div className="company-sort-options"><button className={companySort === 'alphabetical' ? 'active' : ''} onClick={() => setCompanySort('alphabetical')}>A–Z</button><button className={companySort === 'mostJobs' ? 'active' : ''} onClick={() => setCompanySort('mostJobs')}>Most jobs</button><button className={companySort === 'recent' ? 'active' : ''} onClick={() => setCompanySort('recent')}>Recently added</button></div>}
                   {currentView === 'jobs' && !isCompanyPage && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setDeadlineDays(null); setNewlyAdded(false); }} onClosingSoon={() => { setSortNewest(false); setDeadlineDays(14); setNewlyAdded(false); }} onNewlyAdded={() => { setSortNewest(false); setDeadlineDays(null); setNewlyAdded(true); }} />}
@@ -395,7 +406,7 @@ function App() {
                     </>
                   ) : <>
                     <CompanyDirectory
-                      companies={companySummaries}
+                      companies={filteredCompanySummaries}
                       sort={companySort}
                       showArchived={companyStatus === 'all'}
                       onSelectCompany={name => { setMinSalary(null); setSelectedModes([]); setDeadlineDays(null); handleNavigate('jobs', name); }}

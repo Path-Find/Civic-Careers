@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move Durham Region onto the shared PeopleSoft scraper so its current postings are collected again.
 
 ### Added
+- **Companies can now be filtered by organization type**: stable classifications cover public libraries, transit agencies, universities and colleges, municipal governments, public agencies, and health organizations.
 - **PeopleAdmin boards can now be collected through one shared engine**: live paginated postings are discovered across Canadian university and college portals, then each detail page is stored for parsing.
 - **NEOGOV job boards can now be collected through one shared engine**: Cambrian College's 28 current postings were collected across all three result pages.
 - **University of Winnipeg postings can now be collected from its NorthStar ATS board**: stable posting detail URLs are extracted from the board's popup links.
