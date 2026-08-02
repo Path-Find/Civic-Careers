@@ -95,6 +95,16 @@ const SOURCES = {
     scrapeNorthernCollege(db, context),
   'City of Edmonton': (db: Client, context: BrowserContext) =>
     scrapeEdmontonPhenom(db, context),
+  'Government of Alberta': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/', 'Government of Alberta'),
+  'Ontario Energy Board': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://careers.oeb.ca/', 'Ontario Energy Board'),
+  'City of Ottawa (Jobs2Web)': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://jobs-emplois.ottawa.ca/city-jobs/search/', 'City of Ottawa (Jobs2Web)'),
+  'City of Saskatoon': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://careers.saskatoon.ca/search/', 'City of Saskatoon'),
+  'Regional Municipality of Wood Buffalo': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://jobs.rmwb.ca/search/', 'Regional Municipality of Wood Buffalo'),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {
