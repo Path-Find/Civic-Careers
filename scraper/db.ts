@@ -24,7 +24,8 @@ export async function initDb(): Promise<Client> {
       title TEXT,
       first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      parsed_at DATETIME
+      parsed_at DATETIME,
+      posted_at TEXT
     )
   `);
 
@@ -36,6 +37,11 @@ export async function initDb(): Promise<Client> {
 
   try {
     await client.execute(`ALTER TABLE raw_jobs ADD COLUMN first_seen_at DATETIME`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  try {
+    await client.execute(`ALTER TABLE raw_jobs ADD COLUMN posted_at TEXT`);
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
@@ -90,7 +96,10 @@ export async function initDb(): Promise<Client> {
       is_unionized INTEGER,
       union_name TEXT,
       benefits TEXT,
-      required_skills TEXT
+      required_skills TEXT,
+      responsibility_tags TEXT,
+      qualification_tags TEXT,
+      posted_at TEXT
     )
   `);
 
@@ -98,6 +107,21 @@ export async function initDb(): Promise<Client> {
   // table, so new columns need an explicit, idempotent ALTER TABLE here.
   try {
     await client.execute(`ALTER TABLE job_details ADD COLUMN required_skills TEXT`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  try {
+    await client.execute(`ALTER TABLE job_details ADD COLUMN posted_at TEXT`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  try {
+    await client.execute(`ALTER TABLE job_details ADD COLUMN responsibility_tags TEXT`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  try {
+    await client.execute(`ALTER TABLE job_details ADD COLUMN qualification_tags TEXT`);
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
@@ -118,6 +142,24 @@ export async function initDb(): Promise<Client> {
       reason TEXT,
       attempt_count INTEGER DEFAULT 1,
       last_failed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS trial_source_results (
+      source TEXT PRIMARY KEY,
+      consecutive_successes INTEGER NOT NULL DEFAULT 0,
+      last_status TEXT NOT NULL,
+      last_job_count INTEGER NOT NULL DEFAULT 0,
+      last_run_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS source_scrape_status (
+      source TEXT PRIMARY KEY,
+      last_successful_scrape_at DATETIME,
+      last_status TEXT NOT NULL DEFAULT 'success'
     )
   `);
 
@@ -157,15 +199,18 @@ export async function saveJobDetails(client: Client, job: {
   union_name?: string;
   benefits?: string;
   required_skills?: string;
+  responsibility_tags?: string;
+  qualification_tags?: string;
   parser_version?: number;
+  posted_at?: string | null;
 }) {
   await client.execute({
     sql: `INSERT INTO job_details (
       id, job_title, department, location, salary_range, description, closing_date,
       is_inventory, is_student, salary_min, salary_max, salary_period,
-      work_model, employment_type, duration, is_unionized, union_name, benefits, required_skills, parser_version
+      work_model, employment_type, duration, is_unionized, union_name, benefits, required_skills, responsibility_tags, qualification_tags, parser_version, posted_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
       department = excluded.department,
@@ -185,7 +230,10 @@ export async function saveJobDetails(client: Client, job: {
       union_name = excluded.union_name,
       benefits = excluded.benefits,
       required_skills = excluded.required_skills,
-      parser_version = excluded.parser_version`,
+      responsibility_tags = excluded.responsibility_tags,
+      qualification_tags = excluded.qualification_tags,
+      parser_version = excluded.parser_version,
+      posted_at = excluded.posted_at`,
     args: [
       job.id, job.job_title, job.department, job.location, job.salary_range,
       job.description, job.closing_date,
@@ -193,7 +241,8 @@ export async function saveJobDetails(client: Client, job: {
       job.salary_min ?? null, job.salary_max ?? null, job.salary_period ?? null,
       job.work_model ?? null, job.employment_type ?? null, job.duration ?? null,
       job.is_unionized ?? null, job.union_name ?? null, job.benefits ?? null,
-      job.required_skills ?? null, job.parser_version ?? null,
+      job.required_skills ?? null, job.responsibility_tags ?? null, job.qualification_tags ?? null,
+      job.parser_version ?? null, job.posted_at ?? null,
     ],
   });
 }
@@ -204,17 +253,19 @@ export async function saveRawJob(client: Client, job: {
   source: string;
   raw_text: string;
   title?: string | undefined;
+  posted_at?: string | null;
 }) {
   await client.execute({
-    sql: `INSERT INTO raw_jobs (id, url, source, raw_text, title, first_seen_at, scraped_at, parsed_at)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL)
+    sql: `INSERT INTO raw_jobs (id, url, source, raw_text, title, first_seen_at, scraped_at, parsed_at, posted_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
       ON CONFLICT(id) DO UPDATE SET
         url = excluded.url,
         source = excluded.source,
         raw_text = excluded.raw_text,
         title = COALESCE(excluded.title, raw_jobs.title),
-        scraped_at = CURRENT_TIMESTAMP`,
-    args: [job.id, job.url, job.source, job.raw_text, job.title ?? null],
+        scraped_at = CURRENT_TIMESTAMP,
+        posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
+    args: [job.id, job.url, job.source, job.raw_text, job.title ?? null, job.posted_at ?? null],
   });
 }
 
@@ -227,10 +278,10 @@ export async function discardRawJob(client: Client, id: string) {
   ], 'write');
 }
 
-export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; source: string; raw_text: string; title: string | null; first_seen_at: string }>> {
+export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; source: string; raw_text: string; title: string | null; first_seen_at: string; posted_at: string | null }>> {
   const result = await client.execute({
     sql: `
-      SELECT r.id, r.url, r.source, r.raw_text, r.title, r.first_seen_at
+      SELECT r.id, r.url, r.source, r.raw_text, r.title, r.first_seen_at, r.posted_at
       FROM raw_jobs r
       LEFT JOIN jobs j ON r.id = j.id
       LEFT JOIN parse_failures f ON r.id = f.id

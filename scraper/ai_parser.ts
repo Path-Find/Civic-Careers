@@ -15,7 +15,7 @@ const AI_MODEL = process.env.AI_MODEL || "deepseek-v4-flash";
 // old parses may no longer match what the current prompt would produce. Stamped
 // onto every job_details row so stale-version jobs can be found and selectively
 // reparsed via reparse-stale.ts instead of reparsing (and re-billing) everything.
-export const PARSER_VERSION = 1;
+export const PARSER_VERSION = 2;
 
 export interface ParsedJob {
     job_title: string;
@@ -34,6 +34,8 @@ export interface ParsedJob {
     is_inventory: boolean;
     benefits: string[];
     required_skills: string[];
+    responsibility_tags: string[];
+    qualification_tags: string[];
     clean_description: string;
 }
 
@@ -91,6 +93,10 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
     }
 
     OVERVIEW RULES (strict): Overview is about the job, never a company profile. Start with what the person in this role does. Do not include the employer's history, mission, services, facility description, neighbourhood description, or promotional introduction. Keep Overview to at most two sentences. If the source has no role-specific summary after removing company boilerplate, omit Overview entirely.
+
+    CLASSIFICATION RULE (strict): Check every source requirement and classify all that apply. Put mandatory education, experience, registration, licensing, legal, employment, and student-eligibility conditions under Qualifications. Put only genuinely optional assets or preferences under Nice to Have. Never place a mandatory condition under Nice to Have just because the source labels it as an asset or preference.
+
+    TAG OUTPUT RULE (strict): Return responsibility_tags and qualification_tags as arrays using only these exact labels: Education & mentoring, Planning & evaluation, Client care, Operations & compliance, Research & improvement, Collaboration, Equity & advocacy, Student. Check all that apply for each section; return [] when none apply. Student is only a qualification tag. These tags summarize the section's actual content, not just exact words in the text.
 
     CONSTRAINTS:
     - If salary is a range like "$96,566.00 - $132,880.00", salary_min = 96566, salary_max = 132880.

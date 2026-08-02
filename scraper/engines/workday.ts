@@ -7,6 +7,11 @@ export async function scrapeWorkday(db: Client, context: BrowserContext, url: st
   const page = await context.newPage();
   try {
     await safeGoto(page, url, 60000);
+    const cookieAccept = await page.$('button[data-automation-id="legalNoticeAcceptButton"]');
+    if (cookieAccept && await cookieAccept.isVisible()) {
+      await cookieAccept.click();
+      await page.waitForTimeout(1000);
+    }
     await page.waitForTimeout(10000);
 
     // Pattern 1: infinite-scroll "Load More" button (appends results to the DOM)

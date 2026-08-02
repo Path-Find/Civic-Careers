@@ -123,12 +123,43 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
     await handleRedirections(page);
     await page.waitForSelector('body', { timeout: 10000 });
 
-    const extractFrom = (target: Page | Frame) => target.evaluate(() => {
-      const clone = document.body.cloneNode(true) as HTMLElement;
+    const metadataPostedAt = ['City of Toronto', 'University of Toronto', 'CMHC', 'Region of Waterloo', 'City of London', 'Mississauga', 'City of Vancouver', 'University of Waterloo', 'City of Waterloo', 'City of Richmond Hill'].includes(sourceName)
+      ? await page.locator('meta[itemprop="datePosted"]').getAttribute('content').catch(() => null)
+      : null;
+
+    const structuredPostedAt = ['City of Barrie', 'City of Windsor', 'City of Thunder Bay', 'City of Belleville', 'City of Burlington', 'City of St. Catharines', 'City of Niagara Falls'].includes(sourceName)
+      ? await page.locator('script[type="application/ld+json"]').evaluateAll((scripts) => {
+        for (const script of scripts) {
+          try {
+            const data = JSON.parse(script.textContent || '');
+            const entries = Array.isArray(data) ? data : [data];
+            const posting = entries.find((entry) => entry?.datePosted);
+            if (posting?.datePosted) return posting.datePosted;
+          } catch {
+            // Ignore unrelated or malformed JSON-LD blocks.
+          }
+        }
+        return null;
+      }).catch(() => null)
+      : null;
+
+    // Workday detail pages can expose the shell before the job content hydrates.
+    // Wait for the actual posting container on those pages before treating the
+    // shell as an unrendered listing.
+    if (/myworkday(?:jobs|site)\.com/i.test(job.url)) {
+      await page.waitForSelector(
+        '[data-automation-id="jobPostingPage"], [data-automation-id="jobPostingDescription"]',
+        { timeout: 15000 }
+      ).catch(() => {});
+    }
+
+    const extractFrom = (target: Page | Frame) => target.evaluate((selector) => {
+      const root = selector ? document.querySelector(selector) : document.body;
+      const clone = (root ?? document.body).cloneNode(true) as HTMLElement;
       const noise = 'script, style, link, meta, noscript, nav, footer, header, #header, #footer';
       clone.querySelectorAll(noise).forEach(e => e.remove());
       return clone.innerText?.trim() || '';
-    });
+    }, sourceName === 'York University' ? '#maincontent' : null);
 
     // Branded iCIMS tenants (confirmed on Peel Region, City of Guelph) serve the
     // real job content inside a nested frame with "in_iframe=1" in its URL —
@@ -149,7 +180,17 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       return false;
     }
 
-    await saveRawJob(db, { id: job.id!, url: job.url, source: sourceName, title: job.title, raw_text: rawText });
+    if (sourceName === 'York University') {
+      rawText = rawText.replace(/The University welcomes applications from all qualified individuals,[\s\S]*?(?=#LI-DNI\b|Click here for more details)/i, '').trim();
+    }
+
+    const labeledPostedAt = sourceName === 'EFHC' || sourceName === 'City of Brampton'
+      ? rawText.match(/posting\s+date\s*[:\-]?\s*([A-Za-z]+\s+\d{1,2},\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1] ?? null
+      : sourceName === 'York Region' || sourceName === 'York University'
+        ? rawText.match(/date\s+posted\s*[:\-]?\s*(\d{2}[-\/]\d{2}[-\/]\d{4})/i)?.[1] ?? null
+      : null;
+    const postedAt = metadataPostedAt || structuredPostedAt || labeledPostedAt;
+    await saveRawJob(db, { id: job.id!, url: job.url, source: sourceName, title: job.title, raw_text: rawText, posted_at: postedAt });
     process.stdout.write(' ✅');
     return true;
   } catch (err: any) {

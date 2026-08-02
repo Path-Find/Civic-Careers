@@ -3,8 +3,7 @@ import { Client } from '@libsql/client';
 import { safeGoto } from '../utils';
 import { saveRawJob } from '../db';
 
-// PeopleSoft Fluid career sites (confirmed on TMU, Western, McMaster, Greater
-// Sudbury, Winnipeg, Calgary, TransLink, Durham Region) don't expose real
+// PeopleSoft Fluid career sites don't expose real
 // per-job URLs — every row's "View Details" link is a stateful form postback
 // (javascript:submitAction_win0(...)), and the browser URL never changes.
 // All rows ARE present in the DOM at once (confirmed via row count matching
@@ -31,15 +30,14 @@ export async function scrapePeopleSoft(db: Client, context: BrowserContext, sear
       await page.waitForTimeout(6000);
     }
 
-    // Row-level "view details" elements use different ID suffixes across
-    // tenants — Winnipeg: HRS_VIEW_DETAILSPB$N (a button), TMU:
-    // HRS_VIEW_DETAILS$N (a div) — the shared prefix catches both.
-    const firstBtn = await page.$('[id^="HRS_VIEW_DETAILS"]');
-    if (!firstBtn) {
+    // The detail trigger is a child div on some tenants, but the row owns the
+    // actual OnRowAction handler (TransLink uses this shape).
+    const firstRow = await page.$('li[onclick*="HRS_VIEW_DETAILS"], [id^="HRS_VIEW_DETAILS"]');
+    if (!firstRow) {
       console.log(`[${sourceName}] No job rows found`);
       return;
     }
-    await firstBtn.click();
+    await firstRow.click();
     await page.waitForTimeout(4000);
 
     const seenIds = new Set<string>();

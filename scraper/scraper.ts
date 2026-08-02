@@ -28,7 +28,6 @@ import {
   scrapeBrantford,
   scrapePeterborough,
   scrapeSmithsFalls,
-  scrapeVaughanPL,
   scrapeNorthumberland,
   scrapeTDSB,
 } from './engines/custom';
@@ -60,7 +59,6 @@ const TASKS: ScrapeTask[] = [
   // 2. Libraries & Specialized
   // TPL (Njoyn) blocked by Radware bot protection — cannot scrape headlessly
   { engine: 'custom', label: 'Waterfront Toronto', run: (db, ctx) => scrapeWaterfront(db, ctx) },
-  { engine: 'custom', label: 'Vaughan Public Library', run: (db, ctx) => scrapeVaughanPL(db, ctx) },
 
   // 3. Crown Corps & Conservation
   { engine: 'jobs2web', label: 'CMHC', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.cmhc-schl.gc.ca/search/', 'CMHC') },
@@ -200,8 +198,22 @@ async function main() {
   for (const task of tasks) {
     try {
       await task.run(db, context);
+      await db.execute({
+        sql: `INSERT INTO source_scrape_status (source, last_successful_scrape_at, last_status)
+              VALUES (?, CURRENT_TIMESTAMP, 'success')
+              ON CONFLICT(source) DO UPDATE SET
+                last_successful_scrape_at = CURRENT_TIMESTAMP,
+                last_status = 'success'`,
+        args: [task.label],
+      });
       results.push({ label: task.label, ok: true });
     } catch (err: any) {
+      await db.execute({
+        sql: `INSERT INTO source_scrape_status (source, last_successful_scrape_at, last_status)
+              VALUES (?, NULL, 'failed')
+              ON CONFLICT(source) DO UPDATE SET last_status = 'failed'`,
+        args: [task.label],
+      });
       results.push({ label: task.label, ok: false, error: err.message });
     }
   }

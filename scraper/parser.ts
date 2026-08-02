@@ -55,6 +55,9 @@ async function main() {
           union_name: aiResult.union_name,
           benefits: JSON.stringify(aiResult.benefits),
           required_skills: JSON.stringify(aiResult.required_skills),
+          responsibility_tags: JSON.stringify(aiResult.responsibility_tags),
+          qualification_tags: JSON.stringify(aiResult.qualification_tags),
+          posted_at: raw.posted_at,
           parser_version: PARSER_VERSION,
         });
         await markJobParsed(db, raw.id);

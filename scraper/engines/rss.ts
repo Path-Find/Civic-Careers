@@ -34,7 +34,7 @@ export async function scrapeRSS(
     const linkMatch = body.match(/<link>(.*?)<\/link>/);
     if (!linkMatch?.[1]) continue;
     const url = linkMatch[1].trim();
-    const idMatch = url.match(/JOBID=([^&]+)/i) || url.match(/jobid=([^&]+)/i);
+    const idMatch = url.match(/[?&](?:JOBID|jobid|id)=([^&]+)/i);
     if (!idMatch?.[1]) continue;
     const id = `${idPrefix}_${idMatch[1].toLowerCase()}`;
     await scrapeRawAndStage(db, context, { id, url }, sourceName);

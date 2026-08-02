@@ -1,4 +1,5 @@
 import type { ParsedJob } from './ai_parser';
+import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
 
 function coerceString(v: unknown): string {
   if (typeof v === 'string') return v.trim();
@@ -74,6 +75,12 @@ function normalizeStringList(v: unknown): string[] {
   return [];
 }
 
+function normalizeTags(v: unknown): string[] {
+  return normalizeStringList(v).filter((tag): tag is typeof QUICK_SCAN_TAGS[number] =>
+    (QUICK_SCAN_TAGS as readonly string[]).includes(tag)
+  );
+}
+
 const EMPTY_SECTION_BODY = /^(none|n\/a|not applicable|not specified|not required|no additional .*)\.?$/i;
 
 // Safety net for cases where the AI ignores prompt instructions: drops
@@ -133,6 +140,8 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     is_inventory: coerceBool(o['is_inventory']),
     benefits: normalizeStringList(o['benefits']),
     required_skills: normalizeStringList(o['required_skills']),
+    responsibility_tags: normalizeTags(o['responsibility_tags']),
+    qualification_tags: normalizeTags(o['qualification_tags']),
     clean_description: cleanDescription(coerceString(o['clean_description'])),
   };
 }
