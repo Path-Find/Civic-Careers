@@ -2,6 +2,19 @@ import { Client } from '@libsql/client/http';
 import { BrowserContext } from 'playwright';
 import { scrapeRawAndStage } from '../utils';
 
+export function extractRSSJobs(xml: string, idPrefix: string): Array<{ id: string; url: string }> {
+  const items = [...xml.matchAll(/<item[^>]*>([\s\S]*?)<\/item>/g)];
+  return items.flatMap(([, body]) => {
+    if (!body) return [];
+    const linkMatch = body.match(/<link>(.*?)<\/link>/);
+    if (!linkMatch?.[1]) return [];
+    const url = linkMatch[1].trim();
+    const idMatch = url.match(/[?&](?:JOBID|jobid|id)=([^&]+)/i);
+    if (!idMatch?.[1]) return [];
+    return [{ id: `${idPrefix}_${idMatch[1].toLowerCase()}`, url }];
+  });
+}
+
 export async function scrapeRSS(
   db: Client,
   context: BrowserContext,
@@ -13,8 +26,8 @@ export async function scrapeRSS(
   const res = await fetch(feedUrl);
   const xml = await res.text();
 
-  const items = [...xml.matchAll(/<item[^>]*>([\s\S]*?)<\/item>/g)];
-  console.log(`\nScraping ${sourceName} (RSS) — ${items.length} jobs`);
+  const jobs = extractRSSJobs(xml, idPrefix);
+  console.log(`\nScraping ${sourceName} (RSS) — ${jobs.length} jobs`);
 
   // Njoyn-backed feeds (confirmed on City of Kingston) reject deep links to
   // individual job detail pages with "Invalid request XWPGN01" unless the
@@ -29,14 +42,7 @@ export async function scrapeRSS(
     await page.close();
   }
 
-  for (const [, body] of items) {
-    if (!body) continue;
-    const linkMatch = body.match(/<link>(.*?)<\/link>/);
-    if (!linkMatch?.[1]) continue;
-    const url = linkMatch[1].trim();
-    const idMatch = url.match(/[?&](?:JOBID|jobid|id)=([^&]+)/i);
-    if (!idMatch?.[1]) continue;
-    const id = `${idPrefix}_${idMatch[1].toLowerCase()}`;
-    await scrapeRawAndStage(db, context, { id, url }, sourceName);
+  for (const job of jobs) {
+    await scrapeRawAndStage(db, context, job, sourceName);
   }
 }
