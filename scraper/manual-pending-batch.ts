@@ -26,6 +26,7 @@ import { scrapeSelkirk } from './engines/selkirk';
 import { scrapeHiringPlatform } from './engines/hiringplatform';
 import { scrapeApplyToEducation } from './engines/applytoeducation';
 import { scrapeWorkable } from './engines/workable';
+import { scrapeAvanti } from './engines/avanti';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -631,6 +632,14 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
   },
   'workable-1': {
     'Norfolk County': (db, context) => scrapeWorkable(db, context, 'norfolk-county', 'Norfolk County'),
+  },
+  'avanti-1': {
+    'Bruce County': (db, context) => scrapeAvanti(
+      db,
+      context,
+      'https://brucecounty.myavanti.ca/careers',
+      'Bruce County',
+    ),
   },
   'municipal-custom-1': {
     'City of Pickering': (db, context) => scrapePickering(db, context, 'City of Pickering'),

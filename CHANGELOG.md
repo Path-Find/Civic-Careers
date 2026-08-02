@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Credit Valley Conservation can now be tested through the shared ADP scraper**: its embedded ADP board returned 3 current postings with substantive descriptions.
 - **ApplyToEducation feeds can now be collected through one shared engine**: Toronto Catholic District School Board’s three public feeds returned 6 postings with full descriptions, application URLs, and posted dates.
 - **Workable boards can now be collected through one shared API engine**: Norfolk County’s 9 current postings are stored with full descriptions, application URLs, and posted dates.
+- **Bruce County can now be tested through the shared Avanti scraper**: its dynamic Career Connector board is loaded in the browser so current county postings are collected.
 - **NEOGOV job boards can now be collected through one shared engine**: Cambrian College's 28 current postings were collected across all three result pages.
 - **University of Winnipeg postings can now be collected from its NorthStar ATS board**: stable posting detail URLs are extracted from the board's popup links.
 - **Conestoga College's support postings can now be imported from its RSS feed**: the RSS scraper accepts the feed's `id=` detail links.

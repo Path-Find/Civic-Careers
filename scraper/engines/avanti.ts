@@ -8,7 +8,12 @@ export async function scrapeAvanti(db: Client, context: BrowserContext, portalUr
   const page = await context.newPage();
   try {
     await safeGoto(page, portalUrl, 60000);
-    await page.waitForTimeout(2000);
+    // Avanti renders the table through a background request after the initial
+    // HTML response. The shared navigation settle time is not always enough.
+    await page.locator('table tbody tr a[href*="/careers/Job/Details/"]').first().waitFor({
+      state: 'attached',
+      timeout: 30000,
+    }).catch(() => undefined);
 
     const summaries = await page.evaluate((base) => {
       return Array.from(document.querySelectorAll('table tbody tr')).map(row => {
