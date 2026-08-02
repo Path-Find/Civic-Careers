@@ -18,7 +18,7 @@ import { scrapePeopleAdmin } from './engines/peopleadmin';
 import { scrapeLever } from './engines/lever';
 import { scrapePrevue } from './engines/prevue';
 import { scrapeSelkirk } from './engines/selkirk';
-import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeNipissing, scrapeNorthernCollege, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
+import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -104,6 +104,12 @@ const SOURCES = {
     scrapePrevue(db, context, 'cotr', 886, 'College of the Rockies'),
   'Selkirk College': (db: Client, context: BrowserContext) =>
     scrapeSelkirk(db, context, 'Selkirk College'),
+  'City of Pickering': (db: Client, context: BrowserContext) =>
+    scrapePickering(db, context, 'City of Pickering'),
+  'Pickering Public Library': (db: Client, context: BrowserContext) =>
+    scrapePickering(db, context, 'Pickering Public Library'),
+  'Town of Halton Hills': (db: Client, context: BrowserContext) =>
+    scrapeHaltonHills(db, context),
   'Government of Alberta': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/', 'Government of Alberta'),
   'Ontario Energy Board': (db: Client, context: BrowserContext) =>

@@ -23,7 +23,7 @@ import { scrapePeopleAdmin } from './engines/peopleadmin';
 import { scrapeLever } from './engines/lever';
 import { scrapePrevue } from './engines/prevue';
 import { scrapeSelkirk } from './engines/selkirk';
-import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeNipissing, scrapeNorthernCollege, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
+import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
 
@@ -601,6 +601,11 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
   },
   'selkirk-1': {
     'Selkirk College': (db, context) => scrapeSelkirk(db, context, 'Selkirk College'),
+  },
+  'municipal-custom-1': {
+    'City of Pickering': (db, context) => scrapePickering(db, context, 'City of Pickering'),
+    'Pickering Public Library': (db, context) => scrapePickering(db, context, 'Pickering Public Library'),
+    'Town of Halton Hills': (db, context) => scrapeHaltonHills(db, context),
   },
   'manual-ready-5': {
     'Essex County': (db, context) => scrapeJazzHR(

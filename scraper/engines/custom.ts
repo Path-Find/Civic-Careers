@@ -518,6 +518,109 @@ export async function scrapeStClairCollege(db: Client, context: BrowserContext) 
   }
 }
 
+type PickeringJob = {
+  title?: string;
+  descriptionUrl: string;
+  applicationUrl: string;
+  source: 'City of Pickering' | 'Pickering Public Library';
+  closingDate?: string;
+};
+
+export async function scrapePickering(
+  db: Client,
+  context: BrowserContext,
+  requestedSource?: PickeringJob['source'],
+) {
+  const pageUrl = 'https://www.pickering.ca/council-city-administration/employment-opportunities/';
+  console.log('Scraping Pickering employment opportunities...');
+  const page = await context.newPage();
+  try {
+    await safeGoto(page, pageUrl, 60000);
+    const jobs = await page.evaluate(() => Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('a[href*="/media/"][href$=".pdf"]'),
+    ).map((link): PickeringJob => {
+      const section = link.closest('.repeatable-content');
+      const sectionTitle = section?.previousElementSibling?.textContent?.trim() || '';
+      const row = link.closest('tr');
+      const cells = row ? Array.from(row.querySelectorAll('td')).map(cell => cell.textContent?.trim() || '') : [];
+      return {
+        title: link.getAttribute('title') || link.textContent?.trim() || undefined,
+        descriptionUrl: link.href,
+        applicationUrl: window.location.href,
+        source: /Pickering Public Library/i.test(sectionTitle)
+          ? 'Pickering Public Library'
+          : 'City of Pickering',
+        ...(cells[4] ? { closingDate: cells[4] } : {}),
+      };
+    }));
+
+    const activeJobs = jobs.filter((job) => {
+      if (requestedSource && job.source !== requestedSource) return false;
+      if (!job.closingDate) return true;
+      const closingTime = Date.parse(job.closingDate);
+      return !Number.isFinite(closingTime) || closingTime >= Date.now();
+    });
+    const scope = requestedSource ? ` for ${requestedSource}` : '';
+    console.log(`[Pickering] Found ${activeJobs.length} active PDF postings${scope} (${jobs.length} listed).`);
+    for (const job of activeJobs) {
+      const id = `${job.source === 'Pickering Public Library' ? 'pickering_library' : 'pickering'}_${urlId(job.descriptionUrl)}`;
+      await scrapeRawAndStage(db, context, {
+        id,
+        url: job.applicationUrl,
+        applicationUrl: job.applicationUrl,
+        descriptionUrl: job.descriptionUrl,
+        ...(job.title ? { title: job.title } : {}),
+      }, job.source);
+    }
+  } catch (err: any) {
+    console.error(`Error scraping Pickering: ${err.message}`);
+    throw err;
+  } finally {
+    await page.close();
+  }
+}
+
+export type HaltonHillsJob = { id: string; title: string; url: string };
+
+export function extractHaltonHillsJobs(html: string, portalUrl: string): HaltonHillsJob[] {
+  const jobs: HaltonHillsJob[] = [];
+  const seen = new Set<string>();
+  const anchorPattern = /<a\b([^>]*class=["'][^"']*\bjob_card_container\b[^"']*["'][^>]*)>([\s\S]*?)<\/a>/gi;
+  for (const match of html.matchAll(anchorPattern)) {
+    const attributes = match[1] || '';
+    const body = match[2] || '';
+    const href = attributes.match(/\bhref=["']([^"']+)["']/i)?.[1];
+    const titleHtml = body.match(/<[^>]*class=["'][^"']*\bcard_title\b[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i)?.[1];
+    if (!href || !titleHtml) continue;
+    const url = new URL(href, portalUrl).href;
+    const title = decodeHtmlEntities(titleHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+    if (!title || seen.has(url)) continue;
+    seen.add(url);
+    jobs.push({ id: `haltonhills_${urlId(url)}`, title, url });
+  }
+  return jobs;
+}
+
+export async function scrapeHaltonHills(db: Client, context: BrowserContext) {
+  const sourceName = 'Town of Halton Hills';
+  const pageUrl = 'https://www.haltonhills.ca/careers';
+  console.log(`Scraping ${sourceName}...`);
+  const page = await context.newPage();
+  try {
+    await safeGoto(page, pageUrl, 60000);
+    const jobs = extractHaltonHillsJobs(await page.content(), pageUrl);
+    console.log(`[${sourceName}] Found ${jobs.length} postings.`);
+    for (const job of jobs) {
+      await scrapeRawAndStage(db, context, job, sourceName);
+    }
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
+  } finally {
+    await page.close();
+  }
+}
+
 export type StLawrenceJob = { id: string; title: string; url: string };
 
 function decodeHtmlEntities(value: string): string {

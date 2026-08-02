@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractBrassRingJobs, extractCustomHtmlJobs, extractPhenomJobs, extractStLawrenceJobs } from '../engines/custom';
+import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractPhenomJobs, extractStLawrenceJobs } from '../engines/custom';
 
 test('extracts and deduplicates St. Lawrence College job links', () => {
   const html = `<a href="/jobs/admn-pt-26-27-052" title="Talent Management Consultant">Talent Management Consultant</a>
@@ -80,6 +80,25 @@ test('extracts stable Phenom job IDs and titles from rendered result links', () 
       id: 'phenom_55699',
       title: 'Arborist I - ISA Certified',
       url: 'https://recruitment.edmonton.ca/job/55699/Arborist-I',
+    },
+  ]);
+});
+
+test('extracts and deduplicates Halton Hills job cards', () => {
+  const html = `<a href="/town-hall/get-involved/careers/senior-planner-(202647)" class="job_card_container"><div class="card_title">Senior Environmental Planner</div></a>
+    <a href="/town-hall/get-involved/careers/senior-planner-(202647)" class="job_card_container"><div class="card_title">Duplicate</div></a>
+    <a href="/town-hall/get-involved/careers/lifeguard-(202646)" class="job_card_container"><div class="card_title">Lifeguard Instructor</div></a>`;
+
+  assert.deepEqual(extractHaltonHillsJobs(html, 'https://www.haltonhills.ca/careers'), [
+    {
+      id: 'haltonhills_6cd2465b1013',
+      title: 'Senior Environmental Planner',
+      url: 'https://www.haltonhills.ca/town-hall/get-involved/careers/senior-planner-(202647)',
+    },
+    {
+      id: 'haltonhills_6f17f213900e',
+      title: 'Lifeguard Instructor',
+      url: 'https://www.haltonhills.ca/town-hall/get-involved/careers/lifeguard-(202646)',
     },
   ]);
 });
