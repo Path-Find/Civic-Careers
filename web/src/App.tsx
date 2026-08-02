@@ -398,7 +398,7 @@ function App() {
                     <>
                       {filteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
                       {currentView === 'saved' && <section className="recently-viewed-section">
-                        <h2>Recently viewed</h2>
+                        <h2 className="list-count-label recently-viewed-heading">Recently viewed</h2>
                         {recentlyViewedJobs.length > 0
                           ? recentlyViewedJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)
                           : <p className="recently-viewed-empty">Jobs you open will appear here for 30 days.</p>}
