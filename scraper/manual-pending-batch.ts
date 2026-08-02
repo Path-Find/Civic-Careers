@@ -27,6 +27,7 @@ import { scrapeHiringPlatform } from './engines/hiringplatform';
 import { scrapeApplyToEducation } from './engines/applytoeducation';
 import { scrapeWorkable } from './engines/workable';
 import { scrapeAvanti } from './engines/avanti';
+import { scrapeVipCloud } from './engines/vipcloud';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -639,6 +640,20 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       context,
       'https://brucecounty.myavanti.ca/careers',
       'Bruce County',
+    ),
+  },
+  'vipcloud-1': {
+    'Town of Whitchurch-Stouffville': (db, context) => scrapeVipCloud(
+      db,
+      context,
+      'https://townofws-careers.vipcloud.ca/default',
+      'Town of Whitchurch-Stouffville',
+    ),
+    'Town of Georgina': (db, context) => scrapeVipCloud(
+      db,
+      context,
+      'https://georgina-careers.vipcloud.ca/default',
+      'Town of Georgina',
     ),
   },
   'municipal-custom-1': {

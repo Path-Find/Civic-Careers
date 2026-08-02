@@ -23,6 +23,7 @@ import { scrapeADP } from './engines/adp';
 import { scrapeApplyToEducation } from './engines/applytoeducation';
 import { scrapeWorkable } from './engines/workable';
 import { scrapeAvanti } from './engines/avanti';
+import { scrapeVipCloud } from './engines/vipcloud';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
@@ -125,6 +126,10 @@ const SOURCES = {
     scrapeWorkable(db, context, 'norfolk-county', 'Norfolk County'),
   'Bruce County': (db: Client, context: BrowserContext) =>
     scrapeAvanti(db, context, 'https://brucecounty.myavanti.ca/careers', 'Bruce County'),
+  'Town of Whitchurch-Stouffville': (db: Client, context: BrowserContext) =>
+    scrapeVipCloud(db, context, 'https://townofws-careers.vipcloud.ca/default', 'Town of Whitchurch-Stouffville'),
+  'Town of Georgina': (db: Client, context: BrowserContext) =>
+    scrapeVipCloud(db, context, 'https://georgina-careers.vipcloud.ca/default', 'Town of Georgina'),
   'Government of Alberta': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/', 'Government of Alberta'),
   'Ontario Energy Board': (db: Client, context: BrowserContext) =>
