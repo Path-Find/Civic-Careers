@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Listing controls disappeared while scrolling**: Job and company counts and sort controls now stay visible at the top of their results.
 - **Filter and results labels used different type treatments**: Sidebar labels now match the listing controls in font and color.
 - **Company-filtered Jobs pages repeated the match count and sort controls**: the shared toolbar now renders them once.
-- **Homepage job context was missing**: available jobs and jobs added in the last 7 days now sit beside the homepage sort controls.
+- **Homepage job context was missing**: available jobs and jobs added in the last 7 days now sit left-aligned with the homepage sort controls in one consistent type style.
 
 ## [1.9.8] - 2026-08-02
 
