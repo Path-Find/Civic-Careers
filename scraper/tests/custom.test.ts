@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractBrassRingJobs, extractStLawrenceJobs } from '../engines/custom';
+import { extractBrassRingJobs, extractCustomHtmlJobs, extractStLawrenceJobs } from '../engines/custom';
 
 test('extracts and deduplicates St. Lawrence College job links', () => {
   const html = `<a href="/jobs/admn-pt-26-27-052" title="Talent Management Consultant">Talent Management Consultant</a>
@@ -38,4 +38,29 @@ test('extracts and deduplicates BrassRing job links by numeric ID', () => {
       url: 'https://sjobs.brassring.com/TGnewUI/Search/home/HomeWithPreLoad?partnerid=25749&siteid=5764&PageType=JobDetails&jobid=771196',
     },
   ]);
+});
+
+test('extracts custom HTML job links while ignoring category and apply links', () => {
+  const nipissingHtml = `<a href="/careers/employment-postings/staff">Staff Opportunities</a>
+    <a href="/careers/employment-postings/research-coordinator" hreflang="en"> Research Coordinator </a>
+    <a href="/careers/employment-postings/research-coordinator" hreflang="en">Duplicate</a>`;
+  assert.equal(extractCustomHtmlJobs(
+    nipissingHtml,
+    'https://www.nipissingu.ca/careers/employment-postings',
+    '/careers/employment-postings',
+    { requireHrefLang: 'en' },
+  ).length, 1);
+
+  const northernHtml = `<a href="/careers/jobs/invigilator-26-26/"><span class="job-title">Invigilator (26-26)</span></a>
+    <a href="/careers/jobs/invigilator-26-26/" class="btn btn-primary">Apply Now</a>`;
+  assert.deepEqual(extractCustomHtmlJobs(
+    northernHtml,
+    'https://www.northerncollege.ca/careers/',
+    '/careers/jobs',
+    { titleClass: 'job-title' },
+  ), [{
+    id: 'custom_395d9e329041',
+    title: 'Invigilator (26-26)',
+    url: 'https://www.northerncollege.ca/careers/jobs/invigilator-26-26/',
+  }]);
 });

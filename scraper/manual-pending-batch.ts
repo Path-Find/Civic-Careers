@@ -20,7 +20,7 @@ import { scrapeNorthStar } from './engines/northstar';
 import { scrapeJazzHR } from './engines/jazzhhr';
 import { scrapeNeogov } from './engines/neogov';
 import { scrapePeopleAdmin } from './engines/peopleadmin';
-import { scrapeBrassRing, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
+import { scrapeBrassRing, scrapeNipissing, scrapeNorthernCollege, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
 
@@ -582,6 +582,10 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
   },
   'brassring-1': {
     'Halifax Regional Municipality': (db, context) => scrapeBrassRing(db, context),
+  },
+  'custom-colleges-1': {
+    'Nipissing University': (db, context) => scrapeNipissing(db, context),
+    'Northern College': (db, context) => scrapeNorthernCollege(db, context),
   },
   'manual-ready-5': {
     'Essex County': (db, context) => scrapeJazzHR(

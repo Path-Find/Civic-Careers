@@ -637,6 +637,93 @@ export async function scrapeBrassRing(db: Client, context: BrowserContext) {
   }
 }
 
+export type CustomHtmlJob = { id: string; title: string; url: string };
+
+export function extractCustomHtmlJobs(
+  html: string,
+  portalUrl: string,
+  pathPrefix: string,
+  options: { requireHrefLang?: string; titleClass?: string } = {},
+): CustomHtmlJob[] {
+  const jobs: CustomHtmlJob[] = [];
+  const seen = new Set<string>();
+  const normalizedPrefix = pathPrefix.replace(/\/$/, '');
+  const anchorPattern = /<a\b([^>]*href=["']([^"']+)["'][^>]*)>([\s\S]*?)<\/a>/gi;
+
+  for (const match of html.matchAll(anchorPattern)) {
+    const attributes = match[1] || '';
+    const href = match[2];
+    const anchorHtml = match[3] || '';
+    if (!href) continue;
+    if (options.requireHrefLang && !new RegExp(`hreflang=["']${options.requireHrefLang}["']`, 'i').test(attributes)) continue;
+
+    const url = new URL(href, portalUrl);
+    const pathname = url.pathname.replace(/\/$/, '');
+    if (pathname === normalizedPrefix || !pathname.startsWith(`${normalizedPrefix}/`) || seen.has(url.href)) continue;
+
+    const titleMatch = options.titleClass
+      ? anchorHtml.match(new RegExp(`<[^>]*class=["'][^"']*${options.titleClass}[^"']*["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`, 'i'))
+      : null;
+    const titleHtml = titleMatch?.[1] || anchorHtml;
+    const title = decodeHtmlEntities(
+      titleHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    );
+    if (!title || /^apply now$/i.test(title)) continue;
+
+    seen.add(url.href);
+    jobs.push({ id: `custom_${urlId(url.href)}`, title, url: url.href });
+  }
+
+  return jobs;
+}
+
+async function scrapeCustomHtmlPortal(
+  db: Client,
+  context: BrowserContext,
+  config: {
+    sourceName: string;
+    listingUrl: string;
+    pathPrefix: string;
+    requireHrefLang?: string;
+    titleClass?: string;
+  },
+) {
+  console.log(`Scraping ${config.sourceName} (custom HTML)...`);
+  const page = await context.newPage();
+  try {
+    await safeGoto(page, config.listingUrl, 60000);
+    const jobs = extractCustomHtmlJobs(await page.content(), config.listingUrl, config.pathPrefix, config);
+    console.log(`[${config.sourceName}] Found ${jobs.length} job pages`);
+    for (const job of jobs) {
+      await scrapeRawAndStage(db, context, job, config.sourceName);
+    }
+    console.log(`\n[${config.sourceName}] Done.`);
+  } catch (err: any) {
+    console.error(`Error scraping ${config.sourceName}: ${err.message}`);
+    throw err;
+  } finally {
+    await page.close();
+  }
+}
+
+export async function scrapeNipissing(db: Client, context: BrowserContext) {
+  return scrapeCustomHtmlPortal(db, context, {
+    sourceName: 'Nipissing University',
+    listingUrl: 'https://www.nipissingu.ca/careers/employment-postings',
+    pathPrefix: '/careers/employment-postings',
+    requireHrefLang: 'en',
+  });
+}
+
+export async function scrapeNorthernCollege(db: Client, context: BrowserContext) {
+  return scrapeCustomHtmlPortal(db, context, {
+    sourceName: 'Northern College',
+    listingUrl: 'https://www.northerncollege.ca/careers/',
+    pathPrefix: '/careers/jobs',
+    titleClass: 'job-title',
+  });
+}
+
 export async function scrapeSmithsFalls(db: Client, context: BrowserContext) {
   const sourceName = 'Town of Smiths Falls';
   const base = 'https://www.smithsfalls.ca';
