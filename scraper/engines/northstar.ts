@@ -2,6 +2,16 @@ import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import { scrapeRawAndStage, safeGoto, urlId } from '../utils';
 
+export function extractNorthStarJobs(links: Array<{ href: string; title: string }>) {
+  const seen = new Set<string>();
+  return links.flatMap(({ href, title }) => {
+    const match = href.match(/Popup\(['"](https?:\/\/www\.northstarats\.com\/[^'"]+)['"]\)/i);
+    if (!match?.[1] || seen.has(match[1])) return [];
+    seen.add(match[1]);
+    return [{ title: title || 'NorthStar ATS posting', url: match[1] }];
+  });
+}
+
 export async function scrapeNorthStar(
   db: Client,
   context: BrowserContext,
@@ -13,20 +23,13 @@ export async function scrapeNorthStar(
   try {
     await safeGoto(page, portalUrl, 60000);
 
-    const jobs = await page.evaluate(() => {
-      const seen = new Set<string>();
-      return Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href^="javascript:Popup("]'))
-        .flatMap((element) => {
-          const href = element.getAttribute('href') || '';
-          const match = href.match(/Popup\(['"](https?:\/\/www\.northstarats\.com\/[^'"]+)['"]\)/i);
-          if (!match?.[1] || seen.has(match[1])) return [];
-          seen.add(match[1]);
-          return [{
-            title: element.textContent?.trim() || 'NorthStar ATS posting',
-            url: match[1],
-          }];
-        });
-    }).then((summaries) => summaries.map((job) => ({ ...job, id: urlId(job.url) })));
+    const links = await page.evaluate(() => Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('a[href^="javascript:Popup("]'),
+    ).map((element) => ({
+      title: element.textContent?.trim() || '',
+      href: element.getAttribute('href') || '',
+    })));
+    const jobs = extractNorthStarJobs(links).map((job) => ({ ...job, id: urlId(job.url) }));
 
     console.log(`[${sourceName}] Found ${jobs.length} postings.`);
     for (const [index, job] of jobs.entries()) {
