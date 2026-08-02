@@ -2,7 +2,7 @@
 
 This document tracks **all active** job portals currently scraped by GovJobs, grouped by scraping engine (see `scraper/engines/`) rather than by region — that's the axis that actually matters for maintenance, since a bug in one engine (e.g. Workday pagination) affects every source in that group at once.
 
-**Total active: 79** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there). First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
+**Total active: 78** (see `scraper/scraper.ts`'s `TASKS` array for the live implementation — this file is generated from it and should be re-synced whenever sources are added/removed there). First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
 
 See [PENDING.md](PENDING.md) for sources not yet active, with notes on status and blockers.
 
@@ -31,7 +31,7 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Mohawk College** — [Home](https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege)
 - **Ontario Tech University** — [Home](https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu)
 
-## Custom (13)
+## Custom (12)
 
 - **City of Barrie** — [Search](https://careers.barrie.ca/search/)
 - **City of Brantford** — [Current Opportunities](https://www.brantford.ca/your-government/careers/current-opportunities/)
@@ -44,7 +44,6 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Province of Ontario (OPS)** — [Ontario Public Service Jobs](https://www.gojobs.gov.on.ca/Search.aspx)
 - **Toronto District School Board** — [Job Postings](https://www.tdsb.on.ca/jobpostings/list.html)
 - **Town of Smiths Falls** — [Careers](https://www.smithsfalls.ca/)
-- **Vaughan Public Library** — [Jobs](https://www.vaughanpl.info/jobs)
 - **Waterfront Toronto** — [Opportunities](https://www.waterfrontoronto.ca/opportunities/join-our-team)
 
 ## Dayforce HCM (5)
