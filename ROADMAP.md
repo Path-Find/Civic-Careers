@@ -1,6 +1,6 @@
 # Roadmap
 
-GovJobs is the automated intelligence layer spun out from Navigator. It monitors public sector portals, bypasses bot detection, and normalizes messy job data into structured assets.
+Civic Careers is the automated intelligence layer spun out from Navigator. It monitors public-sector portals and normalizes messy job data into structured assets.
 
 - **[Sources](./SOURCES.md)**: Inventory of active and planned job portals.
 - **[Changelog](./CHANGELOG.md)**: Detailed history of scraper engine updates.

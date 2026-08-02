@@ -172,7 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workday scraper silently capped at 20 jobs per source**: the engine only knew how to load more results via an infinite-scroll "Load More" button. Tenants that instead use classic numbered pagination (Brock University, and likely University of Waterloo and University of Ottawa) were getting only their first page scraped — Brock alone was missing 442 of its 462 listed jobs. The engine now also follows numbered "next" pagination.
 
 ### Changed
-- Removed the outlink icon from the Companies list rows — that page is for browsing into a company's jobs within GovJobs, not for jumping straight to their external portal before picking a role.
+- Removed the outlink icon from the Companies list rows — that page is for browsing into a company's jobs within Civic Careers, not for jumping straight to their external portal before picking a role.
 - Cleaned up header nav styling (removed a stray icon, fixed off-palette colors, grouped Saved apart from Jobs/Companies) for visual consistency.
 
 ## [1.7.1] - 2026-07-11

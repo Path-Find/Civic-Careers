@@ -1,4 +1,4 @@
-# GovJobs
+# Civic Careers
 
 A government job discovery feed that scrapes and unifies postings from across the GTHA into a single searchable interface.
 
