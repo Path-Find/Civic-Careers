@@ -14,12 +14,16 @@ export interface Job {
   union_name: string | null;
   benefits: string | null;
   required_skills: string | null;
+  responsibility_tags: string | null;
+  qualification_tags: string | null;
   description?: string | null;
   closing_date: string | null;
+  posted_at: string | null;
   url: string;
   source: string;
   first_seen_at: string;
   scraped_at: string;
+  last_checked_at: string | null;
   is_saved: number;
   is_active: number;
   is_inventory: number;
@@ -27,7 +31,24 @@ export interface Job {
   rid: number;
 }
 
-export type View = 'home' | 'jobs' | 'saved' | 'companies';
+export interface HomeData {
+  recentJobs: Job[];
+  closingSoonJobs: Job[];
+  availableJobCount: number;
+  recentlyAddedCount: number;
+  lastCheckedAt: string | null;
+}
+
+export interface CompanySummary {
+  name: string;
+  active_job_count: number;
+  total_job_count: number;
+  recent_job_count: number;
+  latest_job_added_at: string | null;
+  last_checked_at: string | null;
+}
+
+export type View = 'home' | 'jobs' | 'saved' | 'companies' | 'about';
 
 export interface JobDetails {
   salary: string | null;

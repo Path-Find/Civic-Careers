@@ -12,6 +12,15 @@ export function joinJsonArray(raw: string | null): string | null {
   }
 }
 
+export function parseTagList(raw: string | null): string[] {
+  try {
+    const values = JSON.parse(raw || '[]');
+    return Array.isArray(values) ? values.filter((value): value is string => typeof value === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 export function parseJobDetails(job: Job): JobDetails {
   return {
     salary: formatSalary(job),
@@ -35,6 +44,12 @@ export function isExpired(job: Job): boolean {
 }
 
 export function normalizeJob(job: Job): Job {
+  const normalizeLocation = (value: string | null): string => {
+    if (!value) return '';
+    const cleaned = value.replace(/\s+/g, ' ').trim();
+    if (cleaned !== cleaned.toUpperCase()) return cleaned;
+    return fixCasing(cleaned).replace(/\b(On|Qc|Ns|Nb|Mb|Sk|Ab|Bc|Pe|Nl|Nt|Nu|Yt|Ca|Us)\b/g, match => match.toUpperCase());
+  };
   return {
     ...job,
     job_title: fixCasing((job.job_title || '')
@@ -43,6 +58,7 @@ export function normalizeJob(job: Job): Job {
       .replace(/\d+$/, '')
       .replace(/ -([A-Z])/, ' - $1')
       .trim()),
+    location: normalizeLocation(job.location),
     department: (job.department || '')
       .replace(/\(\d+\)/g, '')
       .replace(/\s*[-–—]\s*Job Opportunity.*/i, '')

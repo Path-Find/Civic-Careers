@@ -10,7 +10,7 @@ export function JobRow({ job, onClick }: { job: Job; onClick: () => void }) {
     <div className="job-row" onClick={onClick} style={{ cursor: job.is_active ? 'pointer' : 'default', opacity: job.is_active ? 1 : 0.6 }}>
       <div className="job-row-content">
         <div className="job-row-title">
-          <span className="job-row-title-text">{job.job_title}</span>
+          <span className="job-row-title-text" title={job.job_title || undefined}>{job.job_title}</span>
           {!job.is_active && <span className="job-badge job-badge-expired">Expired</span>}
           {job.is_inventory === 1 && <span className="job-badge job-badge-inventory">Inventory</span>}
           {job.is_student === 1 && <span className="job-badge job-badge-student">Student/Co-op</span>}

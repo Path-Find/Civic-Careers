@@ -1,22 +1,60 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Job } from '../../../types/jobs';
+import type { CompanySummary, HomeData, Job } from '../../../types/jobs';
 import { normalizeJob } from '../jobUtils';
 
 const API = import.meta.env.VITE_API_URL ?? '';
 
 export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [homeData, setHomeData] = useState<HomeData | null>(null);
+  const [companySummaries, setCompanySummaries] = useState<CompanySummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [jobsTotal, setJobsTotal] = useState(0);
 
   const refresh = useCallback((singleRid?: number) => {
     setLoading(true);
-    const endpoint = singleRid === undefined ? `${API}/api/jobs` : `${API}/api/jobs?rid=${singleRid}`;
+    const path = window.location.pathname;
+    const view = path === '/' || path === '/about' ? 'home' : path === '/companies' ? 'companies' : path === '/jobs' ? 'jobs' : null;
+    const endpoint = singleRid !== undefined
+      ? `${API}/api/jobs?rid=${singleRid}`
+      : view ? `${API}/api/jobs?view=${view}` : `${API}/api/jobs`;
     fetch(endpoint)
       .then(response => response.json())
-      .then(data => setJobs((Array.isArray(data) ? data : [data]).map(normalizeJob)))
+      .then(data => {
+        if (view === 'home') {
+          const recentJobs = data.recentJobs.map(normalizeJob);
+          const closingSoonJobs = data.closingSoonJobs.map(normalizeJob);
+          setHomeData({ ...data, recentJobs, closingSoonJobs });
+          setJobs([...recentJobs, ...closingSoonJobs]);
+        } else if (view === 'companies') {
+          setCompanySummaries(data);
+          setJobs([]);
+        } else if (view === 'jobs') {
+          const loadedJobs = data.jobs.map(normalizeJob);
+          setJobs(loadedJobs);
+          setJobsTotal(Number(data.total ?? loadedJobs.length));
+        } else {
+          setJobs((Array.isArray(data) ? data : [data]).map(normalizeJob));
+        }
+      })
       .catch(error => console.error('Error fetching jobs:', error))
       .finally(() => setLoading(false));
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || jobs.length >= jobsTotal) return;
+    setLoadingMore(true);
+    try {
+      const response = await fetch(`${API}/api/jobs?view=jobs&limit=50&offset=${jobs.length}`);
+      const data = await response.json();
+      setJobs(previous => [...previous, ...data.jobs.map(normalizeJob)]);
+    } catch (error) {
+      console.error('Error loading more jobs:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [jobs.length, jobsTotal, loadingMore]);
 
   useEffect(() => {
     const match = window.location.pathname.match(/^\/job\/(\d+)$/);
@@ -48,5 +86,5 @@ export function useJobs() {
     return is_saved as number;
   }, [updateJob]);
 
-  return { jobs, loading, refresh, updateJob, loadDescription, toggleSaved };
+  return { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, loadMore, refresh, updateJob, loadDescription, toggleSaved };
 }

@@ -15,14 +15,39 @@ export const parseMarkdownSections = (md: string | null): MarkdownSection[] => {
   }).filter(section => section.heading || section.body);
 };
 
+const MANDATORY_REQUIREMENT = /to be considered for employment|must be|required to|are required|registered as a full-time|eligib(?:le|ility)/i;
+
+export const reclassifyMandatoryNiceToHave = (sections: MarkdownSection[]): MarkdownSection[] => {
+  const mandatory: string[] = [];
+  const result = sections.flatMap(section => {
+    if (!/nice to have/i.test(section.heading)) return [section];
+    const lines = section.body.split('\n');
+    const optional = lines.filter(line => !/^\s*[-•]\s+/.test(line) || !MANDATORY_REQUIREMENT.test(line));
+    mandatory.push(...lines.filter(line => /^\s*[-•]\s+/.test(line) && MANDATORY_REQUIREMENT.test(line)));
+    return optional.join('\n').trim() ? [{ ...section, body: optional.join('\n').trim() }] : [];
+  });
+
+  if (mandatory.length === 0) return result;
+  const qualificationsIndex = result.findIndex(section => /qualif/i.test(section.heading));
+  if (qualificationsIndex >= 0) {
+    result[qualificationsIndex] = {
+      ...result[qualificationsIndex],
+      body: `${result[qualificationsIndex].body}\n\n${mandatory.join('\n')}`.trim(),
+    };
+  } else {
+    result.push({ heading: 'Qualifications', body: mandatory.join('\n') });
+  }
+  return result;
+};
+
 const QUICK_SCAN_GROUPS: Array<[string, RegExp]> = [
-  ['Client care', /client|patient|student|family|community|customer|resident/i],
-  ['Planning & evaluation', /plan|implement|evaluate|strategy|program|assess/i],
-  ['Collaboration', /collaborat|partner|relationship|network|liais|intersector/i],
   ['Education & mentoring', /teach|mentor|train|educat|counsel|orient|facilitat/i],
-  ['Equity & advocacy', /advocat|equity|inclus|divers|social justice|access/i],
-  ['Research & improvement', /research|evidence|quality|workgroup|change management/i],
+  ['Planning & evaluation', /plan|implement|evaluate|strategy|program|assess/i],
+  ['Client care', /client|patient|student|family|community|customer|resident/i],
   ['Operations & compliance', /maintain|monitor|legal|ethical|policy|emergency|documentation|record/i],
+  ['Research & improvement', /research|evidence|quality|workgroup|change management/i],
+  ['Collaboration', /collaborat|partner|relationship|network|liais|intersector/i],
+  ['Equity & advocacy', /advocat|equity|inclus|divers|social justice|access/i],
 ];
 
 export const getQuickScanLabels = (heading: string, body: string): string[] => {
@@ -31,7 +56,26 @@ export const getQuickScanLabels = (heading: string, body: string): string[] => {
   const groups = heading.toLowerCase().includes('qualif')
     ? QUICK_SCAN_GROUPS.filter(([label]) => !['Client care', 'Planning & evaluation'].includes(label))
     : QUICK_SCAN_GROUPS;
-  return groups.filter(([, pattern]) => pattern.test(bullets)).map(([label]) => label);
+  const labels = groups.filter(([, pattern]) => pattern.test(bullets)).map(([label]) => label);
+  return /qualif/i.test(heading) && /student|registered as a full-time/i.test(bullets)
+    ? ['Student', ...labels]
+    : labels;
+};
+
+export const compactNiceToHaveLabel = (label: string): string => {
+  let compact = label
+    .replace(/^(?:familiarity with|knowledge of|experience with|additional training or certifications in|training or certifications in|training or certification in|completion of|ability to|demonstrated knowledge of|demonstrated experience with)\s+/i, '')
+    .replace(/\bthe intersection of\s+/i, '')
+    .replace(/\band the intersection of\s+/i, ', ')
+    .replace(/\s+and\s+(?=[^,]+,)/gi, ', ')
+    .replace(/\s+(?:is|would be)\s+(?:an?\s+)?(?:asset|advantage|preferred|plus)\.?$/i, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[.;:]$/, '')
+    .trim();
+
+  if (!compact) return label;
+  compact = compact.charAt(0).toUpperCase() + compact.slice(1);
+  return compact.length > 96 ? `${compact.slice(0, 93).replace(/[,\s]+$/, '')}…` : compact;
 };
 
 export const compactOverview = (overview: string): string => {
@@ -45,6 +89,8 @@ export const isRedundantCompensation = (heading: string, body: string): boolean 
   if (!/compensation|benefit/i.test(heading)) return false;
   return /^\s*(?:salary|pay|rate)\s*:\s*\$?[\d,.]+\s*(?:to|[-–])\s*\$?[\d,.]+\s+per\s+hour(?:\s+as\s+per\s+the\s+collective\s+agreement)?\.?\s*$/i.test(body);
 };
+
+export const isPlaceholderSection = (body: string): boolean => /^(?:\(?(?:none|n\/a|not applicable|not specified|not provided)\)?[.!]?)$/i.test(body.trim());
 
 export const renderMarkdown = (md: string | null): string => {
   if (!md) return '';

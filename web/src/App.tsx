@@ -9,6 +9,8 @@ import { JobRow } from './modules/jobs/components/JobRow';
 import { JobFiltersSidebar } from './modules/jobs/components/JobFiltersSidebar';
 import { JobDetailView } from './modules/jobs/components/JobDetailView';
 import { CompanyDirectory } from './modules/jobs/components/CompanyDirectory';
+import { CompanyFiltersSidebar } from './modules/jobs/components/CompanyFiltersSidebar';
+import { ListSortControls } from './modules/jobs/components/ListSortControls';
 
 import { Search, ExternalLink, X } from 'lucide-react';
 
@@ -67,22 +69,47 @@ const COMPANY_PORTALS: Record<string, string> = {
 
 inject();
 
+function formatCheckedAt(timestamp: string | null) {
+  if (!timestamp) return 'Not available';
+  const date = new Date(`${timestamp.replace(' ', 'T')}Z`);
+  return Number.isNaN(date.getTime()) ? 'Not available' : new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
 function App() {
-  const { jobs, loading, refresh, loadDescription, toggleSaved } = useJobs();
+  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [currentView, setCurrentView] = useState<View>('home');
+  const [companySort, setCompanySort] = useState<'alphabetical' | 'mostJobs' | 'recent'>('alphabetical');
+  const [companyStatus, setCompanyStatus] = useState<'hiring' | 'all'>('hiring');
   const filters = useJobFilters(jobs, currentView, searchTerm);
   const {
-    minSalary, setMinSalary, selectedModes, setSelectedModes, closingSoon, setClosingSoon,
-    showInventories, setShowInventories, setSortNewest, filteredJobs,
-    recentJobs, closingSoonJobs, availableJobCount, recentlyAddedCount, jobsByCompany, activeJobsByCompany, activeCompanies,
+    minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
+    showInventories, setShowInventories, showStudentJobs, setShowStudentJobs, sortNewest, setSortNewest, newlyAdded, setNewlyAdded, filteredJobs,
+    recentJobs, availableJobCount, recentlyAddedCount, activeCompanies,
     inactiveCompanies,
   } = filters;
+  const homeRecentJobs = homeData?.recentJobs ?? recentJobs;
+  const displayAvailableJobCount = homeData?.availableJobCount ?? availableJobCount;
+  const displayRecentlyAddedCount = homeData?.recentlyAddedCount ?? recentlyAddedCount;
+  const latestJobCheckedAt = jobs.reduce<string | null>((latest, job) => {
+    if (!job.last_checked_at) return latest;
+    return !latest || job.last_checked_at > latest ? job.last_checked_at : latest;
+  }, null);
+  const lastCheckedAt = homeData?.lastCheckedAt ?? latestJobCheckedAt;
+  const hasJobFilters = Boolean(searchTerm || locationTerm || selectedModes.length > 0 || minSalary || deadlineDays !== null || showStudentJobs || showInventories || newlyAdded);
+  const displayedJobCount = currentView === 'jobs' && !hasJobFilters ? jobsTotal : filteredJobs.length;
+  const isCompanyPage = currentView === 'jobs' && Boolean(searchTerm) && (activeCompanies.includes(searchTerm) || inactiveCompanies.includes(searchTerm));
+  const isListingView = currentView === 'jobs' || currentView === 'saved' || currentView === 'companies';
 
   // Sticky sidebars offset by the header's real height (it grows on the job
   // detail page), not a guessed pixel value.
   const headerRef = useRef<HTMLElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const loadMoreTriggerRef = useRef(false);
   const [headerHeight, setHeaderHeight] = useState(80);
 
   useLayoutEffect(() => {
@@ -94,6 +121,26 @@ function App() {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || currentView !== 'jobs' || searchTerm || jobs.length >= jobsTotal) {
+      loadMoreTriggerRef.current = false;
+      return;
+    }
+    const observer = new IntersectionObserver(entries => {
+      const entry = entries[0];
+      if (!entry?.isIntersecting) {
+        loadMoreTriggerRef.current = false;
+        return;
+      }
+      if (loadMoreTriggerRef.current) return;
+      loadMoreTriggerRef.current = true;
+      void loadMore();
+    }, { rootMargin: '250px' });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [currentView, searchTerm, jobs.length, jobsTotal, loadMore]);
 
   // Sync state with browser history
   useEffect(() => {
@@ -121,6 +168,10 @@ function App() {
         setCurrentView('companies');
         setSearchTerm('');
         setSelectedJob(null);
+      } else if (path === '/about') {
+        setCurrentView('about');
+        setSearchTerm('');
+        setSelectedJob(null);
       } else if (path === '/jobs') {
         setCurrentView('jobs');
         setSelectedJob(null);
@@ -144,7 +195,6 @@ function App() {
   }, [selectedJob, loadDescription]);
 
   const handleNavigate = (view: View, companyFilter?: string) => {
-    refresh();
     setCurrentView(view);
     setSelectedJob(null);
     if (companyFilter) {
@@ -153,6 +203,7 @@ function App() {
     } else {
       window.history.pushState(null, '', `/${view === 'home' ? '' : view}`);
     }
+    refresh();
   };
 
   const handleSelectJob = (job: Job) => {
@@ -178,8 +229,10 @@ function App() {
   const currentJobDetails = selectedJob ? parseJobDetails(selectedJob) : null;
 
   const reset = () => {
-    setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setMinSalary(null); setClosingSoon(false); setShowInventories(false); setSortNewest(false);
+    setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setMinSalary(null); setDeadlineDays(null); setShowInventories(false); setSortNewest(false);
+    setLocationTerm(''); setShowStudentJobs(false);
     window.history.pushState(null, '', '/');
+    refresh();
   };
 
   return (
@@ -188,12 +241,12 @@ function App() {
       <header ref={headerRef} className="app-header">
         <div className="app-header-inner">
           <div className="app-header-grid">
-            <h1 onClick={reset} className="app-logo">GovJobs</h1>
+          <h1 onClick={reset} className="app-logo">Civic Careers</h1>
 
             <div className="app-nav-wrap">
               <nav className="app-nav">
                 <span
-                  onClick={() => { setSortNewest(false); setClosingSoon(false); handleNavigate('jobs'); }}
+                  onClick={() => { setSortNewest(false); setDeadlineDays(null); handleNavigate('jobs'); }}
                   className={`app-nav-link ${(currentView === 'jobs' && !selectedJob) ? 'active' : ''}`}
                 >
                   Jobs
@@ -255,52 +308,56 @@ function App() {
       {selectedJob ? (
         <JobDetailView job={selectedJob} details={currentJobDetails!} headerHeight={headerHeight} onNavigate={handleNavigate} onToggleSave={toggleSaveJob} />
       ) : (
-        <main className="feed-main">
+        <main className="feed-main page-transition">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Loading jobs...</div>
+            <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>{currentView === 'companies' ? 'Loading companies...' : 'Loading jobs...'}</div>
+          ) : currentView === 'about' ? (
+            <section className="about-page">
+              <h2>About Civic Careers</h2>
+              <p>Civic Careers brings public-sector and education jobs together in one searchable place.</p>
+              <p>Listings come from official employer career pages. We collect the job details and show the original application link.</p>
+              <p>{displayAvailableJobCount.toLocaleString()} jobs are currently available, including {displayRecentlyAddedCount.toLocaleString()} added in the last 7 days.</p>
+              <p>Last checked: {formatCheckedAt(lastCheckedAt)}</p>
+            </section>
           ) : currentView === 'home' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem' }}>
-              <section>
-                <div style={{ marginBottom: '2rem' }}>
-                   <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, letterSpacing: '-0.03em' }}>Most Recent Postings</h2>
-                   <div className="home-freshness"><strong>{availableJobCount.toLocaleString()} jobs available</strong><span>+{recentlyAddedCount.toLocaleString()} added in the last 7 days</span></div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {recentJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
-                </div>
-                <button onClick={() => { setSortNewest(true); setClosingSoon(false); handleNavigate('jobs'); }} style={{ marginTop: '2rem', border: 'none', backgroundColor: 'transparent', color: '#2563eb', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem', padding: 0 }}>See more →</button>
-              </section>
-
-              <section>
-                <div style={{ marginBottom: '2rem' }}>
-                   <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, letterSpacing: '-0.03em' }}>Closing Soon</h2>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {closingSoonJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
-                </div>
-                <button onClick={() => { setSortNewest(false); setClosingSoon(true); handleNavigate('jobs'); }} style={{ marginTop: '2rem', border: 'none', backgroundColor: 'transparent', color: '#2563eb', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem', padding: 0 }}>See more →</button>
-              </section>
-            </div>
+            <section className="home-preview">
+              <div className="home-preview-heading">
+                <ListSortControls className="list-sort-options" sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setNewlyAdded(false); setDeadlineDays(null); handleNavigate('jobs'); }} onClosingSoon={() => { setSortNewest(false); setNewlyAdded(false); setDeadlineDays(14); handleNavigate('jobs'); }} onNewlyAdded={() => { setSortNewest(false); setNewlyAdded(true); setDeadlineDays(null); handleNavigate('jobs'); }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {homeRecentJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
+              </div>
+            </section>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: currentView === 'companies' ? '1fr' : '200px 1fr', gap: '4rem' }}>
-              {currentView !== 'companies' && (
+            <div className={isListingView ? 'listing-layout' : 'single-column-layout'}>
+              {currentView === 'companies' ? (
+                <CompanyFiltersSidebar status={companyStatus} onStatusChange={setCompanyStatus} />
+              ) : (
                 <JobFiltersSidebar
                   headerHeight={headerHeight}
                   minSalary={minSalary}
+                  locationTerm={locationTerm}
                   selectedModes={selectedModes}
-                  closingSoon={closingSoon}
+                  deadlineDays={deadlineDays}
                   showInventories={showInventories}
+                  showStudentJobs={showStudentJobs}
                   onMinSalaryChange={setMinSalary}
+                  onLocationChange={setLocationTerm}
                   onModesChange={mode => setSelectedModes(prev => prev.includes(mode) ? prev.filter(value => value !== mode) : [...prev, mode])}
-                  onClosingSoonChange={() => setClosingSoon(!closingSoon)}
+                  onDeadlineChange={setDeadlineDays}
                   onInventoriesChange={() => setShowInventories(!showInventories)}
+                  onStudentJobsChange={() => setShowStudentJobs(!showStudentJobs)}
                   onReset={() => { reset(); setShowInventories(false); }}
                 />
               )}
 
               <div style={{ minWidth: 0 }}>
-                <div style={{ marginBottom: '1rem', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {currentView === 'companies' ? `${activeCompanies.length} hiring companies` : (searchTerm || selectedModes.length > 0 || minSalary || closingSoon ? `${filteredJobs.length} matches found` : `${filteredJobs.length} jobs available`)}
+                <div className="list-heading-row">
+                  <div className="list-count-label">
+                  {currentView === 'companies' ? `${(companyStatus === 'hiring' ? companySummaries.filter(company => Number(company.active_job_count) > 0) : companySummaries).length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${filteredJobs.length.toLocaleString()} saved jobs` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
+                  </div>
+                  {currentView === 'companies' && <div className="company-sort-options"><button className={companySort === 'alphabetical' ? 'active' : ''} onClick={() => setCompanySort('alphabetical')}>A–Z</button><button className={companySort === 'mostJobs' ? 'active' : ''} onClick={() => setCompanySort('mostJobs')}>Most jobs</button><button className={companySort === 'recent' ? 'active' : ''} onClick={() => setCompanySort('recent')}>Recently added</button></div>}
+                  {currentView === 'jobs' && !isCompanyPage && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setDeadlineDays(null); setNewlyAdded(false); }} onClosingSoon={() => { setSortNewest(false); setDeadlineDays(14); setNewlyAdded(false); }} onNewlyAdded={() => { setSortNewest(false); setDeadlineDays(null); setNewlyAdded(true); }} />}
                 </div>
                 {currentView === 'jobs' && searchTerm && (activeCompanies.includes(searchTerm) || inactiveCompanies.includes(searchTerm)) && (
                   <div style={{ marginBottom: '1.5rem', padding: '1.25rem 1.5rem', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -320,24 +377,33 @@ function App() {
                     </div>
                   </div>
                 )}
+                {isCompanyPage && <div className="company-results-row"><div className="company-match-count">{filteredJobs.length.toLocaleString()} matches found</div><ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setDeadlineDays(null); setNewlyAdded(false); }} onClosingSoon={() => { setSortNewest(false); setDeadlineDays(14); setNewlyAdded(false); }} onNewlyAdded={() => { setSortNewest(false); setDeadlineDays(null); setNewlyAdded(true); }} /></div>}
+                {isCompanyPage && <div className="company-match-count">{filteredJobs.length.toLocaleString()} matches found</div>}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {(currentView === 'jobs' || currentView === 'saved') ? (
                     filteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)
-                  ) : (
+                  ) : <>
                     <CompanyDirectory
-                      activeCompanies={activeCompanies}
-                      inactiveCompanies={inactiveCompanies}
-                      activeJobsByCompany={activeJobsByCompany}
-                      jobsByCompany={jobsByCompany}
-                      onSelectCompany={name => { setMinSalary(null); setSelectedModes([]); setClosingSoon(false); handleNavigate('jobs', name); }}
+                      companies={companySummaries}
+                      sort={companySort}
+                      showArchived={companyStatus === 'all'}
+                      onSelectCompany={name => { setMinSalary(null); setSelectedModes([]); setDeadlineDays(null); handleNavigate('jobs', name); }}
                     />
-                  )}
+                  </>}
                 </div>
+                {currentView === 'jobs' && jobs.length < jobsTotal && !searchTerm && <div ref={loadMoreRef} className="load-more-sentinel" aria-hidden="true" />}
+                {currentView === 'jobs' && loadingMore && <div className="load-more-status">Loading more jobs...</div>}
               </div>
             </div>
           )}
         </main>
       )}
+      <footer className="app-footer">
+        <div className="app-footer-inner">
+          <div className="app-footer-left"><span>© 2026 Civic Careers</span></div>
+          <div className="app-footer-right"><button className="app-footer-link" onClick={() => handleNavigate('about')}>About</button></div>
+        </div>
+      </footer>
     </div>
   );
 }

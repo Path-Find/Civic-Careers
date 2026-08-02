@@ -6,24 +6,32 @@ import { CLOSING_SOON_DAYS, groupJobsByCompany, isExpired, parseJobDetails } fro
 export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string) {
   const [minSalary, setMinSalary] = useState<number | null>(null);
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
-  const [closingSoon, setClosingSoon] = useState(false);
+  const [locationTerm, setLocationTerm] = useState('');
+  const [deadlineDays, setDeadlineDays] = useState<number | null>(null);
   const [showInventories, setShowInventories] = useState(false);
+  const [showStudentJobs, setShowStudentJobs] = useState(false);
   const [sortNewest, setSortNewest] = useState(false);
+  const [newlyAdded, setNewlyAdded] = useState(false);
   const [now] = useState(() => Date.now());
 
   const filteredJobs = useMemo(() => {
     const pool = currentView === 'saved' ? jobs.filter(job => job.is_saved) : jobs.filter(job => !isExpired(job));
     const filtered = pool.filter(job => {
       if (!showInventories && job.is_inventory) return false;
+      if (showStudentJobs && !job.is_student) return false;
       const query = searchTerm.toLowerCase();
       const matchesSearch = [job.job_title, job.department, job.source]
         .some(value => (value || '').toLowerCase().includes(query));
+      const matchesLocation = !locationTerm || (job.location || '').toLowerCase().includes(locationTerm.toLowerCase());
       const details = parseJobDetails(job);
       const matchesMode = selectedModes.length === 0 || (details.mode !== null && selectedModes.includes(details.mode));
       const matchesSalary = !minSalary || (job.salary_min !== null && job.salary_min >= minSalary);
       const days = daysUntilClose(job.closing_date);
-      const matchesDeadline = !closingSoon || (days !== null && days >= 0 && days <= CLOSING_SOON_DAYS);
-      return matchesSearch && matchesMode && matchesSalary && matchesDeadline;
+      const matchesDeadline = deadlineDays === null
+        || (deadlineDays === -1 ? days === null : days !== null && days >= 0 && days <= deadlineDays);
+      const cutoff = now - 7 * 24 * 60 * 60 * 1000;
+      const matchesNew = !newlyAdded || Date.parse(`${job.first_seen_at.replace(' ', 'T')}Z`) >= cutoff;
+      return matchesSearch && matchesLocation && matchesMode && matchesSalary && matchesDeadline && matchesNew;
     });
     return filtered.sort((a, b) => {
       if (sortNewest) return b.scraped_at.localeCompare(a.scraped_at);
@@ -35,7 +43,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
       if (aUrgent && bUrgent) return (aDays ?? 0) - (bDays ?? 0);
       return b.scraped_at.localeCompare(a.scraped_at);
     });
-  }, [jobs, currentView, searchTerm, minSalary, selectedModes, closingSoon, showInventories, sortNewest]);
+  }, [jobs, currentView, searchTerm, locationTerm, minSalary, selectedModes, deadlineDays, showInventories, showStudentJobs, sortNewest, newlyAdded, now]);
 
   const jobsByCompany = useMemo(() => groupJobsByCompany(jobs), [jobs]);
   const activeJobsByCompany = useMemo(() => Object.fromEntries(
@@ -57,12 +65,12 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
     .filter(({ days }) => days >= 0).sort((a, b) => a.days - b.days).slice(0, 5).map(({ job }) => job), [jobs]);
 
   const resetFilters = () => {
-    setMinSalary(null); setSelectedModes([]); setClosingSoon(false); setShowInventories(false); setSortNewest(false);
+    setMinSalary(null); setLocationTerm(''); setSelectedModes([]); setDeadlineDays(null); setShowInventories(false); setShowStudentJobs(false); setSortNewest(false); setNewlyAdded(false);
   };
 
   return {
-    minSalary, setMinSalary, selectedModes, setSelectedModes, closingSoon, setClosingSoon,
-    showInventories, setShowInventories, sortNewest, setSortNewest, filteredJobs,
+    minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
+    showInventories, setShowInventories, showStudentJobs, setShowStudentJobs, sortNewest, setSortNewest, newlyAdded, setNewlyAdded, filteredJobs,
     recentJobs, closingSoonJobs, availableJobCount: availableJobs.length, recentlyAddedCount,
     jobsByCompany, activeJobsByCompany, activeCompanies, inactiveCompanies, resetFilters,
   };

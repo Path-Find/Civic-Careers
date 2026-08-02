@@ -1,6 +1,7 @@
 import { Bookmark, ExternalLink } from 'lucide-react';
 import type { MouseEvent } from 'react';
-import { compactOverview, formatDate, getQuickScanLabels, isRedundantCompensation, parseMarkdownSections, renderMarkdown } from '../../../utils';
+import { compactNiceToHaveLabel, compactOverview, formatDate, getQuickScanLabels, isPlaceholderSection, isRedundantCompensation, parseMarkdownSections, reclassifyMandatoryNiceToHave, renderMarkdown } from '../../../utils';
+import { parseTagList } from '../jobUtils';
 import type { Job, JobDetails, View } from '../../../types/jobs';
 
 export function JobDetailView({ job, details, headerHeight, onNavigate, onToggleSave }: {
@@ -10,9 +11,12 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   onNavigate: (view: View, companyFilter?: string) => void;
   onToggleSave: (job: Job, event: MouseEvent) => void;
 }) {
-  const descriptionSections = parseMarkdownSections(job.description ?? null);
+  const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.job_title}`)}&body=${encodeURIComponent(`Job: ${job.job_title}\nCompany: ${job.source}\nURL: ${job.url}\n\nProblem:`)}`;
+  const descriptionSections = reclassifyMandatoryNiceToHave(parseMarkdownSections(job.description ?? null));
   const overview = descriptionSections.find(section => section.heading.toLowerCase() === 'overview');
-  const detailSections = descriptionSections.filter(section => section !== overview && section.body && !isRedundantCompensation(section.heading, section.body));
+  const detailSections = descriptionSections.filter(section => section !== overview && section.body && !isPlaceholderSection(section.body) && !isRedundantCompensation(section.heading, section.body));
+  const responsibilityTags = parseTagList(job.responsibility_tags);
+  const qualificationTags = parseTagList(job.qualification_tags);
   const metadata = [
     { label: 'Department', value: job.department }, { label: 'Location', value: job.location },
     { label: 'Salary', value: details.salary }, { label: 'Work Mode', value: details.mode },
@@ -30,18 +34,19 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           <button className="detail-action save-button" onClick={event => onToggleSave(job, event)}><Bookmark size={14} fill={job.is_saved ? '#0f172a' : 'transparent'} />{job.is_saved ? 'Saved' : 'Save'}</button>
         </div>
         <div className="detail-metadata">{metadata.filter(item => item.value).map(item => <div key={item.label}><div className="metadata-label">{item.label}</div><div className={`metadata-value ${item.highlight ? 'highlight' : ''}`}>{item.value}</div></div>)}</div>
+        <a className="detail-action report-button" href={reportUrl} target="_blank" rel="noopener noreferrer">Report a problem</a>
       </div>
       <div className="detail-content">
         <div className="detail-card">
           <div className="detail-source" onClick={() => onNavigate('jobs', job.source)}>{job.source}</div>
-          <h1 className="detail-title">{job.job_title}</h1>
+          <h1 className="detail-title" title={job.job_title || undefined}>{job.job_title}</h1>
           {job.description ? <div className="detail-description">
             {overview && <div className="detail-overview" dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${overview.heading}\n${compactOverview(overview.body)}`) }} />}
             {detailSections.map(section => {
               const isGroupedSection = /responsibilit|qualif/i.test(section.heading);
               const labels = isGroupedSection
-                ? getQuickScanLabels(section.heading, section.body)
-                : section.body.split('\n').filter(line => /^\s*[-•]\s+/.test(line)).map(line => line.replace(/^\s*[-•]\s+/, '').trim());
+                ? (/qualif/i.test(section.heading) && qualificationTags.length ? qualificationTags : /responsibilit/i.test(section.heading) && responsibilityTags.length ? responsibilityTags : getQuickScanLabels(section.heading, section.body))
+                : section.body.split('\n').filter(line => /^\s*[-•]\s+/.test(line)).map(line => compactNiceToHaveLabel(line.replace(/^\s*[-•]\s+/, '').trim()));
               const isLongSection = isGroupedSection || /nice to have/i.test(section.heading);
               if (!isLongSection) {
                 return <div key={section.heading} dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${section.heading}\n${section.body}`) }} />;
