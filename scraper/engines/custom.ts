@@ -583,6 +583,60 @@ export async function scrapeStLawrenceCollege(db: Client, context: BrowserContex
   }
 }
 
+export type BrassRingJob = { id: string; title: string; url: string };
+
+export function extractBrassRingJobs(html: string, portalUrl: string): BrassRingJob[] {
+  const jobs: BrassRingJob[] = [];
+  const seen = new Set<string>();
+  const anchorPattern = /<a\b[^>]*href=["']([^"']*PageType=JobDetails(?:&amp;|&)jobid=(\d+)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+  for (const match of html.matchAll(anchorPattern)) {
+    const href = match[1];
+    const jobId = match[2];
+    const anchorText = match[3];
+    if (!href || !jobId || !anchorText || seen.has(jobId)) continue;
+
+    const url = new URL(href.replace(/&amp;/g, '&'), portalUrl).href;
+    const title = decodeHtmlEntities(
+      anchorText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    );
+    if (!title) continue;
+
+    seen.add(jobId);
+    jobs.push({ id: `brassring_${jobId}`, title, url });
+  }
+
+  return jobs;
+}
+
+export async function scrapeBrassRing(db: Client, context: BrowserContext) {
+  const sourceName = 'Halifax Regional Municipality';
+  const listingUrl = 'https://sjobs.brassring.com/TGnewUI/Search/Home/Home?partnerid=25749&siteid=5764';
+  console.log(`Scraping ${sourceName} (BrassRing)...`);
+  const page = await context.newPage();
+  try {
+    await safeGoto(page, listingUrl, 60000);
+    const allJobsButton = page.locator('[ng-click="searchMatchedJobs(this)"]');
+    if (await allJobsButton.count()) {
+      await allJobsButton.first().click();
+      await page.waitForSelector('a[href*="PageType=JobDetails"]', { timeout: 15000 });
+      await page.waitForTimeout(2000);
+    }
+
+    const jobs = extractBrassRingJobs(await page.content(), listingUrl);
+    console.log(`[${sourceName}] Found ${jobs.length} job pages`);
+    for (const job of jobs) {
+      await scrapeRawAndStage(db, context, job, sourceName);
+    }
+    console.log(`\n[${sourceName}] Done.`);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
+  } finally {
+    await page.close();
+  }
+}
+
 export async function scrapeSmithsFalls(db: Client, context: BrowserContext) {
   const sourceName = 'Town of Smiths Falls';
   const base = 'https://www.smithsfalls.ca';
