@@ -11,6 +11,11 @@ export async function scrapeNjoyn(db: Client, context: BrowserContext, url: stri
     await page.waitForSelector('#njoynPageContainer a, a[href*="joblisting"], .job-title a, .njoyn-job-row a', { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(3000);
 
+    const challengeText = await page.locator('body').innerText().catch(() => '');
+    if (/Radware Captcha Page|validate\.perfdrive\.com|request unblock/i.test(`${page.url()}\n${challengeText}`)) {
+      throw new Error(`${sourceName}: Njoyn board blocked by Radware CAPTCHA (${page.url()})`);
+    }
+
     let hasNextPage = true;
     let pageNum = 1;
     while (hasNextPage) {

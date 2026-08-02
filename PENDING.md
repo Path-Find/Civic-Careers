@@ -150,7 +150,7 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 - St. Clair College — https://www.stclaircollege.ca/careers/current-opportunities (current full-time/term postings are direct PDFs; tracked in issue #75)
 - Lambton College — https://lambtoncollege.njoyn.com/CL4/xweb/Xweb.asp?CLID=72351&page=joblisting (Njoyn; the official careers page links to this tenant; use the existing Njoyn engine)
 - Confederation College — https://confederationcollege.peopleadmin.ca/postings/search (PeopleAdmin; 21 open postings with stable `/postings/<id>` detail links; use the PeopleAdmin work tracked in issue #77)
-- Sault College — https://saultcollege.njoyn.com/cl3/xweb/Xweb.asp?CLID=56877&page=joblisting (Njoyn; the live page exposes two current postings with job numbers and detail links; use the existing Njoyn engine)
+- Sault College — https://saultcollege.njoyn.com/cl3/xweb/Xweb.asp?CLID=56877&page=joblisting (Njoyn; currently blocked by Radware CAPTCHA before job links load; tracked in issue #94)
 - Canadore College — https://www.canadorecollege.ca/careers (official careers page currently returns a client-challenge page; no staff job-board URL confirmed; student employment is a separate seasonal portal)
 - Northern College — https://www.northerncollege.ca/careers/ (8 current postings with stable `/careers/jobs/<slug>` detail links and HTML descriptions; shared custom implementation candidate in issue #79)
 - Collège Boréal — https://collegeboreal.wd3.myworkdayjobs.com/en-US/CB (Workday; 7 postings stored successfully in manual run 30724286120)
