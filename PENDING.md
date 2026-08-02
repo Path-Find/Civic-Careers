@@ -42,7 +42,7 @@ Grouped by platform, same convention as `SOURCES.md` — that's the axis that de
 
 ### Njoyn (existing engine, one confirmed-blocked tenant)
 
-- Unidentified Njoyn tenant (CLID=61430) — blocked by Radware bot-protection captcha before the entity name could even be confirmed. Same dead-end as Toronto Public Library — not fixable without CAPTCHA bypass, which is out of scope.
+- City of Airdrie (Njoyn CLID=61430) — https://clients.njoyn.com/CL2/xweb/xweb.asp?page=joblisting&CLID=61430 (identified 2026-08-02; previously blocked by Radware before entity name could be confirmed — retest)
 
 ### Jobs2Web (existing engine, detail-page render bug — confirmed on 3 tenants)
 
@@ -107,7 +107,7 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 ### Municipal & regional
 
 - City of Abbotsford — https://www.abbotsford.ca/city-hall/human-resources/career-opportunities (Njoyn; 8 jobs stored in manual run 30725466168)
-- Simcoe County
+- Simcoe County — https://simcoe.hua.hrsmart.com/hr/ats/JobSearch/viewAll (HRSmart; confirmed from https://simcoe.ca/hr/career-opportunities/; also listed under HRSmart engine-ready above)
 - City of Pickering — https://www.pickering.ca/council-city-administration/employment-opportunities/ (server-rendered job table with direct detail links, plus Pickering Public Library jobs linked from the same page; candidate for shared custom municipal HTML work in issue #86)
 - Town of Newmarket — https://sire.newmarket.ca/TownGovernment/Pages/Job-Opportunities.aspx (main and recreation postings use HRSmart at https://newmarket.hua.hrsmart.com/hr/ats/JobSearch/viewAll; 14 jobs stored in manual run 30725902033)
 - VIA TGF Inc. — https://carrieres-careers.altotrain.ca/search/?createNewAlert=false&q= (VIA HFR / VIA TGF careers site)
@@ -182,18 +182,18 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 
 ### Libraries
 
-- Toronto Public Library (re-enable; previously disabled for bot protection)
+- Toronto Public Library (re-enable; previously disabled for Radware bot protection) — former Njoyn board; re-confirm live URL before re-enabling
 - BWG Public Library — https://bwg.njoyn.com/CL/xweb/Xweb.asp?CLID=126454&page=joblisting (separate Njoyn board linked from the Town careers page; Actions stored 0; browser-specific investigation in issue #94)
 - Ottawa Public Library — https://about.biblioottawalibrary.ca/en/jobs-ottawa-public-library (links into the City of Ottawa Jobs2Web board; do not create a separate portal engine)
 - Mississauga Library System — https://www.mississauga.ca/library/library-jobs-and-volunteer/ (links into the existing City of Mississauga Jobs2Web board; city source should be labelled as including library jobs)
-- London Public Library (UltiPro; staged in manual batch engine-ready-11)
+- London Public Library — https://recruiting.ultipro.ca/LON5100LPLY/JobBoard/5a8bb7ac-1f7b-4aae-9db8-37f3df5b9940/?o=postedDateDesc&q= (UltiPro; staged in manual batch engine-ready-11)
 - Markham Public Library — https://markhampubliclibrary.ca/employment/ (current postings are direct PDFs; tracked with the PDF/form sources in issue #75)
-- Oakville Public Library (Taleo; staged in manual batch engine-ready-11)
+- Oakville Public Library — https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?brid=ohm5hsyepJ9o6VvSF7WaYg&cws=43&org=TOWNOFOA (Taleo; Town of Oakville board — label city source as including library; staged engine-ready-11)
 - Burlington Public Library — https://www.bpl.on.ca/about/careers (no current posting links found in the page HTML; needs a current source URL)
-- Richmond Hill Public Library
-- Kitchener Public Library
-- Waterloo Public Library
-- Guelph Public Library
+- Richmond Hill Public Library — via City of Richmond Hill https://jobs.richmondhill.ca/go/Richmond-Hill-Public-Library/2617617/ (do not create a separate library source)
+- Kitchener Public Library — https://www.kpl.org/your-library/job-opportunities (PDF/email when open; also listed under custom not-yet-investigated)
+- Waterloo Public Library — https://www.wpl.ca/your-library/job-opportunities/ (no openings at last audit)
+- Guelph Public Library — https://www.guelphpl.ca/careers/ (page text + email/form; also listed above)
 
 ### Additional Canadian public libraries — names only
 
@@ -249,7 +249,7 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 
 ### Crown corps & provincial agencies
 
-- Ontario Power Generation
+- Ontario Power Generation — https://jobs.opg.com/go/View-All-Jobs/2398117/ (Jobs2Web; mid-2026 recruitment-system transition may pause posts)
 - Hydro One — https://jobs.hydroone.com/search (Jobs2Web; staged in manual batch engine-ready-10)
 - Toronto Hydro — https://jobs.torontohydro.com/search/ (Jobs2Web; staged in manual batch engine-ready-10)
 - Hydro Ottawa — https://hydroottawa.wd3.myworkdayjobs.com/en-US/hydro_ottawa_careersite (Workday; staged in manual batch engine-ready-10)
@@ -265,13 +265,15 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 
 ### Transit (if separate from municipal portals)
 
-- OC Transpo
-- MiWay
-- York Region Transit
-- Durham Region Transit
-- Brampton Transit
-- Grand River Transit
-- Hamilton Street Railway
+Most GTHA transit brands share the city/region board — do not create a second scraper; label the parent source as including transit.
+
+- OC Transpo — https://jobs-emplois.ottawa.ca/city-jobs/go/OC-Transpo/8649847/ (City of Ottawa Jobs2Web/SuccessFactors filter; hub: https://www.octranspo.com/en/about-us/jobs/)
+- MiWay — https://jobs.mississauga.ca/ (City of Mississauga board; hub: https://www.mississauga.ca/miway-transit/transit-jobs/)
+- York Region Transit — operators often hired via contractors (e.g. Miller Transit); regional staff on York Region HRSmart https://york.hua.hrsmart.com/hr/ats/JobSearch/viewAll (already active as York Region)
+- Durham Region Transit — included in Durham Region PeopleSoft https://recruitregion.durham.ca/psc/recruit_rmd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=3 (already staged under PeopleSoft)
+- Brampton Transit — https://careers.brampton.ca/search/ (City of Brampton Jobs2Web; already active)
+- Grand River Transit — https://careers.regionofwaterloo.ca/RoW/search/ (Region of Waterloo Jobs2Web; already active)
+- Hamilton Street Railway — https://cityofhamilton.bamboohr.com/careers (City of Hamilton BambooHR; already active)
 
 ### Additional Canadian public transit agencies — names only
 
@@ -286,7 +288,7 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 
 #### Saskatchewan
 
-- Saskatoon Transit — city-wide careers board URL needs correction; the listed `/city-hall/careers` URL currently returns 404
+- Saskatoon Transit — apply via City of Saskatoon Jobs2Web https://careers.saskatoon.ca/ (do not add a separate transit source)
 - Regina Transit — https://jobs.regina.ca/ (roles are included in the City of Regina Jobs2Web board; do not add a separate transit source)
 - Prince Albert Transit — https://www.citypa.ca/en/city-hall/careers.aspx (official site exposes a general Jobs link, but this exact careers URL was not confirmed as a live posting board; verify the current destination before choosing an engine)
 
@@ -300,8 +302,8 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 #### Atlantic Canada
 
 - Halifax Transit — https://www.halifax.ca/about-halifax/employment (city-wide careers board; original URL is stale)
-- Saint John Transit — city-wide careers board URL needs correction; the listed careers URL currently returns 404
-- Fredericton Transit — https://www.fredericton.ca/city-government/careers (city-wide careers board; original URL redirects here)
+- Saint John Transit — apply via City of Saint John Njoyn https://clients.njoyn.com/CL2/xweb/xweb.asp?page=joblisting&CLID=51331 (city-wide; do not split transit)
+- Fredericton Transit — City of Fredericton Oracle Cloud https://eihe.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs (hub: https://www.fredericton.ca/city-government/careers)
 - Codiac Transpo — https://www.moncton.ca/en/city-hall/careers
 - Charlottetown Transit — https://www.charlottetown.ca/city_hall/careers
 - Metrobus St. John's — https://www.stjohns.ca/your-government/careers/ (city-wide careers board; original URL redirects here)
@@ -313,24 +315,24 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 
 ### Police services (if separate from municipal portals)
 
-- Toronto Police Service
-- Ontario Provincial Police
-- Peel Regional Police
-- York Regional Police
-- Ottawa Police Service
+- Toronto Police Service — PeopleSoft Fluid: uniform https://careers.torontopolice.on.ca/psc/ERCRT92/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&SiteID=1000 · civilian https://careers.torontopolice.on.ca/psc/ERCRT92/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&SiteID=2000 (hub: https://www.tps.ca/careers/)
+- Ontario Provincial Police — constable recruitment https://recruitment.opp.ca · civilian roles post on active OPS https://www.gojobs.gov.on.ca/ (do not split civilian as a second OPP source)
+- Peel Regional Police — PeopleSoft: officer SiteID=3000 https://careers.peelpolice.ca/psc/HR92RECP/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&SiteID=3000 · civilian SiteID=2000 https://careers.peelpolice.ca/psc/HR92RECP/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&SiteID=2000 (hub: https://www.peelpolice.ca/careers/)
+- York Regional Police — Jobs2Web: uniform https://jobs.yrp.ca/go/Uniform-Career-Opportunities/8666547/ · civilian https://jobs.yrp.ca/go/Civilian-Career-Opportunities/8666447/ (hub: https://jobs.yrp.ca/)
+- Ottawa Police Service — https://jobs-emplois.ottawa.ca/OttawaPolice/search (City of Ottawa Jobs2Web stack, OPS-branded site)
 
 ### School boards (major boards only)
 
-- Toronto District School Board
-- Toronto Catholic District School Board
-- York Region District School Board
-- Peel District School Board
-- Halton District School Board
-- Ottawa-Carleton District School Board
-- Hamilton-Wentworth District School Board
-- Thames Valley District School Board
-- Waterloo Region District School Board
-- Durham District School Board
+- Toronto District School Board — already active: https://www.tdsb.on.ca/jobpostings/list.html
+- Toronto Catholic District School Board — ApplyToEducation https://tcdsb.simplication.com/ (hub https://www.tcdsb.org/page/jobs also Apptegy; prefer ATE for applications — issue #89)
+- York Region District School Board — ApplyToEducation https://yrdsb.simplication.com/ (hub: https://www2.yrdsb.ca/about-us/working-yrdsb/careers)
+- Peel District School Board — https://www.peelschools.org/careers/list (Lumesse/TalentLink-style in-house board; hub: https://www.peelschools.org/careers)
+- Halton District School Board — ApplyToEducation https://hdsb.simplication.com/ (hub: https://www.hdsb.ca/our-board/careers/)
+- Ottawa-Carleton District School Board — ApplyToEducation https://ocdsb.simplication.com/ (hub: https://www.ocdsb.ca/careers)
+- Hamilton-Wentworth District School Board — ApplyToEducation https://hwdsb.simplication.com/ (hub: https://www.hwdsb.on.ca/careers)
+- Thames Valley District School Board — Knighthunter support https://tvdsb.knighthunter.com/ · teaching https://tvdsb.knighthunter.com/TeachingList.aspx (hub: https://www.tvdsb.ca/en/our-board/employment-opportunities.aspx)
+- Waterloo Region District School Board — ApplyToEducation https://wrdsb.simplication.com/ (hub: https://www.wrdsb.ca/careers/)
+- Durham District School Board — ApplyToEducation https://ddsb.simplication.com/ (hub: https://www.ddsb.ca/about-ddsb/careers-at-the-ddsb/)
 
 ## Quebec — names only (URL TBD)
 
@@ -338,67 +340,67 @@ Starter expansion set. **Ville de Montréal** and **Ville de Montréal (SIM)** a
 
 ### Provincial & large cities
 
-- Gouvernement du Québec (fonction publique)
-- Ville de Québec
-- Ville de Laval
-- Ville de Gatineau
-- Ville de Longueuil
-- Ville de Sherbrooke
-- Ville de Lévis
-- Ville de Trois-Rivières
-- Ville de Saguenay
-- Ville de Terrebonne
-- Ville de Brossard
-- Ville de Repentigny
-- Ville de Saint-Jérôme
-- Ville de Drummondville
-- Ville de Granby
-- Ville de Shawinigan
-- Ville de Saint-Hyacinthe
-- Ville de Blainville
-- Ville de Dollard-des-Ormeaux
-- Ville de Mirabel
+- Gouvernement du Québec (fonction publique) — https://emplois.carrieres.gouv.qc.ca/plateforme-emploi (custom Emplois en ligne; hub: https://www.quebec.ca/gouvernement/travailler-gouvernement/emplois-fonction-publique)
+- Ville de Québec — https://recrutement.ville.quebec.qc.ca/default.aspx (custom; hub: https://www.ville.quebec.qc.ca/apropos/emplois/)
+- Ville de Laval — https://carriere.laval.ca/search/ (SuccessFactors; hub: https://www.laval.ca/organisation-municipale/emplois/)
+- Ville de Gatineau — https://clients.njoyn.com/CL2/xweb/xweb.asp?page=joblisting&CLID=27082&lang=2 (Njoyn CLID=27082; also listed under libraries as including library roles)
+- Ville de Longueuil — Manitou https://app.manitousolution.com/libreservice/index.html?customer=120053&lang=fr (hub: https://www.longueuil.quebec/fr/emplois)
+- Ville de Sherbrooke — https://www.sherbrooke.ca/fr/emplois (custom hub/portail)
+- Ville de Lévis — https://levisrecrute.com/emploi/ (Workland; hub: https://levisrecrute.com/)
+- Ville de Trois-Rivières — https://www.v3r.net/emplois/postes-disponibles (custom on-site)
+- Ville de Saguenay — https://carriere.saguenay.ca/jobs (custom)
+- Ville de Terrebonne — https://clients.njoyn.com/cl4/xweb/Xweb.asp?page=joblisting&lang=2&CLID=71764 (Njoyn CLID=71764)
+- Ville de Brossard — https://atlas.workland.com/careers/brossard/jobs (Workland; hub: https://brossard.ca/emplois/)
+- Ville de Repentigny — https://atlas.workland.com/careers/ville-de-repentigny/jobs (Workland)
+- Ville de Saint-Jérôme — https://www.vsj.ca/emplois/ (custom per-job pages)
+- Ville de Drummondville — https://www.drummondville.ca/emplois/ (custom WordPress board)
+- Ville de Granby — https://www.granby.ca/fr/emplois-disponibles (custom on-site list)
+- Ville de Shawinigan — https://www.shawinigan.ca/ville/offres-demploi/ (custom)
+- Ville de Saint-Hyacinthe — https://app.st-hyacinthe.ca/Portail_Emplois (custom municipal portal)
+- Ville de Blainville — https://emplois.blainville.ca/default (custom ATS)
+- Ville de Dollard-des-Ormeaux — https://ville.ddo.qc.ca/travailler/offres-demploi/ (custom)
+- Ville de Mirabel — https://clients.njoyn.com/cl4/xweb/Xweb.asp?page=joblisting&lang=2&CLID=71754 (Njoyn CLID=71754)
 
 ### Crown / agencies / transit
 
-- Hydro-Québec
-- SAQ
-- Loto-Québec
-- STM (Société de transport de Montréal)
-- Société de transport de Laval
-- Réseau de transport de Longueuil
-- Réseau de transport de la Capitale
-- Sûreté du Québec
-- Bibliothèque et Archives nationales du Québec
-- Investissement Québec
-- Société des traversiers du Québec
-- Revenu Québec
+- Hydro-Québec — https://emploi.hydroquebec.com/go/Tous-les-emplois/2665017/ (SuccessFactors/Jobs2Web)
+- SAQ — https://emploi.saq.com/search/ (SuccessFactors; retail sometimes AppyHere https://apply.appyhere.com/saq-com)
+- Loto-Québec — https://carrieres.lotoquebec.com/tous-les-emplois (custom)
+- STM (Société de transport de Montréal) — https://emplois.stm.info/ (hub: https://www.stm.info/fr/emploi)
+- Société de transport de Laval — https://lavaltransit.njoyn.com/CL2/xweb/xweb.asp?clid=60406&page=joblisting (Njoyn CLID=60406)
+- Réseau de transport de Longueuil — https://rtl.njoyn.com/CL2/xweb/xweb.asp?page=joblisting&clid=24153&lang=2 (Njoyn CLID=24153)
+- Réseau de transport de la Capitale — https://clients.njoyn.com/CGI/xweb/Xweb.asp?CLID=23009&page=joblisting&lang=2 (Njoyn CLID=23009)
+- Sûreté du Québec — police https://recrutement.sq.gouv.qc.ca/ · civils via provincial Emplois en ligne https://emplois.carrieres.gouv.qc.ca/ (filter SQ)
+- Bibliothèque et Archives nationales du Québec — https://banq.cvmanager.com/ (CVManager; list: https://www.banq.qc.ca/emploi/emplois-disponibles/)
+- Investissement Québec — https://investquebec.wd10.myworkdayjobs.com/fr-CA/ext (Workday)
+- Société des traversiers du Québec — https://atlas.workland.com/careers/stq (Workland)
+- Revenu Québec — https://www.revenuquebec.ca/emplois/rechercher-un-emploi/ (often routes via provincial Emplois en ligne)
 
 ### Universities
 
-- Université de Montréal
-- Concordia University
-- Université Laval
-- UQAM
-- Université de Sherbrooke
-- École de technologie supérieure
-- HEC Montréal
-- Polytechnique Montréal
-- Université du Québec à Trois-Rivières
-- Université du Québec à Chicoutimi
-- Université du Québec en Outaouais
-- Bishop's University
+- Université de Montréal — PeopleSoft Fluid https://rh-carriere-dmz.synchro.umontreal.ca/psc/rhprpr9_car/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&SiteId=1
+- Concordia University — SuccessFactors https://career17.sapsf.com/career?company=universitc (hub: https://www.concordia.ca/hr/jobs/openings.html)
+- Université Laval — https://www.rh.ulaval.ca/emplois-disponibles (custom RH/HCM)
+- UQAM — Workland staff (hub: https://rh.uqam.ca/emplois/); student board https://emplois.uqam.ca/
+- Université de Sherbrooke — https://www.usherbrooke.ca/emplois/offres
+- École de technologie supérieure — Taleo https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=ETS&cws=37
+- HEC Montréal — https://emplois-admin.hec.ca/ (some tracks Taleo)
+- Polytechnique Montréal — https://www.polymtl.ca/carriere/offres-demploi
+- Université du Québec à Trois-Rivières — Oracle portal https://oraprdnt.uqtr.uquebec.ca/portail/gscw030?owa_no_site=728
+- Université du Québec à Chicoutimi — https://www.uqac.ca/emploi/
+- Université du Québec en Outaouais — Workland https://atlas.workland.com/careers/uqo/jobs (faculty separate on uqo.ca)
+- Bishop's University — https://working.ubishops.ca/
 
 ### Cégeps (sample — high enrollment)
 
-- Cégep du Vieux Montréal
-- Collège Ahuntsic
-- Collège de Maisonneuve
-- Dawson College
-- Vanier College
-- Cégep de Sainte-Foy
-- Cégep de Limoilou
-- Cégep de Sherbrooke
+- Cégep du Vieux Montréal — Workland https://atlas.workland.com/careers/cvm/jobs
+- Collège Ahuntsic — Workland https://atlas.workland.com/careers/collegeahuntsic
+- Collège de Maisonneuve — Manitou https://app.manitousolution.com/libreservice/index.html?customer=120049&lang=fr (hub: https://www.cmaisonneuve.qc.ca/emploi/)
+- Dawson College — Workland https://atlas.workland.com/careers/dawsoncollege/jobs
+- Vanier College — https://careers.vaniercollege.qc.ca/en/annonces
+- Cégep de Sainte-Foy — Workland https://atlas.workland.com/careers/csfoy
+- Cégep de Limoilou — TalentSoft https://cegeplimoilou-career.talent-soft.com/offre-de-emploi/liste-offres.aspx
+- Cégep de Sherbrooke — Workland https://atlas.workland.com/careers/cegepsherbrooke
 
 ## Canada — additional public universities and colleges (names only)
 
@@ -467,49 +469,49 @@ English-speaking, so no translation-handling gap like the Quebec set above — p
 
 ### Provincial & municipal
 
-- Government of Manitoba (jobsearch.gov.mb.ca — provincial portal, likely similar structure to Ontario's OPS scraper)
+- Government of Manitoba — https://jobsearch.gov.mb.ca/search.action (legacy e-recruit; structure closer to OPS custom than Jobs2Web)
 - City of Winnipeg — moved to "Engine ready" above (PeopleSoft Fluid, URL confirmed 2026-07-12)
 - City of Brandon — promoted to active 2026-07-12 (Dayforce)
-- City of Steinbach
-- City of Portage la Prairie
-- City of Thompson
-- City of Selkirk
-- City of Winkler
-- City of Morden
+- City of Steinbach — https://www.steinbach.ca/departments-and-services/careers-with-the-city-of-steinbach/ (PDF/email application only; no public ATS)
+- City of Portage la Prairie — https://www.city-plap.com/council-administration/careers/ (CMS + PDF/email; no ATS)
+- City of Thompson — https://cityofthompson.applytojobs.ca/ (ApplyToJobs; hub: https://www.thompson.ca/p/job-opportunities)
+- City of Selkirk — https://cityofselkirk.myavanti.ca/careers (Avanti; use existing engine)
+- City of Winkler — https://www.cityofwinkler.ca/p/employment (CMS/email; site fragile)
+- City of Morden — https://morden.ca/employment (CMS/email)
 
 ### Crown corporations & agencies
 
 - Manitoba Hydro — https://www.hydro.mb.ca/careers/ (current postings link to `careers.hydro.mb.ca`, an SAP Web Dynpro board rather than the supported SuccessFactors layout; tracked in issue #99)
 - Manitoba Public Insurance (MPI) — https://www.mpi.mb.ca/careers/ (current openings link to `careers-mpi.icims.com`; use the existing iCIMS engine)
-- Manitoba Liquor & Lotteries
+- Manitoba Liquor & Lotteries — https://gjobs.neogov.ca/careers/mbll/ (NEOGOV; use engine from issue #74)
 - Shared Health Manitoba (provincial health authority) — https://careers.wrha.mb.ca/ (shared SuccessFactors board; 25 jobs stored in manual run 30725674862; source attribution still needs confirmation across the shared Manitoba health employers)
 - Manitoba Housing — https://www.gov.mb.ca/housing/careers/job_opportunities.html (currently no openings; page points other roles to the Government of Manitoba portal, so do not create a separate source until a Manitoba Housing posting appears)
-- CentreVenture (Winnipeg downtown development corp)
+- CentreVenture (Winnipeg downtown development corp) — no standing careers board; ad-hoc LinkedIn/news posts only
 
 ### Universities & colleges
 
 - University of Winnipeg — https://www.uwinnipeg.ca/hr/employment.html (official page links to the NorthStar ATS board at https://www.northstarats.com/University-of-Winnipeg; stable popup detail URLs, tracked in issue #91)
 - Brandon University — https://www.brandonu.ca/jobs/ (server-rendered grouped listings with direct detail links and separate student/support/faculty categories; candidate for the shared custom HTML work in issue #79)
 - Université de Saint-Boniface — https://carrieres.ustboniface.ca/ (Dayforce board at `jobs.dayforcehcm.com`; the board exposes 9 unique postings—the prior 18-count included duplicate title/“Learn more” links; detail handling fixed in issue #92)
-- Canadian Mennonite University
-- Red River College Polytechnic
-- Assiniboine Community College
-- University College of the North
+- Canadian Mennonite University — https://www.cmu.ca/about/employment (CMS/email per posting)
+- Red River College Polytechnic — https://careers.rrc.ca/ (VIP Cloud; hub: https://www.rrc.ca/hr/work/employment-opportunities/ — issue #96 VIP investigation)
+- Assiniboine Community College — https://assiniboine.net/community/employment/working-assiniboine/career-opportunities (CMS/email)
+- University College of the North — https://ucn.ca/careers/ (CMS/email + forms)
 
 ### Transit, police & libraries
 
-- Winnipeg Transit
-- Winnipeg Police Service
-- Winnipeg Public Library
+- Winnipeg Transit — apply via City of Winnipeg PeopleSoft (already active); hub https://info.winnipegtransit.com/en/careers/careers-with-winnipeg-transit — do not create a separate transit source
+- Winnipeg Police Service — recruitment hub https://www.winnipeg.ca/police/recruitment · applications via City of Winnipeg PeopleSoft (already active)
+- Winnipeg Public Library — directs to City of Winnipeg Careers (already active)
 
 ### School divisions (major only)
 
-- Winnipeg School Division
-- Pembina Trails School Division
-- Louis Riel School Division
-- Seven Oaks School Division
-- River East Transcona School Division
-- St. James-Assiniboia School Division
+- Winnipeg School Division — ApplyToEducation https://winnipegsd.simplication.com/ (hub: https://www.winnipegsd.ca/careers)
+- Pembina Trails School Division — https://pembinatrails.tedk12.ca/hire/index.aspx (PowerSchool/AppliTrack; hub: https://www.pembinatrails.ca/careers)
+- Louis Riel School Division — external https://www.lrsd.net/job-postings-for-external-candidates
+- Seven Oaks School Division — ApplyToEducation https://7oaks.simplication.com/ (hub: https://www.7oaks.org/careers)
+- River East Transcona School Division — CIMS JobConnect https://retsd.cims-epic.ca/JobConnect/JobList.aspx (hub: https://www.retsd.mb.ca/careers)
+- St. James-Assiniboia School Division — https://www.sjasd.ca/Employment/Pages/default.aspx (Formsite/CMS split teaching vs non-teaching)
 
 ---
 
@@ -540,13 +542,28 @@ Highest-value white space — full civil-service boards outside OPS/GC Jobs.
 - **City of Surrey** — https://careers.surrey.ca/psc/CAREERS/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant (PeopleSoft Fluid; BC’s 2nd-largest city, ~27 concurrent jobs observed). Engine already built.
 - **City of Burnaby** — https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?org=CITYBURNABY&cws=37 (Taleo; 40+ posts typical). Use existing Taleo engine.
 - **City of Regina** — https://jobs.regina.ca/ (Jobs2Web; was only referenced under Regina Transit). Label source as City of Regina (includes transit when posted).
-- **City of Lethbridge** — Taleo (library page previously 404’d the city link): re-resolve from https://www.lethbridge.ca/careers/ — prior public URL pattern was `tre.tbe.taleo.net` / `org=COLBRIDGE`; confirm live org before scrape. Do not add a separate library source.
+- **City of Lethbridge** — Taleo live: https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?org=COLBRIDGE&cws=37 (hub: https://www.lethbridge.ca/careers/; secondary board also at https://careers.lethbridge.ca/). Do not add a separate library source.
 - **City of Medicine Hat** — https://medicinehat.prevueaps.ca/jobs/ (Prevue APS; same family as College of the Rockies — issue #84)
-- **City of Coquitlam** — https://careers.coquitlam.ca/ (apply board linked from https://www.coquitlam.ca/414/Career-Opportunities; ~150k Metro Van muni; ATS type needs browser confirm)
+- **City of Coquitlam** — hub https://www.coquitlam.ca/414/Career-Opportunities → external Cegid/TalentSoft apply (sessionized from hub); internal https://internalcareers.coquitlam.ca/
 - **City of Kelowna** — https://careeropportunities.kelowna.ca/postings/search (PeopleAdmin-style `/postings/<id>`; use issue #77)
 - **City of Chilliwack** — https://jobs.chilliwack.com/ (custom municipal board)
 - **City of Moncton** — https://www.moncton.ca/en/careers (ADP Workforce Now career centre; Codiac Transpo is city-board only — do not split transit)
 - **City of Edmonton** — already tracked as Phenom People in issue #81 (`https://recruitment.edmonton.ca/`); elevating here so it is not only under the ETS transit bullet. Residual Taleo: `edmonton.taleo.net` may still appear in older links.
+- **City of Airdrie** — Njoyn https://clients.njoyn.com/CL2/xweb/xweb.asp?page=joblisting&CLID=61430 (was the “unidentified” CLID=61430)
+- **City of Grande Prairie** — https://cityofgp.startdate.ca/ (StartDate; hub: https://cityofgp.com/city-government/working-city/career-opportunities)
+- **City of Nanaimo** — https://www.nanaimo.ca/your-government/careers (PDF + email only; no ATS)
+- **City of Kamloops** — HRSmart https://kamloops.hua.hrsmart.com/hr/ats/JobSearch/index (hub: https://www.kamloops.ca/city-hall/career-opportunities)
+- **City of Prince George** — Prevue APS https://princegeorgejobs.prevueaps.ca/jobs/ (hub: https://www.princegeorge.ca/city-hall/careers)
+- **Township of Langley** — Njoyn https://tol.njoyn.com/CL3/xweb/xweb.asp?page=joblisting&CLID=56677 (main Langley-area board; City of Langley itself is thin CMS)
+- **City of Maple Ridge** — HiringPlatform https://mapleridge.hiringplatform.ca/list/external (same family as Orillia — issue #87)
+- **City of Delta** — Taleo https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?org=XNZ8Q7&cws=37
+- **City of Richmond (BC)** — Taleo https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=TRQS8M&cws=37 (brand hub: https://chooserichmond.ca/)
+- **City of St. John's** — Njoyn https://cityofstjohns.njoyn.com/CL4/xweb/Xweb.asp?CLID=73617&page=joblisting&lang=1
+- **City of Saint John** — Njoyn https://clients.njoyn.com/CL2/xweb/xweb.asp?page=joblisting&CLID=51331
+- **City of Fredericton** — Oracle Cloud https://eihe.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs
+- **City of Charlottetown** — https://www.charlottetown.ca/employment (PDF + email; no ATS)
+- **City of Whitehorse** — HRDepartment https://whitehorse.mua.hrdepartment.com/hr/ats/JobSearch/viewAll (HRSmart-family)
+- **City of Yellowknife** — Prevue APS https://yellowknife.prevueaps.ca/
 
 *Already in PENDING/ACTIVE: Calgary PeopleSoft, Winnipeg PeopleSoft, Vancouver Jobs2Web, Victoria iCIMS, Halifax BrassRing, Saskatoon Jobs2Web, Greater Sudbury PeopleSoft, Abbotsford Njoyn, Montréal complex, most GTHA munis.*
 
@@ -557,9 +574,11 @@ GC Jobs covers most departments; these run **separate** boards at scale.
 - **Canada Post** — https://jobs.canadapost.ca/go/Canada-Post-All-Current-Opportunities/2319117/ (Jobs2Web; often 500–1000+ open roles nationwide)
 - **Bank of Canada** — https://careers.bankofcanada.ca/go/All-Job-Opportunities/2400817/ (Jobs2Web)
 - **NAV CANADA** — https://navcanada.wd10.myworkdayjobs.com/NAV_Careers (Workday; air navigation — not Transport Canada / GC Jobs)
-- **CBC / Radio-Canada** — hub https://cbc.radio-canada.ca/en/working-with-us/jobs · Workday tenant often at `cbcrc.wd3.myworkdayjobs.com/CBC_Radio-Canada_Jobs` (confirm live path; crown corporation, not GC Jobs)
-- **Export Development Canada (EDC)** — https://apply.workable.com/export-development-canada/ (Workable; same family as Norfolk County issue #93)
-- **Farm Credit Canada (FCC)** — start at https://www.fcc-fac.ca/en/about-fcc/careers (confirm live apply URL; agricultural Crown)
+- **CBC / Radio-Canada** — hub https://cbc.radio-canada.ca/en/working-with-us/jobs · Workday https://cbcrc.wd3.myworkdayjobs.com/CBC_Radio-Canada_Jobs (confirm tenant still live; crown corporation, not GC Jobs)
+- **Export Development Canada (EDC)** — https://apply.workable.com/export-development-canada/?lng=en (Workable; confirmed; same family as Norfolk County issue #93)
+- **Farm Credit Canada (FCC)** — Workday https://fccfac.wd3.myworkdayjobs.com/en-US/careers-carrieres (hub: https://www.fcc-fac.ca/en/about-fcc/careers)
+- **CFMWS (Canadian Forces Morale and Welfare Services)** — https://cfmws.recruitmentplatform.com/ (hub: https://cfmws.ca/about-us/cfmws-careers)
+- **House of Commons (admin/staff)** — SmartRecruiters https://careers.smartrecruiters.com/HouseOfCommonsCanadaChambreDesCommunesCanada (hub: https://www.ourcommons.ca/en/employment/current-opportunities; MP office roles are separate email postings)
 
 ### Western / Atlantic crown utilities & agencies
 
@@ -588,26 +607,16 @@ Large volume; separate from municipal/provincial civil service. Scope call if/wh
 
 ### Ontario — URL upgrades for names-only + mid-tier gaps
 
-#### Police (were names-only)
+#### Police / school boards / libraries
 
-- **Ontario Provincial Police** — constable recruitment: https://recruitment.opp.ca · civilian roles usually post on active OPS (`gojobs.gov.on.ca`) — prefer tagging OPS posts rather than a separate civilian scraper
-- **Toronto Police Service** — https://www.tps.ca/careers/ (confirm live ATS / application path; often multi-stream: uniform vs civilian)
-- **Peel / York / Ottawa police** — still names-only; research next (often separate from regional municipal boards)
+Moved full URLs into the Ontario “Police services” and “School boards” sections above (2026-08-02). Summary: TPS/Peel PeopleSoft, YRP Jobs2Web, Ottawa Police City Jobs2Web, OPP constable custom + civilian OPS; most DSBs are ApplyToEducation `*.simplication.com` (TVDSB = Knighthunter; PDSB = in-house careers/list).
 
-#### School boards (were names-only; shared ApplyToEducation / Simplication stack)
+- **Richmond Hill Public Library** — apply via City of Richmond Hill Jobs2Web library category https://jobs.richmondhill.ca/go/Richmond-Hill-Public-Library/2617617/ (city source already active; label as including library)
 
-Most major ON boards use **ApplyToEducation** (`network.applytoeducation.com` / `*.simplication.com`) — no engine yet; one engine unlocks many boards.
-
-- **York Region District School Board** — hub https://www2.yrdsb.ca/about-us/working-yrdsb/careers · postings via ApplyToEducation/Simplication
-- **York Catholic DSB** — https://www.ycdsb.ca/careers/ (Simplication)
-- **Waterloo Region DSB** — https://www.wrdsb.ca/careers/
-- **Peel / Halton / Durham / Ottawa-Carleton / Hamilton-Wentworth / Thames Valley DSBs** — still need per-board apply URLs; same ApplyToEducation family likely
-
-#### Municipal / regional gaps (Ontario mid-tier not already listed)
+#### Municipal / regional gaps (Ontario mid-tier)
 
 - **District of Muskoka** — https://www.muskoka.on.ca/en/careers-and-volunteering/career-oportunities.aspx (confirm live ATS from district page)
 - **Oxford County** — https://www.oxfordcounty.ca/your-government/career-opportunities (server-rendered / county board; candidate for shared municipal custom issue #86)
-- **City of Airdrie / Grande Prairie / Nanaimo / Kamloops / Prince George / Langley / Maple Ridge / Delta** — 50k–150k western munis not yet named; batch-research next pass (Kamloops city board already noted under library line)
 
 ### Platform patterns unlocked by this pass
 
