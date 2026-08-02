@@ -21,6 +21,7 @@ import { scrapeSelkirk } from './engines/selkirk';
 import { scrapeHiringPlatform } from './engines/hiringplatform';
 import { scrapeADP } from './engines/adp';
 import { scrapeApplyToEducation } from './engines/applytoeducation';
+import { scrapeWorkable } from './engines/workable';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
@@ -119,6 +120,8 @@ const SOURCES = {
     scrapeADP(db, context, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=628c6eb9-02b8-492d-b651-c4f1a4220344&ccId=9201548179279_3&lang=en_CA&selectedMenuKey=CurrentOpenings', 'Credit Valley Conservation'),
   'Toronto Catholic District School Board': (db: Client, context: BrowserContext) =>
     scrapeApplyToEducation(db, context, 'https://www.tcdsb.org/page/jobs', 'Toronto Catholic District School Board'),
+  'Norfolk County': (db: Client, context: BrowserContext) =>
+    scrapeWorkable(db, context, 'norfolk-county', 'Norfolk County'),
   'Government of Alberta': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/', 'Government of Alberta'),
   'Ontario Energy Board': (db: Client, context: BrowserContext) =>

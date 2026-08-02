@@ -25,6 +25,7 @@ import { scrapePrevue } from './engines/prevue';
 import { scrapeSelkirk } from './engines/selkirk';
 import { scrapeHiringPlatform } from './engines/hiringplatform';
 import { scrapeApplyToEducation } from './engines/applytoeducation';
+import { scrapeWorkable } from './engines/workable';
 import { scrapeBrassRing, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNipissing, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -627,6 +628,9 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       'https://www.tcdsb.org/page/jobs',
       'Toronto Catholic District School Board',
     ),
+  },
+  'workable-1': {
+    'Norfolk County': (db, context) => scrapeWorkable(db, context, 'norfolk-county', 'Norfolk County'),
   },
   'municipal-custom-1': {
     'City of Pickering': (db, context) => scrapePickering(db, context, 'City of Pickering'),
