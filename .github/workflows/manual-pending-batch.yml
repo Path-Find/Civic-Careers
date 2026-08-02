@@ -1,0 +1,68 @@
+name: Manual Pending Source Batch
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch:
+        description: 'Pending sources to test'
+        required: true
+        type: choice
+        options:
+          - workday-1
+          - mixed-2
+          - mixed-3
+          - peoplesoft-4
+          - hrsmart-5
+          - jobs2web-6
+          - jobs2web-7
+          - mixed-8
+          - jobs2web-9
+          - engine-ready-10
+          - engine-ready-11
+          - london-library-retry
+          - conestoga-rss
+          - manitoba-ready
+          - saint-boniface-dayforce
+          - winnipeg-northstar
+          - njoyn-ontario
+          - ontario-municipal-ready
+          - ontario-ready-2
+          - ontario-ready-3
+          - york-region-ready
+          - niagara-ready-2
+          - ontario-ready-4
+          - ontario-ready-5
+          - ontario-ready-6
+          - bc-ready-1
+          - platform-ready-1
+          - platform-ready-2
+          - peoplesoft-ready-1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: scraper/package-lock.json
+
+      - name: Install dependencies
+        run: cd scraper && npm ci
+
+      - name: Install Playwright Browsers
+        run: cd scraper && npx playwright install chromium --with-deps
+
+      - name: Run selected pending batch
+        env:
+          TURSO_URL: ${{ secrets.TURSO_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          AI_MODEL: 'deepseek-chat'
+          PENDING_BATCH: ${{ inputs.batch }}
+        run: cd scraper && npx tsx manual-pending-batch.ts
