@@ -159,7 +159,7 @@ High-value gaps not already active or listed above. Names only; portal/engine TB
 ### Universities
 
 - University of Manitoba — https://viprecprod.ad.umanitoba.ca/ (official UM Careers portal with separate academic, staff, student, and trades posting categories)
-- University of Saskatchewan — https://usask.csod.com/ux/ats/careersite/14/home?c=usask (CSOD staff/faculty careers board linked from the official careers page)
+- University of Saskatchewan — https://usask.csod.com/ux/ats/careersite/14/home?c=usask (CSOD staff/faculty careers board linked from the official careers page; staged in the Trial Action after a successful manual test)
 - University of Regina — https://urcareers.uregina.ca/postings/search (e-Recruit postings board with 12 current postings during verification)
 - University of Calgary — https://careers.ucalgary.ca/jobs/search (official careers board with 151 current opportunities during verification)
 - University of New Brunswick — support staff: https://www.unb.ca/hr/careers/support-staff.php; academic: https://www.unb.ca/hr/careers/academic.php (support page injects an Alongside/CareerBeacon widget with current detail URLs; academic postings are direct PDFs; tracked in issues #78 and #75)

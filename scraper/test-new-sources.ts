@@ -5,6 +5,7 @@ import { BASE_CONFIG } from './utils';
 import { scrapePeopleSoft } from './engines/peoplesoft';
 import { scrapeTaleo } from './engines/taleo';
 import { scrapeOracleCloud } from './engines/oracle';
+import { scrapeCSOD } from './engines/csod';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -28,6 +29,8 @@ const SOURCES = {
     scrapePeopleSoft(db, context, 'https://careers.niagararegion.ca/psc/careers/EMPLOYEE/PSFT_HR/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Siteid=1002', 'Niagara Region'),
   'University of Alberta': (db: Client, context: BrowserContext) =>
     scrapeOracleCloud(db, context, 'https://iaejup.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/UOA-Careers/jobs', 'University of Alberta'),
+  'University of Saskatchewan': (db: Client, context: BrowserContext) =>
+    scrapeCSOD(db, context, 'https://usask.csod.com/ux/ats/careersite/14/home?c=usask', 'University of Saskatchewan'),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {
