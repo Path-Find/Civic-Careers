@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PDF job postings can now keep their real description separate from the Apply link**: Vaughan Public Library and St. Clair College were validated with PDF descriptions and independent application URLs.
 - **Companies can now be filtered by organization type**: stable classifications cover public libraries, transit agencies, universities and colleges, municipal governments, public agencies, and health organizations.
 - **PeopleAdmin boards can now be collected through one shared engine**: live paginated postings are discovered across Canadian university and college portals, then each detail page is stored for parsing.
+- **St. Lawrence College can now be tested through its custom HTML board**: all six current stable detail links are collected for recurring trial validation.
 - **NEOGOV job boards can now be collected through one shared engine**: Cambrian College's 28 current postings were collected across all three result pages.
 - **University of Winnipeg postings can now be collected from its NorthStar ATS board**: stable posting detail URLs are extracted from the board's popup links.
 - **Conestoga College's support postings can now be imported from its RSS feed**: the RSS scraper accepts the feed's `id=` detail links.

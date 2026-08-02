@@ -15,7 +15,7 @@ import { scrapeDayforce } from './engines/dayforce';
 import { scrapeJobs2Web } from './engines/jobs2web';
 import { scrapeICIMS } from './engines/icims';
 import { scrapePeopleAdmin } from './engines/peopleadmin';
-import { scrapeStClairCollege, scrapeVaughanPL } from './engines/custom';
+import { scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -85,6 +85,8 @@ const SOURCES = {
     scrapeVaughanPL(db, context),
   'St. Clair College': (db: Client, context: BrowserContext) =>
     scrapeStClairCollege(db, context),
+  'St. Lawrence College': (db: Client, context: BrowserContext) =>
+    scrapeStLawrenceCollege(db, context),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {

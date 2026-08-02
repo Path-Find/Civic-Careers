@@ -518,6 +518,71 @@ export async function scrapeStClairCollege(db: Client, context: BrowserContext) 
   }
 }
 
+export type StLawrenceJob = { id: string; title: string; url: string };
+
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ');
+}
+
+export function extractStLawrenceJobs(html: string, portalUrl: string): StLawrenceJob[] {
+  const jobs: StLawrenceJob[] = [];
+  const seen = new Set<string>();
+  const anchorPattern = /<a\b[^>]*href=["']([^"']*\/jobs\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+  for (const match of html.matchAll(anchorPattern)) {
+    const href = match[1];
+    const anchorText = match[2];
+    if (!href) continue;
+
+    const url = new URL(href, portalUrl);
+    const jobPath = url.pathname.replace(/\/$/, '');
+    const marker = '/jobs/';
+    const slug = jobPath.slice(jobPath.indexOf(marker) + marker.length);
+    if (!slug || seen.has(url.href)) continue;
+
+    const title = decodeHtmlEntities(
+      anchorText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    );
+    if (!title) continue;
+
+    seen.add(url.href);
+    jobs.push({
+      id: `stlawrence_${slug.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '').toLowerCase()}`,
+      title,
+      url: url.href,
+    });
+  }
+
+  return jobs;
+}
+
+export async function scrapeStLawrenceCollege(db: Client, context: BrowserContext) {
+  const sourceName = 'St. Lawrence College';
+  const listingUrl = 'https://www.stlawrencecollege.ca/about/careers-at-slc/current-job-opportunities';
+  console.log(`Scraping ${sourceName}...`);
+  const page = await context.newPage();
+  try {
+    await safeGoto(page, listingUrl, 60000);
+    const jobs = extractStLawrenceJobs(await page.content(), listingUrl);
+    console.log(`[${sourceName}] Found ${jobs.length} job pages`);
+    for (const job of jobs) {
+      await scrapeRawAndStage(db, context, job, sourceName);
+    }
+    console.log(`\n[${sourceName}] Done.`);
+  } catch (err: any) {
+    console.error(`Error scraping ${sourceName}: ${err.message}`);
+    throw err;
+  } finally {
+    await page.close();
+  }
+}
+
 export async function scrapeSmithsFalls(db: Client, context: BrowserContext) {
   const sourceName = 'Town of Smiths Falls';
   const base = 'https://www.smithsfalls.ca';
