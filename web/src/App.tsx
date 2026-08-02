@@ -368,10 +368,10 @@ function App() {
               <div style={{ minWidth: 0 }}>
                 <div className="list-heading-row" style={{ top: `${headerHeight}px` }}>
                   <div className="list-count-label">
-                  {currentView === 'companies' ? `${visibleCompanySummaries.length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${filteredJobs.length.toLocaleString()} saved jobs` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
+                  {currentView === 'companies' ? `${visibleCompanySummaries.length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${filteredJobs.length.toLocaleString()} saved jobs` : isCompanyPage ? `${filteredJobs.length.toLocaleString()} matches found` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
                   </div>
                   {currentView === 'companies' && <div className="company-sort-options"><button className={companySort === 'alphabetical' ? 'active' : ''} onClick={() => setCompanySort('alphabetical')}>A–Z</button><button className={companySort === 'mostJobs' ? 'active' : ''} onClick={() => setCompanySort('mostJobs')}>Most jobs</button><button className={companySort === 'recent' ? 'active' : ''} onClick={() => setCompanySort('recent')}>Recently added</button></div>}
-                  {currentView === 'jobs' && !isCompanyPage && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setDeadlineDays(null); setNewlyAdded(false); }} onClosingSoon={() => { setSortNewest(false); setDeadlineDays(14); setNewlyAdded(false); }} onNewlyAdded={() => { setSortNewest(false); setDeadlineDays(null); setNewlyAdded(true); }} />}
+                  {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setDeadlineDays(null); setNewlyAdded(false); }} onClosingSoon={() => { setSortNewest(false); setDeadlineDays(14); setNewlyAdded(false); }} onNewlyAdded={() => { setSortNewest(false); setDeadlineDays(null); setNewlyAdded(true); }} />}
                 </div>
                 {currentView === 'jobs' && searchTerm && (activeCompanies.includes(searchTerm) || inactiveCompanies.includes(searchTerm)) && (
                   <div style={{ marginBottom: '1.5rem', padding: '1.25rem 1.5rem', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -391,8 +391,6 @@ function App() {
                     </div>
                   </div>
                 )}
-                {isCompanyPage && <div className="company-results-row"><div className="company-match-count">{filteredJobs.length.toLocaleString()} matches found</div><ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setDeadlineDays(null); setNewlyAdded(false); }} onClosingSoon={() => { setSortNewest(false); setDeadlineDays(14); setNewlyAdded(false); }} onNewlyAdded={() => { setSortNewest(false); setDeadlineDays(null); setNewlyAdded(true); }} /></div>}
-                {isCompanyPage && <div className="company-match-count">{filteredJobs.length.toLocaleString()} matches found</div>}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {(currentView === 'jobs' || currentView === 'saved') ? (
                     <>

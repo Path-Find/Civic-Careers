@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Saved page headings were inconsistent**: Recently viewed now uses the same heading treatment as the saved-job count.
 - **Listing controls disappeared while scrolling**: Job and company counts and sort controls now stay visible at the top of their results.
 - **Filter and results labels used different type treatments**: Sidebar labels now match the listing controls in font and color.
+- **Company-filtered Jobs pages repeated the match count and sort controls**: the shared toolbar now renders them once.
 
 ## [1.9.8] - 2026-08-02
 
