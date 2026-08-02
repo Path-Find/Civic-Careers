@@ -33,19 +33,31 @@ export async function scrapePeopleSoft(db: Client, context: BrowserContext, sear
       }
     }
 
+    // Niagara Region lands on the PeopleSoft shell first and only renders
+    // the searchable job list after "View All Jobs" is selected.
+    const viewAllJobs = target.getByText('View All Jobs', { exact: true }).first();
+    let openedAllJobs = false;
+    if (await viewAllJobs.count() && !(await target.locator('li[onclick*="HRS_VIEW_DETAILS"], [id^="HRS_VIEW_DETAILS"], a[id^="POSTINGLINK$"]').count())) {
+      await viewAllJobs.click();
+      await page.waitForTimeout(6000);
+      openedAllJobs = true;
+    }
+
     // Some tenants (TMU confirmed) show facet counts on load but don't
     // populate real results until the search is explicitly submitted —
     // clicking this is a safe no-op on tenants that already auto-populate
     // (Winnipeg confirmed).
     const searchBtn = await target.$('#HRS_SCH_WRK_FLU_HRS_SEARCH_BTN, [id*="HRS_SEARCH_BTN"]');
-    if (searchBtn) {
+    if (searchBtn && !openedAllJobs) {
       await searchBtn.click();
       await page.waitForTimeout(6000);
     }
 
     // The detail trigger is a child div on some tenants, but the row owns the
     // actual OnRowAction handler (TransLink uses this shape).
-    const firstRow = await target.$('li[onclick*="HRS_VIEW_DETAILS"], [id^="HRS_VIEW_DETAILS"], a[id^="POSTINGLINK$"]');
+    const firstRowSelector = 'li[onclick*="HRS_VIEW_DETAILS"], [id^="HRS_VIEW_DETAILS"], a[id^="POSTINGLINK$"]';
+    await target.locator(firstRowSelector).first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    const firstRow = await target.$(firstRowSelector);
     if (!firstRow) {
       console.log(`[${sourceName}] No job rows found`);
       return;
@@ -58,7 +70,7 @@ export async function scrapePeopleSoft(db: Client, context: BrowserContext, sear
     const MAX_JOBS = 300;
 
     while (count < MAX_JOBS) {
-      const jobIdMatch = await target.evaluate(() => document.body.innerText.match(/Job ID\s*(\d+)/)?.[1]);
+      const jobIdMatch = await target.evaluate(() => document.body.innerText.match(/Job (?:Opening )?Id\s*[:#]?\s*(\d+)/i)?.[1]);
       if (!jobIdMatch) break;
       if (seenIds.has(jobIdMatch)) break; // walked the full list and looped back
       seenIds.add(jobIdMatch);
