@@ -89,9 +89,9 @@ I classified a repeated block as a candidate only when it is source-specific and
 
 The read-only findings above were followed by a deterministic implementation pass. New parsed descriptions now run through the shared cleanup path. It removes recognized generic portal/social/equity boilerplate and exact duplicate bullets, plus confirmed source rules for Metrolinx, Toronto District School Board, Government of Canada, Brock University, University of Waterloo, City of Barrie, and City of St. Catharines.
 
-Safe stored-description backfills were completed for Metrolinx, Government of Canada, University of Toronto, Town of Caledon, City of Brantford, Brock University, and City of St. Catharines. TDSB, University of Waterloo, and City of Barrie had no remaining matching stored blocks after review, so they received future-parser coverage without a database backfill. Every applied source pass was rerun until it returned zero candidates; changed records were spot-checked for retained role content and structured requirements.
+Safe stored-description backfills were completed for Metrolinx, Government of Canada, University of Toronto, Town of Caledon, City of Brantford, Brock University, and City of Barrie. TDSB, University of Waterloo, and City of St. Catharines had no remaining matching stored blocks after review, so they received future-parser coverage without a database backfill. Every applied source pass was rerun until it returned zero candidates; changed records were spot-checked for retained role content and structured requirements.
 
-The cleanup also includes a safety guard so legitimate job-title headings are not treated as empty boilerplate headings. The scraper regression suite passes 117/117 tests.
+The cleanup also includes a safety guard so legitimate job-title headings are not treated as empty boilerplate headings, removes placeholder-only sections, and skips backfills that would erase an entire stored description. The scraper regression suite passes 122/122 tests.
 
 ## Boundaries for the next cleanup pass
 

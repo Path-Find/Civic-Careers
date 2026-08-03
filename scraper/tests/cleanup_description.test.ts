@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanJobDescription, cleanOverviewBoilerplate } from '../cleanup_description';
+import { cleanJobDescription, cleanOverviewBoilerplate, removePlaceholderSections } from '../cleanup_description';
 import { cleanSourceDescriptionBoilerplate } from '../source-description-cleanup';
 
 test('removes preceding employer copy at paragraph boundaries', () => {
@@ -60,6 +60,32 @@ test('deduplicates repeated bullets inside a section', () => {
 - Valid Class G licence.
 - Three years of experience.`, 'Operator');
   assert.equal(result, '## Qualifications\n- Valid Class G licence.\n- Three years of experience.');
+});
+
+test('removes sections whose only content is a placeholder', () => {
+  const result = cleanJobDescription(`## Overview
+## Responsibilities
+- Operate equipment.
+## Nice to Have
+(No content)
+## Compensation & Benefits
+- None`, 'Operator');
+  assert.equal(result, '## Responsibilities\n- Operate equipment.');
+});
+
+test('placeholder-only cleanup does not trim legitimate overview text', () => {
+  const result = removePlaceholderSections(`## Overview
+The department supports a growing community.
+## Nice to Have
+(No content)
+## Qualifications
+- Three years of experience.`);
+  assert.equal(result, '## Overview\nThe department supports a growing community.\n\n## Qualifications\n- Three years of experience.');
+});
+
+test('placeholder-only cleanup removes completely empty sections', () => {
+  const result = removePlaceholderSections('## Overview\\n\\n## Responsibilities\\n\\n## Qualifications\\n\\n## Nice to Have\\n');
+  assert.equal(result, '');
 });
 
 test('removes the reviewed Metrolinx administrative suffix', () => {

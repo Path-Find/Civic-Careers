@@ -3,6 +3,7 @@ import { cleanSourceDescriptionBoilerplate } from './source-description-cleanup'
 const SOCIAL_BOILERPLATE = /^(?:learn more about .+ on (?:instagram|facebook|linkedin)|(?:find|follow) us on (?:instagram|facebook|linkedin))\.?$/i;
 const NAVIGATION_BOILERPLATE = /^(?:skip to .+|apply now|print|share (?:this|the) page|cookie(?: policy| notice)?)\.?$/i;
 const GENERIC_EQUITY_BOILERPLATE = /(?:equal opportunity employer|equitable hiring and employment practices|accommodation needs? of persons with disabilities|inclusive and barrier-free work environment|under-represented employment equity groups|self-declare when you apply)/i;
+const EMPTY_SECTION_LINE = /^\(?\s*(?:none|no content|n\/a|not applicable|not specified|not required)\s*\)?\.?$/i;
 
 function titleCore(title: string): string {
   return title
@@ -118,6 +119,30 @@ function deduplicateBullets(body: string): string {
     .trim();
 }
 
+function removePlaceholderSectionBody(body: string): string {
+  const lines = body
+    .split('\n')
+    .map(line => line.replace(/^\s*[-•]\s*/, '').trim())
+    .filter(Boolean);
+  return lines.length === 0 || lines.every(line => EMPTY_SECTION_LINE.test(line)) ? '' : body;
+}
+
+export function removePlaceholderSections(description: string): string {
+  const sections = description.split(/(?=^##\s+)/m);
+  return sections
+    .map(section => {
+      const lines = section.split('\n');
+      const heading = lines[0]?.match(/^##\s+(.+)$/)?.[1]?.trim() || '';
+      if (!heading) return section.trim();
+      const body = removePlaceholderSectionBody(lines.slice(1).join('\n'));
+      return body.trim() ? `## ${heading}\n${body.trim()}` : '';
+    })
+    .filter(Boolean)
+    .join('\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 /**
  * Deterministic cleanup for stored and newly parsed Markdown descriptions.
  * It removes only recognizable portal/employer boilerplate and exact repeated
@@ -137,9 +162,9 @@ export function cleanJobDescription(description: string, jobTitle: string, sourc
     })
     .map(section => ({
       ...section,
-      body: deduplicateBullets(removeBoilerplate(section.heading.toLocaleLowerCase() === 'overview'
+      body: removePlaceholderSectionBody(deduplicateBullets(removeBoilerplate(section.heading.toLocaleLowerCase() === 'overview'
         ? cleanOverviewBoilerplate(removeBoilerplate(section.body), jobTitle)
-        : removeBoilerplate(section.body))),
+        : removeBoilerplate(section.body)))),
     }));
 
   const cleaned = sections
