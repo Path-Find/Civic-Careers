@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Responsibilities and Qualifications opened inconsistently**: both sections now start expanded, while optional Nice to Have details remain collapsible.
 - **Report form controls could use an unreadable dark browser style**: the reason checkboxes and optional details field now keep a readable light background with explicit contrast.
 - **Job reports required manual issue-writing**: Report a problem now asks for all applicable reasons, includes both internal and source job IDs, and opens a prefilled GitHub issue.
+- **Reported-job issues were not consistently identifiable**: new reports now receive the `user-reported` GitHub label automatically.
 - **Recruitment programs were mixed with ordinary postings**: ongoing recruitment and candidate inventory now have separate listing types, filters, badges, and deterministic backfills; confirmed House of Commons and RCMP records use their source application links and concise source descriptions.
 - **Job rows could not be opened in another tab**: active rows now use real links while preserving the in-app detail navigation for ordinary clicks.
 - **Language and vehicle requirements were not filterable**: explicit non-AI extraction now backfills those fields and Jobs filters can find English, French, bilingual, and vehicle-required roles without treating optional or generic wording as requirements.

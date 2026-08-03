@@ -36,7 +36,7 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
       `Source job ID: ${job.id}`,
       `URL: ${job.url}`,
     ].filter(Boolean).join('\n');
-    const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.job_title}`)}&labels=data-quality,frontend&body=${encodeURIComponent(body)}`;
+    const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.job_title}`)}&labels=data-quality,frontend,user-reported&body=${encodeURIComponent(body)}`;
     window.open(reportUrl, '_blank', 'noopener,noreferrer');
     onClose();
   };
