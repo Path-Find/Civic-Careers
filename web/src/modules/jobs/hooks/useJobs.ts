@@ -3,6 +3,18 @@ import type { CompanySummary, HomeData, Job } from '../../../types/jobs';
 import { normalizeJob } from '../jobUtils';
 
 const API = import.meta.env.VITE_API_URL ?? '';
+const pendingRequests = new Map<string, Promise<unknown>>();
+
+function fetchJson(endpoint: string) {
+  const pending = pendingRequests.get(endpoint);
+  if (pending) return pending;
+
+  const request = fetch(endpoint)
+    .then(response => response.json())
+    .finally(() => pendingRequests.delete(endpoint));
+  pendingRequests.set(endpoint, request);
+  return request;
+}
 
 export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -19,8 +31,7 @@ export function useJobs() {
     const endpoint = singleRid !== undefined
       ? `${API}/api/jobs?rid=${singleRid}`
       : view ? `${API}/api/jobs?view=${view}` : `${API}/api/jobs`;
-    fetch(endpoint)
-      .then(response => response.json())
+    fetchJson(endpoint)
       .then(data => {
         if (view === 'home') {
           const recentJobs = data.recentJobs.map(normalizeJob);
