@@ -80,6 +80,34 @@ function formatCheckedAt(timestamp: string | null) {
   }).format(date);
 }
 
+function LoadingState({ view }: { view: View }) {
+  const isListingView = view === 'jobs' || view === 'saved' || view === 'companies';
+  const rowCount = view === 'companies' ? 8 : 10;
+
+  return (
+    <div className={isListingView ? 'listing-layout loading-layout' : 'single-column-layout'} aria-busy="true">
+      {isListingView && <aside className="listing-sidebar loading-sidebar">
+        <div className="loading-pulse loading-sidebar-heading" />
+        {Array.from({ length: view === 'companies' ? 3 : 5 }, (_, index) => <div className="loading-pulse loading-sidebar-row" key={index} />)}
+      </aside>}
+      <div className={view === 'home' ? 'home-preview loading-list' : 'loading-list'}>
+        <div className="loading-toolbar">
+          <div className="loading-pulse loading-toolbar-count" />
+          <div className="loading-toolbar-buttons">
+            {Array.from({ length: 3 }, (_, index) => <div className="loading-pulse loading-toolbar-button" key={index} />)}
+          </div>
+        </div>
+        {Array.from({ length: rowCount }, (_, index) => (
+          <div className="loading-job-row" key={index}>
+            <div className="loading-pulse loading-job-title" />
+            <div className="loading-pulse loading-job-meta" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed } = useRecentlyViewed(jobs);
@@ -145,7 +173,7 @@ function App() {
       if (loadMoreTriggerRef.current) return;
       loadMoreTriggerRef.current = true;
       void loadMore();
-    }, { rootMargin: '250px' });
+    }, { rootMargin: '0px' });
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [currentView, searchTerm, jobs.length, jobsTotal, loadMore]);
@@ -319,7 +347,7 @@ function App() {
       ) : (
         <main className="feed-main page-transition">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>{currentView === 'companies' ? 'Loading companies...' : 'Loading jobs...'}</div>
+            <LoadingState view={currentView} />
           ) : currentView === 'about' ? (
             <section className="about-page">
               <h2>About Civic Careers</h2>
