@@ -9,7 +9,35 @@ dotenv.config();
 // scraper fix may have actually resolved the underlying cause.
 export const MAX_PARSE_ATTEMPTS = 2;
 
+const DB_INIT_RETRY_DELAYS_MS = [2000, 5000];
+
+function isRetryableDbInitError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  const cause = error && typeof error === 'object' && 'cause' in error
+    ? String((error as { cause?: unknown }).cause)
+    : '';
+  return /fetch failed|timeout|econnreset|econnrefused|temporarily unavailable|\b(?:429|502|503|504)\b/i.test(`${message} ${cause}`);
+}
+
 export async function initDb(): Promise<Client> {
+  for (let attempt = 0; attempt <= DB_INIT_RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      return await initializeDbOnce();
+    } catch (error) {
+      const isLastAttempt = attempt === DB_INIT_RETRY_DELAYS_MS.length;
+      if (isLastAttempt || !isRetryableDbInitError(error)) throw error;
+
+      const delay = DB_INIT_RETRY_DELAYS_MS[attempt];
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[db] Initialization attempt ${attempt + 1} failed (${message}); retrying in ${delay}ms.`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error('Database initialization failed after all retry attempts.');
+}
+
+async function initializeDbOnce(): Promise<Client> {
   const client = createClient({
     url: process.env.TURSO_URL!,
     authToken: process.env.TURSO_AUTH_TOKEN!,

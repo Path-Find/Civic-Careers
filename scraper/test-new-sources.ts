@@ -12,6 +12,7 @@ import { scrapeHRSmart } from './engines/hrsmart';
 import { scrapeJazzHR } from './engines/jazzhhr';
 import { scrapeUltiPro } from './engines/ultipro';
 import { scrapeDayforce } from './engines/dayforce';
+import { scrapeWorkday } from './engines/workday';
 import { scrapeJobs2Web } from './engines/jobs2web';
 import { scrapeICIMS } from './engines/icims';
 import { scrapePeopleAdmin } from './engines/peopleadmin';
