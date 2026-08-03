@@ -83,9 +83,11 @@
 .report-dialog-close { border: 0; background: transparent; color: #64748b; font-size: 1.5rem; line-height: 1; cursor: pointer; }
 .report-reasons { display: flex; flex-direction: column; gap: 0.55rem; }
 .report-reason { display: flex; align-items: flex-start; gap: 0.55rem; color: #334155; font-size: 0.8125rem; line-height: 1.35; cursor: pointer; }
-.report-reason input { margin: 0.1rem 0 0; accent-color: #2563eb; }
+.report-reason input { appearance: none; width: 1rem; height: 1rem; flex: 0 0 auto; margin: 0.1rem 0 0; border: 1px solid #94a3b8; border-radius: 3px; background: #fff; color-scheme: light; cursor: pointer; }
+.report-reason input:checked { border-color: #2563eb; background: #2563eb; }
+.report-reason input:checked::after { content: '✓'; display: block; color: white; font-size: 0.75rem; font-weight: 800; line-height: 0.9rem; text-align: center; }
 .report-note-label { display: block; margin: 1.25rem 0 0.35rem; color: #475569; font-size: 0.75rem; font-weight: 700; }
-.report-note { width: 100%; box-sizing: border-box; resize: vertical; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.6rem; color: #0f172a; font: inherit; font-size: 0.8125rem; outline: none; }
+.report-note { width: 100%; box-sizing: border-box; resize: vertical; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.6rem; color: #0f172a; background: #fff; color-scheme: light; font: inherit; font-size: 0.8125rem; outline: none; }
 .report-dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem; }
 .report-dialog-cancel, .report-dialog-submit { padding: 0.6rem 0.8rem; border-radius: 7px; font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 .report-dialog-cancel { border: 1px solid #e2e8f0; background: white; color: #64748b; }

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Report form controls could use an unreadable dark browser style**: the reason checkboxes and optional details field now keep a readable light background with explicit contrast.
 - **Job reports required manual issue-writing**: Report a problem now asks for all applicable reasons, includes both internal and source job IDs, and opens a prefilled GitHub issue.
 - **Recruitment programs were mixed with ordinary postings**: ongoing recruitment and candidate inventory now have separate listing types, filters, badges, and deterministic backfills; confirmed House of Commons and RCMP records use their source application links and concise source descriptions.
 - **Job rows could not be opened in another tab**: active rows now use real links while preserving the in-app detail navigation for ordinary clicks.
