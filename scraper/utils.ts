@@ -3,6 +3,7 @@ import { Page, Frame, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import pdfParse from 'pdf-parse';
 import { discardRawJob, saveRawJob } from './db';
+import { extractPostedDate, normalizePostedDate } from './posted-date';
 
 export function urlId(url: string): string {
   return createHash('sha256').update(url).digest('hex').substring(0, 12);
@@ -227,12 +228,10 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       rawText = rawText.replace(/The University welcomes applications from all qualified individuals,[\s\S]*?(?=#LI-DNI\b|Click here for more details)/i, '').trim();
     }
 
-    const labeledPostedAt = sourceName === 'EFHC' || sourceName === 'City of Brampton' || sourceName === 'City of Edmonton'
-      ? rawText.match(/posting\s+date\s*[:\-]?\s*([A-Za-z]+\s+\d{1,2},\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1] ?? null
-      : sourceName === 'York Region' || sourceName === 'York University'
-        ? rawText.match(/date\s+posted\s*[:\-]?\s*(\d{2}[-\/]\d{2}[-\/]\d{4})/i)?.[1] ?? null
-      : null;
-    const postedAt = metadataPostedAt || structuredPostedAt || labeledPostedAt;
+    const labeledPostedAt = extractPostedDate(rawText);
+    const postedAt = normalizePostedDate(metadataPostedAt)
+      || normalizePostedDate(structuredPostedAt)
+      || labeledPostedAt;
     await saveRawJob(db, { id: job.id!, url: descriptionUrl, application_url: applicationUrl, source: sourceName, title: job.title, raw_text: rawText, posted_at: postedAt });
     process.stdout.write(' ✅');
     return true;

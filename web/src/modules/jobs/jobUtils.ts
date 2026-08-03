@@ -3,6 +3,14 @@ import type { Job, JobDetails } from '../../types/jobs';
 
 export const CLOSING_SOON_DAYS = 14;
 
+export function jobFreshnessTimestamp(job: Pick<Job, 'posted_at' | 'first_seen_at'>, now = Date.now()): number {
+  const postedAt = job.posted_at ? Date.parse(`${job.posted_at.slice(0, 10)}T00:00:00Z`) : NaN;
+  if (Number.isFinite(postedAt) && postedAt <= now) return postedAt;
+
+  const firstSeenAt = Date.parse(`${job.first_seen_at.replace(' ', 'T')}Z`);
+  return Number.isFinite(firstSeenAt) ? firstSeenAt : 0;
+}
+
 export function joinJsonArray(raw: string | null): string | null {
   try {
     const values = JSON.parse(raw || '[]');

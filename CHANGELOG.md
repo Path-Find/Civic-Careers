@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Qualification details could be hidden behind generic category chips**: full qualification bullets now appear by default, including education, experience, and language requirements.
 - **Long “Nice to Have” requirements were shown as truncated pills**: optional requirements now display as readable full bullets.
 - **Important requirements were only searchable inside descriptions**: education, licences, vehicle needs, languages, security checks, certifications, and software are now stored separately for future filters.
+- **Freshness lists were based on scrape timing**: validated official posting dates now drive “Newly added” and recent sorting, with first-seen fallback; scrape time remains “Last checked.”
 - **Software backfills could stop short or leave parser corrections unapplied**: the backfill now scans all eligible jobs and reconciles existing values before selecting each batch.
 
 ## [1.9.8] - 2026-08-02

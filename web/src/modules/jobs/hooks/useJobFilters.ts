@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { daysUntilClose } from '../../../utils';
 import type { Job, View } from '../../../types/jobs';
-import { CLOSING_SOON_DAYS, groupJobsByCompany, isExpired, parseJobDetails } from '../jobUtils';
+import { CLOSING_SOON_DAYS, groupJobsByCompany, isExpired, jobFreshnessTimestamp, parseJobDetails } from '../jobUtils';
 
 export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string) {
   const [minSalary, setMinSalary] = useState<number | null>(null);
@@ -30,18 +30,18 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
       const matchesDeadline = deadlineDays === null
         || (deadlineDays === -1 ? days === null : days !== null && days >= 0 && days <= deadlineDays);
       const cutoff = now - 7 * 24 * 60 * 60 * 1000;
-      const matchesNew = !newlyAdded || Date.parse(`${job.first_seen_at.replace(' ', 'T')}Z`) >= cutoff;
+      const matchesNew = !newlyAdded || jobFreshnessTimestamp(job, now) >= cutoff;
       return matchesSearch && matchesLocation && matchesMode && matchesSalary && matchesDeadline && matchesNew;
     });
     return filtered.sort((a, b) => {
-      if (sortNewest) return b.scraped_at.localeCompare(a.scraped_at);
+      if (sortNewest) return jobFreshnessTimestamp(b, now) - jobFreshnessTimestamp(a, now);
       const aDays = daysUntilClose(a.closing_date);
       const bDays = daysUntilClose(b.closing_date);
       const aUrgent = aDays !== null && aDays >= 0 && aDays <= CLOSING_SOON_DAYS;
       const bUrgent = bDays !== null && bDays >= 0 && bDays <= CLOSING_SOON_DAYS;
       if (aUrgent !== bUrgent) return aUrgent ? -1 : 1;
       if (aUrgent && bUrgent) return (aDays ?? 0) - (bDays ?? 0);
-      return b.scraped_at.localeCompare(a.scraped_at);
+      return jobFreshnessTimestamp(b, now) - jobFreshnessTimestamp(a, now);
     });
   }, [jobs, currentView, searchTerm, locationTerm, minSalary, selectedModes, deadlineDays, showInventories, showStudentJobs, sortNewest, newlyAdded, now]);
 
@@ -54,11 +54,11 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
   const inactiveCompanies = useMemo(() => Object.keys(jobsByCompany)
     .filter(name => !jobsByCompany[name].some(job => !isExpired(job))).sort(), [jobsByCompany]);
   const recentJobs = useMemo(() => jobs.filter(job => !isExpired(job))
-    .sort((a, b) => b.scraped_at.localeCompare(a.scraped_at)).slice(0, 5), [jobs]);
+    .sort((a, b) => jobFreshnessTimestamp(b) - jobFreshnessTimestamp(a)).slice(0, 5), [jobs]);
   const availableJobs = useMemo(() => jobs.filter(job => !isExpired(job) && !job.is_inventory), [jobs]);
   const recentlyAddedCount = useMemo(() => {
     const cutoff = now - 7 * 24 * 60 * 60 * 1000;
-    return availableJobs.filter(job => Date.parse(`${job.first_seen_at.replace(' ', 'T')}Z`) >= cutoff).length;
+    return availableJobs.filter(job => jobFreshnessTimestamp(job, now) >= cutoff).length;
   }, [availableJobs, now]);
   const closingSoonJobs = useMemo(() => jobs.filter(job => !isExpired(job))
     .map(job => ({ job, days: daysUntilClose(job.closing_date) ?? 999 }))

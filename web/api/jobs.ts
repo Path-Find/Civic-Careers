@@ -18,6 +18,8 @@ const jobJoins = `
   FROM jobs j
   LEFT JOIN job_details jd ON j.id = jd.id`;
 
+const freshnessDate = `date(CASE WHEN jd.posted_at IS NOT NULL AND date(jd.posted_at) <= date('now') THEN jd.posted_at ELSE j.first_seen_at END)`;
+
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'GET') {
     res.writeHead(405, { 'Content-Type': 'application/json' });
@@ -71,7 +73,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           AND COALESCE(jd.is_inventory, 0) = 0
           AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))`;
       const [recent, closingSoon, counts] = await Promise.all([
-        db.execute(`SELECT * FROM (SELECT ${jobColumns}, ROW_NUMBER() OVER (PARTITION BY j.source ORDER BY j.scraped_at DESC) AS source_rank ${jobJoins} ${activeJobWhere}) recent_by_source WHERE source_rank = 1 ORDER BY scraped_at DESC LIMIT 10`),
+        db.execute(`SELECT * FROM (SELECT ${jobColumns}, ${freshnessDate} AS freshness_date, ROW_NUMBER() OVER (PARTITION BY j.source ORDER BY ${freshnessDate} DESC, j.first_seen_at DESC) AS source_rank ${jobJoins} ${activeJobWhere}) recent_by_source WHERE source_rank = 1 ORDER BY freshness_date DESC LIMIT 10`),
         db.execute(`SELECT ${jobColumns} ${jobJoins}
           ${activeJobWhere}
           AND jd.closing_date IS NOT NULL AND jd.closing_date != ''
@@ -79,7 +81,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           ORDER BY substr(jd.closing_date, 1, 10) ASC LIMIT 10`),
         db.execute(`SELECT
           COUNT(*) AS available_job_count,
-          SUM(CASE WHEN j.first_seen_at >= datetime('now', '-7 days') THEN 1 ELSE 0 END) AS recently_added_count,
+          SUM(CASE WHEN ${freshnessDate} >= date('now', '-7 days') THEN 1 ELSE 0 END) AS recently_added_count,
           MAX(j.scraped_at) AS last_checked_at
           ${jobJoins} ${activeJobWhere}`),
       ]);
@@ -104,8 +106,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
             AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))
             THEN 1 ELSE 0 END) AS active_job_count,
           COUNT(*) AS total_job_count,
-          SUM(CASE WHEN j.first_seen_at >= datetime('now', '-7 days') THEN 1 ELSE 0 END) AS recent_job_count,
-          MAX(j.first_seen_at) AS latest_job_added_at,
+          SUM(CASE WHEN ${freshnessDate} >= date('now', '-7 days') THEN 1 ELSE 0 END) AS recent_job_count,
+          MAX(${freshnessDate}) AS latest_job_added_at,
           MAX(j.scraped_at) AS last_checked_at
         ${jobJoins}
         GROUP BY j.source
@@ -118,7 +120,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     if (view === 'jobs') {
       const [result, count] = await Promise.all([
         db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} ORDER BY j.is_active DESC, j.scraped_at DESC LIMIT ? OFFSET ?`,
+          sql: `SELECT ${jobColumns} ${jobJoins} ORDER BY j.is_active DESC, ${freshnessDate} DESC, j.first_seen_at DESC LIMIT ? OFFSET ?`,
           args: [limit, offset],
         }),
         db.execute(`SELECT COUNT(*) AS total ${jobJoins}`),
@@ -133,7 +135,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         SELECT ${jobColumns}
         ${jobJoins}
         WHERE j.is_saved = 1
-        ORDER BY j.is_active DESC, j.scraped_at DESC
+        ORDER BY j.is_active DESC, ${freshnessDate} DESC, j.first_seen_at DESC
       `);
       res.setHeader('Cache-Control', 'no-store');
       res.end(JSON.stringify(result.rows));
@@ -143,7 +145,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const result = await db.execute(`
       SELECT ${jobColumns}
       ${jobJoins}
-      ORDER BY j.is_active DESC, j.scraped_at DESC
+      ORDER BY j.is_active DESC, ${freshnessDate} DESC, j.first_seen_at DESC
     `);
     res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
     res.end(JSON.stringify(result.rows));
