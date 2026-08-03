@@ -117,7 +117,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
               if (!isLongSection) {
                 return <div key={section.heading} dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${section.heading}\n${section.body}`) }} />;
               }
-              return <details className="detail-section-collapsible" key={section.heading} open={/qualif/i.test(section.heading)}>
+              return <details className="detail-section-collapsible" key={section.heading} open={/qualif|responsibilit/i.test(section.heading)}>
                 <summary className="detail-section-summary">
                   <span className="detail-section-title">{section.heading}</span>
                   <span className="detail-section-action">View details</span>
