@@ -368,6 +368,7 @@ function App() {
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {homeRecentJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
               </div>
+              <button className="home-see-all" onClick={() => handleNavigate('jobs')}>See all jobs</button>
             </section>
           ) : (
             <div className={isListingView ? 'listing-layout' : 'single-column-layout'}>
