@@ -10,6 +10,7 @@
     "backfill-software": "npx tsx backfill-software.ts",
     "backfill-posted-dates": "npx tsx backfill-posted-dates.ts",
     "backfill-language-vehicle": "npx tsx backfill-language-vehicle.ts",
+    "backfill-education-license": "npx tsx backfill-education-license.ts",
     "reparse-stale": "npx tsx reparse-stale.ts",
     "sample-parser": "npx tsx sample-parser.ts",
     "test": "node --require tsx/cjs --test tests/*.test.ts"

@@ -109,7 +109,7 @@ function LoadingState({ view }: { view: View }) {
 }
 
 function App() {
-  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
+  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -134,7 +134,7 @@ function App() {
   }, null);
   const lastCheckedAt = homeData?.lastCheckedAt ?? latestJobCheckedAt;
   const hasJobFilters = Boolean(searchTerm || locationTerm || selectedModes.length > 0 || selectedLanguage || vehicleRequired || minSalary || deadlineDays !== null || showStudentJobs || showInventories || newlyAdded);
-  const displayedJobCount = currentView === 'jobs' && !hasJobFilters ? jobsTotal : filteredJobs.length;
+  const displayedJobCount = currentView === 'jobs' && !hasJobFilters ? jobsAvailableTotal : filteredJobs.length;
   const isCompanyPage = currentView === 'jobs' && Boolean(searchTerm) && (activeCompanies.includes(searchTerm) || inactiveCompanies.includes(searchTerm));
   const isListingView = currentView === 'jobs' || currentView === 'saved' || currentView === 'companies';
   const filteredCompanySummaries = companySummaries.filter(company => selectedCompanyTypes.length === 0 || selectedCompanyTypes.some(type => companyTypes(company.name).includes(type)));
@@ -146,7 +146,6 @@ function App() {
   // detail page), not a guessed pixel value.
   const headerRef = useRef<HTMLElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const loadMoreTriggerRef = useRef(false);
   const [headerHeight, setHeaderHeight] = useState(80);
 
   useLayoutEffect(() => {
@@ -161,23 +160,16 @@ function App() {
 
   useEffect(() => {
     const sentinel = loadMoreRef.current;
-    if (!sentinel || currentView !== 'jobs' || searchTerm || jobs.length >= jobsTotal) {
-      loadMoreTriggerRef.current = false;
+    if (!sentinel || currentView !== 'jobs' || jobs.length >= jobsTotal) {
       return;
     }
     const observer = new IntersectionObserver(entries => {
       const entry = entries[0];
-      if (!entry?.isIntersecting) {
-        loadMoreTriggerRef.current = false;
-        return;
-      }
-      if (loadMoreTriggerRef.current) return;
-      loadMoreTriggerRef.current = true;
-      void loadMore();
-    }, { rootMargin: '0px' });
+      if (entry?.isIntersecting) void loadMore();
+    }, { rootMargin: '600px 0px' });
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [currentView, searchTerm, jobs.length, jobsTotal, loadMore]);
+  }, [currentView, jobs.length, jobsTotal, loadMore]);
 
   // Sync state with browser history
   useEffect(() => {
@@ -452,7 +444,7 @@ function App() {
                     />
                   </>}
                 </div>
-                {currentView === 'jobs' && jobs.length < jobsTotal && !searchTerm && <div ref={loadMoreRef} className="load-more-sentinel" aria-hidden="true" />}
+                {currentView === 'jobs' && jobs.length < jobsTotal && <div ref={loadMoreRef} className="load-more-sentinel" aria-hidden="true" />}
                 {currentView === 'jobs' && loadingMore && <div className="load-more-status">Loading more jobs...</div>}
               </div>
             </div>

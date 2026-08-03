@@ -107,8 +107,23 @@ const VEHICLE_REQUIRED_CUE = /\b(?:valid|current|must|possess|hold|maintain|obta
 const VEHICLE_SPECIFIC_REQUIREMENT = /\b(?:driver.?s?\s+(?:licen[cs]e|permit|abstract)|class\s+[a-z0-9]+\s+(?:driver.?s?\s+)?licen[cs]e|(?:access|own|personal|reliable)\s+(?:to\s+)?(?:a\s+)?vehicle|reliable\s+transportation|vehicle\s+(?:is\s+)?(?:required|necessary)|ability\s+to\s+drive|must\s+drive)\b/i;
 const VEHICLE_OPTIONAL_REQUIREMENT = /\b(?:asset|preferred|preferable|nice\s+to\s+have|desirable|advantage|optional)\b/i;
 
-type RequirementSection = 'required' | 'optional' | 'other';
+type RequirementSection = 'required' | 'optional' | 'benefits' | 'other';
 type DescriptionLine = { text: string; section: RequirementSection; heading: boolean };
+
+const EDUCATION_TERM = /\b(?:bachelor(?:['’]s)?(?:\s+degree)?|master(?:['’]s)?(?!\s+electrician)(?:\s+degree)?|ph\.?d\.?|doctor(?:ate|al)|diploma|degree\s+(?:in|from|required|or|program)|post[- ]secondary\s+(?:education|program|institution)|associate(?:['’]s)?|bscn|bsn|b\.?a\.?|m\.?a\.?|undergraduate\s+degree|graduate\s+degree)\b/i;
+const EDUCATION_REQUIRED_CUE = /\b(?:required|minimum|must|completion|completed|successful|degree\s+in|diploma\s+in|equivalent|eligible|graduate|undergraduate|post[- ]secondary\s+(?:program|institution|education\s+in)|education\s+in)\b|\b(?:a|an|minimum|completion\s+of|completed|required)\s+post[- ]secondary\s+education\b/i;
+const EDUCATION_CONTEXT_ONLY = /^\s*(?:familiarity|knowledge|experience|proficiency|understanding|working knowledge|demonstrated|strong|excellent)\b/i;
+const FORMAL_EDUCATION_CUE = /\b(?:bachelor|master|ph\.?d|doctor(?:ate|al)|diploma|degree|bscn|bsn|b\.?a\.?|m\.?a\.?|undergraduate|graduate|enrol(?:l|led|ment)|completion of)\b/i;
+const STRUCTURED_OPTIONAL_REQUIREMENT = /\b(?:asset|assets|preferred|preferable|preference|nice\s+to\s+have|would\s+be\s+an?\s+asset|considered\s+an?\s+asset|desirable|advantage|optional)\b/i;
+const LICENSE_TERM = /\b(?:licen[cs](?:e|ed|ing|ure)|permit|registration|registered\s+(?:as|with|by)|designation|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification|certificate\s+of\s+authorization|class\s+[a-z0-9]+\s+(?:driver.?s?\s+)?licen[cs]e)\b/i;
+const LICENSE_REQUIRED_CUE = /\b(?:required|minimum|must|possess|hold|maintain|valid|current|eligible|obtain|provide|registered|registration|designation|certified)\b/i;
+const NAMED_BENEFITS: Array<[string, RegExp]> = [
+  ['OMERS', /\bOMERS\b/i],
+  ['HOOPP', /\bHOOPP\b/i],
+  ['CAAT Pension Plan', /\bCAAT\s+(?:pension\s+)?plan\b/i],
+  ['Municipal Pension Plan', /\bMunicipal\s+Pension\s+Plan\b/i],
+  ['Public Service Pension Plan', /\bPublic\s+Service\s+Pension\s+Plan\b/i],
+];
 
 function compactText(value: string): string {
   return value
@@ -122,19 +137,25 @@ function headingText(line: string): string | null {
   const trimmed = line.trim();
   const markdown = trimmed.match(/^#{1,6}\s+(.+?)\s*$/)?.[1]
     || trimmed.match(/^\*{1,2}([^*]+?)\*{1,2}:?\s*$/)?.[1]
+    || trimmed.match(/^([A-Z][A-Za-z0-9 &'/\-]{3,}):\s*$/)?.[1]
     || trimmed.match(/^([A-Z][A-Z0-9 &'\-/]{3,}):?\s*$/)?.[1];
   return markdown ? compactText(markdown).toLowerCase() : null;
 }
 
 function sectionForHeading(heading: string): RequirementSection {
+  if (/\b(?:compensation|benefits?|perks?|pension|total\s+rewards)\b/i.test(heading)) return 'benefits';
   if (/\b(?:nice\s+to\s+have|preferred|desirable|assets?|bonus|additional\s+qualifications|would\s+be\s+great)\b/i.test(heading)) return 'optional';
-  if (/\b(?:qualifications?|requirements?|minimum|essential|what\s+you\s+(?:need|should)|skills?|education\s+and\s+(?:experience|qualifications)|knowledge\s+and\s+skills|language|licen[cs]e)\b/i.test(heading)) return 'required';
+  if (/\b(?:qualifications?|requirements?|minimum|essential|what\s+you\s+(?:need|should)|skills?|education|training|education\s+and\s+(?:experience|qualifications)|knowledge\s+and\s+skills|language|licen[cs]e)\b/i.test(heading)) return 'required';
   return 'other';
 }
 
 function descriptionLines(description: string): DescriptionLine[] {
   let section: RequirementSection = 'other';
-  return description.split(/\r?\n/).map(raw => {
+  const normalizedDescription = description
+    .replace(/\\r?\\n/g, '\n')
+    .replace(/\s+(?=\d+[.)]\s+)/g, '\n')
+    .replace(/\s+(?=(?:key|minimum|essential|education|licen[cs]e|language|other)\s+qualifications?\s*:)/gi, '\n');
+  return normalizedDescription.split(/\r?\n/).map(raw => {
     const heading = headingText(raw);
     if (heading) {
       section = sectionForHeading(heading);
@@ -143,6 +164,143 @@ function descriptionLines(description: string): DescriptionLine[] {
     const text = compactText(raw.replace(/^\s*[-*•]\s*/, '').replace(/^\d+[.)]\s*/, ''));
     return { text, section, heading: false };
   }).filter(line => line.text);
+}
+
+function cleanRequirementText(value: string): string {
+  return compactText(value)
+    .replace(/\s*[([{]\s*(?:master(?:['’]s)?|bachelor(?:['’]s)?|ph\.?d\.?)\s+(?:degree\s+)?(?:is\s+)?(?:preferred|preferable|an?\s+asset|desirable|an?\s+advantage)[^)}\]]*[)}\]]/gi, '')
+    .replace(/(?:;|,|\.|\s+-\s+)\s*(?:master(?:['’]s)?|bachelor(?:['’]s)?|ph\.?d\.?)\s+(?:degree\s+)?(?:is\s+)?(?:preferred|preferable|an?\s+asset|desirable|an?\s+advantage).*$/i, '')
+    .replace(/[;,.]+$/, '')
+    .trim();
+}
+
+function cleanEducationRequirement(value: string): string {
+  const initial = cleanRequirementText(value);
+  const educationIndex = initial.search(/\b(?:bachelor|master|ph\.?d|doctor(?:ate|al)|diploma|degree|bscn|bsn|undergraduate|graduate)\b/i);
+  const educationPrefix = educationIndex >= 0 ? initial.slice(0, educationIndex) : '';
+  const cleaned = (educationIndex >= 0 && LICENSE_TERM.test(educationPrefix) ? initial.slice(educationIndex) : initial)
+    .replace(/\s+(?:and\s+)?(?:valid\s+|current\s+|must\s+(?:have|hold|possess)\s+|registered\s+(?:as|with)\s+|registration\s+(?:with|in|as)\s+)(?:[^.]+(?:licen[cs]e|p\.?\s*eng\.?|professional\s+engineer|certificate\s+of\s+qualification|registration)[^.]*).*$/i, '')
+    .replace(/\s+(?:and\s+)?registration\s+(?:or|with|in|as|through)\b.*$/i, '')
+    .replace(/[;,.]+$/, '')
+    .replace(/\s+(?:with|and|or)$/i, '')
+    .trim();
+  return cleaned;
+}
+
+function cleanLicenseRequirement(value: string): string {
+  const start = value.match(/\b(?:valid\s+(?:[^.\n]{0,80}\s+)?(?:driver.?s?\s+)?licen[cs]e|current\s+(?:[^.\n]{0,80}\s+)?(?:driver.?s?\s+)?licen[cs]e|must\s+(?:have|hold|possess|maintain|obtain)\b|registered\s+(?:as|with|by)\b|registered\s+professional\s+engineer|registration\s+(?:with|in|as|through)\b|(?:professional|accounting|trade|engineering)\s+designation(?:\s+(?:as|with|required))?|professional\s+engineer|p\.?\s*eng\.?|class\s+[a-z0-9]+\s+(?:driver.?s?\s+)?licen[cs]e|certificate\s+of\s+(?:qualification|authorization))\b/i);
+  return cleanRequirementText(start ? value.slice(start.index) : value);
+}
+
+function normalizedRequirement(value: string): string {
+  return value.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function retainExistingEducation(value: string): boolean {
+  if (value.length > 300 || !EDUCATION_TERM.test(value)) return false;
+  if (/\b(?:leading|supports? students|position is|this role|post[- ]secondary institution offering|navigate|campus events)\b/i.test(value)) return false;
+  return /^\s*(?:a|an|minimum|completion|completed|degree|diploma|post[- ]secondary|undergraduate|graduate|your\s+educational|candidates?\s+must|must|currently\s+enrolled|we\s+are\s+seeking|\d+[- ]year|university|college|bachelor|master|ph\.?d)/i.test(value)
+    || /\b(?:completion\s+of|degree\s+in|diploma\s+in|equivalent\s+combination)\b/i.test(value);
+}
+
+function retainExistingLicense(value: string): boolean {
+  if (value.length > 300 || !LICENSE_TERM.test(value)) return false;
+  if (/\b(?:software|application|product|patent|open[- ]source)\s+licen[cs]e|licen[cs]e\s+information|registered\s+as\s+(?:a\s+)?(?:full[- ]time|part[- ]time)?\s*student\b/i.test(value)) return false;
+  return /^(?:\s*(?:a|an|valid|current|must|possess|hold|maintain|obtain|registered|registration|professional|accounting|trade|engineering|certificate|class)\b)/i.test(value)
+    || /\b(?:professional|accounting|trade|engineering)\s+designation\b/i.test(value);
+}
+
+export function extractEducationRequirements(description: string): string[] {
+  const values = new Set<string>();
+  for (const line of descriptionLines(description)) {
+    if (line.heading || line.section === 'optional' || line.section === 'benefits' || !EDUCATION_TERM.test(line.text)) continue;
+    if (/\b(?:leading|post[- ]secondary institution offering|supports? students|position is|campus events)\b/i.test(line.text)) continue;
+    if (line.section !== 'required' && line.text.length > 300) continue;
+    if (EDUCATION_CONTEXT_ONLY.test(line.text) && !FORMAL_EDUCATION_CUE.test(line.text)) continue;
+    if (line.section !== 'required' && !/^\s*(?:a|an|minimum|completion|completed|degree|diploma|post[- ]secondary|undergraduate|graduate|your\s+educational|candidates?\s+must|must|currently\s+enrolled|we\s+are\s+seeking)\b/i.test(line.text)) continue;
+    const educationIndex = line.text.search(EDUCATION_TERM);
+    const educationContext = line.text.slice(Math.max(0, educationIndex - 80), educationIndex + 40);
+    if (line.section !== 'required' && !EDUCATION_REQUIRED_CUE.test(educationContext)) continue;
+    const value = cleanEducationRequirement(line.text);
+    if (value && EDUCATION_TERM.test(value) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(value)) values.add(value);
+  }
+  return [...values];
+}
+
+export function extractLicenseRequirements(description: string): string[] {
+  const values = new Set<string>();
+  for (const line of descriptionLines(description)) {
+    if (line.heading || line.section === 'optional' || line.section === 'benefits' || !LICENSE_TERM.test(line.text)) continue;
+    if (line.section !== 'required' && line.text.length > 300) continue;
+    if (/\bregistered\s+as\s+(?:a\s+)?(?:full[- ]time|part[- ]time)?\s*student\b/i.test(line.text)) continue;
+    if (/\b(?:software|application|product|patent|open[- ]source)\s+licen[cs]e|licen[cs]e\s+information\b/i.test(line.text)) continue;
+    if (line.section !== 'required' && !LICENSE_REQUIRED_CUE.test(line.text)) continue;
+    const explicitLicense = /\b(?:driver.?s?\s+(?:licen[cs]e|permit|abstract)|class\s+[a-z0-9]+\s+(?:driver.?s?\s+)?licen[cs]e|licen[cs]e|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification|certificate\s+of\s+authorization)\b/i.test(line.text);
+    const explicitRegistration = /\b(?:registration\s+(?:with|in|as|through)|registered\s+(?:as|with|by)|professional\s+registration|designation\s+(?:as|with|required)|registration\b[^\n]{0,30}\b(?:required|must|valid|eligible))\b/i.test(line.text);
+    if (!explicitLicense && !explicitRegistration) continue;
+    if (explicitRegistration && !/\b(?:college|university|association|board|professional|regulatory|ontario|nurse|engineer|architect|inspector|MMAH|PEO|CPA|CET|designation)\b/i.test(line.text)) continue;
+    if (!LICENSE_REQUIRED_CUE.test(line.text) && !/\b(?:valid|current|class\s+[a-z0-9]+|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification)\b/i.test(line.text)) continue;
+    const value = cleanLicenseRequirement(line.text);
+    if (value && LICENSE_TERM.test(value) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(value)) values.add(value);
+  }
+  return [...values];
+}
+
+export function extractNamedBenefits(description: string): string[] {
+  const values = new Set<string>();
+  for (const line of descriptionLines(description)) {
+    if (line.heading || line.section !== 'benefits') continue;
+    for (const [name, pattern] of NAMED_BENEFITS) {
+      if (pattern.test(line.text)) values.add(name);
+    }
+  }
+  return [...values];
+}
+
+export interface StructuredRequirementValues {
+  education_requirements: string[];
+  license_requirements: string[];
+  benefits: string[];
+  required_skills: string[];
+}
+
+export function reconcileStructuredRequirements(description: string, current: Partial<StructuredRequirementValues>): StructuredRequirementValues {
+  const educationRequirements = extractEducationRequirements(description);
+  const licenseRequirements = extractLicenseRequirements(description);
+  const namedBenefits = extractNamedBenefits(description);
+  const currentEducation = toStringList(current.education_requirements).filter(retainExistingEducation);
+  const currentLicenses = toStringList(current.license_requirements).filter(retainExistingLicense);
+  const currentBenefits = toStringList(current.benefits);
+  const currentSkills = toStringList(current.required_skills);
+  const requiredLines = descriptionLines(description).filter(line => !line.heading && line.section === 'required').map(line => normalizedRequirement(line.text));
+  const skills = currentSkills.filter(skill => {
+    if (licenseRequirements.length > 0 && LICENSE_TERM.test(skill)) return false;
+    const skillKey = normalizedRequirement(skill);
+    const benefitOnly = namedBenefits.some(benefit => normalizedRequirement(benefit) === skillKey)
+      && !requiredLines.some(line => line.includes(skillKey));
+    return !benefitOnly;
+  });
+  const benefits = [...new Set(currentBenefits)];
+  for (const benefit of namedBenefits) {
+    const benefitKey = normalizedRequirement(benefit);
+    const matching = benefits
+      .map((currentBenefit, index) => ({ currentBenefit, index }))
+      .filter(({ currentBenefit }) => normalizedRequirement(currentBenefit).includes(benefitKey));
+    if (matching.length === 0) {
+      benefits.push(benefit);
+    } else {
+      const keep = matching.reduce((best, candidate) => candidate.currentBenefit.length > best.currentBenefit.length ? candidate : best);
+      for (const candidate of matching.reverse()) {
+        if (candidate.index !== keep.index) benefits.splice(candidate.index, 1);
+      }
+    }
+  }
+  return {
+    education_requirements: educationRequirements.length ? educationRequirements : currentEducation,
+    license_requirements: licenseRequirements.length ? licenseRequirements : currentLicenses,
+    benefits,
+    required_skills: skills,
+  };
 }
 
 function isOptionalLanguageLine(line: DescriptionLine): boolean {

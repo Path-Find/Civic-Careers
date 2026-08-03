@@ -25,7 +25,8 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Department', value: job.department }, { label: 'Location', value: job.location },
     { label: 'Salary', value: details.salary }, { label: 'Work Mode', value: details.mode },
     { label: 'Employment', value: details.type }, { label: 'Duration', value: details.duration },
-    { label: 'Union', value: details.union }, { label: 'Skills / Programs', value: details.skills },
+    { label: 'Union', value: details.union }, { label: 'Education', value: details.education },
+    { label: 'Licences', value: details.licenses }, { label: 'Skills / Programs', value: details.skills },
     { label: 'Benefits', value: details.benefits }, { label: 'Eligibility', value: details.future, highlight: true },
   ];
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CompanySummary, HomeData, Job } from '../../../types/jobs';
 import { normalizeJob } from '../jobUtils';
 
@@ -23,6 +23,8 @@ export function useJobs() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [jobsTotal, setJobsTotal] = useState(0);
+  const [jobsAvailableTotal, setJobsAvailableTotal] = useState(0);
+  const loadingMoreRef = useRef(false);
 
   const refresh = useCallback((singleRid?: number) => {
     setLoading(true);
@@ -45,6 +47,7 @@ export function useJobs() {
           const loadedJobs = data.jobs.map(normalizeJob);
           setJobs(loadedJobs);
           setJobsTotal(Number(data.total ?? loadedJobs.length));
+          setJobsAvailableTotal(Number(data.availableTotal ?? data.total ?? loadedJobs.length));
         } else {
           setJobs((Array.isArray(data) ? data : [data]).map(normalizeJob));
         }
@@ -54,7 +57,8 @@ export function useJobs() {
   }, []);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || jobs.length >= jobsTotal) return;
+    if (loadingMoreRef.current || jobs.length >= jobsTotal) return;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
       const response = await fetch(`${API}/api/jobs?view=jobs&limit=50&offset=${jobs.length}`);
@@ -63,9 +67,10 @@ export function useJobs() {
     } catch (error) {
       console.error('Error loading more jobs:', error);
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [jobs.length, jobsTotal, loadingMore]);
+  }, [jobs.length, jobsTotal]);
 
   useEffect(() => {
     const match = window.location.pathname.match(/^\/job\/(\d+)$/);
@@ -97,5 +102,5 @@ export function useJobs() {
     return is_saved as number;
   }, [updateJob]);
 
-  return { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, loadMore, refresh, updateJob, loadDescription, toggleSaved };
+  return { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, loadMore, refresh, updateJob, loadDescription, toggleSaved };
 }

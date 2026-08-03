@@ -1,6 +1,7 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
+import { reconcileStructuredRequirements } from './requirements';
 
 const CONCURRENCY = 5;
 
@@ -32,6 +33,12 @@ async function main() {
       }
       const { data: aiResult, error } = await parseJobWithAI(raw.raw_text, raw.title ?? undefined);
       if (aiResult) {
+        const structuredRequirements = reconcileStructuredRequirements(aiResult.clean_description, {
+          education_requirements: aiResult.education_requirements,
+          license_requirements: aiResult.license_requirements,
+          benefits: aiResult.benefits,
+          required_skills: aiResult.required_skills,
+        });
         await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
         await saveJobDetails(db, {
           id: raw.id,
@@ -53,10 +60,10 @@ async function main() {
           duration: aiResult.duration,
           is_unionized: aiResult.is_unionized ? 1 : 0,
           union_name: aiResult.union_name,
-          benefits: JSON.stringify(aiResult.benefits),
-          required_skills: JSON.stringify(aiResult.required_skills),
-          education_requirements: JSON.stringify(aiResult.education_requirements),
-          license_requirements: JSON.stringify(aiResult.license_requirements),
+          benefits: JSON.stringify(structuredRequirements.benefits),
+          required_skills: JSON.stringify(structuredRequirements.required_skills),
+          education_requirements: JSON.stringify(structuredRequirements.education_requirements),
+          license_requirements: JSON.stringify(structuredRequirements.license_requirements),
           vehicle_required: aiResult.vehicle_required === null ? null : (aiResult.vehicle_required ? 1 : 0),
           language_requirements: JSON.stringify(aiResult.language_requirements),
           security_check_required: aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0),

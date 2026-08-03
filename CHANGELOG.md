@@ -17,11 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Homepage job context was missing**: available jobs and jobs added in the last 7 days now sit left-aligned with the homepage sort controls in one consistent type style.
 - **The homepage preview had no direct catalogue link**: a `See all jobs` control now opens the full Jobs page.
 - **Jobs and Companies could show a blank loading screen**: layout-preserving loading rows now appear while data loads, and Jobs waits until the bottom before fetching another batch.
+- **Jobs showed historical rows in its total and could stop after the first batch**: the catalogue count now matches active, non-expired jobs, and additional results load automatically as you scroll, including company-filtered views.
 - **Concurrent page refreshes could duplicate the same API request**: matching in-flight requests are now shared.
 - **Recently viewed jobs could only expire naturally**: Saved now includes a direct way to clear that local history.
 - **Qualification details could be hidden behind generic category chips**: full qualification bullets now appear by default, including education, experience, and language requirements.
 - **Long “Nice to Have” requirements were shown as truncated pills**: optional requirements now display as readable full bullets.
 - **Important requirements were only searchable inside descriptions**: education, licences, vehicle needs, languages, security checks, certifications, and software are now stored separately for future filters.
+- **Education, licence, and pension details could be misclassified**: deterministic reconciliation now separates those fields from skills and shows them independently on job pages, including for existing parsed jobs.
 - **Freshness lists were based on scrape timing**: validated official posting dates now drive “Newly added” and recent sorting, with first-seen fallback; scrape time remains “Last checked.”
 - **Software backfills could stop short or leave parser corrections unapplied**: the backfill now scans all eligible jobs and reconciles existing values before selecting each batch.
 

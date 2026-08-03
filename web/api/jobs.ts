@@ -118,15 +118,25 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (view === 'jobs') {
+      const activeJobWhere = `
+        WHERE j.is_active = 1
+          AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))`;
       const [result, count] = await Promise.all([
         db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} ORDER BY j.is_active DESC, ${freshnessDate} DESC, j.first_seen_at DESC LIMIT ? OFFSET ?`,
+          sql: `SELECT ${jobColumns} ${jobJoins} ${activeJobWhere} ORDER BY ${freshnessDate} DESC, j.first_seen_at DESC LIMIT ? OFFSET ?`,
           args: [limit, offset],
         }),
-        db.execute(`SELECT COUNT(*) AS total ${jobJoins}`),
+        db.execute(`SELECT
+          COUNT(*) AS total,
+          SUM(CASE WHEN COALESCE(jd.is_inventory, 0) = 0 THEN 1 ELSE 0 END) AS available_total
+          ${jobJoins} ${activeJobWhere}`),
       ]);
       res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
-      res.end(JSON.stringify({ jobs: result.rows, total: Number(count.rows[0]?.total ?? 0) }));
+      res.end(JSON.stringify({
+        jobs: result.rows,
+        total: Number(count.rows[0]?.total ?? 0),
+        availableTotal: Number(count.rows[0]?.available_total ?? 0),
+      }));
       return;
     }
 

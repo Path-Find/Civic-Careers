@@ -63,6 +63,8 @@ export interface JobDetails {
   type: string | null;
   duration: string | null;
   union: string | null;
+  education: string | null;
+  licenses: string | null;
   benefits: string | null;
   skills: string | null;
   future: string | null;

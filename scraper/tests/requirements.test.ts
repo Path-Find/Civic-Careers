@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  extractEducationRequirements,
   extractLanguageRequirements,
   extractLanguageVehicleRequirements,
+  extractLicenseRequirements,
+  extractNamedBenefits,
   extractSoftwareRequirements,
   extractVehicleRequired,
   hasLanguageVehicleCandidate,
   normalizeLanguageRequirements,
   normalizeVehicleRequired,
+  reconcileStructuredRequirements,
 } from '../requirements';
 
 test('extracts named software and ignores ambiguous categories', () => {
@@ -43,6 +47,116 @@ test('recognizes a program name at the end of a sentence', () => {
 - Proficient in Microsoft Word.
 `);
   assert.deepEqual(result.values, ['Word']);
+});
+
+test('extracts required education and drops optional degrees from the same line', () => {
+  assert.deepEqual(extractEducationRequirements(`## Qualifications
+- Bachelor's degree in Corporate Communications, Media Relations, Public Relations, or related field (Master's preferred)
+`), ["Bachelor's degree in Corporate Communications, Media Relations, Public Relations, or related field"]);
+});
+
+test('does not treat optional education or Master Electrician as required education', () => {
+  assert.deepEqual(extractEducationRequirements(`## Qualifications
+- Master's degree is preferred
+- Master Electrician certification is required
+- Experience dealing with clients in a post-secondary or corporate setting
+- Demonstrated accuracy and attention to detail with a high degree of care
+
+## Nice to Have
+- Bachelor's degree in a related field
+`), []);
+});
+
+test('does not capture incidental post-secondary wording from a long overview', () => {
+  assert.deepEqual(extractEducationRequirements(`This role supports students navigating post-secondary education and coordinates campus events. The successful candidate will provide administrative support and work with faculty and learners throughout the year.`), []);
+  assert.deepEqual(extractEducationRequirements(`## Qualifications
+- Familiarity with provincial legislation regarding post-secondary education facilities
+- Completion of a post-secondary program in a related field
+`), ['Completion of a post-secondary program in a related field']);
+});
+
+test('separates education and licence clauses from a combined requirement', () => {
+  const description = `## Qualifications
+- University degree in engineering and registration or eligibility for registration as a Professional Engineer in Ontario
+- Licensed AME or DND AVN QL6A qualifications is required. A Bachelor's Degree or an Advanced Diploma in a related field of study will be considered
+`;
+  assert.deepEqual(extractEducationRequirements(description), [
+    'University degree in engineering',
+    "Bachelor's Degree or an Advanced Diploma in a related field of study will be considered",
+  ]);
+  assert.deepEqual(extractLicenseRequirements(description), [
+    'registration as a Professional Engineer in Ontario',
+  ]);
+});
+
+test('does not treat student registration as a professional licence', () => {
+  assert.deepEqual(extractLicenseRequirements('Registration as a full-time student in a post-secondary accredited academic institution is required.'), []);
+});
+
+test('drops obvious stale overview and software-licence values during reconciliation', () => {
+  const result = reconcileStructuredRequirements('## Overview\nA college is a post-secondary institution offering programs.\n\n## Qualifications\n- Must possess a valid Class G driver\'s licence', {
+    education_requirements: ['A college is a leading post-secondary institution offering programs.'],
+    license_requirements: ['Track software license information for compliance', 'registered as a full-time student'],
+    benefits: [],
+    required_skills: [],
+  });
+  assert.deepEqual(result.education_requirements, []);
+  assert.deepEqual(result.license_requirements, ["Must possess a valid Class G driver's licence"]);
+});
+
+test('extracts required licences and excludes optional licences', () => {
+  assert.deepEqual(extractLicenseRequirements(`## Qualifications
+- Valid Class 'G' Ontario Driver's License with no more than six demerit points
+- Registered Professional Engineer in Ontario
+
+## Nice to Have
+- A DZ licence is an asset
+`), [
+    "Valid Class 'G' Ontario Driver's License with no more than six demerit points",
+    'Registered Professional Engineer in Ontario',
+  ]);
+});
+
+test('does not turn licence mentions in duties into licence requirements', () => {
+  assert.deepEqual(extractLicenseRequirements(`## Qualifications
+- Maintain accountability for care within the scope of training and licensure
+- Work under the direction of a Registered Nurse
+- Review plan registration and project documentation
+`), []);
+});
+
+test('moves named benefits out of skills only when the source puts them in benefits', () => {
+  const result = reconcileStructuredRequirements(`## Qualifications
+- Bachelor's degree in communications
+- Valid Class G driver's licence
+
+## Compensation & Benefits
+- Defined benefit pension plan (OMERS)
+`, {
+    education_requirements: [],
+    license_requirements: [],
+    benefits: ['pension'],
+    required_skills: ['OMERS', "Class G driver's licence", 'Microsoft Office'],
+  });
+  assert.deepEqual(result.education_requirements, ["Bachelor's degree in communications"]);
+  assert.deepEqual(result.license_requirements, ["Valid Class G driver's licence"]);
+  assert.deepEqual(result.benefits, ['pension', 'OMERS']);
+  assert.deepEqual(result.required_skills, ['Microsoft Office']);
+  assert.deepEqual(extractNamedBenefits('## Qualifications\n- Administer OMERS pension plans\n'), []);
+});
+
+test('keeps OMERS as a skill when the qualifications require OMERS knowledge', () => {
+  const result = reconcileStructuredRequirements(`## Qualifications
+- Knowledge of OMERS pension administration
+
+## Compensation & Benefits
+- OMERS pension plan
+`, {
+    benefits: [],
+    required_skills: ['OMERS'],
+  });
+  assert.deepEqual(result.required_skills, ['OMERS']);
+  assert.deepEqual(result.benefits, ['OMERS']);
 });
 
 test('does not treat generic lowercase teams as Microsoft Teams', () => {
