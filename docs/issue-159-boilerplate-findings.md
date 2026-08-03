@@ -85,9 +85,16 @@ I classified a repeated block as a candidate only when it is source-specific and
 | Waterfront Toronto | 1 | One posting only. It contains an organization overview, EDI/accommodation, and AI-recruitment disclaimer, but there is no cross-posting evidence. Insufficient for a source-wide rule. |
 | York Region | 66 | Repeated cookie notice, online-application/interview notice, career-line instructions, contact/footer, and sharing controls. Clear portal/application boilerplate. |
 
+## Implementation status
+
+The read-only findings above were followed by a deterministic implementation pass. New parsed descriptions now run through the shared cleanup path. It removes recognized generic portal/social/equity boilerplate and exact duplicate bullets, plus confirmed source rules for Metrolinx, Toronto District School Board, Government of Canada, Brock University, University of Waterloo, City of Barrie, and City of St. Catharines.
+
+Safe stored-description backfills were completed for Metrolinx, Government of Canada, University of Toronto, Town of Caledon, City of Brantford, Brock University, and City of St. Catharines. TDSB, University of Waterloo, and City of Barrie had no remaining matching stored blocks after review, so they received future-parser coverage without a database backfill. Every applied source pass was rerun until it returned zero candidates; changed records were spot-checked for retained role content and structured requirements.
+
+The cleanup also includes a safety guard so legitimate job-title headings are not treated as empty boilerplate headings. The scraper regression suite passes 117/117 tests.
+
 ## Boundaries for the next cleanup pass
 
-- This investigation did not edit scraper or web code and did not update any database rows.
 - The findings support deterministic cleanup candidates, but they do not by themselves authorize removing eligibility, compensation, location, duties, qualifications, availability, police-check, driver-abstract, vaccination, or other role-dependent text.
 - The two sources without independent multi-posting evidence are CreateTO and Waterfront Toronto. EFHC also needs source-attribution review because its repeated raw shell contains employer text that may belong to a shared portal.
-- The issue’s dry-run, apply, zero-change, regression, and parent-issue updates remain for the implementation pass. They are intentionally unchecked because this task was investigation only.
+- City of Toronto and other unimplemented candidates remain dry-run/review only where the generic cleanup would also remove legitimate role context. The separate fresh 2% holistic database audit remains required.
