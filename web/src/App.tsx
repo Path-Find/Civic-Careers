@@ -110,7 +110,7 @@ function LoadingState({ view }: { view: View }) {
 
 function App() {
   const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
-  const { recentlyViewedJobs, recordViewed } = useRecentlyViewed(jobs);
+  const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [currentView, setCurrentView] = useState<View>('home');
@@ -428,7 +428,10 @@ function App() {
                     <>
                       {filteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
                       {currentView === 'saved' && <section className="recently-viewed-section">
-                        <h2 className="list-count-label recently-viewed-heading">Recently viewed</h2>
+                        <div className="recently-viewed-heading-row">
+                          <h2 className="list-count-label recently-viewed-heading">Recently viewed</h2>
+                          {recentlyViewedJobs.length > 0 && <button className="recently-viewed-clear" onClick={clearRecentlyViewed}>Clear recently viewed</button>}
+                        </div>
                         {recentlyViewedJobs.length > 0
                           ? recentlyViewedJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)
                           : <p className="recently-viewed-empty">Jobs you open will appear here for 30 days.</p>}

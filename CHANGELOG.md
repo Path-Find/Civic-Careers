@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Homepage job context was missing**: available jobs and jobs added in the last 7 days now sit left-aligned with the homepage sort controls in one consistent type style.
 - **Jobs and Companies could show a blank loading screen**: layout-preserving loading rows now appear while data loads, and Jobs waits until the bottom before fetching another batch.
 - **Concurrent page refreshes could duplicate the same API request**: matching in-flight requests are now shared.
+- **Recently viewed jobs could only expire naturally**: Saved now includes a direct way to clear that local history.
 
 ## [1.9.8] - 2026-08-02
 

@@ -43,6 +43,10 @@ export function useRecentlyViewed(jobs: Job[]) {
     ].slice(0, MAX_ITEMS));
   }, []);
 
+  const clearRecentlyViewed = useCallback(() => {
+    setEntries([]);
+  }, []);
+
   const recentlyViewedJobs = useMemo(() => {
     const jobsById = new Map(jobs.map(job => [job.id, job]));
     return entries
@@ -50,5 +54,5 @@ export function useRecentlyViewed(jobs: Job[]) {
       .filter((job): job is Job => Boolean(job));
   }, [entries, jobs]);
 
-  return { recentlyViewedJobs, recordViewed };
+  return { recentlyViewedJobs, recordViewed, clearRecentlyViewed };
 }
