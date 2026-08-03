@@ -232,6 +232,14 @@ test('accepts an explicit labelled language requirement outside a standard headi
   assert.deepEqual(extractLanguageRequirements('## Qualifications\n- Passive competence in a second language (English)'), ['English']);
 });
 
+test('extracts labelled language metadata from raw source text', () => {
+  assert.deepEqual(extractLanguageRequirements('Language Requirement: English Essential'), ['English Essential']);
+  assert.deepEqual(extractLanguageRequirements('Language requirements (essential for the job)\nEnglish Essential\nFrench essential\nBilingual imperative BBB/BBB'), ['English Essential', 'French Essential', 'Bilingual (BBB/BBB)']);
+  assert.deepEqual(extractLanguageRequirements('Language of instruction: Français | French\nCompetence in second language: Passive'), ['French']);
+  assert.deepEqual(extractLanguageRequirements('## Qualifications\n- Speak English fluently.'), ['English']);
+  assert.deepEqual(extractLanguageRequirements('Various language requirements: English only, French only, or Bilingual competencies.'), ['English', 'French', 'Bilingual']);
+});
+
 test('does not treat posting language or language-of-work text as a requirement', () => {
   assert.deepEqual(extractLanguageRequirements(`## Overview
 Language of work: English, French, and bilingual jobs available.
@@ -259,6 +267,7 @@ test('does not treat optional or conditional vehicle wording as required', () =>
   assert.equal(extractVehicleRequired(`## Qualifications
 - Valid driver's license for positions requiring driving
 `), null);
+  assert.equal(extractVehicleRequired('Successful candidates may be required to provide a driver\'s abstract check.'), null);
   assert.equal(extractVehicleRequired('Travel between sites may be required.'), null);
 });
 

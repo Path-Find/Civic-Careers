@@ -96,7 +96,7 @@ const LANGUAGE_NAMES: Array<[string, RegExp]> = [
 const LANGUAGE_NAME_PATTERN = /\b(?:english|anglais|french|fran[cç]ais|bilingual(?:ism)?|bilingue|cantonese|mandarin|punjabi|arabic|ukrainian|spanish|german|italian|portuguese|korean|japanese|hindi|urdu|tamil|somali|farsi|persian|russian|polish|tagalog|american sign language|sign language|asl)\b/i;
 const LANGUAGE_OPTIONAL_REQUIREMENT = /\b(?:asset|assets|preferred|preferable|preference|nice\s+to\s+have|would\s+be\s+an?\s+asset|considered\s+an?\s+asset|desirable|advantage|optional)\b/i;
 const LANGUAGE_NON_REQUIREMENT = /\b(?:programming|software|coding|scripting)\s+languages?\b|\b(?:language\s+of\s+(?:instruction|the\s+course)|courses?\s+in\s+(?:english|french)|equivalent\s+in\s+(?:english|french)|language\s+of\s+work|language\s+instructor|english[- ]language\s+(?:arts|literature))\b/i;
-const LANGUAGE_REQUIREMENT_CUE = /\b(?:required|required?\s+language|essential|must|need(?:ed)?|competenc(?:e|y)|proficien(?:cy|t)|fluen(?:cy|t)|native|spoken|oral|written|communicat(?:e|ion)|official\s+languages?|bilingual(?:ism)?|bilingue|language\s+skills?)\b/i;
+const LANGUAGE_REQUIREMENT_CUE = /\b(?:required|required?\s+language|essential|must|need(?:ed)?|competenc(?:e|y)|proficien(?:cy|t)|fluen(?:cy|t(?:ly)?)|native|spoken|oral|written|communicat(?:e|ion)|official\s+languages?|bilingual(?:ism)?|bilingue|language\s+skills?)\b/i;
 const LANGUAGE_HEADING = /\b(?:language|bilingual|english|french)\b/i;
 const LANGUAGE_LEVEL = /\b(?:[A-C]{2,3}\s*\/\s*[A-C]{2,3}|[A-C]{2,3}\s+level|level\s+[1-5]|essential)\b/i;
 
@@ -377,11 +377,34 @@ function isLanguageRequirementLine(line: DescriptionLine): boolean {
   return LANGUAGE_REQUIREMENT_CUE.test(line.text);
 }
 
+export function extractExplicitLanguageRequirements(text: string): string[] {
+  const values = new Set<string>();
+  const hasLanguageLabel = /\blanguage\s+requirements?\b|\blanguage\s+requirement\s*:/i.test(text);
+  if (hasLanguageLabel) {
+    const hasBilingualPair = /\bbilingual\b[^.!?\n]{0,100}\b(?:english\s+and\s+french|french\s+and\s+english)\b/i.test(text);
+    if (/\benglish\s+essential\b/i.test(text)) values.add('English Essential');
+    if (/\bfrench\s+essential\b|\bfran[cç]ais\s+essential\b/i.test(text)) values.add('French Essential');
+    if (/\benglish\s+only\b/i.test(text) || (!hasBilingualPair && /\benglish\b/i.test(text) && !/\benglish\s+essential\b/i.test(text))) values.add('English');
+    if (/\bfrench\s+only\b|\bfran[cç]ais\s+only\b/i.test(text) || (!hasBilingualPair && /\bfrench\b|\bfran[cç]ais\b/i.test(text) && !/\bfrench\s+essential\b|\bfran[cç]ais\s+essential\b/i.test(text))) values.add('French');
+    if (/\bbilingual(?:ism)?\b|\bbilingue\b/i.test(text) && !hasBilingualPair && !/\bbilingual\s+(?:imperative|proficien(?:cy|t)|required)/i.test(text)) values.add('Bilingual');
+    const levels = [...text.matchAll(/\b([A-C]{2,3}\s*\/\s*[A-C]{2,3})\b/gi)].map(match => match[1].replace(/\s+/g, ''));
+    for (const level of levels) {
+      if (/\bbilingual\s+(?:imperative|proficien(?:cy|t)|required)?/i.test(text)) values.add(`Bilingual (${level})`);
+    }
+  }
+  const instruction = text.match(/\blanguage\s+of\s+instruction\s*:\s*([^.!?\n]{0,100})/i)?.[1] || '';
+  for (const language of namedLanguages(instruction)) values.add(language);
+  return [...values];
+}
+
 export function extractLanguageRequirements(description: string, title = ''): string[] {
   const values = new Set<string>();
+  const hasVariousLanguageLabel = /\bvarious\s+language\s+requirements?\b/i.test(description);
   if (/\bbilingual\b/i.test(title)) values.add('Bilingual');
+  for (const value of extractExplicitLanguageRequirements(description)) values.add(value);
   for (const line of descriptionLines(description)) {
     if (!isLanguageRequirementLine(line)) continue;
+    if (hasVariousLanguageLabel && /\bvarious\s+language\s+requirements?\b/i.test(line.text)) continue;
     for (const value of canonicalLanguageLine(line.text)) values.add(value);
   }
   return [...values];
@@ -389,6 +412,7 @@ export function extractLanguageRequirements(description: string, title = ''): st
 
 function isVehicleRequirementLine(line: DescriptionLine): boolean {
   if (line.heading || !VEHICLE_TERM.test(line.text)) return false;
+  if (/\bdriver.?s?\s+abstract\b/i.test(line.text) && !/\b(?:licen[cs]e|permit|class\s+[a-z0-9]+)\b/i.test(line.text)) return false;
   if (VEHICLE_CONDITIONAL.test(line.text)) return false;
   if (VEHICLE_NOT_REQUIRED.test(line.text)) return false;
   if (VEHICLE_OPTIONAL_REQUIREMENT.test(line.text)) return false;

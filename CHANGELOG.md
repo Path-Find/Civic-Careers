@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Education, licence, and pension details could be misclassified**: deterministic reconciliation now separates those fields from skills and shows them independently on job pages, including for existing parsed jobs.
 - **Freshness lists were based on scrape timing**: validated official posting dates now drive “Newly added” and recent sorting, with first-seen fallback; scrape time remains “Last checked.”
 - **Software backfills could stop short or leave parser corrections unapplied**: the backfill now scans all eligible jobs and reconciles existing values before selecting each batch.
+- **Labelled language metadata and screening text could be misread**: deterministic backfills now capture explicit raw language requirements and fluent or language-of-instruction cases, fill only empty language and vehicle fields, and ignore standalone driver-abstract checks as vehicle requirements.
 
 ## [1.9.8] - 2026-08-02
 
