@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractNanaimoJobs, extractPhenomJobs, extractStLawrenceJobs, shouldScrapeGovernmentOfCanadaListing } from '../engines/custom';
-import { EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES } from '../source-fixes';
+import { APPLICATION_URL_FIXES, EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES } from '../source-fixes';
 
 test('ignores the Government of Canada candidate profile page as a job', () => {
   assert.equal(shouldScrapeGovernmentOfCanadaListing('Candidate profile', 'Candidate profile'), false);
@@ -12,6 +12,10 @@ test('ignores the Government of Canada candidate profile page as a job', () => {
 test('keeps the CRA recruitment posting on its official application page', () => {
   assert.equal(GOVERNMENT_OF_CANADA_FIXES['2434700']?.applicationUrl, 'https://careers-carrieres.cra-arc.gc.ca/gol-ged/wcis/pub/rtrvjbpst.action?pi=8EB30FC0002E1FD18383F97AB53463CE');
   assert.equal(EXCLUDED_GOVERNMENT_OF_CANADA_IDS.has('2445703'), true);
+});
+
+test('keeps the legacy Toronto posting ID when its canonical URL is found', () => {
+  assert.equal(APPLICATION_URL_FIXES['8bcafdef991f'], 'https://jobs.toronto.ca/jobsatcity/job/TORONTO-Solid-Waste-Collection-Operator-%28DZ-Licence-Required%29-ON-M9C-2Y2/598508217/');
 });
 
 test('extracts and deduplicates St. Lawrence College job links', () => {

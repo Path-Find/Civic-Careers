@@ -1,6 +1,7 @@
 import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
+import { LEGACY_JOB_IDS_BY_APPLICATION_URL } from '../source-fixes';
 
 export async function scrapeSuccessFactors(db: Client, context: BrowserContext, url: string, sourceName: string, baseUrl: string) {
   console.log(`Scraping ${sourceName} (SuccessFactors)...`);
@@ -75,7 +76,11 @@ export async function scrapeSuccessFactors(db: Client, context: BrowserContext, 
       let count = 0;
       for (const job of summaries) {
         count++;
-        const id = new URL(job.url).searchParams.get('career_job_req_id') || job.url.split('/').filter(Boolean).pop()?.split('?')[0] || urlId(job.url);
+        const canonicalUrl = job.url.replace(/\/$/, '');
+        const id = LEGACY_JOB_IDS_BY_APPLICATION_URL[canonicalUrl]
+          || new URL(job.url).searchParams.get('career_job_req_id')
+          || job.url.split('/').filter(Boolean).pop()?.split('?')[0]
+          || urlId(job.url);
         process.stdout.write(`\r[${sourceName}] ${count}/${summaries.length}`);
         await scrapeRawAndStage(db, context, { ...job, id }, sourceName);
       }

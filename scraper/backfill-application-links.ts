@@ -1,5 +1,6 @@
 import { initDb } from './db';
 import { adpDetailUrl } from './engines/adp';
+import { APPLICATION_URL_FIXES } from './source-fixes';
 const apply = process.argv.includes('--apply');
 
 async function main() {
@@ -8,10 +9,11 @@ async function main() {
     SELECT j.id, j.source, j.url, raw.url AS raw_url, raw.application_url
     FROM jobs j
     JOIN raw_jobs raw ON raw.id = j.id
-    WHERE raw.url LIKE '%workforcenow.adp.com%'
   `);
   const candidates = result.rows.map(row => {
-    const nextUrl = adpDetailUrl(row.application_url) ?? adpDetailUrl(row.raw_url);
+    const nextUrl = APPLICATION_URL_FIXES[String(row.id)]
+      ?? adpDetailUrl(row.application_url)
+      ?? adpDetailUrl(row.raw_url);
     return {
       id: String(row.id),
       source: String(row.source),
@@ -25,7 +27,7 @@ async function main() {
     nextUrl: string;
   }>;
 
-  console.log(`[Application link backfill] ${apply ? 'Applying' : 'Dry run'} ${candidates.length} direct ADP link(s).`);
+  console.log(`[Application link backfill] ${apply ? 'Applying' : 'Dry run'} ${candidates.length} direct application link(s).`);
   for (const row of candidates.slice(0, 40)) console.log(JSON.stringify(row));
   if (!apply || candidates.length === 0) return;
 

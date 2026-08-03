@@ -11,6 +11,16 @@ export type GovernmentOfCanadaFix = {
 // excludes it from future runs and the source backfill deactivates the row.
 export const EXCLUDED_GOVERNMENT_OF_CANADA_IDS = new Set(['2445703']);
 
+// This legacy Toronto row was first captured from the search shell. Keep its
+// existing ID when the SuccessFactors scraper sees the now-canonical detail URL.
+export const APPLICATION_URL_FIXES: Record<string, string> = {
+  '8bcafdef991f': 'https://jobs.toronto.ca/jobsatcity/job/TORONTO-Solid-Waste-Collection-Operator-%28DZ-Licence-Required%29-ON-M9C-2Y2/598508217/',
+};
+
+export const LEGACY_JOB_IDS_BY_APPLICATION_URL: Record<string, string> = Object.fromEntries(
+  Object.entries(APPLICATION_URL_FIXES).map(([id, url]) => [url.replace(/\/$/, ''), id]),
+);
+
 // These four records use the GC Jobs listing as a source, but their employer
 // pages contain the stable application destination and clearer source text.
 // Keep these repairs deterministic so a parser rerun does not send them back

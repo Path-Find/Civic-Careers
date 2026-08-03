@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Labelled language metadata and screening text could be misread**: deterministic backfills now capture explicit raw language requirements and fluent or language-of-instruction cases, fill only empty language and vehicle fields, and ignore standalone driver-abstract checks as vehicle requirements.
 - **Some Government of Canada records used a generic destination**: CRA recruitment postings now keep their official application link and source-labelled pools are classified as ongoing recruitment, while the non-job Candidate profile page is excluded.
 - **ADP postings all opened the employer’s generic recruitment page**: the scraper now preserves each clicked posting’s direct `jobId` URL and can backfill existing ADP records after a source refresh.
+- **A Toronto posting retained its search-page URL**: the source fix now maps the legacy record to its official SuccessFactors detail page without creating a duplicate.
 
 ## [1.9.8] - 2026-08-02
 
