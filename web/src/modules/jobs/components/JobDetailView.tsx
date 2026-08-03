@@ -14,7 +14,6 @@ const REPORT_REASONS = [
   'Issue with requirements',
   'Issue with closing date',
   'Duplicate job',
-  'Other',
 ] as const;
 
 function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
@@ -24,10 +23,11 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
     ? previous.filter(value => value !== reason)
     : [...previous, reason]);
   const submit = () => {
-    if (selectedReasons.length === 0) return;
+    const reasons = selectedReasons.length > 0 ? selectedReasons : ['Other'];
+    if (selectedReasons.length === 0 && !note.trim()) return;
     const body = [
       'Reported reasons:',
-      ...selectedReasons.map(reason => `- ${reason}`),
+      ...reasons.map(reason => `- ${reason}`),
       note.trim() ? `\nAdditional details:\n${note.trim()}` : '',
       '',
       `Job title: ${job.job_title}`,
@@ -47,7 +47,7 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
         <h2 id="report-dialog-title">Report a problem</h2>
         <button type="button" className="report-dialog-close" onClick={onClose} aria-label="Close report dialog">×</button>
       </div>
-      <p>Select all reasons that apply.</p>
+      <p>Select all reasons that apply, or describe another problem below.</p>
       <div className="report-reasons">
         {REPORT_REASONS.map(reason => <label key={reason} className="report-reason">
           <input type="checkbox" checked={selectedReasons.includes(reason)} onChange={() => toggleReason(reason)} />
@@ -58,7 +58,7 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
       <textarea id="report-note" className="report-note" value={note} onChange={event => setNote(event.target.value)} rows={4} />
       <div className="report-dialog-actions">
         <button type="button" className="report-dialog-cancel" onClick={onClose}>Cancel</button>
-        <button type="button" className="report-dialog-submit" onClick={submit} disabled={selectedReasons.length === 0}>Open GitHub report</button>
+        <button type="button" className="report-dialog-submit" onClick={submit} disabled={selectedReasons.length === 0 && !note.trim()}>Open GitHub report</button>
       </div>
     </div>
   </div>;
