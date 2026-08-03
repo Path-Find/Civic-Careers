@@ -21,6 +21,17 @@ jobs:
       - name: Install dependencies
         run: cd scraper && npm ci
 
+      - name: Check trial source references
+        run: |
+          cd scraper
+          # The scraper has existing project-wide TypeScript diagnostics, so
+          # fail only on undefined names in this trial entrypoint. This catches
+          # a missing engine import before Playwright and the full scrape start.
+          if npx tsc --noEmit --ignoreConfig --pretty false --target ES2022 --module ESNext --moduleResolution Bundler --esModuleInterop --skipLibCheck test-new-sources.ts 2>&1 | grep -Eq 'test-new-sources\.ts\([0-9]+,[0-9]+\): error TS2304'; then
+            echo 'Trial source entrypoint contains an undefined name.'
+            exit 1
+          fi
+
       - name: Install Playwright Browsers
         run: cd scraper && npx playwright install chromium --with-deps
 
