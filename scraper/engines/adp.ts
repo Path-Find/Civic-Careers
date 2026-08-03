@@ -9,6 +9,17 @@ export function adpTitleFromRaw(rawText: string, pageTitle = ''): string | undef
   return firstLine || undefined;
 }
 
+export function adpDetailUrl(value: unknown): string | null {
+  const url = String(value ?? '');
+  if (!url.includes('workforcenow.adp.com')) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.searchParams.get('jobId') ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: string, sourceName: string) {
   console.log(`Scraping ${sourceName} (ADP)...`);
   const page = await context.newPage();
@@ -51,6 +62,7 @@ export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: 
       if (!clicked) continue;
 
       await page.waitForTimeout(5000);
+      const detailUrl = page.url();
 
       const rawText = await page.evaluate(() => {
         const clone = document.body.cloneNode(true) as HTMLElement;
@@ -67,7 +79,14 @@ export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: 
         const reqIdMatch = rawText.match(/Requisition ID:\s*(\d+)/i);
         const id = reqIdMatch ? `adp_${reqIdMatch[1]}` : urlId(portalUrl + i);
         const resolvedTitle = adpTitleFromRaw(rawText, title);
-        await saveRawJob(db, { id, url: portalUrl, source: sourceName, title: resolvedTitle, raw_text: `${resolvedTitle || ''}\n\n${rawText}` });
+        await saveRawJob(db, {
+          id,
+          url: detailUrl,
+          application_url: detailUrl,
+          source: sourceName,
+          title: resolvedTitle,
+          raw_text: `${resolvedTitle || ''}\n\n${rawText}`,
+        });
       }
 
       await loadPortal();
