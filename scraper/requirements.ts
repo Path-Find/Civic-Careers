@@ -126,11 +126,28 @@ const NAMED_BENEFITS: Array<[string, RegExp]> = [
   ['Public Service Pension Plan', /\bPublic\s+Service\s+Pension\s+Plan\b/i],
 ];
 
-const ONGOING_RECRUITMENT = /\b(?:ongoing recruitment|recruitment program|student employment program|talent pool|candidate pool|throughout the year|year[- ]round|accept(?:ing)? applications? (?:at any time|on an ongoing basis|year[- ]round)|future opportunities|recruiting goals?[^.\n]{0,120}(?:future|periodically)|career (?:or employment) program|employment program|(?:police\s+)?dispatch(?:er|ing)?\s+program)\b/i;
+const ONGOING_TITLE_SIGNAL = /\b(?:ongoing recruitment|recruitment program|student employment program|talent pool|candidate pool|future opportunities|expression of interest|co-?op students?\s*[-–—:]\s*(?:various|multiple))\b/i;
+const ONGOING_TEXT_SIGNALS: RegExp[] = [
+  /\b(?:candidate|talent)\s+pool\b/i,
+  /\b(?:general recruitment call|standing job posting)\b/i,
+  /\b(?:pool of (?:qualified )?candidates?)\b[^.\n]{0,120}\b(?:future opportunities|future vacancies|future openings)\b/i,
+  /\b(?:applications?|applicants?|posting|position|role)\b[^.\n]{0,180}\b(?:kept on file|future opportunities|future vacancies|future openings)\b/i,
+  /\b(?:current and future opportunities|future opportunities that become available|does not correspond to an immediate vacancy|intended to (?:build|create) a candidate pool|filled on an as[- ]needed basis)\b/i,
+  /\b(?:accepts?|accepting) applications?[^.\n]{0,120}\bthroughout the year\b/i,
+  /\b(?:recruitment needs?|recruitment for)[^.\n]{0,120}\b(?:throughout|all) the year\b/i,
+  /\bthis recruitment may be utilized for future opportunities\b/i,
+  /\b(?:position|role|posting)\b[^.\n]{0,100}\b(?:funded through|part of|eligib(?:le|ility) for)\b[^.\n]{0,80}\bstudent employment program\b/i,
+  /\b(?:is|are)\s+(?:hiring|recruiting)\b[^.\n]{0,160}\b(?:9-1-1\s+)?police\s+dispatchers?\b/i,
+  /\b(?:is|are)\s+(?:hiring|recruiting)\b[^.\n]{0,160}\bdispatch(?:er|ers|ing)?\b/i,
+  /\brecruiting goals?[^.\n]{0,160}\b(?:accepting applications?|future events?)\b/i,
+  /\bco-?op students?\b[^.\n]{0,80}\b(?:various|multiple) positions?\b/i,
+];
 
 export function extractListingType(description: string, title = '', isInventory = false): ListingType {
   if (isInventory) return 'inventory';
-  return ONGOING_RECRUITMENT.test(`${title}\n${description}`) ? 'ongoing_recruitment' : 'regular';
+  if (ONGOING_TITLE_SIGNAL.test(title)) return 'ongoing_recruitment';
+  const text = `${title}\n${description}`;
+  return ONGOING_TEXT_SIGNALS.some(signal => signal.test(text)) ? 'ongoing_recruitment' : 'regular';
 }
 
 function compactText(value: string): string {

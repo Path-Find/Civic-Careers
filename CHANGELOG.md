@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Recruitment classification treated ordinary annual language as a hiring pool**: explicit standing-posting and candidate-pool signals now drive listing types, while generic “throughout the year,” “year-round,” and procurement language stays regular.
 - **Report form had a redundant Other checkbox**: details-only reports now classify themselves as Other, while extra details can still clarify any selected reason.
 - **Responsibilities and Qualifications opened inconsistently**: both sections now start expanded, while optional Nice to Have details remain collapsible.
 - **Report form controls could use an unreadable dark browser style**: the reason checkboxes and optional details field now keep a readable light background with explicit contrast.

@@ -163,8 +163,23 @@ test('keeps OMERS as a skill when the qualifications require OMERS knowledge', (
 test('classifies recruitment programs separately from regular postings', () => {
   assert.equal(extractListingType('The House of Commons hires students throughout the year for diverse opportunities.', 'Student Employment Program'), 'ongoing_recruitment');
   assert.equal(extractListingType('We are hiring experienced dispatchers for our police dispatch program.', 'Experienced 9-1-1 Police Dispatcher'), 'ongoing_recruitment');
+  assert.equal(extractListingType('The City accepts applications for this position throughout the year and hires on an as-needed basis.', 'Crossing Guard'), 'ongoing_recruitment');
+  assert.equal(extractListingType('This posting is intended to create a candidate pool for future vacancies.', 'Driver'), 'ongoing_recruitment');
+  assert.equal(extractListingType('We are recruiting 9-1-1 Police Dispatchers in British Columbia.', '9-1-1 Police Dispatchers'), 'ongoing_recruitment');
+  assert.equal(extractListingType('We are hiring experienced 9-1-1 Police Dispatchers for the program.', 'Experienced Dispatcher'), 'ongoing_recruitment');
+  assert.equal(extractListingType('The House of Commons offers 16-week co-op placements across multiple departments.', 'Co-op Students - Various Positions'), 'ongoing_recruitment');
+  assert.equal(extractListingType('We are looking to fill two positions and establish a pool of qualified candidates for future opportunities.', 'Contract Coordinator'), 'ongoing_recruitment');
+  assert.equal(extractListingType('The role may require requests for expression of interest and other procurement methods.', 'Corporate Buyer'), 'regular');
+  assert.equal(extractListingType('Applications will be accepted until filled.', 'Project Coordinator'), 'regular');
   assert.equal(extractListingType('Apply by August 15 for this specific vacancy.', 'Program Coordinator'), 'regular');
   assert.equal(extractListingType('Any role may be considered for the candidate pool.', 'Analyst', true), 'inventory');
+});
+
+test('does not classify ordinary uses of annual or future-work language as recruitment', () => {
+  assert.equal(extractListingType('Monitor the budgets throughout the year, assessing variances.', 'Budget Analyst'), 'regular');
+  assert.equal(extractListingType('The town offers year-round sports and recreation activities.', 'Senior Manager, Operations'), 'regular');
+  assert.equal(extractListingType('Establish a year-round process to maintain data integrity.', 'Manager, Financial Aid'), 'regular');
+  assert.equal(extractListingType('Future opportunities in this area are expected to contribute to the following responsibilities.', 'Business Analyst'), 'regular');
 });
 
 test('does not treat generic lowercase teams as Microsoft Teams', () => {
