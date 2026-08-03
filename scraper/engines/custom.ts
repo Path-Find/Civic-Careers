@@ -2,7 +2,11 @@ import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 import { saveRawJob } from '../db';
+import { GOVERNMENT_OF_CANADA_FIXES } from '../source-fixes';
 
+// These federal postings are listed in GC Jobs but the employer's own page is
+// the real application destination. Keep stable canonical URLs here so a
+// routine scrape does not overwrite them with the generic GC detail page.
 export async function scrapeOPS(db: Client, context: BrowserContext) {
   const sourceName = 'Province of Ontario';
   console.log(`Scraping ${sourceName} (OPS)...`);
@@ -89,7 +93,10 @@ export async function scrapeGC(db: Client, context: BrowserContext) {
         const urlObj = new URL(job.url);
         job.id = urlObj.searchParams.get('poster') || urlId(job.url);
         process.stdout.write(`\r[${sourceName}] ${count}/${summaries.length}`);
-        await scrapeRawAndStage(db, context, job, sourceName);
+        await scrapeRawAndStage(db, context, {
+          ...job,
+          applicationUrl: GOVERNMENT_OF_CANADA_FIXES[job.id]?.applicationUrl,
+        }, sourceName);
       }
       console.log(`\n[${sourceName}] Finished page ${pageNum}.`);
       const nextLink = await page.$(`a[href*="requestedPage=${pageNum + 1}"]`);

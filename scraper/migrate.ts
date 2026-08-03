@@ -15,7 +15,7 @@ async function migrate() {
     CREATE TABLE job_details_temp AS
     SELECT
       id, job_title, department, location, salary_range, description, closing_date,
-      is_inventory, is_student, salary_min, salary_max, salary_period,
+      is_inventory, listing_type, is_student, salary_min, salary_max, salary_period,
       work_model, employment_type, duration, is_unionized, union_name, benefits
     FROM jobs
     WHERE job_title IS NOT NULL
@@ -61,6 +61,7 @@ async function migrate() {
       description TEXT,
       closing_date TEXT,
       is_inventory INTEGER DEFAULT 0,
+      listing_type TEXT DEFAULT 'regular',
       is_student INTEGER DEFAULT 0,
       salary_min NUMBER,
       salary_max NUMBER,

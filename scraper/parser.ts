@@ -1,7 +1,8 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
-import { reconcileStructuredRequirements } from './requirements';
+import { extractListingType, reconcileStructuredRequirements } from './requirements';
+import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 
 const CONCURRENCY = 5;
 
@@ -33,12 +34,15 @@ async function main() {
       }
       const { data: aiResult, error } = await parseJobWithAI(raw.raw_text, raw.title ?? undefined);
       if (aiResult) {
+        const sourceFix = GOVERNMENT_OF_CANADA_FIXES[raw.id];
+        const description = sourceFix?.description ?? aiResult.clean_description;
         const structuredRequirements = reconcileStructuredRequirements(aiResult.clean_description, {
           education_requirements: aiResult.education_requirements,
           license_requirements: aiResult.license_requirements,
           benefits: aiResult.benefits,
           required_skills: aiResult.required_skills,
         });
+        const listingType = extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory);
         await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
         await saveJobDetails(db, {
           id: raw.id,
@@ -48,10 +52,11 @@ async function main() {
           salary_range: (aiResult.salary_min || aiResult.salary_max)
             ? `${aiResult.salary_min ?? ''} - ${aiResult.salary_max ?? ''} (${aiResult.salary_period})`
             : '',
-          description: aiResult.clean_description,
+          description,
           closing_date: aiResult.closing_date || '',
           is_inventory: aiResult.is_inventory ? 1 : 0,
-          is_student: aiResult.is_student ? 1 : 0,
+          listing_type: listingType,
+          is_student: sourceFix?.isStudent ?? (aiResult.is_student ? 1 : 0),
           salary_min: aiResult.salary_min,
           salary_max: aiResult.salary_max,
           salary_period: aiResult.salary_period,
@@ -62,11 +67,11 @@ async function main() {
           union_name: aiResult.union_name,
           benefits: JSON.stringify(structuredRequirements.benefits),
           required_skills: JSON.stringify(structuredRequirements.required_skills),
-          education_requirements: JSON.stringify(structuredRequirements.education_requirements),
+          education_requirements: JSON.stringify(sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
           license_requirements: JSON.stringify(structuredRequirements.license_requirements),
           vehicle_required: aiResult.vehicle_required === null ? null : (aiResult.vehicle_required ? 1 : 0),
           language_requirements: JSON.stringify(aiResult.language_requirements),
-          security_check_required: aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0),
+          security_check_required: sourceFix?.securityCheckRequired ?? (aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0)),
           certification_requirements: JSON.stringify(aiResult.certification_requirements),
           software_requirements: JSON.stringify(aiResult.software_requirements),
           responsibility_tags: JSON.stringify(aiResult.responsibility_tags),

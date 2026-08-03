@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import type { ListingTypeFilter } from '../../../types/jobs';
 
 function FilterSection({ title, children }: { title: string; children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -17,8 +18,8 @@ function FilterButton({ label, active, onClick }: { label: string; active: boole
 }
 
 export function JobFiltersSidebar({
-  headerHeight, minSalary, locationTerm, selectedModes, selectedLanguage, vehicleRequired, deadlineDays, showInventories, showStudentJobs,
-  onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onInventoriesChange, onStudentJobsChange, onReset,
+  headerHeight, minSalary, locationTerm, selectedModes, selectedLanguage, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs,
+  onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onReset,
 }: {
   headerHeight: number;
   minSalary: number | null;
@@ -27,7 +28,7 @@ export function JobFiltersSidebar({
   selectedLanguage: string | null;
   vehicleRequired: boolean;
   deadlineDays: number | null;
-  showInventories: boolean;
+  listingTypeFilter: ListingTypeFilter;
   showStudentJobs: boolean;
   onMinSalaryChange: (value: number | null) => void;
   onLocationChange: (value: string) => void;
@@ -35,7 +36,7 @@ export function JobFiltersSidebar({
   onLanguageChange: (language: string) => void;
   onVehicleRequiredChange: () => void;
   onDeadlineChange: (days: number | null) => void;
-  onInventoriesChange: () => void;
+  onListingTypeChange: (value: ListingTypeFilter) => void;
   onStudentJobsChange: () => void;
   onReset: () => void;
 }) {
@@ -47,7 +48,12 @@ export function JobFiltersSidebar({
     <FilterSection title="Language">{['English', 'French', 'Bilingual'].map(language => <FilterButton key={language} label={language} active={selectedLanguage === language} onClick={() => onLanguageChange(language)} />)}</FilterSection>
     <FilterSection title="Vehicle"><FilterButton label="Vehicle required" active={vehicleRequired} onClick={onVehicleRequiredChange} /></FilterSection>
     <FilterSection title="Deadline"><FilterButton label="Today" active={deadlineDays === 0} onClick={() => onDeadlineChange(deadlineDays === 0 ? null : 0)} /><FilterButton label="Within 7 days" active={deadlineDays === 7} onClick={() => onDeadlineChange(deadlineDays === 7 ? null : 7)} /><FilterButton label="Within 14 days" active={deadlineDays === 14} onClick={() => onDeadlineChange(deadlineDays === 14 ? null : 14)} /><FilterButton label="Within 30 days" active={deadlineDays === 30} onClick={() => onDeadlineChange(deadlineDays === 30 ? null : 30)} /><FilterButton label="No closing date" active={deadlineDays === -1} onClick={() => onDeadlineChange(deadlineDays === -1 ? null : -1)} /></FilterSection>
-    <FilterSection title="Job Type"><FilterButton label="Student/Co-op" active={showStudentJobs} onClick={onStudentJobsChange} /><FilterButton label="Ongoing/Inventory" active={showInventories} onClick={onInventoriesChange} /></FilterSection>
+    <FilterSection title="Job Type">
+      <FilterButton label="Student/Co-op" active={showStudentJobs} onClick={onStudentJobsChange} />
+      <FilterButton label="Ongoing recruitment" active={listingTypeFilter === 'ongoing_recruitment'} onClick={() => onListingTypeChange(listingTypeFilter === 'ongoing_recruitment' ? null : 'ongoing_recruitment')} />
+      <FilterButton label="Candidate inventory" active={listingTypeFilter === 'inventory'} onClick={() => onListingTypeChange(listingTypeFilter === 'inventory' ? null : 'inventory')} />
+      {!listingTypeFilter && <p className="filter-note">Candidate inventory listings are hidden by default.</p>}
+    </FilterSection>
     <div className="filter-reset-wrap"><button className="filter-reset" onClick={onReset}>Reset filters</button></div>
   </aside>;
 }

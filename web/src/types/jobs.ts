@@ -34,6 +34,7 @@ export interface Job {
   is_saved: number;
   is_active: number;
   is_inventory: number;
+  listing_type: 'regular' | 'ongoing_recruitment' | 'inventory' | null;
   is_student: number;
   rid: number;
 }
@@ -56,6 +57,7 @@ export interface CompanySummary {
 }
 
 export type View = 'home' | 'jobs' | 'saved' | 'companies' | 'about';
+export type ListingTypeFilter = 'ongoing_recruitment' | 'inventory' | null;
 
 export interface JobDetails {
   salary: string | null;
@@ -63,6 +65,8 @@ export interface JobDetails {
   type: string | null;
   duration: string | null;
   union: string | null;
+  listingType: string | null;
+  studentRequirement: string | null;
   education: string | null;
   licenses: string | null;
   benefits: string | null;

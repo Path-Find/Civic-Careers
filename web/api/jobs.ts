@@ -5,7 +5,7 @@ const jobColumns = `
   j.rowid AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
   jd.job_title, jd.department, jd.location, jd.salary_range,
-  jd.closing_date, jd.posted_at, jd.is_inventory, jd.is_student,
+  jd.closing_date, jd.posted_at, jd.is_inventory, jd.listing_type, jd.is_student,
   jd.salary_min, jd.salary_max, jd.salary_period,
   jd.work_model, jd.employment_type, jd.duration,
   jd.is_unionized, jd.union_name, jd.benefits, jd.required_skills,

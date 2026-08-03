@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { daysUntilClose } from '../../../utils';
-import type { Job, View } from '../../../types/jobs';
+import type { Job, ListingTypeFilter, View } from '../../../types/jobs';
 import { CLOSING_SOON_DAYS, groupJobsByCompany, isExpired, jobFreshnessTimestamp, parseJobDetails, parseTagList } from '../jobUtils';
 
 export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string) {
@@ -8,7 +8,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
   const [locationTerm, setLocationTerm] = useState('');
   const [deadlineDays, setDeadlineDays] = useState<number | null>(null);
-  const [showInventories, setShowInventories] = useState(false);
+  const [listingTypeFilter, setListingTypeFilter] = useState<ListingTypeFilter>(null);
   const [showStudentJobs, setShowStudentJobs] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [vehicleRequired, setVehicleRequired] = useState(false);
@@ -19,7 +19,9 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
   const filteredJobs = useMemo(() => {
     const pool = currentView === 'saved' ? jobs.filter(job => job.is_saved) : jobs.filter(job => !isExpired(job));
     const filtered = pool.filter(job => {
-      if (!showInventories && job.is_inventory) return false;
+      if (listingTypeFilter === 'inventory' && !job.is_inventory) return false;
+      if (listingTypeFilter === 'ongoing_recruitment' && job.listing_type !== 'ongoing_recruitment') return false;
+      if (listingTypeFilter === null && job.is_inventory) return false;
       if (showStudentJobs && !job.is_student) return false;
       const query = searchTerm.toLowerCase();
       const matchesSearch = [job.job_title, job.department, job.source]
@@ -53,7 +55,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
       if (aUrgent && bUrgent) return (aDays ?? 0) - (bDays ?? 0);
       return jobFreshnessTimestamp(b, now) - jobFreshnessTimestamp(a, now);
     });
-  }, [jobs, currentView, searchTerm, locationTerm, minSalary, selectedModes, selectedLanguage, vehicleRequired, deadlineDays, showInventories, showStudentJobs, sortNewest, newlyAdded, now]);
+  }, [jobs, currentView, searchTerm, locationTerm, minSalary, selectedModes, selectedLanguage, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, now]);
 
   const jobsByCompany = useMemo(() => groupJobsByCompany(jobs), [jobs]);
   const activeJobsByCompany = useMemo(() => Object.fromEntries(
@@ -75,12 +77,12 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
     .filter(({ days }) => days >= 0).sort((a, b) => a.days - b.days).slice(0, 5).map(({ job }) => job), [jobs]);
 
   const resetFilters = () => {
-    setMinSalary(null); setLocationTerm(''); setSelectedModes([]); setSelectedLanguage(null); setVehicleRequired(false); setDeadlineDays(null); setShowInventories(false); setShowStudentJobs(false); setSortNewest(false); setNewlyAdded(false);
+    setMinSalary(null); setLocationTerm(''); setSelectedModes([]); setSelectedLanguage(null); setVehicleRequired(false); setDeadlineDays(null); setListingTypeFilter(null); setShowStudentJobs(false); setSortNewest(false); setNewlyAdded(false);
   };
 
   return {
     minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
-    showInventories, setShowInventories, showStudentJobs, setShowStudentJobs, selectedLanguage, setSelectedLanguage, vehicleRequired, setVehicleRequired,
+    listingTypeFilter, setListingTypeFilter, showStudentJobs, setShowStudentJobs, selectedLanguage, setSelectedLanguage, vehicleRequired, setVehicleRequired,
     sortNewest, setSortNewest, newlyAdded, setNewlyAdded, filteredJobs,
     recentJobs, closingSoonJobs, availableJobCount: availableJobs.length, recentlyAddedCount,
     jobsByCompany, activeJobsByCompany, activeCompanies, inactiveCompanies, resetFilters,

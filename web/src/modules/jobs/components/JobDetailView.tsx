@@ -1,8 +1,68 @@
 import { Bookmark, ExternalLink } from 'lucide-react';
-import type { MouseEvent } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { compactOverview, formatDate, getQuickScanLabels, isPlaceholderSection, isRedundantCompensation, parseMarkdownSections, reclassifyMandatoryNiceToHave, renderMarkdown } from '../../../utils';
 import { parseTagList } from '../jobUtils';
 import type { Job, JobDetails, View } from '../../../types/jobs';
+
+const REPORT_REASONS = [
+  'This is a student job',
+  'This is a talent pool',
+  'This is a recruitment program',
+  'Issue with application link',
+  'Issue with Job Description',
+  'Issue with job details (location, salary, work mode, employment type, duration)',
+  'Issue with requirements',
+  'Issue with closing date',
+  'Duplicate job',
+  'Other',
+] as const;
+
+function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
+  const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
+  const [note, setNote] = useState('');
+  const toggleReason = (reason: string) => setSelectedReasons(previous => previous.includes(reason)
+    ? previous.filter(value => value !== reason)
+    : [...previous, reason]);
+  const submit = () => {
+    if (selectedReasons.length === 0) return;
+    const body = [
+      'Reported reasons:',
+      ...selectedReasons.map(reason => `- ${reason}`),
+      note.trim() ? `\nAdditional details:\n${note.trim()}` : '',
+      '',
+      `Job title: ${job.job_title}`,
+      `Company: ${job.source}`,
+      `Internal row ID: ${job.rid}`,
+      `Source job ID: ${job.id}`,
+      `URL: ${job.url}`,
+    ].filter(Boolean).join('\n');
+    const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.job_title}`)}&labels=data-quality,frontend&body=${encodeURIComponent(body)}`;
+    window.open(reportUrl, '_blank', 'noopener,noreferrer');
+    onClose();
+  };
+
+  return <div className="report-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="report-dialog" role="dialog" aria-modal="true" aria-labelledby="report-dialog-title">
+      <div className="report-dialog-header">
+        <h2 id="report-dialog-title">Report a problem</h2>
+        <button type="button" className="report-dialog-close" onClick={onClose} aria-label="Close report dialog">×</button>
+      </div>
+      <p>Select all reasons that apply.</p>
+      <div className="report-reasons">
+        {REPORT_REASONS.map(reason => <label key={reason} className="report-reason">
+          <input type="checkbox" checked={selectedReasons.includes(reason)} onChange={() => toggleReason(reason)} />
+          <span>{reason}</span>
+        </label>)}
+      </div>
+      <label className="report-note-label" htmlFor="report-note">Additional details (optional)</label>
+      <textarea id="report-note" className="report-note" value={note} onChange={event => setNote(event.target.value)} rows={4} />
+      <div className="report-dialog-actions">
+        <button type="button" className="report-dialog-cancel" onClick={onClose}>Cancel</button>
+        <button type="button" className="report-dialog-submit" onClick={submit} disabled={selectedReasons.length === 0}>Open GitHub report</button>
+      </div>
+    </div>
+  </div>;
+}
 
 export function JobDetailView({ job, details, headerHeight, onNavigate, onToggleSave }: {
   job: Job;
@@ -12,7 +72,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   onToggleSave: (job: Job, event: MouseEvent) => void;
 }) {
   const API = import.meta.env.VITE_API_URL ?? '';
-  const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.job_title}`)}&body=${encodeURIComponent(`Job: ${job.job_title}\nCompany: ${job.source}\nInternal job ID: ${job.id}\nURL: ${job.url}\n\nProblem:`)}`;
+  const [showReportDialog, setShowReportDialog] = useState(false);
   const recordApplyClick = () => {
     void fetch(`${API}/api/jobs/${job.id}/apply-click`, { method: 'POST', keepalive: true }).catch(() => {});
   };
@@ -25,6 +85,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Department', value: job.department }, { label: 'Location', value: job.location },
     { label: 'Salary', value: details.salary }, { label: 'Work Mode', value: details.mode },
     { label: 'Employment', value: details.type }, { label: 'Duration', value: details.duration },
+    { label: 'Listing type', value: details.listingType }, { label: 'Student requirement', value: details.studentRequirement },
     { label: 'Union', value: details.union }, { label: 'Education', value: details.education },
     { label: 'Licences', value: details.licenses }, { label: 'Skills / Programs', value: details.skills },
     { label: 'Benefits', value: details.benefits }, { label: 'Eligibility', value: details.future, highlight: true },
@@ -39,7 +100,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           <button className="detail-action save-button" onClick={event => onToggleSave(job, event)}><Bookmark size={14} fill={job.is_saved ? '#0f172a' : 'transparent'} />{job.is_saved ? 'Saved' : 'Save'}</button>
         </div>
         <div className="detail-metadata">{metadata.filter(item => item.value).map(item => <div key={item.label}><div className="metadata-label">{item.label}</div><div className={`metadata-value ${item.highlight ? 'highlight' : ''}`}>{item.value}</div></div>)}</div>
-        <a className="detail-action report-button" href={reportUrl} target="_blank" rel="noopener noreferrer">Report a problem</a>
+        <button className="detail-action report-button" onClick={() => setShowReportDialog(true)}>Report a problem</button>
       </div>
       <div className="detail-content">
         <div className="detail-card">
@@ -69,5 +130,6 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
         </div>
       </div>
     </div>
+    {showReportDialog && <ReportDialog job={job} onClose={() => setShowReportDialog(false)} />}
   </main>;
 }

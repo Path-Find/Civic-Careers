@@ -6,6 +6,7 @@ import {
   extractLanguageVehicleRequirements,
   extractLicenseRequirements,
   extractNamedBenefits,
+  extractListingType,
   extractSoftwareRequirements,
   extractVehicleRequired,
   hasLanguageVehicleCandidate,
@@ -157,6 +158,13 @@ test('keeps OMERS as a skill when the qualifications require OMERS knowledge', (
   });
   assert.deepEqual(result.required_skills, ['OMERS']);
   assert.deepEqual(result.benefits, ['OMERS']);
+});
+
+test('classifies recruitment programs separately from regular postings', () => {
+  assert.equal(extractListingType('The House of Commons hires students throughout the year for diverse opportunities.', 'Student Employment Program'), 'ongoing_recruitment');
+  assert.equal(extractListingType('We are hiring experienced dispatchers for our police dispatch program.', 'Experienced 9-1-1 Police Dispatcher'), 'ongoing_recruitment');
+  assert.equal(extractListingType('Apply by August 15 for this specific vacancy.', 'Program Coordinator'), 'regular');
+  assert.equal(extractListingType('Any role may be considered for the candidate pool.', 'Analyst', true), 'inventory');
 });
 
 test('does not treat generic lowercase teams as Microsoft Teams', () => {

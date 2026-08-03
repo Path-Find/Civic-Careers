@@ -92,6 +92,7 @@ export async function initDb(): Promise<Client> {
       description TEXT,
       closing_date TEXT,
       is_inventory INTEGER DEFAULT 0,
+      listing_type TEXT DEFAULT 'regular',
       is_student INTEGER DEFAULT 0,
       salary_min NUMBER,
       salary_max NUMBER,
@@ -139,7 +140,7 @@ export async function initDb(): Promise<Client> {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
   for (const column of [
-    'education_requirements', 'license_requirements', 'vehicle_required',
+    'listing_type', 'education_requirements', 'license_requirements', 'vehicle_required',
     'language_requirements', 'security_check_required', 'certification_requirements',
     'software_requirements',
   ]) {
@@ -212,6 +213,7 @@ export async function saveJobDetails(client: Client, job: {
   description: string;
   closing_date: string;
   is_inventory?: number;
+  listing_type?: string;
   is_student?: number;
   salary_min?: number | null;
   salary_max?: number | null;
@@ -238,7 +240,7 @@ export async function saveJobDetails(client: Client, job: {
   await client.execute({
     sql: `INSERT INTO job_details (
       id, job_title, department, location, salary_range, description, closing_date,
-      is_inventory, is_student, salary_min, salary_max, salary_period,
+      is_inventory, listing_type, is_student, salary_min, salary_max, salary_period,
       work_model, employment_type, duration, is_unionized, union_name, benefits, required_skills,
       education_requirements, license_requirements, vehicle_required, language_requirements,
       security_check_required, certification_requirements, software_requirements,
@@ -247,7 +249,7 @@ export async function saveJobDetails(client: Client, job: {
     VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
@@ -257,6 +259,7 @@ export async function saveJobDetails(client: Client, job: {
       description = excluded.description,
       closing_date = excluded.closing_date,
       is_inventory = excluded.is_inventory,
+      listing_type = excluded.listing_type,
       is_student = excluded.is_student,
       salary_min = excluded.salary_min,
       salary_max = excluded.salary_max,
@@ -282,7 +285,7 @@ export async function saveJobDetails(client: Client, job: {
     args: [
       job.id, job.job_title, job.department, job.location, job.salary_range,
       job.description, job.closing_date,
-      job.is_inventory ?? 0, job.is_student ?? 0,
+      job.is_inventory ?? 0, job.listing_type ?? 'regular', job.is_student ?? 0,
       job.salary_min ?? null, job.salary_max ?? null, job.salary_period ?? null,
       job.work_model ?? null, job.employment_type ?? null, job.duration ?? null,
       job.is_unionized ?? null, job.union_name ?? null, job.benefits ?? null,

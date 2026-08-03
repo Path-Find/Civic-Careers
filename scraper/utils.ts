@@ -111,7 +111,10 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
   const applicationUrl = job.applicationUrl ?? job.url;
   const existing = await db.execute({ sql: `SELECT parsed_at FROM raw_jobs WHERE id = ?`, args: [job.id!] });
   if (existing.rows.length > 0 && existing.rows[0]!['parsed_at'] !== null) {
-    await db.execute({ sql: `UPDATE raw_jobs SET scraped_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [job.id!] });
+    await db.execute({
+      sql: `UPDATE raw_jobs SET scraped_at = CURRENT_TIMESTAMP, application_url = COALESCE(?, application_url) WHERE id = ?`,
+      args: [job.applicationUrl ?? null, job.id!],
+    });
     await db.execute({
       sql: `INSERT INTO jobs (id, url, source, is_active, scraped_at)
             VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP)

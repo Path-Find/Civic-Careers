@@ -20,6 +20,7 @@ test('saveJobDetails refreshes every parsed field on conflict', async () => {
     description: 'Updated description',
     closing_date: '2026-08-15',
     is_inventory: 0,
+    listing_type: 'regular',
     is_student: 0,
     salary_min: 80000,
     salary_max: null,
@@ -42,7 +43,7 @@ test('saveJobDetails refreshes every parsed field on conflict', async () => {
 
   for (const field of [
     'job_title', 'department', 'location', 'salary_range', 'description',
-    'closing_date', 'is_inventory', 'is_student', 'salary_min', 'salary_max',
+    'closing_date', 'is_inventory', 'listing_type', 'is_student', 'salary_min', 'salary_max',
     'salary_period', 'work_model', 'employment_type', 'duration',
     'is_unionized', 'union_name', 'benefits', 'required_skills',
     'education_requirements', 'license_requirements', 'vehicle_required',

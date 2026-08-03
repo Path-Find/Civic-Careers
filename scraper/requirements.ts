@@ -109,6 +109,7 @@ const VEHICLE_OPTIONAL_REQUIREMENT = /\b(?:asset|preferred|preferable|nice\s+to\
 
 type RequirementSection = 'required' | 'optional' | 'benefits' | 'other';
 type DescriptionLine = { text: string; section: RequirementSection; heading: boolean };
+export type ListingType = 'regular' | 'ongoing_recruitment' | 'inventory';
 
 const EDUCATION_TERM = /\b(?:bachelor(?:['’]s)?(?:\s+degree)?|master(?:['’]s)?(?!\s+electrician)(?:\s+degree)?|ph\.?d\.?|doctor(?:ate|al)|diploma|degree\s+(?:in|from|required|or|program)|post[- ]secondary\s+(?:education|program|institution)|associate(?:['’]s)?|bscn|bsn|b\.?a\.?|m\.?a\.?|undergraduate\s+degree|graduate\s+degree)\b/i;
 const EDUCATION_REQUIRED_CUE = /\b(?:required|minimum|must|completion|completed|successful|degree\s+in|diploma\s+in|equivalent|eligible|graduate|undergraduate|post[- ]secondary\s+(?:program|institution|education\s+in)|education\s+in)\b|\b(?:a|an|minimum|completion\s+of|completed|required)\s+post[- ]secondary\s+education\b/i;
@@ -124,6 +125,13 @@ const NAMED_BENEFITS: Array<[string, RegExp]> = [
   ['Municipal Pension Plan', /\bMunicipal\s+Pension\s+Plan\b/i],
   ['Public Service Pension Plan', /\bPublic\s+Service\s+Pension\s+Plan\b/i],
 ];
+
+const ONGOING_RECRUITMENT = /\b(?:ongoing recruitment|recruitment program|student employment program|talent pool|candidate pool|throughout the year|year[- ]round|accept(?:ing)? applications? (?:at any time|on an ongoing basis|year[- ]round)|future opportunities|recruiting goals?[^.\n]{0,120}(?:future|periodically)|career (?:or employment) program|employment program|(?:police\s+)?dispatch(?:er|ing)?\s+program)\b/i;
+
+export function extractListingType(description: string, title = '', isInventory = false): ListingType {
+  if (isInventory) return 'inventory';
+  return ONGOING_RECRUITMENT.test(`${title}\n${description}`) ? 'ongoing_recruitment' : 'regular';
+}
 
 function compactText(value: string): string {
   return value

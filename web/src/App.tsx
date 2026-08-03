@@ -120,7 +120,7 @@ function App() {
   const filters = useJobFilters(jobs, currentView, searchTerm);
   const {
     minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
-    showInventories, setShowInventories, showStudentJobs, setShowStudentJobs, selectedLanguage, setSelectedLanguage, vehicleRequired, setVehicleRequired,
+    listingTypeFilter, setListingTypeFilter, showStudentJobs, setShowStudentJobs, selectedLanguage, setSelectedLanguage, vehicleRequired, setVehicleRequired,
     sortNewest, setSortNewest, newlyAdded, setNewlyAdded, filteredJobs,
     recentJobs, availableJobCount, recentlyAddedCount, activeCompanies,
     inactiveCompanies,
@@ -133,7 +133,7 @@ function App() {
     return !latest || job.last_checked_at > latest ? job.last_checked_at : latest;
   }, null);
   const lastCheckedAt = homeData?.lastCheckedAt ?? latestJobCheckedAt;
-  const hasJobFilters = Boolean(searchTerm || locationTerm || selectedModes.length > 0 || selectedLanguage || vehicleRequired || minSalary || deadlineDays !== null || showStudentJobs || showInventories || newlyAdded);
+  const hasJobFilters = Boolean(searchTerm || locationTerm || selectedModes.length > 0 || selectedLanguage || vehicleRequired || minSalary || deadlineDays !== null || showStudentJobs || listingTypeFilter || newlyAdded);
   const displayedJobCount = currentView === 'jobs' && !hasJobFilters ? jobsAvailableTotal : filteredJobs.length;
   const isCompanyPage = currentView === 'jobs' && Boolean(searchTerm) && (activeCompanies.includes(searchTerm) || inactiveCompanies.includes(searchTerm));
   const isListingView = currentView === 'jobs' || currentView === 'saved' || currentView === 'companies';
@@ -259,7 +259,7 @@ function App() {
   const currentJobDetails = selectedJob ? parseJobDetails(selectedJob) : null;
 
   const reset = () => {
-    setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setSelectedLanguage(null); setVehicleRequired(false); setMinSalary(null); setDeadlineDays(null); setShowInventories(false); setSortNewest(false); setNewlyAdded(false);
+    setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setSelectedLanguage(null); setVehicleRequired(false); setMinSalary(null); setDeadlineDays(null); setListingTypeFilter(null); setSortNewest(false); setNewlyAdded(false);
     setLocationTerm(''); setShowStudentJobs(false); setSelectedCompanyTypes([]);
     window.history.pushState(null, '', '/');
     refresh();
@@ -381,7 +381,7 @@ function App() {
                   selectedLanguage={selectedLanguage}
                   vehicleRequired={vehicleRequired}
                   deadlineDays={deadlineDays}
-                  showInventories={showInventories}
+                  listingTypeFilter={listingTypeFilter}
                   showStudentJobs={showStudentJobs}
                   onMinSalaryChange={setMinSalary}
                   onLocationChange={setLocationTerm}
@@ -389,9 +389,9 @@ function App() {
                   onLanguageChange={language => setSelectedLanguage(previous => previous === language ? null : language)}
                   onVehicleRequiredChange={() => setVehicleRequired(previous => !previous)}
                   onDeadlineChange={setDeadlineDays}
-                  onInventoriesChange={() => setShowInventories(!showInventories)}
+                  onListingTypeChange={setListingTypeFilter}
                   onStudentJobsChange={() => setShowStudentJobs(!showStudentJobs)}
-                  onReset={() => { reset(); setShowInventories(false); }}
+                  onReset={reset}
                 />
               )}
 
