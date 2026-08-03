@@ -152,6 +152,31 @@ test('does not cut role content between Metrolinx boilerplate sentences', () => 
   assert.doesNotMatch(result, /Accommodation available upon request/);
 });
 
+test('removes the compact Metrolinx introduction variant without deleting role content', () => {
+  const result = cleanSourceDescriptionBoilerplate('Metrolinx', `## Overview
+Metrolinx is connecting communities across the Greater Golden Horseshoe, operating GO Transit and UP Express, as well as the PRESTO fare payment system. We are also building new and improved rapid transit. Metrolinx is an agency of the Government of Ontario.
+
+The Partnership Sales Manager will develop corporate opportunities and manage client relationships.`);
+  assert.equal(result, '## Overview\n\nThe Partnership Sales Manager will develop corporate opportunities and manage client relationships.');
+});
+
+test('removes the shortened Metrolinx introduction variant without deleting role content', () => {
+  const result = cleanSourceDescriptionBoilerplate('Metrolinx', `## Overview
+Metrolinx is connecting communities across the Greater Golden Horseshoe, operating GO Transit and UP Express, as well as the PRESTO fare payment system. We are also building new and improved rapid transit, including GO Expansion, Light Rail Transit routes, and major expansions to Toronto’s subway system.
+
+The Partnership Sales Manager will develop corporate opportunities.`);
+  assert.equal(result, '## Overview\n\nThe Partnership Sales Manager will develop corporate opportunities.');
+});
+
+test('removes a structural heading left empty by source cleanup', () => {
+  const result = cleanSourceDescriptionBoilerplate('Metrolinx', `## Overview
+Metrolinx is connecting communities across the Greater Golden Horseshoe, operating GO Transit and UP Express, as well as the PRESTO fare payment system. We are also building new and improved rapid transit, including GO Expansion, Light Rail Transit routes, and major expansions to Toronto’s subway system.
+
+## Responsibilities
+- Lead service improvements.`);
+  assert.equal(result, '## Responsibilities\n- Lead service improvements.');
+});
+
 test('removes empty Metrolinx footer bullets and headings', () => {
   const result = cleanSourceDescriptionBoilerplate('Metrolinx', `## Qualifications
 - Valid licence.

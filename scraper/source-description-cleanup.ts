@@ -31,6 +31,8 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
     { name: 'equity-invitation', pattern: /^We invite all interested individuals to apply and encourage applications from members of equity-deserving communities[\s\S]*$/i },
     { name: 'accommodation-footer', pattern: /^(?:###\s*)?Accommodation:\s*[\s\S]*$/i },
     { name: 'common-employer-introduction-connecting', pattern: /(?:\*\*)?Metrolinx(?:\*\*)?\s+is connecting communities across the Greater Golden Hors(?:es)?hoe\./i, mode: 'inline' },
+    { name: 'common-employer-introduction-compact', pattern: /Metrolinx is connecting communities across the Greater Golden Hors(?:es)?hoe,[\s\S]*?Metrolinx is an agency of the Government of Ontario\./i, mode: 'inline' },
+    { name: 'common-employer-introduction-short', pattern: /Metrolinx is connecting communities across the Greater Golden Hors(?:es)?hoe,\s+operating GO Transit and UP Express, as well as the PRESTO fare payment system\.\s+We are also building new and improved rapid transit, including GO Expansion, Light Rail Transit routes, and major expansions to Toronto[’']s subway system\./i, mode: 'inline' },
     { name: 'common-employer-introduction-operations', pattern: /Metrolinx operates GO Transit and UP Express, as well as the PRESTO fare payment system\./i, mode: 'inline' },
     { name: 'common-employer-introduction-rapid-transit', pattern: /We are also building new and improved rapid transit, including GO Expansion, Light Rail Transit routes, and major expansions to (?:Toronto's|Toronto’s) subway system, to get people where they need to go, better, faster and easier\./i, mode: 'inline' },
     { name: 'common-employer-introduction-ontario', pattern: /Metrolinx is an agency of the Government of Ontario\./i, mode: 'inline' },
@@ -74,7 +76,7 @@ function removeRuleFromParagraphs(description: string, rules: SourceRule[]): str
 
   const lines = result.split('\n');
   const isEmptyHeading = (line: string): boolean =>
-    /^(?:(?:#{1,6}\s+|\*\*)?(?:Additional Information|Application Process|Don[’']t Meet Every Requirement|Accommodation|Equity)(?:\*\*)?)\s*:?\s*$/i.test(line.trim());
+    /^(?:(?:#{1,6}\s+|\*\*)?(?:Overview|Responsibilities|Qualifications|Requirements|Nice to Have|Compensation & Benefits|Job Details|Other Requirements|Additional Information|Application Process|Don[’']t Meet Every Requirement|Accommodation|Equity)(?:\*\*)?)\s*:?\s*$/i.test(line.trim());
   result = lines.filter((line, index) => {
     if (!isEmptyHeading(line)) return true;
     const next = lines.slice(index + 1).find(candidate => candidate.trim());
