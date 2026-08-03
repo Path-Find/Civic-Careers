@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Language and vehicle requirements were not filterable**: explicit non-AI extraction now backfills those fields and Jobs filters can find English, French, bilingual, and vehicle-required roles without treating optional or generic wording as requirements.
 - **Saved jobs could disappear after refresh**: Saved now loads the current saved set without the catalogue cache.
 - **Saved page headings were inconsistent**: Recently viewed now uses the same heading treatment as the saved-job count.
 - **Listing controls disappeared while scrolling**: Job and company counts and sort controls now stay visible at the top of their results.

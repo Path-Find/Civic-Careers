@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { daysUntilClose } from '../../../utils';
 import type { Job, View } from '../../../types/jobs';
-import { CLOSING_SOON_DAYS, groupJobsByCompany, isExpired, jobFreshnessTimestamp, parseJobDetails } from '../jobUtils';
+import { CLOSING_SOON_DAYS, groupJobsByCompany, isExpired, jobFreshnessTimestamp, parseJobDetails, parseTagList } from '../jobUtils';
 
 export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string) {
   const [minSalary, setMinSalary] = useState<number | null>(null);
@@ -10,6 +10,8 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
   const [deadlineDays, setDeadlineDays] = useState<number | null>(null);
   const [showInventories, setShowInventories] = useState(false);
   const [showStudentJobs, setShowStudentJobs] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+  const [vehicleRequired, setVehicleRequired] = useState(false);
   const [sortNewest, setSortNewest] = useState(false);
   const [newlyAdded, setNewlyAdded] = useState(false);
   const [now] = useState(() => Date.now());
@@ -26,12 +28,20 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
       const details = parseJobDetails(job);
       const matchesMode = selectedModes.length === 0 || (details.mode !== null && selectedModes.includes(details.mode));
       const matchesSalary = !minSalary || (job.salary_min !== null && job.salary_min >= minSalary);
+      const languageRequirements = parseTagList(job.language_requirements);
+      const matchesLanguage = !selectedLanguage || languageRequirements.some(value => {
+        const normalized = value.toLowerCase();
+        return selectedLanguage === 'Bilingual'
+          ? normalized.includes('bilingual')
+          : normalized.includes(selectedLanguage.toLowerCase());
+      });
+      const matchesVehicle = !vehicleRequired || Number(job.vehicle_required) === 1;
       const days = daysUntilClose(job.closing_date);
       const matchesDeadline = deadlineDays === null
         || (deadlineDays === -1 ? days === null : days !== null && days >= 0 && days <= deadlineDays);
       const cutoff = now - 7 * 24 * 60 * 60 * 1000;
       const matchesNew = !newlyAdded || jobFreshnessTimestamp(job, now) >= cutoff;
-      return matchesSearch && matchesLocation && matchesMode && matchesSalary && matchesDeadline && matchesNew;
+      return matchesSearch && matchesLocation && matchesMode && matchesSalary && matchesLanguage && matchesVehicle && matchesDeadline && matchesNew;
     });
     return filtered.sort((a, b) => {
       if (sortNewest) return jobFreshnessTimestamp(b, now) - jobFreshnessTimestamp(a, now);
@@ -43,7 +53,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
       if (aUrgent && bUrgent) return (aDays ?? 0) - (bDays ?? 0);
       return jobFreshnessTimestamp(b, now) - jobFreshnessTimestamp(a, now);
     });
-  }, [jobs, currentView, searchTerm, locationTerm, minSalary, selectedModes, deadlineDays, showInventories, showStudentJobs, sortNewest, newlyAdded, now]);
+  }, [jobs, currentView, searchTerm, locationTerm, minSalary, selectedModes, selectedLanguage, vehicleRequired, deadlineDays, showInventories, showStudentJobs, sortNewest, newlyAdded, now]);
 
   const jobsByCompany = useMemo(() => groupJobsByCompany(jobs), [jobs]);
   const activeJobsByCompany = useMemo(() => Object.fromEntries(
@@ -65,12 +75,13 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
     .filter(({ days }) => days >= 0).sort((a, b) => a.days - b.days).slice(0, 5).map(({ job }) => job), [jobs]);
 
   const resetFilters = () => {
-    setMinSalary(null); setLocationTerm(''); setSelectedModes([]); setDeadlineDays(null); setShowInventories(false); setShowStudentJobs(false); setSortNewest(false); setNewlyAdded(false);
+    setMinSalary(null); setLocationTerm(''); setSelectedModes([]); setSelectedLanguage(null); setVehicleRequired(false); setDeadlineDays(null); setShowInventories(false); setShowStudentJobs(false); setSortNewest(false); setNewlyAdded(false);
   };
 
   return {
     minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
-    showInventories, setShowInventories, showStudentJobs, setShowStudentJobs, sortNewest, setSortNewest, newlyAdded, setNewlyAdded, filteredJobs,
+    showInventories, setShowInventories, showStudentJobs, setShowStudentJobs, selectedLanguage, setSelectedLanguage, vehicleRequired, setVehicleRequired,
+    sortNewest, setSortNewest, newlyAdded, setNewlyAdded, filteredJobs,
     recentJobs, closingSoonJobs, availableJobCount: availableJobs.length, recentlyAddedCount,
     jobsByCompany, activeJobsByCompany, activeCompanies, inactiveCompanies, resetFilters,
   };
