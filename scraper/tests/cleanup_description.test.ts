@@ -103,6 +103,43 @@ The Administrative Coordinator provides support to undergraduate programs and re
   assert.equal(result, '## Overview\n\nThe Administrative Coordinator provides support to undergraduate programs and research activities.');
 });
 
+test('removes the reviewed Barrie administrative blocks without deleting requirements', () => {
+  const result = cleanSourceDescriptionBoilerplate('City of Barrie', `## Qualifications
+- Valid Class G licence.
+
+The City of Barrie is an equal opportunity employer, dedicated to creating a workplace culture of inclusiveness and welcomes applications from qualified individuals of diverse backgrounds. We are committed to providing barrier-free and accessible employment practices and we will accommodate the needs of applicants under the Ontario Human Rights Code throughout all stages of the recruitment and selection process. If contacted for an employment opportunity, please advise if you require Code-protected accommodation and we will work with you to meet your needs.
+
+The job posting has been designed to indicate the general nature and essential duties and responsibilities of work performed by employees within this position. It may not contain a comprehensive inventory of all duties and responsibilities required of employees to do this job. For full position details, please request a copy of the job description by emailing HR.Recruitment@Barrie.ca.`);
+  assert.equal(result, '## Qualifications\n- Valid Class G licence.');
+});
+
+test('removes the reviewed St. Catharines administrative footer', () => {
+  const result = cleanSourceDescriptionBoilerplate('City of St. Catharines', `## Responsibilities
+- Operate municipal equipment.
+
+Additional Information:Equal Opportunity EmployerThe City of St. Catharines is committed to fostering an inclusive, accessible, and respectful work environment. Don’t Meet Every Requirement?We encourage individuals from all backgrounds to apply. Accommodation is available throughout the recruitment process. Application ProcessSubmit online. Interviews and AssessmentsTests may be used. Use of AIThe City does not use artificial intelligence.`);
+  assert.equal(result, '## Responsibilities\n- Operate municipal equipment.');
+});
+
+test('removes the formatted St. Catharines administrative section', () => {
+  const result = cleanSourceDescriptionBoilerplate('City of St. Catharines', `# Municipal Operator
+## Responsibilities
+- Operate municipal equipment.
+
+## Additional Information
+- Equal Opportunity Employer.
+- Accommodation available upon request.
+- Applications must be submitted online.`);
+  assert.equal(result, '# Municipal Operator\n## Responsibilities\n- Operate municipal equipment.');
+});
+
+test('preserves a real job-title heading during source cleanup', () => {
+  const result = cleanSourceDescriptionBoilerplate('City of St. Catharines', `# Program Assistant, Special Anniversary Initiatives
+## About the Role
+The Program Assistant supports civic anniversary initiatives.`);
+  assert.equal(result, '# Program Assistant, Special Anniversary Initiatives\n## About the Role\nThe Program Assistant supports civic anniversary initiatives.');
+});
+
 test('does not cut role content between Metrolinx boilerplate sentences', () => {
   const result = cleanSourceDescriptionBoilerplate('Metrolinx', `Metrolinx is connecting communities across the Greater Golden Horseshoe. Our Capital Projects Group is hiring a Manager to deliver safety programs. Metrolinx is an agency of the Government of Ontario.
 

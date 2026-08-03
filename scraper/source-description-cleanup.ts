@@ -10,6 +10,14 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
   'Brock University': [
     { name: 'brock-employer-introduction', pattern: /Brock University is located on the traditional territory of the Haudenosaunee and Anishinaabe peoples,[\s\S]*?Break through at Brock\./i, mode: 'inline' },
   ],
+  'City of Barrie': [
+    { name: 'equal-opportunity-footer', pattern: /The City of Barrie is an equal opportunity employer,[\s\S]*?we will work with you to meet your needs\./i, mode: 'inline' },
+    { name: 'job-description-disclaimer', pattern: /The job posting has been designed to indicate[\s\S]*?HR\.Recruitment@Barrie\.ca\./i, mode: 'inline' },
+  ],
+  'City of St. Catharines': [
+    { name: 'additional-information-footer', pattern: /(?:^|\n\s*)(?:#{1,6}\s*)?Additional Information:\s*Equal Opportunity Employer[\s\S]*$/i, mode: 'suffix' },
+    { name: 'additional-information-section', pattern: /(?:^|\n\s*)(?:#{1,6}\s*)?Additional Information\s*\n\s*-?\s*Equal Opportunity Employer[\s\S]*$/i, mode: 'suffix' },
+  ],
   'University of Waterloo': [
     { name: 'waterloo-employer-introduction', pattern: /At the\s+University of Waterloo, we create and promote a culture where everyone can reach their full potential\. As an employee, you get support\s*&\s*opportunities that empower you to advance your career\. Explore how we can bring big ideas to life, together\. The University is a welcoming workplace for those of all abilities, interests, and expertise\. As part of our workforce, you can do what you do best, every day\. Learn more about our recruitment process\./i, mode: 'inline' },
   ],
@@ -66,7 +74,7 @@ function removeRuleFromParagraphs(description: string, rules: SourceRule[]): str
 
   const lines = result.split('\n');
   const isEmptyHeading = (line: string): boolean =>
-    /^(?:#{1,6}\s+.+|\*\*(?:Additional Information|Application Process|Don[’']t Meet Every Requirement)\*\*)\s*$/i.test(line.trim());
+    /^(?:(?:#{1,6}\s+|\*\*)?(?:Additional Information|Application Process|Don[’']t Meet Every Requirement|Accommodation|Equity)(?:\*\*)?)\s*:?\s*$/i.test(line.trim());
   result = lines.filter((line, index) => {
     if (!isEmptyHeading(line)) return true;
     const next = lines.slice(index + 1).find(candidate => candidate.trim());
