@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Structured criteria were stored but hidden on job pages**: languages, vehicle requirements, certifications, and software now appear alongside education, licences, benefits, and skills.
 - **Recruitment classification treated ordinary annual language as a hiring pool**: explicit standing-posting and candidate-pool signals now drive listing types, while generic “throughout the year,” “year-round,” and procurement language stays regular.
 - **Report form had a redundant Other checkbox**: details-only reports now classify themselves as Other, while extra details can still clarify any selected reason.
 - **Responsibilities and Qualifications opened inconsistently**: both sections now start expanded, while optional Nice to Have details remain collapsible.

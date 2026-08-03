@@ -69,6 +69,10 @@ export interface JobDetails {
   studentRequirement: string | null;
   education: string | null;
   licenses: string | null;
+  language: string | null;
+  vehicle: string | null;
+  certifications: string | null;
+  software: string | null;
   benefits: string | null;
   skills: string | null;
   future: string | null;
