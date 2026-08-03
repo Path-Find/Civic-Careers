@@ -91,7 +91,11 @@ The read-only findings above were followed by a deterministic implementation pas
 
 Safe stored-description backfills were completed for Metrolinx, Government of Canada, University of Toronto, Town of Caledon, City of Brantford, Brock University, and City of Barrie. TDSB, University of Waterloo, and City of St. Catharines had no remaining matching stored blocks after review, so they received future-parser coverage without a database backfill. Every applied source pass was rerun until it returned zero candidates; changed records were spot-checked for retained role content and structured requirements.
 
-The cleanup also includes a safety guard so legitimate job-title headings are not treated as empty boilerplate headings, removes placeholder-only sections, and skips backfills that would erase an entire stored description. The scraper regression suite passes 122/122 tests.
+The cleanup also includes a safety guard so legitimate job-title headings are not treated as empty boilerplate headings, removes placeholder-only sections, and skips backfills that would erase an entire stored description. The scraper regression suite passes 123/123 tests.
+
+Placeholder-only sections such as `None`, `No content`, and empty Markdown headings are now removed in the future parser path. A deterministic backfill removed 662 safe placeholder sections across existing records; rows whose cleaned description would be empty are skipped. The follow-up dry run returned zero safe candidates and continued to protect Vaughan Public Library record `vaughanpl_3`.
+
+A separate deterministic 2% holistic audit sampled 103 of 5,149 stored jobs across all 70 sources. It found no empty descriptions or remaining known boilerplate after cleanup. It identified two generic ADP URLs for Issue #150 and the already-known Vaughan short-description/application-form case for Issue #75; possible structured-field flags were reviewed as false positives or non-actionable canonicalization differences.
 
 ## Boundaries for the next cleanup pass
 

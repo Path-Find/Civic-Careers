@@ -2,52 +2,40 @@
 
 ## Scope and method
 
-This was a fresh deterministic, source-balanced 2% sample of the current `jobs`/`job_details` database after the targeted source-cleanup work. The reusable audit is implemented in `scraper/audit-holistic-sample.ts`.
+This was a fresh deterministic 2% sample of the current `jobs` and `job_details` tables after the targeted description-cleanup work.
 
 - Database rows: 5,149
-- Sample size: 103 rows
-- Sources represented: all 70 sources
-- Sampling method: a stable hash-selected quota per source, with every source represented at least once
-- Raw comparison: the sampled rows were compared with their stored `raw_jobs.raw_text`
+- Sample size: 103 rows, exactly 2% rounded up
+- Sources represented: all 70 source names
+- Sampling method: stable source-balanced selection by job ID, with one row per source and additional rows allocated to larger sources
+- Raw comparison: sampled rows were compared with their stored `raw_jobs.raw_text`
 - No AI calls and no manual per-record edits were used for the audit
 
-The checks looked for missing or generic URLs, empty or unusually short/long descriptions, missing section structure, residual boilerplate, raw requirements that were not reflected in the stored structure, possible language/licence/software gaps, and missing posted dates.
+The checks looked for missing or generic URLs, empty or unusually short/long descriptions, repeated paragraphs, residual known boilerplate, missing core fields, missing dates, and possible gaps or mismatches in deterministic structured fields.
 
-The automated flags below are candidate signals, not confirmed defects. Course titles, French-language postings, platform UI text, and role-specific words such as “LinkedIn” create false positives.
+## Results
 
-| Candidate signal | Rows |
+| Signal | Rows |
 | --- | ---: |
+| Empty description | 0 |
+| Description under 250 characters | 1 |
+| Description over 8,000 characters | 0 |
+| Generic-looking URL | 2 |
+| Repeated paragraphs | 0 |
+| Remaining known boilerplate | 0 |
 | Missing closing date | 15 |
 | Missing posted date | 72 |
-| Mismatched structured values | 30 |
-| Missing structured values | 4 |
-| Generic-looking URL | 2 |
-| Repeated paragraph | 0 |
-| Short description under 250 characters | 1 |
-| Empty description | 0 |
-| Residual boilerplate | 0 |
+| Possible missing structured values | 4 |
+| Possible structured-value mismatches | 30 |
 
-## Confirmed findings
+## Findings
 
-### Retired federal posting still active — Issue #160
-
-Government of Canada row `2352259` is marked `is_active = 1`, but its latest raw page says the job has moved or is no longer available. The stored description is empty. This is a scraper state/retired-posting defect, not a description-cleanup issue.
-
-The related row `2352273` has the same retired-page marker but is already inactive (`is_active = 0`), so it is not currently exposed as an active job.
-
-### Existing parser-loss report — Issue #131
-
-The Burlington `Senior Skate Patrol` record was also confirmed during the child-issue review. Its raw posting contains a minimum-age requirement and First Aid/CPR requirement, while the stored description contains only Responsibilities. This is parser completeness/data loss, not removable boilerplate.
-
-## Reviewed non-defects and follow-up queues
-
-- The two generic-looking URLs were ADP recruitment URLs. They require source-link review before being called wrong; the audit did not change them.
-- The language candidates included three University of Ottawa rows where deterministic extraction found bilingual wording not present in the stored field, plus French-titled or course-related rows. They are candidate field-level follow-ups, not proof that every flag is a defect.
-- The education, licence, benefits, and language mismatch counts include duplicate or broader deterministic matches. They require field-level review before any backfill.
-- The one short description was Vaughan Public Library's `Circulation Assistant`. Its raw record is an application form with availability and upload fields but no role-description text; the backfill safety guard correctly avoids replacing its stored headings with an empty description.
-- The repeated paragraph was a City of Thunder Bay posting and needs source-specific review before deletion.
-- The actual shortened Metrolinx employer-introduction variant was fixed and backfilled in commit `607881f`; the final Metrolinx source-only dry run was zero.
+- `vaughanpl_3` (Vaughan Public Library, Circulation Assistant) is 96 characters and contains only empty section headings. The backfill refused to replace it with an empty description. This needs the separate PDF/application-form handling already tracked in Issue #75.
+- `adp_1431` (Municipality of Clarington) and `adp_4720` (City of Markham) are inactive historical rows that still use generic ADP recruitment URLs without a posting identifier. Issue #150 already confirms that no active generic ADP rows remain, so no further change was made.
+- The 4 possible missing structured values were false positives after inspection: three University of Ottawa course records exposed French language-of-instruction metadata rather than an employment language requirement, and one Brock compensation-rate sentence was mistaken for an education requirement.
+- The 30 possible structured mismatches were mostly duplicate wording from raw text plus stored canonical values, or a specific benefit such as OMERS alongside a broader benefits list. No broad automatic rewrite is justified from this sample.
+- Missing dates are source-dependent in this sample. They are not by themselves evidence that the parser dropped a date.
 
 ## Result
 
-The 2% audit is complete. It produced one new high-confidence tracked defect (#160) and confirmed one existing parser-loss defect (#131). The remaining signals are queued for targeted source/parser review rather than broad automatic edits.
+The 2% audit found no broad description or core-field failure. It confirmed one known short/empty-section Vaughan record and two generic ADP links for targeted follow-up. The remaining signals are review queues, not automatic backfill candidates.
