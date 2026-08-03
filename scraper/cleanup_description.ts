@@ -1,4 +1,8 @@
-const SECTION_HEADER = /^##\s+/;
+import { cleanSourceDescriptionBoilerplate } from './source-description-cleanup';
+
+const SOCIAL_BOILERPLATE = /^(?:learn more about .+ on (?:instagram|facebook|linkedin)|(?:find|follow) us on (?:instagram|facebook|linkedin))\.?$/i;
+const NAVIGATION_BOILERPLATE = /^(?:skip to .+|apply now|print|share (?:this|the) page|cookie(?: policy| notice)?)\.?$/i;
+const GENERIC_EQUITY_BOILERPLATE = /(?:equal opportunity employer|equitable hiring and employment practices|accommodation needs? of persons with disabilities|inclusive and barrier-free work environment|under-represented employment equity groups|self-declare when you apply)/i;
 
 function titleCore(title: string): string {
   return title
@@ -68,4 +72,88 @@ export function cleanDescriptionOverviews(description: string, jobTitle: string)
     const heading = lines.shift() || '';
     return `${heading}\n\n${cleanOverviewBoilerplate(lines.join('\n'), jobTitle)}`;
   }).join('').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function normalizeListItem(value: string): string {
+  return value
+    .replace(/^\s*[-•]\s+/, '')
+    .replace(/[.;:,]+$/g, '')
+    .replace(/[*_]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleLowerCase();
+}
+
+function removeBoilerplate(body: string): string {
+  return body
+    .split(/\n\s*\n+/)
+    .map(paragraph => paragraph
+      .split('\n')
+      .filter(line => {
+        const normalized = line.replace(/^\s*[-•]\s*/, '').trim();
+        return !SOCIAL_BOILERPLATE.test(normalized) && !NAVIGATION_BOILERPLATE.test(normalized);
+      })
+      .join('\n')
+      .trim())
+    .filter(Boolean)
+    .filter(paragraph => !GENERIC_EQUITY_BOILERPLATE.test(paragraph))
+    .join('\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function deduplicateBullets(body: string): string {
+  const seen = new Set<string>();
+  return body
+    .split('\n')
+    .filter(line => {
+      if (!/^\s*[-•]\s+/.test(line)) return true;
+      const key = normalizeListItem(line);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * Deterministic cleanup for stored and newly parsed Markdown descriptions.
+ * It removes only recognizable portal/employer boilerplate and exact repeated
+ * bullets; it does not summarize or invent content.
+ */
+export function cleanJobDescription(description: string, jobTitle: string, source = ''): string {
+  if (!description.trim()) return description.trim();
+
+  const sourceCleaned = cleanSourceDescriptionBoilerplate(source, description);
+  const sections = sourceCleaned
+    .split(/(?=^##\s+)/m)
+    .map(chunk => {
+      const lines = chunk.split('\n');
+      const heading = lines[0]?.match(/^##\s+(.+)$/)?.[1]?.trim() || '';
+      const body = heading ? lines.slice(1).join('\n') : chunk;
+      return { heading, body };
+    })
+    .map(section => ({
+      ...section,
+      body: deduplicateBullets(removeBoilerplate(section.heading.toLocaleLowerCase() === 'overview'
+        ? cleanOverviewBoilerplate(removeBoilerplate(section.body), jobTitle)
+        : removeBoilerplate(section.body))),
+    }));
+
+  const cleaned = sections
+    .filter(section => !section.heading || section.body.trim())
+    .map(section => section.heading ? `## ${section.heading}\n${section.body.trim()}` : section.body.trim())
+    .filter(Boolean)
+    .join('\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  // Preserve the original representation when the only difference is
+  // whitespace around headings or paragraphs. Backfills should record actual
+  // content changes, not rewrite every stored Markdown row.
+  return cleaned.replace(/\s+/g, ' ').trim() === description.replace(/\s+/g, ' ').trim()
+    ? description
+    : cleaned;
 }

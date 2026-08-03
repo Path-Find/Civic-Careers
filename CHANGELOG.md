@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Recurring source boilerplate could remain in job descriptions**: confirmed Metrolinx and Government of Canada employer/application footers are now removed deterministically while role-specific requirements and eligibility remain intact.
 - **Structured criteria were stored but hidden on job pages**: languages, vehicle requirements, certifications, and software now appear alongside education, licences, benefits, and skills.
 - **Recruitment classification treated ordinary annual language as a hiring pool**: explicit standing-posting and candidate-pool signals now drive listing types, while generic “throughout the year,” “year-round,” and procurement language stays regular.
 - **Report form had a redundant Other checkbox**: details-only reports now classify themselves as Other, while extra details can still clarify any selected reason.

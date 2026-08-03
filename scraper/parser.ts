@@ -2,6 +2,7 @@ import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanu
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 import { extractListingType, reconcileStructuredRequirements } from './requirements';
+import { cleanJobDescription } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 
 const CONCURRENCY = 5;
@@ -35,8 +36,8 @@ async function main() {
       const { data: aiResult, error } = await parseJobWithAI(raw.raw_text, raw.title ?? undefined);
       if (aiResult) {
         const sourceFix = GOVERNMENT_OF_CANADA_FIXES[raw.id];
-        const description = sourceFix?.description ?? aiResult.clean_description;
-        const structuredRequirements = reconcileStructuredRequirements(aiResult.clean_description, {
+        const description = sourceFix?.description ?? cleanJobDescription(aiResult.clean_description, aiResult.job_title, raw.source);
+        const structuredRequirements = reconcileStructuredRequirements(description, {
           education_requirements: aiResult.education_requirements,
           license_requirements: aiResult.license_requirements,
           benefits: aiResult.benefits,

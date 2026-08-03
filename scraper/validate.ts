@@ -1,5 +1,6 @@
 import type { ParsedJob } from './ai_parser';
 import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
+import { cleanJobDescription } from './cleanup_description';
 
 function coerceString(v: unknown): string {
   if (typeof v === 'string') return v.trim();
@@ -142,12 +143,13 @@ function cleanDescription(markdown: string): string {
     return body !== '' && !isEmptySectionBody(body);
   });
 
-  return kept
+  const cleaned = kept
     .map(section => section.join('\n'))
     .join('\n')
     .replace(/^(\s*)\d+\.\s+/gm, '$1- ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+  return cleaned;
 }
 
 export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | null {
@@ -183,6 +185,6 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     software_requirements: normalizeSoftwareList(o['software_requirements']),
     responsibility_tags: normalizeTags(o['responsibility_tags']),
     qualification_tags: normalizeTags(o['qualification_tags']),
-    clean_description: cleanDescription(coerceString(o['clean_description'])),
+    clean_description: cleanJobDescription(cleanDescription(coerceString(o['clean_description'])), job_title),
   };
 }

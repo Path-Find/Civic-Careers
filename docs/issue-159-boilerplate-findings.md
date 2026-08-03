@@ -1,96 +1,93 @@
-# Issue 159: recurring source boilerplate findings
+# Issue 159: source boilerplate findings
 
-Investigation date: 2026-08-03
+Date checked: 2026-08-03
+Database checked: live Turso `raw_jobs` table
+Scope: the 70 source names listed in Issue 159
 
-## Scope and method
+## Method
 
-This is an investigation record only. No product code, parsed job, or database row was edited.
+I queried the raw postings for each of the 70 listed sources. The query returned 6,196 rows. I grouped records by `source`, compared repeated text across postings, and manually reviewed representative top and bottom text for each source. The counts below are the number of raw rows available at the time of review, not a count of currently active jobs.
 
-The live Turso `raw_jobs` table was queried for the 70 source names listed in Issue 159. It returned 6,196 raw records. For each source, repeated text was compared across the stored postings, with particular attention to the beginning and end of each posting. The scan grouped exact repeated blocks and normalized repeated phrases; representative raw records were then reviewed to separate:
-
-- portal chrome: cookies, search controls, share forms, session timers, navigation, and vendor footer text;
-- employer boilerplate: recurring organization introductions, land acknowledgements, EDI statements, benefits/marketing copy, application instructions, and thank-you footers;
-- content to preserve: duties, qualifications, eligibility, location, compensation, posting status, police checks, driver abstracts, and other role-specific conditions.
-
-“Confirmed” below means the text recurred across the reviewed records for that source. It does not mean a cleanup rule is approved. The issue’s later dry-run, representative review, deterministic implementation, zero-change rerun, and regression steps remain intentionally unchecked because this request was investigation-only.
+I classified a repeated block as a candidate only when it is source-specific and does not describe the role. Portal controls, cookie notices, search forms, employer marketing, land acknowledgements, application instructions, and routine hiring notices are separate from duties, qualifications, eligibility, location, and compensation. Eligibility and job-specific checks must remain even when their surrounding wording repeats.
 
 ## Source findings
 
-| Source | Raw records | Finding | Cleanup candidate / preservation note |
-|---|---:|---|---|
-| Algonquin College | 41 | Recurring land acknowledgement, current-employee application note, benefits/marketing footer, and inclusive-workplace copy. | Candidate: employer and application/footer blocks. Preserve role, pay, contract, and teaching details. |
-| Brock University | 671 | Recurring land acknowledgement and Brock overview/top-employer/student-experience copy. | Candidate: repeated institutional marketing and land block. Preserve role-specific academic content. |
-| City of Barrie | 33 | Recurring city overview, values/culture copy, EEO/accommodation block, application instructions, and job-description disclaimer. | Candidate: employer/admin blocks. Preserve the disclaimer only if it carries a role-specific condition; otherwise it is non-role text. |
-| City of Belleville | 13 | Recurring “current opportunities”/thank-you text, application instructions, resume form, and contact/admin text. | Candidate: all repeated portal/application blocks; no duties or qualifications in these blocks. |
-| City of Brampton | 24 | Recurring EEO/accommodation block, voluntary self-identification survey, and internal-applicant instructions. | Candidate: application/admin text. Preserve any job-specific internal-only status. |
-| City of Brandon | 19 | Recurring complete-description contact instruction, EEO/accommodation, thank-you, and follow-us/application copy. | Candidate: admin/employer footer blocks. |
-| City of Brantford | 43 | Recurring city overview, cookie/site navigation, contact/footer, EDI, and benefits copy. | Candidate: portal and employer blocks. Preserve job-specific certificates and conditions. |
-| City of Burlington | 28 | Recurring “great career” employer pitch, workplace/benefits/growth copy, online-application instruction, accommodation, and thank-you text. | Candidate: employer and application footer blocks. |
-| City of Cambridge | 35 | Recurring portal controls plus city vision/values, privacy, accessibility, and EDI text. | Candidate: portal and employer/admin blocks. Preserve privacy/eligibility wording if it is tied to the application. |
-| City of Cornwall | 16 | Recurring Atlas cookie/session UI, city overview, EDI, accessibility, and application/admin text. | Candidate: portal and employer blocks. |
-| City of Guelph | 27 | Recurring cookie/share/apply portal chrome and EEO/accessibility statement. | Candidate: portal and employer/admin blocks. |
-| City of Hamilton | 133 | Recurring resume-audit/falsification disclaimer, EEO/accessibility/accommodation block, and city overview/values copy. | Candidate: generic disclaimer and employer blocks. Preserve any explicit hiring condition. |
-| City of Kitchener | 38 | Recurring SAP cookie-consent/session blocks and navigation. No additional narrowly separable source-specific non-role block was confirmed in this pass. | Candidate: portal chrome only; do not remove role text based on generic repeated wording. |
-| City of London | 47 | Recurring anti-racism/anti-oppression and city overview copy, career marketing, accessibility statement, and contact footer. | Candidate: employer/contact blocks. |
-| City of Markham | 41 | Recurring supported-browser warning and municipal employer-award/marketing copy. | Candidate: browser and employer marketing blocks. |
-| City of Niagara Falls | 14 | Recurring apply-through-Workday instructions and accessible/inclusive-organization copy. | Candidate: application and employer/accessibility blocks. |
-| City of Oshawa | 21 | Recurring EEO/EDI/accommodation block, human-resources contact/footer, and city marketing copy. | Candidate: employer/admin blocks. |
-| City of Ottawa | 37 | Recurring alert/search chrome, EDI/accessibility/accommodation text, save-poster instruction, and thank-you footer. | Candidate: portal and generic application/footer blocks. |
-| City of Peterborough | 7 | Recurring cookie/site-contact text and EDI/equal-opportunity/thank-you footer. | Candidate: portal and employer/footer blocks. |
-| City of Red Deer | 33 | Recurring employer overview, AI/unauthorized-resource interview rule, session/AI-assist portal text, and thank-you footer. | Candidate: portal and generic employer/application blocks. Preserve the AI rule if it is treated as an application instruction. |
-| City of Richmond Hill | 25 | Recurring alert chrome, internal-candidate instructions, EEO/accommodation, and thank-you footer. | Candidate: portal and generic application/footer blocks. |
-| City of Sarnia | 7 | Recurring supported-browser warning and municipal employer/community overview. | Candidate: browser and employer overview; no narrower role-independent footer confirmed. |
-| City of St. Catharines | 35 | Recurring “what’s in it for you”/employer marketing, EEO/accessibility, and “don’t meet every requirement” copy. | Candidate: employer and encouragement blocks. Preserve qualifications themselves. |
-| City of St. Thomas | 10 | Recurring online application/account/upload instructions and qualification-question notice. | Candidate: application instructions; preserve actual qualification questions/requirements. |
-| City of Thunder Bay | 52 | Recurring navigation, internal-employee instructions, cookie/analytics notice, contact/footer, and careers-page copy. | Candidate: portal and employer/admin blocks. Preserve internal-only competition status. |
-| City of Toronto | 195 | Recurring cookie notice, alert/search chrome, EEO/inclusiveness, accessibility, and accommodation blocks. | Candidate: portal and employer/admin blocks. |
-| City of Vancouver | 58 | Recurring alert/search chrome, employer-award/marketing text, EDI, and accommodation copy. | Candidate: portal and employer/admin blocks. |
-| City of Victoria | 29 | Recurring cookie/share/apply chrome, online-profile/application instructions, EDI, and accommodation copy. | Candidate: portal and employer/application blocks. |
-| City of Waterloo | 34 | Recurring translation widget, city “why work with us” overview, EDI/accessibility, and posting-status UI. | Candidate: portal and employer blocks. Preserve posting status and location. |
-| City of Welland | 8 | Recurring duties disclaimer, EEO/accessibility/accommodation, and thank-you/application footer. | Candidate: generic disclaimer and footer. Preserve actual duties and requirements. |
-| City of Windsor | 36 | Recurring job-board introduction, resume form, accessibility/accommodation, and verification/application text. | Candidate: portal and generic employer/application blocks. Preserve verification conditions when role-specific. |
-| City of Winnipeg | 49 | Recurring PeopleSoft/SAP search-result and navigation chrome. | Candidate: portal chrome only; no separate source-specific role-text block confirmed. |
-| CMHC | 136 | Recurring EDI/employer-mission copy, “applied before” encouragement, benefits/marketing, and alert/search chrome. | Candidate: employer and portal blocks. Preserve eligibility and job-specific benefits/compensation. |
-| Conservation Halton | 14 | Recurring employer values/benefits and privacy/collection footer. Several postings also explicitly repeat standing-posting status. | Candidate: generic employer/privacy footer. Preserve standing-posting status and eligibility/privacy requirements. |
-| CreateTO | 2 | Two records are the same Housing Development Intern posting in different BambooHR shells; not two independent postings. | Insufficient evidence for a source-wide rule. The posting contains recurring application, AI-screening, hybrid-work, and contact/admin text, but no cross-posting confirmation. |
-| Durham College | 18 | Recurring college overview, land acknowledgement, benefits/growth, and employer copy. | Candidate: institutional/employer blocks. Preserve teaching/course/role information. |
-| EFHC | 10 | Recurring portal cookie/session/AI-assist text and institutional/land-acknowledgement copy; the stored text includes mixed employer/template material. | Candidate: portal chrome only until source attribution is clarified; do not create a content rule from the mixed template. |
-| Fanshawe College | 26 | Recurring cookie chrome, current-employee Workday instruction, employer culture/benefits/growth copy, and application text. | Candidate: portal, employer, and internal-application blocks. |
-| George Brown College | 8 | Recurring land acknowledgement, EDI/accessibility, credential-validation, and application/footer text. | Candidate: employer/admin blocks. Preserve actual credential requirements for the role. |
-| Government of Canada | 871 | Multiple federal templates recur. Confirmed common candidates include “We thank all those who apply…”/selection footer and generic inclusive/barrier-free accommodation footer; portal shells also recur. | Candidate: exact generic selection/accommodation footers only. Preserve “Who can apply,” citizenship/residency preference, assessments, salary, closing dates, and other federal eligibility or role content. |
-| Halton Region | 41 | Recurring EDI/accommodation block and alert/search chrome. | Candidate: employer/admin blocks. |
-| Humber College | 29 | Recurring career-portal navigation/session text and EDI/accessibility/accommodation copy. | Candidate: portal and employer/admin blocks. |
-| Infrastructure Ontario | 17 | Recurring AI applicant-tracking disclosure, EDI/accommodation, and “you may not meet all qualifications” encouragement. | Candidate: generic recruitment disclosures/encouragement. Preserve the qualifications and any role-specific eligibility. |
-| Metrolinx | 145 | Recurring employer introduction, application process, internal-applicant instructions, background-information warning, thank-you, equitable-employer/EDI, and accommodation blocks. | Confirmed source-specific candidates; existing uncommitted cleanup rules were not changed or validated as part of this investigation. Preserve work eligibility and role requirements. |
-| Mississauga | 62 | Recurring alert/search chrome and City employer EDI/about-us copy. | Candidate: portal and employer blocks. |
-| Mohawk College | 8 | Recurring EDI/reconciliation, accessibility/accommodation, careers-page thank-you, and analytics/template text. | Candidate: employer/admin and portal blocks. |
-| Municipality of Clarington | 21 | Recurring supported-browser warning, employer “future is bright”/EDI copy, and ADP/legal footer. | Candidate: portal and employer/legal footer blocks. |
-| Northumberland County | 3 | All three records repeat cookie/privacy consent, accommodation, FOIP/privacy, HR contact, and headquarters footer text. | Confirmed source-specific admin/footer candidates. Preserve role-specific conditions. |
-| OCAD University | 92 | Recurring cookie notice, land acknowledgement, accessibility, Canadian/permanent-resident priority, and thank-you footer. | Candidate: cookie, land, and generic employer/footer blocks. Preserve the stated eligibility/priority. |
-| Ontario Tech University | 10 | Recurring EDI/indigenization/decolonization copy, encouragement to apply, Canadian eligibility/priority, and footer text. | Candidate: generic employer/footer blocks. Preserve eligibility wording. |
-| Peel Region | 39 | Recurring cookie/share/apply chrome, employer EDI/about-us block, and regional services overview. | Candidate: portal and employer blocks. |
-| Region of Waterloo | 57 | Recurring extensive cookie-consent/session/analytics/privacy blocks. No separate source-specific non-role block was confirmed beyond that portal material. | Candidate: portal chrome only in this pass. |
-| Seneca College | 35 | Recurring Seneca overview, workplace/growth/benefits, accessibility, and recruitment-verification copy. | Candidate: employer/admin blocks. Preserve conditional pre-employment verification requirements. |
-| Toronto District School Board | 12 | Recurring TDSB overview, accommodation/EDI, AI-recruitment disclosure, and application-administration blocks. | Confirmed source-specific candidates; existing uncommitted cleanup rules were not changed or validated here. |
-| Town of Ajax | 17 | Recurring existing-vacancy statement, internal Workday application instructions, and equal-opportunity/equity copy. | Candidate: generic application/employer blocks. Preserve vacancy status and internal-only conditions. |
-| Town of Aurora | 11 | Recurring supported-browser warning and town overview/vision/mission/workforce copy. | Candidate: browser and employer marketing blocks. |
-| Town of Caledon | 41 | Recurring supported-browser warning, contact/address footer, EEO/accommodation, and diversity copy. | Candidate: portal, employer, and contact blocks. |
-| Town of Milton | 31 | Recurring EEO/EDI/accommodation and online-application instructions. | Candidate: generic employer/application blocks. |
-| Town of Oakville | 52 | Recurring application receipt/instructions, contact details, resume/cover-letter workflow, and AI screening disclosure. | Candidate: application/admin blocks. Preserve any role-specific screening or eligibility statement. |
-| Town of Orangeville | 4 | Three of four records repeat EEO/accommodation/privacy and conditional police/background-check text; all four repeat AI applicant-tracking/application instructions. | Candidate: generic EEO/privacy/AI/admin blocks. Preserve conditional police/background requirements where applicable. |
-| Town of Whitby | 15 | Recurring employer/team/town overview and “grow together” marketing copy. | Candidate: employer marketing block. |
-| TRCA | 13 | Recurring application/upload instructions, selection thank-you, EEO/accessibility, and conditional vulnerable-sector/driver-abstract text. | Candidate: generic application/footer blocks. Preserve screening conditions when stated for the role. |
-| TTC | 59 | Recurring AI-use prohibition, corporate mission/plan, and recruitment-process text. | Candidate: generic application/employer block, but preserve the AI-use rule if it is treated as a required assessment instruction. |
-| University of Guelph | 100 | Recurring extensive cookie/session/analytics and career-navigation chrome. | Candidate: portal chrome. No additional narrowly separable source-specific role-text block confirmed in this pass. |
-| University of Ottawa | 1,684 | Recurring Workday/footer material and a policy block about the suspended-but-reinstatable COVID-19 vaccination policy. | Candidate: portal footer only. Preserve the vaccination policy because it can function as an eligibility condition. |
-| University of Toronto | 478 | Recurring alert/search chrome, EDI/belonging, accessibility/accommodation, and employer footer text. | Candidate: portal and generic employer/admin blocks. |
-| University of Waterloo | 106 | Recurring University employer-branding, workplace/benefits/growth copy across 103 records; three records differ in template shape. | Candidate: employer marketing block. Preserve role-specific duties, qualifications, and conditions. |
-| Vaughan Public Library | 3 | All three records repeat application form fields, availability requirements, upload instructions, and site navigation. | Candidate: form/navigation boilerplate. Preserve availability requirements because they are application eligibility. |
-| Waterfront Toronto | 1 | One Senior Manager posting only. It contains organizational overview, EDI/accommodation, and AI-recruitment disclosure, but there is no second posting for comparison. | Insufficient evidence for a source-wide rule. Do not mark a pattern confirmed from one record. |
-| York Region | 66 | Recurring cookie notice, application deadline/instructions, career-line contact, thank-you/selection footer, site footer, and share controls. | Candidate: portal and generic application/footer blocks. Preserve deadlines, eligibility, location, and role conditions. |
+| Source | Raw rows | Finding |
+| --- | ---: | --- |
+| Algonquin College | 41 | Repeated land acknowledgement, current-employee application instruction, benefits/employer footer, and compensation marketing. These are non-role blocks; keep the posting-specific fields. |
+| Brock University | 671 | Repeated land acknowledgement and Brock employer/student-experience marketing appear in every posting. Candidate employer boilerplate; no role duties are in those blocks. |
+| City of Barrie | 33 | Repeated city overview, corporate-values section, equal-opportunity/accommodation footer, application instructions, and job-description disclaimer. Clear source boilerplate. |
+| City of Belleville | 13 | Repeated “thank you/current opportunities,” apply instructions, resume form controls, email instructions, and interview notice. Clear application/portal boilerplate. |
+| City of Brampton | 24 | Repeated equal-opportunity/accommodation footer, voluntary self-identification survey, and internal-applicant instructions. Clear administrative boilerplate. |
+| City of Brandon | 19 | Repeated “request a complete job description,” equal-opportunity/accommodation and thank-you text, and follow-us/application instructions. Clear administrative boilerplate. |
+| City of Brantford | 43 | Repeated cookie/site navigation, city overview, contact/footer, benefits, and EDI employer text. Clear portal and employer boilerplate. |
+| City of Burlington | 28 | Repeated “great career” employer pitch, workplace/benefits marketing, online-application instructions, accommodation, and thank-you text. Candidate employer/application boilerplate. |
+| City of Cambridge | 35 | Repeated portal controls plus city values/vision, privacy notice, EDI, and accommodation text. Clear non-role blocks; preserve job-specific requirements. |
+| City of Cornwall | 16 | Repeated Atlas cookie/session controls, city marketing, EDI, accommodation, and application text. Clear portal/employer boilerplate. |
+| City of Guelph | 27 | Repeated cookie/share/apply controls and equal-opportunity/accommodation footer. Clear portal/employer boilerplate. |
+| City of Hamilton | 133 | Repeated city marketing, resume-audit/falsification disclaimer, and equal-opportunity/accommodation terms. Clear administrative/employer boilerplate. |
+| City of Kitchener | 38 | Repeated SAP cookie-consent and session/privacy blocks dominate the raw text. Portal boilerplate is confirmed; no additional narrowly separable employer block was needed for this pass. |
+| City of London | 47 | Repeated city/ARAO overview, career marketing, accessibility statement, and contact footer. Clear employer boilerplate. |
+| City of Markham | 41 | Repeated unsupported-browser notice and employer-awards/municipal marketing. Clear portal/employer boilerplate. |
+| City of Niagara Falls | 14 | Repeated cover-letter/resume application instructions and accessibility/inclusive-employer text. Candidate administrative boilerplate. |
+| City of Oshawa | 21 | Repeated equal-opportunity/accommodation text, site contact/footer, and city marketing. Clear employer boilerplate. |
+| City of Ottawa | 37 | Repeated alert controls, EDI/accommodation text, save-poster instruction, and thank-you/interview notice. Clear portal/application boilerplate. |
+| City of Peterborough | 7 | Repeated cookie/site contact blocks and EDI/equal-opportunity thank-you text. Clear portal/employer boilerplate. |
+| City of Red Deer | 33 | Repeated employer overview, AI/interview-assessment prohibition, and thank-you/interview notice. Candidate administrative/employer boilerplate; preserve any job-specific assessment requirement. |
+| City of Richmond Hill | 25 | Repeated alert controls, internal-applicant instruction, vacancy label, EDI/accommodation, and thank-you text. Clear administrative boilerplate. |
+| City of Sarnia | 7 | Repeated unsupported-browser notice and city/employer overview. Portal and employer marketing are non-role; no narrower rule was required from this sample. |
+| City of St. Catharines | 35 | Repeated “what’s in it for you” employer marketing, EDI/accommodation, and “don’t meet every requirement” text. Clear source-specific candidate boilerplate. |
+| City of St. Thomas | 10 | Repeated account creation, upload, application-question, and apply instructions. Clear application boilerplate. |
+| City of Thunder Bay | 52 | Repeated navigation, internal-employee instructions, cookie notice, contact/footer, and careers-page text. Clear portal/admin boilerplate. |
+| City of Toronto | 195 | Repeated cookie and alert controls plus equal-opportunity, accessibility, and accommodation blocks. Clear portal/employer boilerplate. |
+| City of Vancouver | 58 | Repeated alert controls, employer-award/municipal marketing, EDI, and accommodation text. Clear source-specific employer boilerplate. |
+| City of Victoria | 29 | Repeated cookie/share/apply controls, online-profile instructions, EDI/accommodation, and application deadline instructions. Clear portal/application boilerplate. |
+| City of Waterloo | 34 | Repeated Google Translate controls plus city “why work with us” and EDI marketing. Clear portal/employer boilerplate. |
+| City of Welland | 8 | Repeated duties disclaimer, equal-opportunity/accommodation, thank-you, and application blocks. Clear administrative boilerplate. |
+| City of Windsor | 36 | Repeated job-board introduction, resume form controls, accommodation, verification, and interview notice. Clear portal/application boilerplate. |
+| City of Winnipeg | 49 | Repeated PeopleSoft search/result controls and portal shell. Portal boilerplate is confirmed; no separate source-wide employer block was needed for this pass. |
+| CMHC | 136 | Repeated employer mission/EDI, benefits/recruitment encouragement, “apply again” text, and alert controls. Clear employer/portal boilerplate. |
+| Conservation Halton | 14 | Repeated employer values/benefits and privacy/FOIP collection footer. Standing-posting status and eligibility language must remain because they describe the opportunity. |
+| CreateTO | 2 | Both rows represent the same Housing Development Intern posting (one detailed record and one portal shell), not two independent postings. Insufficient evidence for a source-wide cleanup rule. |
+| Durham College | 18 | Repeated college overview, land acknowledgement, benefits, and employer marketing. Candidate non-role employer boilerplate. |
+| EFHC | 10 | Repeated portal cookie/session and AI-assist controls plus employer/land-acknowledgement text. Candidate portal/employer boilerplate; source attribution should be checked before any rule. |
+| Fanshawe College | 26 | Repeated cookie notice, current-employee Workday instruction, employer culture, and benefits/development text. Clear portal/employer boilerplate. |
+| George Brown College | 8 | Repeated land acknowledgement, EDI/accommodation, credential-proof, and application text. Clear employer/application boilerplate; keep actual credential requirements. |
+| Government of Canada | 871 | Repeated “We thank all those who apply…” / “only those selected…” and inclusive barrier-free accommodation blocks occur across varied federal posting formats. These two narrow footer patterns are candidates; preserve eligibility, preference, assessment, and position-specific instructions. |
+| Halton Region | 41 | Repeated accessibility/accommodation, EDI, and alert controls. Clear employer/portal boilerplate. |
+| Humber College | 29 | Repeated portal navigation, inactivity/session controls, and EDI/accommodation text. Clear portal/employer boilerplate. |
+| Infrastructure Ontario | 17 | Repeated AI applicant-tracking disclosure, EDI/accommodation, and “you may not meet every qualification” encouragement. Candidate administrative/employer boilerplate; do not remove qualifications themselves. |
+| Metrolinx | 145 | Repeated employer introduction, application/internal-applicant process, inaccurate-information warning, thank-you, EDI/accommodation, and “don’t meet every requirement” blocks. Confirmed source-specific candidates. |
+| Mississauga | 62 | Repeated alert controls and city/EDI employer overview. Clear portal/employer boilerplate. |
+| Mohawk College | 8 | Repeated reconciliation/EDI, accommodation, careers-page thank-you, and analytics/site text. Clear employer/portal boilerplate. |
+| Municipality of Clarington | 21 | Repeated browser warning, employer/city marketing, and EDI text. Clear portal/employer boilerplate. |
+| Northumberland County | 3 | All three rows repeat cookie/privacy, accommodation, FOIP, and HR contact blocks. Clear administrative boilerplate. |
+| OCAD University | 92 | Repeated cookie notice, land acknowledgement, accessibility, eligibility-priority, and thank-you text. Candidate blocks confirmed; preserve Canadian/permanent-resident eligibility wording. |
+| Ontario Tech University | 10 | Repeated EDI/indigenization/decolonization, eligibility-priority, and thank-you text. Candidate employer boilerplate; preserve eligibility wording. |
+| Peel Region | 39 | Repeated cookie/share/apply controls, employer EDI/about-us text, and regional marketing. Clear portal/employer boilerplate. |
+| Region of Waterloo | 57 | Repeated cookie-consent, analytics, privacy, and session blocks. Portal boilerplate is confirmed; no additional source-specific employer block was needed for this pass. |
+| Seneca College | 35 | Repeated employer overview, benefits/growth, and accessibility text. Clear employer boilerplate. |
+| Toronto District School Board | 12 | Repeated “Working at the TDSB,” EDI/accommodation, AI-recruitment disclosure, and ERP/LRS application-administration blocks. Confirmed source-specific candidates. |
+| Town of Ajax | 17 | Repeated vacancy/internal-Workday statement and equal-opportunity/equity text. Candidate administrative/employer boilerplate; preserve vacancy/status meaning if needed. |
+| Town of Aurora | 11 | Repeated unsupported-browser notice and town overview/mission/employer marketing. Clear portal/employer boilerplate. |
+| Town of Caledon | 41 | Repeated browser warning, town address/footer, equal-opportunity/accommodation, and diversity text. Clear portal/employer boilerplate. |
+| Town of Milton | 31 | Repeated equal-opportunity/accommodation and online-application text. Clear administrative/employer boilerplate. |
+| Town of Oakville | 52 | Repeated application receipt/upload instructions and AI screening disclosure. Clear application/admin boilerplate; preserve any job-specific screening or qualification content. |
+| Town of Orangeville | 4 | Repeated EEO/accommodation/privacy, police-check/background-check, AI screening, and application instructions. Candidate boilerplate, but keep conditional police-check requirements when tied to the role. |
+| Town of Whitby | 15 | Repeated “who we are” town/employer marketing and community overview. Candidate employer boilerplate. |
+| TRCA | 13 | Repeated application instructions, thank-you/interview notice, EEO/accommodation, and screening/driver-abstract text. Candidate admin boilerplate; keep screening requirements when role-specific. |
+| TTC | 59 | Repeated AI-use prohibition, hiring-process rules, and TTC mission/corporate-plan introduction. Candidate administrative/employer boilerplate; do not remove job-specific assessment requirements. |
+| University of Guelph | 100 | Repeated SAP cookie-consent, session, navigation, and careers-category controls. Portal boilerplate is confirmed; no additional narrow source-wide employer rule was needed for this pass. |
+| University of Ottawa | 1,684 | Repeated Workday footer and a historical/suspended COVID-19 vaccination-policy block across many postings. The footer is portal boilerplate; vaccination text is eligibility policy and must not be stripped without a product decision. |
+| University of Toronto | 478 | Repeated alert/filter controls, EDI, accessibility, and accommodation blocks. Clear portal/employer boilerplate. |
+| University of Waterloo | 106 | Repeated University of Waterloo employer/benefits/culture introduction across 103 of 106 rows. Candidate employer boilerplate; investigate the three exceptions before a deterministic rule. |
+| Vaughan Public Library | 3 | All three rows repeat application-form fields, availability requirements, upload limits, and site navigation. Clear application/portal boilerplate; preserve availability requirements. |
+| Waterfront Toronto | 1 | One posting only. It contains an organization overview, EDI/accommodation, and AI-recruitment disclaimer, but there is no cross-posting evidence. Insufficient for a source-wide rule. |
+| York Region | 66 | Repeated cookie notice, online-application/interview notice, career-line instructions, contact/footer, and sharing controls. Clear portal/application boilerplate. |
 
-## Current conclusion
+## Boundaries for the next cleanup pass
 
-There are confirmed candidates in most sources, but the recurring text is not one universal phrase. It falls into source-template families: portal chrome, employer/EDI/land-acknowledgement blocks, application instructions, and selection/accommodation footers. The safest next implementation unit is source-specific deterministic rules with representative before/after review. Generic keyword deletion would risk removing eligibility, posting status, police-check/driver-abstract conditions, or role-specific application requirements.
-
-No cleanup was applied, no parsed descriptions were changed, and no source was marked as having a confirmed rule solely from one posting or from the duplicated CreateTO records.
+- This investigation did not edit scraper or web code and did not update any database rows.
+- The findings support deterministic cleanup candidates, but they do not by themselves authorize removing eligibility, compensation, location, duties, qualifications, availability, police-check, driver-abstract, vaccination, or other role-dependent text.
+- The two sources without independent multi-posting evidence are CreateTO and Waterfront Toronto. EFHC also needs source-attribution review because its repeated raw shell contains employer text that may belong to a shared portal.
+- The issue’s dry-run, apply, zero-change, regression, and parent-issue updates remain for the implementation pass. They are intentionally unchecked because this task was investigation only.
