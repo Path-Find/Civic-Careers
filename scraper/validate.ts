@@ -23,6 +23,14 @@ function coerceBool(v: unknown): boolean {
   return false;
 }
 
+function normalizeOptionalBool(v: unknown): boolean | null {
+  if (v == null || v === '' || v === 'null' || v === 'unknown') return null;
+  if (typeof v === 'boolean') return v;
+  if (v === 1 || v === '1' || v === 'true') return true;
+  if (v === 0 || v === '0' || v === 'false') return false;
+  return null;
+}
+
 function normalizeSalaryPeriod(v: unknown): 'yearly' | 'hourly' | 'monthly' | 'flat' {
   const s = coerceString(v).toLowerCase();
   if (s.includes('hour') || s === 'hr') return 'hourly';
@@ -74,6 +82,26 @@ function normalizeStringList(v: unknown): string[] {
   if (Array.isArray(v)) return v.map(coerceString).filter(Boolean);
   if (typeof v === 'string' && v) return v.split(/[,;]/).map(s => s.trim()).filter(Boolean);
   return [];
+}
+
+function normalizeSoftwareList(v: unknown): string[] {
+  return [...new Set(normalizeStringList(v).map(value => {
+    const normalized = value.replace(/\s+/g, ' ').replace(/[.]$/, '').trim();
+    if (/^(?:microsoft office(?: suite)?|microsoft suite|ms office(?: suite)?|office 365)(?: applications?)?$/i.test(normalized)) return 'Microsoft Office';
+    if (/^(?:microsoft 365|m365)(?: applications?)?$/i.test(normalized)) return 'Microsoft 365';
+    const product = normalized.match(/^(?:microsoft|ms)\s+(word|excel|powerpoint|outlook|access|visio|project)(?: applications?)?$/i);
+    if (product) {
+      const names: Record<string, string> = { word: 'Word', excel: 'Excel', powerpoint: 'PowerPoint', outlook: 'Outlook', access: 'Access', visio: 'Visio', project: 'Project' };
+      return names[product[1].toLowerCase()];
+    }
+    if (/^(?:adobe\s+)?(?:acrobat(?:\s+pro)?|pro)$/i.test(normalized)) return 'Adobe Acrobat';
+    if (/^adobe\s+creative\s+cloud$/i.test(normalized)) return 'Adobe Creative Cloud';
+    if (/^(?:adobe\s+)?photoshop$/i.test(normalized)) return 'Photoshop';
+    if (/^(?:adobe\s+)?illustrator$/i.test(normalized)) return 'Illustrator';
+    if (/^(?:adobe\s+)?indesign$/i.test(normalized)) return 'InDesign';
+    if (/^(?:adobe\s+)?captivate$/i.test(normalized)) return 'Adobe Captivate';
+    return normalized;
+  }).filter(Boolean))];
 }
 
 function normalizeTags(v: unknown): string[] {
@@ -146,6 +174,13 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     is_inventory: coerceBool(o['is_inventory']),
     benefits: normalizeStringList(o['benefits']),
     required_skills: normalizeStringList(o['required_skills']),
+    education_requirements: normalizeStringList(o['education_requirements']),
+    license_requirements: normalizeStringList(o['license_requirements']),
+    vehicle_required: normalizeOptionalBool(o['vehicle_required']),
+    language_requirements: normalizeStringList(o['language_requirements']),
+    security_check_required: normalizeOptionalBool(o['security_check_required']),
+    certification_requirements: normalizeStringList(o['certification_requirements']),
+    software_requirements: normalizeSoftwareList(o['software_requirements']),
     responsibility_tags: normalizeTags(o['responsibility_tags']),
     qualification_tags: normalizeTags(o['qualification_tags']),
     clean_description: cleanDescription(coerceString(o['clean_description'])),

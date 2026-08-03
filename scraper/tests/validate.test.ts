@@ -18,6 +18,13 @@ const BASE = {
   is_student: false,
   is_inventory: false,
   benefits: ['pension', 'health', 'dental'],
+  education_requirements: ['Bachelor\'s degree'],
+  license_requirements: [],
+  vehicle_required: null,
+  language_requirements: [],
+  security_check_required: null,
+  certification_requirements: [],
+  software_requirements: ['Excel'],
   clean_description: 'Great role.',
 };
 
@@ -209,6 +216,36 @@ describe('validateParsedJob', () => {
     it('returns empty array for null/missing', () => {
       assert.deepEqual(validateParsedJob({ ...BASE, required_skills: null })?.required_skills, []);
       assert.deepEqual(validateParsedJob({ ...BASE, required_skills: undefined })?.required_skills, []);
+    });
+  });
+
+  describe('structured requirements normalization', () => {
+    it('normalizes requirement lists', () => {
+      const result = validateParsedJob({ ...BASE, license_requirements: 'P.Eng., Class G', software_requirements: ['Excel', 'Adobe Acrobat'] });
+      assert.deepEqual(result?.license_requirements, ['P.Eng.', 'Class G']);
+      assert.deepEqual(result?.software_requirements, ['Excel', 'Adobe Acrobat']);
+    });
+
+    it('canonicalizes Microsoft Office aliases', () => {
+      const result = validateParsedJob({ ...BASE, software_requirements: ['Microsoft Office Suite', 'MS Office', 'Office 365', 'Microsoft 365', 'Microsoft Word', 'MS PowerPoint', 'Excel'] });
+      assert.deepEqual(result?.software_requirements, ['Microsoft Office', 'Microsoft 365', 'Word', 'PowerPoint', 'Excel']);
+    });
+
+    it('canonicalizes Adobe aliases', () => {
+      const result = validateParsedJob({ ...BASE, software_requirements: ['Adobe Acrobat Pro', 'Adobe Pro', 'Adobe Creative Cloud', 'Adobe Photoshop', 'Illustrator', 'Adobe Captivate'] });
+      assert.deepEqual(result?.software_requirements, ['Adobe Acrobat', 'Adobe Creative Cloud', 'Photoshop', 'Illustrator', 'Adobe Captivate']);
+    });
+
+    it('keeps vehicle and security checks unknown when not mentioned', () => {
+      const result = validateParsedJob({ ...BASE, vehicle_required: undefined, security_check_required: 'unknown' });
+      assert.equal(result?.vehicle_required, null);
+      assert.equal(result?.security_check_required, null);
+    });
+
+    it('normalizes explicit requirement booleans', () => {
+      const result = validateParsedJob({ ...BASE, vehicle_required: 'true', security_check_required: 0 });
+      assert.equal(result?.vehicle_required, true);
+      assert.equal(result?.security_check_required, false);
     });
   });
 

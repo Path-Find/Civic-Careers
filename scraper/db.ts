@@ -103,6 +103,13 @@ export async function initDb(): Promise<Client> {
       union_name TEXT,
       benefits TEXT,
       required_skills TEXT,
+      education_requirements TEXT,
+      license_requirements TEXT,
+      vehicle_required INTEGER,
+      language_requirements TEXT,
+      security_check_required INTEGER,
+      certification_requirements TEXT,
+      software_requirements TEXT,
       responsibility_tags TEXT,
       qualification_tags TEXT,
       posted_at TEXT
@@ -130,6 +137,17 @@ export async function initDb(): Promise<Client> {
     await client.execute(`ALTER TABLE job_details ADD COLUMN qualification_tags TEXT`);
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  for (const column of [
+    'education_requirements', 'license_requirements', 'vehicle_required',
+    'language_requirements', 'security_check_required', 'certification_requirements',
+    'software_requirements',
+  ]) {
+    try {
+      await client.execute(`ALTER TABLE job_details ADD COLUMN ${column} ${column.endsWith('_required') ? 'INTEGER' : 'TEXT'}`);
+    } catch (err: any) {
+      if (!/duplicate column/i.test(err.message)) throw err;
+    }
   }
 
   try {
@@ -205,6 +223,13 @@ export async function saveJobDetails(client: Client, job: {
   union_name?: string;
   benefits?: string;
   required_skills?: string;
+  education_requirements?: string;
+  license_requirements?: string;
+  vehicle_required?: number | null;
+  language_requirements?: string;
+  security_check_required?: number | null;
+  certification_requirements?: string;
+  software_requirements?: string;
   responsibility_tags?: string;
   qualification_tags?: string;
   parser_version?: number;
@@ -214,9 +239,16 @@ export async function saveJobDetails(client: Client, job: {
     sql: `INSERT INTO job_details (
       id, job_title, department, location, salary_range, description, closing_date,
       is_inventory, is_student, salary_min, salary_max, salary_period,
-      work_model, employment_type, duration, is_unionized, union_name, benefits, required_skills, responsibility_tags, qualification_tags, parser_version, posted_at
+      work_model, employment_type, duration, is_unionized, union_name, benefits, required_skills,
+      education_requirements, license_requirements, vehicle_required, language_requirements,
+      security_check_required, certification_requirements, software_requirements,
+      responsibility_tags, qualification_tags, parser_version, posted_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    )
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
       department = excluded.department,
@@ -236,6 +268,13 @@ export async function saveJobDetails(client: Client, job: {
       union_name = excluded.union_name,
       benefits = excluded.benefits,
       required_skills = excluded.required_skills,
+      education_requirements = excluded.education_requirements,
+      license_requirements = excluded.license_requirements,
+      vehicle_required = excluded.vehicle_required,
+      language_requirements = excluded.language_requirements,
+      security_check_required = excluded.security_check_required,
+      certification_requirements = excluded.certification_requirements,
+      software_requirements = excluded.software_requirements,
       responsibility_tags = excluded.responsibility_tags,
       qualification_tags = excluded.qualification_tags,
       parser_version = excluded.parser_version,
@@ -247,7 +286,10 @@ export async function saveJobDetails(client: Client, job: {
       job.salary_min ?? null, job.salary_max ?? null, job.salary_period ?? null,
       job.work_model ?? null, job.employment_type ?? null, job.duration ?? null,
       job.is_unionized ?? null, job.union_name ?? null, job.benefits ?? null,
-      job.required_skills ?? null, job.responsibility_tags ?? null, job.qualification_tags ?? null,
+      job.required_skills ?? null, job.education_requirements ?? null, job.license_requirements ?? null,
+      job.vehicle_required ?? null, job.language_requirements ?? null, job.security_check_required ?? null,
+      job.certification_requirements ?? null, job.software_requirements ?? null,
+      job.responsibility_tags ?? null, job.qualification_tags ?? null,
       job.parser_version ?? null, job.posted_at ?? null,
     ],
   });

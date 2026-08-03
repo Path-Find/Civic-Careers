@@ -14,6 +14,13 @@ export interface Job {
   union_name: string | null;
   benefits: string | null;
   required_skills: string | null;
+  education_requirements: string | null;
+  license_requirements: string | null;
+  vehicle_required: number | null;
+  language_requirements: string | null;
+  security_check_required: number | null;
+  certification_requirements: string | null;
+  software_requirements: string | null;
   responsibility_tags: string | null;
   qualification_tags: string | null;
   description?: string | null;

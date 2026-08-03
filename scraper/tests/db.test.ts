@@ -31,6 +31,13 @@ test('saveJobDetails refreshes every parsed field on conflict', async () => {
     union_name: '',
     benefits: '[]',
     required_skills: '[]',
+    education_requirements: '[]',
+    license_requirements: '[]',
+    vehicle_required: 1,
+    language_requirements: '[]',
+    security_check_required: null,
+    certification_requirements: '[]',
+    software_requirements: '["Excel"]',
   });
 
   for (const field of [
@@ -38,6 +45,9 @@ test('saveJobDetails refreshes every parsed field on conflict', async () => {
     'closing_date', 'is_inventory', 'is_student', 'salary_min', 'salary_max',
     'salary_period', 'work_model', 'employment_type', 'duration',
     'is_unionized', 'union_name', 'benefits', 'required_skills',
+    'education_requirements', 'license_requirements', 'vehicle_required',
+    'language_requirements', 'security_check_required', 'certification_requirements',
+    'software_requirements',
   ]) {
     assert.match(statement, new RegExp(`${field} = excluded\\.${field}`));
   }

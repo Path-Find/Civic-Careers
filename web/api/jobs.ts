@@ -9,6 +9,9 @@ const jobColumns = `
   jd.salary_min, jd.salary_max, jd.salary_period,
   jd.work_model, jd.employment_type, jd.duration,
   jd.is_unionized, jd.union_name, jd.benefits, jd.required_skills,
+  jd.education_requirements, jd.license_requirements, jd.vehicle_required,
+  jd.language_requirements, jd.security_check_required, jd.certification_requirements,
+  jd.software_requirements,
   jd.responsibility_tags, jd.qualification_tags`;
 
 const jobJoins = `
