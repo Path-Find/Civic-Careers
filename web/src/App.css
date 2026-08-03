@@ -86,7 +86,16 @@
 .detail-description { border-top: 1px solid #f1f5f9; padding-top: 1.5rem; font-size: 0.9rem; line-height: 1.35; color: #334155; min-width: 0; overflow-wrap: anywhere; }
 .detail-overview { margin-bottom: 1.25rem; }
 .detail-section-collapsible { border-top: 1px solid #f1f5f9; padding: 1rem 0; }
-.detail-section-collapsible h3 { margin: 0; color: #0f172a; font-size: 1rem; font-weight: 800; }
+.detail-section-summary { list-style: none; display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; cursor: pointer; }
+.detail-section-summary::-webkit-details-marker { display: none; }
+.detail-section-title { color: #0f172a; font-size: 1rem; font-weight: 800; }
+.detail-section-action { color: #64748b; font-size: 0.7rem; font-weight: 700; }
+.detail-section-action::after { content: ' +'; }
+.detail-section-collapsible[open] .detail-section-action::before { content: 'Hide details'; }
+.detail-section-collapsible[open] .detail-section-action { font-size: 0; }
+.detail-section-collapsible[open] .detail-section-action::before { font-size: 0.7rem; }
+.detail-section-collapsible[open] .detail-section-action::after { font-size: 0.7rem; content: ' −'; }
+.detail-full-section { margin-top: 0.75rem; }
 .detail-quick-scan { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.65rem 0 0; max-width: 100%; }
 .detail-quick-chip { padding: 0.25rem 0.5rem; border: 1px solid #e2e8f0; border-radius: 999px; background: #f8fafc; color: #475569; font-size: 0.68rem; font-weight: 700; line-height: 1.2; }
 .detail-loading { border-top: 1px solid #f1f5f9; padding-top: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }

@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Jobs and Companies could show a blank loading screen**: layout-preserving loading rows now appear while data loads, and Jobs waits until the bottom before fetching another batch.
 - **Concurrent page refreshes could duplicate the same API request**: matching in-flight requests are now shared.
 - **Recently viewed jobs could only expire naturally**: Saved now includes a direct way to clear that local history.
+- **Qualification details could be hidden behind generic category chips**: full qualification bullets now appear by default, including education, experience, and language requirements.
+- **Long “Nice to Have” requirements were shown as truncated pills**: optional requirements now display as readable full bullets.
 
 ## [1.9.8] - 2026-08-02
 

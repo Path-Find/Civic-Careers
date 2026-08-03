@@ -1,6 +1,6 @@
 import { Bookmark, ExternalLink } from 'lucide-react';
 import type { MouseEvent } from 'react';
-import { compactNiceToHaveLabel, compactOverview, formatDate, getQuickScanLabels, isPlaceholderSection, isRedundantCompensation, parseMarkdownSections, reclassifyMandatoryNiceToHave, renderMarkdown } from '../../../utils';
+import { compactOverview, formatDate, getQuickScanLabels, isPlaceholderSection, isRedundantCompensation, parseMarkdownSections, reclassifyMandatoryNiceToHave, renderMarkdown } from '../../../utils';
 import { parseTagList } from '../jobUtils';
 import type { Job, JobDetails, View } from '../../../types/jobs';
 
@@ -50,15 +50,19 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
               const isGroupedSection = /responsibilit|qualif/i.test(section.heading);
               const labels = isGroupedSection
                 ? (/qualif/i.test(section.heading) && qualificationTags.length ? qualificationTags : /responsibilit/i.test(section.heading) && responsibilityTags.length ? responsibilityTags : getQuickScanLabels(section.heading, section.body))
-                : section.body.split('\n').filter(line => /^\s*[-•]\s+/.test(line)).map(line => compactNiceToHaveLabel(line.replace(/^\s*[-•]\s+/, '').trim()));
+                : [];
               const isLongSection = isGroupedSection || /nice to have/i.test(section.heading);
               if (!isLongSection) {
                 return <div key={section.heading} dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${section.heading}\n${section.body}`) }} />;
               }
-              return <div className="detail-section-collapsible" key={section.heading}>
-                <h3>{section.heading}</h3>
+              return <details className="detail-section-collapsible" key={section.heading} open={/qualif/i.test(section.heading)}>
+                <summary className="detail-section-summary">
+                  <span className="detail-section-title">{section.heading}</span>
+                  <span className="detail-section-action">View details</span>
+                </summary>
                 {labels.length > 0 && <div className="detail-quick-scan" aria-label={`${section.heading} summary`}>{labels.map(label => <span className="detail-quick-chip" key={label}>{label}</span>)}</div>}
-              </div>;
+                <div className="detail-full-section" dangerouslySetInnerHTML={{ __html: renderMarkdown(section.body) }} />
+              </details>;
             })}
           </div> : <div className="detail-loading">{[80, 95, 60, 90, 40].map(width => <div key={width} className="detail-loading-line animate-pulse" style={{ width: `${width}%` }} />)}</div>}
         </div>
