@@ -87,6 +87,14 @@ Reporting to the manager, the advisor will deliver communications.`);
   assert.equal(result, '**Contract Role**\n\nReporting to the manager, the advisor will deliver communications.');
 });
 
+test('removes the reviewed Brock employer introduction without deleting role content', () => {
+  const result = cleanSourceDescriptionBoilerplate('Brock University', `## Overview
+Brock University is located on the traditional territory of the Haudenosaunee and Anishinaabe peoples, many of whom continue to live and work here today. This territory is covered by the Upper Canada Treaties and is within the land protected by the Dish with One Spoon Wampum Agreement. We are one of Canada's outstanding comprehensive universities, where excellence and innovation thrives! Brock has been recognized as a Top Employer in Hamilton-Niagara for seven consecutive years. Break through at Brock.
+
+Reporting to the Associate Vice-President, the Director will lead technology operations and service delivery.`);
+  assert.equal(result, '## Overview\n\nReporting to the Associate Vice-President, the Director will lead technology operations and service delivery.');
+});
+
 test('does not cut role content between Metrolinx boilerplate sentences', () => {
   const result = cleanSourceDescriptionBoilerplate('Metrolinx', `Metrolinx is connecting communities across the Greater Golden Horseshoe. Our Capital Projects Group is hiring a Manager to deliver safety programs. Metrolinx is an agency of the Government of Ontario.
 

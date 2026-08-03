@@ -7,6 +7,9 @@ type SourceRule = {
 // These are source-template fingerprints, not broad keyword filters. A rule is
 // added only after the same block has been reviewed across multiple postings.
 const SOURCE_RULES: Record<string, SourceRule[]> = {
+  'Brock University': [
+    { name: 'brock-employer-introduction', pattern: /Brock University is located on the traditional territory of the Haudenosaunee and Anishinaabe peoples,[\s\S]*?Break through at Brock\./i, mode: 'inline' },
+  ],
   Metrolinx: [
     { name: 'dont-meet-every-requirement', pattern: /(?:(?:^|\n\s*\n)\s*|(?<=\.\s))(?:\*\*)?(?:#{1,6}\s*)?Don[’']t Meet Every Requirement\??\*{0,2}[\s\S]*$/i, mode: 'suffix' },
     { name: 'application-process', pattern: /(?:(?:^|\n\s*\n)\s*|(?<=\.\s))(?:\*\*)?(?:#{1,6}\s*)?Application Process:\s*[\s\S]*$/i, mode: 'suffix' },
