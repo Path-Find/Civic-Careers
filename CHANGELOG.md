@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Saved page headings were inconsistent**: Recently viewed now uses the same heading treatment as the saved-job count.
 - **Listing controls disappeared while scrolling**: Job and company counts and sort controls now stay visible at the top of their results.
 - **Filter and results labels used different type treatments**: Sidebar labels now match the listing controls in font and color.
+- **Filter controls and page navigation could lose context**: sidebars now fit within the viewport with Reset kept reachable, English and French can be selected together, and opening jobs or views returns to the top.
+- **Recently viewed jobs disappeared after switching views**: Saved now retrieves viewed jobs that are not in the currently loaded catalogue batch.
 - **Company-filtered Jobs pages repeated the match count and sort controls**: the shared toolbar now renders them once.
 - **Homepage job context was missing**: available jobs and jobs added in the last 7 days now sit left-aligned with the homepage sort controls in one consistent type style.
 - **The homepage preview had no direct catalogue link**: a `See all jobs` control now opens the full Jobs page.

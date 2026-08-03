@@ -120,7 +120,7 @@ function App() {
   const filters = useJobFilters(jobs, currentView, searchTerm);
   const {
     minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
-    listingTypeFilter, setListingTypeFilter, showStudentJobs, setShowStudentJobs, selectedLanguage, setSelectedLanguage, vehicleRequired, setVehicleRequired,
+    listingTypeFilter, setListingTypeFilter, showStudentJobs, setShowStudentJobs, selectedLanguages, setSelectedLanguages, vehicleRequired, setVehicleRequired,
     sortNewest, setSortNewest, newlyAdded, setNewlyAdded, filteredJobs,
     recentJobs, availableJobCount, recentlyAddedCount, activeCompanies,
     inactiveCompanies,
@@ -133,7 +133,7 @@ function App() {
     return !latest || job.last_checked_at > latest ? job.last_checked_at : latest;
   }, null);
   const lastCheckedAt = homeData?.lastCheckedAt ?? latestJobCheckedAt;
-  const hasJobFilters = Boolean(searchTerm || locationTerm || selectedModes.length > 0 || selectedLanguage || vehicleRequired || minSalary || deadlineDays !== null || showStudentJobs || listingTypeFilter || newlyAdded);
+  const hasJobFilters = Boolean(searchTerm || locationTerm || selectedModes.length > 0 || selectedLanguages.length > 0 || vehicleRequired || minSalary || deadlineDays !== null || showStudentJobs || listingTypeFilter || newlyAdded);
   const displayedJobCount = currentView === 'jobs' && !hasJobFilters ? jobsAvailableTotal : filteredJobs.length;
   const isCompanyPage = currentView === 'jobs' && Boolean(searchTerm) && (activeCompanies.includes(searchTerm) || inactiveCompanies.includes(searchTerm));
   const isListingView = currentView === 'jobs' || currentView === 'saved' || currentView === 'companies';
@@ -212,6 +212,7 @@ function App() {
     };
     window.addEventListener('popstate', handlePopState);
     handlePopState();
+    window.scrollTo(0, 0);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [jobs, refresh]);
 
@@ -227,6 +228,7 @@ function App() {
   const handleNavigate = (view: View, companyFilter?: string) => {
     setCurrentView(view);
     setSelectedJob(null);
+    window.scrollTo(0, 0);
     if (companyFilter) {
       setSearchTerm(companyFilter);
       window.history.pushState(null, '', `/companies/${slugify(companyFilter)}`);
@@ -239,6 +241,7 @@ function App() {
   const handleSelectJob = (job: Job) => {
     if (!job.is_active) return;
     setSelectedJob(job);
+    window.scrollTo(0, 0);
     window.history.pushState({ jobId: job.rid }, '', `/job/${job.rid}`);
   };
 
@@ -259,7 +262,7 @@ function App() {
   const currentJobDetails = selectedJob ? parseJobDetails(selectedJob) : null;
 
   const reset = () => {
-    setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setSelectedLanguage(null); setVehicleRequired(false); setMinSalary(null); setDeadlineDays(null); setListingTypeFilter(null); setSortNewest(false); setNewlyAdded(false);
+    setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setSelectedLanguages([]); setVehicleRequired(false); setMinSalary(null); setDeadlineDays(null); setListingTypeFilter(null); setSortNewest(false); setNewlyAdded(false);
     setLocationTerm(''); setShowStudentJobs(false); setSelectedCompanyTypes([]);
     window.history.pushState(null, '', '/');
     refresh();
@@ -378,7 +381,7 @@ function App() {
                   minSalary={minSalary}
                   locationTerm={locationTerm}
                   selectedModes={selectedModes}
-                  selectedLanguage={selectedLanguage}
+                  selectedLanguages={selectedLanguages}
                   vehicleRequired={vehicleRequired}
                   deadlineDays={deadlineDays}
                   listingTypeFilter={listingTypeFilter}
@@ -386,7 +389,7 @@ function App() {
                   onMinSalaryChange={setMinSalary}
                   onLocationChange={setLocationTerm}
                   onModesChange={mode => setSelectedModes(prev => prev.includes(mode) ? prev.filter(value => value !== mode) : [...prev, mode])}
-                  onLanguageChange={language => setSelectedLanguage(previous => previous === language ? null : language)}
+                  onLanguageChange={language => setSelectedLanguages(previous => previous.includes(language) ? previous.filter(value => value !== language) : [...previous, language])}
                   onVehicleRequiredChange={() => setVehicleRequired(previous => !previous)}
                   onDeadlineChange={setDeadlineDays}
                   onListingTypeChange={setListingTypeFilter}

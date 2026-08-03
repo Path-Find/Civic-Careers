@@ -29,6 +29,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   const parsed = new URL(req.url!, `http://${req.headers.host}`);
   const id = parsed.searchParams.get('id');
+  const ids = parsed.searchParams.get('ids');
   const rid = parsed.searchParams.get('rid');
   const view = parsed.searchParams.get('view');
   const limit = Math.min(Math.max(Number(parsed.searchParams.get('limit') ?? 50), 1), 100);
@@ -38,6 +39,22 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   try {
     const db = createDb();
+
+    if (ids) {
+      const requestedIds = [...new Set(ids.split(',').map(value => value.trim()).filter(Boolean))].slice(0, 20);
+      if (requestedIds.length === 0) {
+        res.end(JSON.stringify([]));
+        return;
+      }
+      const placeholders = requestedIds.map(() => '?').join(', ');
+      const result = await db.execute({
+        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders})`,
+        args: requestedIds,
+      });
+      res.setHeader('Cache-Control', 'no-store');
+      res.end(JSON.stringify(result.rows));
+      return;
+    }
 
     if (id) {
       const result = await db.execute({

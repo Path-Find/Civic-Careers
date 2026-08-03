@@ -18,14 +18,14 @@ function FilterButton({ label, active, onClick }: { label: string; active: boole
 }
 
 export function JobFiltersSidebar({
-  headerHeight, minSalary, locationTerm, selectedModes, selectedLanguage, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs,
+  headerHeight, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs,
   onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onReset,
 }: {
   headerHeight: number;
   minSalary: number | null;
   locationTerm: string;
   selectedModes: string[];
-  selectedLanguage: string | null;
+  selectedLanguages: string[];
   vehicleRequired: boolean;
   deadlineDays: number | null;
   listingTypeFilter: ListingTypeFilter;
@@ -40,12 +40,12 @@ export function JobFiltersSidebar({
   onStudentJobsChange: () => void;
   onReset: () => void;
 }) {
-  return <aside className="listing-sidebar" style={{ top: `${headerHeight + 20}px` }}>
+  return <aside className="listing-sidebar" style={{ top: `${headerHeight + 20}px`, maxHeight: `calc(100vh - ${headerHeight + 40}px)` }}>
     <div className="filter-heading"><span className="filter-heading-label">Filters</span></div>
     <div className="filter-section"><label className="filter-title" htmlFor="location-filter">Location</label><input id="location-filter" className="location-filter-input" value={locationTerm} onChange={event => onLocationChange(event.target.value)} placeholder="e.g. Toronto" /></div>
     <FilterSection title="Salary Min">{[50000, 75000, 100000, 125000].map(value => <FilterButton key={value} label={`$${value / 1000}k+`} active={minSalary === value} onClick={() => onMinSalaryChange(minSalary === value ? null : value)} />)}</FilterSection>
     <FilterSection title="Work Mode">{['In-person', 'Hybrid', 'Remote'].map(mode => <FilterButton key={mode} label={mode} active={selectedModes.includes(mode)} onClick={() => onModesChange(mode)} />)}</FilterSection>
-    <FilterSection title="Language">{['English', 'French', 'Bilingual'].map(language => <FilterButton key={language} label={language} active={selectedLanguage === language} onClick={() => onLanguageChange(language)} />)}</FilterSection>
+    <FilterSection title="Language">{['English', 'French'].map(language => <FilterButton key={language} label={language} active={selectedLanguages.includes(language)} onClick={() => onLanguageChange(language)} />)}</FilterSection>
     <FilterSection title="Vehicle"><FilterButton label="Vehicle required" active={vehicleRequired} onClick={onVehicleRequiredChange} /></FilterSection>
     <FilterSection title="Deadline"><FilterButton label="Today" active={deadlineDays === 0} onClick={() => onDeadlineChange(deadlineDays === 0 ? null : 0)} /><FilterButton label="Within 7 days" active={deadlineDays === 7} onClick={() => onDeadlineChange(deadlineDays === 7 ? null : 7)} /><FilterButton label="Within 14 days" active={deadlineDays === 14} onClick={() => onDeadlineChange(deadlineDays === 14 ? null : 14)} /><FilterButton label="Within 30 days" active={deadlineDays === 30} onClick={() => onDeadlineChange(deadlineDays === 30 ? null : 30)} /><FilterButton label="No closing date" active={deadlineDays === -1} onClick={() => onDeadlineChange(deadlineDays === -1 ? null : -1)} /></FilterSection>
     <FilterSection title="Job Type">
