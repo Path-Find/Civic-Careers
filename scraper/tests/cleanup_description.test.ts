@@ -95,6 +95,14 @@ Reporting to the Associate Vice-President, the Director will lead technology ope
   assert.equal(result, '## Overview\n\nReporting to the Associate Vice-President, the Director will lead technology operations and service delivery.');
 });
 
+test('removes the reviewed Waterloo employer introduction without deleting role content', () => {
+  const result = cleanSourceDescriptionBoilerplate('University of Waterloo', `## Overview
+At the University of Waterloo, we create and promote a culture where everyone can reach their full potential. As an employee, you get support & opportunities that empower you to advance your career. Explore how we can bring big ideas to life, together. The University is a welcoming workplace for those of all abilities, interests, and expertise. As part of our workforce, you can do what you do best, every day. Learn more about our recruitment process.
+
+The Administrative Coordinator provides support to undergraduate programs and research activities.`);
+  assert.equal(result, '## Overview\n\nThe Administrative Coordinator provides support to undergraduate programs and research activities.');
+});
+
 test('does not cut role content between Metrolinx boilerplate sentences', () => {
   const result = cleanSourceDescriptionBoilerplate('Metrolinx', `Metrolinx is connecting communities across the Greater Golden Horseshoe. Our Capital Projects Group is hiring a Manager to deliver safety programs. Metrolinx is an agency of the Government of Ontario.
 

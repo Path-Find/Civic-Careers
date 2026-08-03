@@ -10,6 +10,9 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
   'Brock University': [
     { name: 'brock-employer-introduction', pattern: /Brock University is located on the traditional territory of the Haudenosaunee and Anishinaabe peoples,[\s\S]*?Break through at Brock\./i, mode: 'inline' },
   ],
+  'University of Waterloo': [
+    { name: 'waterloo-employer-introduction', pattern: /At the\s+University of Waterloo, we create and promote a culture where everyone can reach their full potential\. As an employee, you get support\s*&\s*opportunities that empower you to advance your career\. Explore how we can bring big ideas to life, together\. The University is a welcoming workplace for those of all abilities, interests, and expertise\. As part of our workforce, you can do what you do best, every day\. Learn more about our recruitment process\./i, mode: 'inline' },
+  ],
   Metrolinx: [
     { name: 'dont-meet-every-requirement', pattern: /(?:(?:^|\n\s*\n)\s*|(?<=\.\s))(?:\*\*)?(?:#{1,6}\s*)?Don[’']t Meet Every Requirement\??\*{0,2}[\s\S]*$/i, mode: 'suffix' },
     { name: 'application-process', pattern: /(?:(?:^|\n\s*\n)\s*|(?<=\.\s))(?:\*\*)?(?:#{1,6}\s*)?Application Process:\s*[\s\S]*$/i, mode: 'suffix' },
