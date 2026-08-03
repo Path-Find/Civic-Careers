@@ -2,7 +2,7 @@ import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 import { saveRawJob } from '../db';
-import { GOVERNMENT_OF_CANADA_FIXES } from '../source-fixes';
+import { EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES } from '../source-fixes';
 
 // These federal postings are listed in GC Jobs but the employer's own page is
 // the real application destination. Keep stable canonical URLs here so a
@@ -74,18 +74,17 @@ export async function scrapeGC(db: Client, context: BrowserContext) {
     let pageNum = 1;
     while (hasNextPage) {
       console.log(`[${sourceName}] Page ${pageNum}...`);
-      const summaries = await page.evaluate(() => {
+      const summaries = (await page.evaluate(() => {
         const links = Array.from(document.querySelectorAll('a[href*="poster="]'));
         return links.map(l => {
           const title = l.textContent?.trim() || '';
           const href = (l as HTMLAnchorElement).href;
           const row = l.closest('li') || l.closest('tr') || l.parentElement;
           const rowText = row?.textContent?.toLowerCase() || '';
-          if (rowText.includes('internal to the public service') || rowText.includes('public service only')) return null;
           if (!title || !href || title.length < 3) return null;
-          return { title, url: href };
-        }).filter(Boolean) as { id: string; title: string; url: string }[];
-      });
+          return { title, url: href, rowText };
+        }).filter(Boolean) as { id: string; title: string; url: string; rowText: string }[];
+      })).filter(job => shouldScrapeGovernmentOfCanadaListing(job.title, job.rowText));
 
       let count = 0;
       for (const job of summaries) {
@@ -115,6 +114,14 @@ export async function scrapeGC(db: Client, context: BrowserContext) {
   } finally {
     await page.close();
   }
+}
+
+export function shouldScrapeGovernmentOfCanadaListing(title: string, rowText = ''): boolean {
+  if (!title || title.length < 3) return false;
+  if (/^candidate profile$/i.test(title.trim())) return false;
+  const normalizedRowText = rowText.toLowerCase();
+  if (normalizedRowText.includes('internal to the public service') || normalizedRowText.includes('public service only')) return false;
+  return true;
 }
 
 export async function scrapeWaterfront(db: Client, context: BrowserContext) {

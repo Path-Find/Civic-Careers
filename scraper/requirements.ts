@@ -141,6 +141,7 @@ const ONGOING_TEXT_SIGNALS: RegExp[] = [
   /\b(?:is|are)\s+(?:hiring|recruiting)\b[^.\n]{0,160}\bdispatch(?:er|ers|ing)?\b/i,
   /\brecruiting goals?[^.\n]{0,160}\b(?:accepting applications?|future events?)\b/i,
   /\bco-?op students?\b[^.\n]{0,80}\b(?:various|multiple) positions?\b/i,
+  /\bpool\s+to\s+be\s+created\b[\s\S]{0,120}\byes\b/i,
 ];
 
 export function extractListingType(description: string, title = '', isInventory = false): ListingType {

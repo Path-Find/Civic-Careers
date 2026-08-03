@@ -182,6 +182,10 @@ test('does not classify ordinary uses of annual or future-work language as recru
   assert.equal(extractListingType('Future opportunities in this area are expected to contribute to the following responsibilities.', 'Business Analyst'), 'regular');
 });
 
+test('classifies a source-labelled recruitment pool as ongoing recruitment', () => {
+  assert.equal(extractListingType('Pool to be created\nYes\nTemporary: Term', 'Clerical and Administrative Positions'), 'ongoing_recruitment');
+});
+
 test('does not treat generic lowercase teams as Microsoft Teams', () => {
   const result = extractSoftwareRequirements(`## Qualifications
 - Experience leading internal teams

@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractNanaimoJobs, extractPhenomJobs, extractStLawrenceJobs } from '../engines/custom';
+import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractNanaimoJobs, extractPhenomJobs, extractStLawrenceJobs, shouldScrapeGovernmentOfCanadaListing } from '../engines/custom';
+import { EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES } from '../source-fixes';
+
+test('ignores the Government of Canada candidate profile page as a job', () => {
+  assert.equal(shouldScrapeGovernmentOfCanadaListing('Candidate profile', 'Candidate profile'), false);
+  assert.equal(shouldScrapeGovernmentOfCanadaListing('Clerical and Administrative Positions', 'Pool to be created Yes'), true);
+  assert.equal(shouldScrapeGovernmentOfCanadaListing('Internal posting', 'Internal to the public service'), false);
+});
+
+test('keeps the CRA recruitment posting on its official application page', () => {
+  assert.equal(GOVERNMENT_OF_CANADA_FIXES['2434700']?.applicationUrl, 'https://careers-carrieres.cra-arc.gc.ca/gol-ged/wcis/pub/rtrvjbpst.action?pi=8EB30FC0002E1FD18383F97AB53463CE');
+  assert.equal(EXCLUDED_GOVERNMENT_OF_CANADA_IDS.has('2445703'), true);
+});
 
 test('extracts and deduplicates St. Lawrence College job links', () => {
   const html = `<a href="/jobs/admn-pt-26-27-052" title="Talent Management Consultant">Talent Management Consultant</a>

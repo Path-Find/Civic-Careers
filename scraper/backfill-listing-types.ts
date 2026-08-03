@@ -1,6 +1,6 @@
 import { initDb } from './db';
 import { extractListingType, type ListingType } from './requirements';
-import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
+import { EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 
 const apply = process.argv.includes('--apply');
 const limitArg = process.argv.find(value => value.startsWith('--limit='));
@@ -18,6 +18,7 @@ type Row = {
   is_student: number;
   education_requirements: string | null;
   security_check_required: number | null;
+  is_active: number;
 };
 
 type Work = Row & {
@@ -27,12 +28,13 @@ type Work = Row & {
   is_student_next: number;
   education_requirements_next: string | null;
   security_check_required_next: number | null;
+  is_active_next: number;
 };
 
 async function main() {
   const db = await initDb();
   const result = await db.execute(`
-    SELECT j.id, j.source, j.url, jd.job_title, jd.description, jd.is_inventory,
+    SELECT j.id, j.source, j.url, j.is_active, jd.job_title, jd.description, jd.is_inventory,
            jd.listing_type, jd.is_student, jd.education_requirements,
            jd.security_check_required, COALESCE(raw.raw_text, '') AS raw_text
     FROM jobs j
@@ -54,6 +56,7 @@ async function main() {
     is_student: Number(row.is_student ?? 0),
     education_requirements: row.education_requirements as string | null,
     security_check_required: row.security_check_required === null || row.security_check_required === undefined ? null : Number(row.security_check_required),
+    is_active: Number(row.is_active ?? 1),
   }));
   const work: Work[] = rows.map(row => ({
     ...row,
@@ -65,20 +68,22 @@ async function main() {
       ? JSON.stringify(GOVERNMENT_OF_CANADA_FIXES[row.id]?.educationRequirements)
       : row.education_requirements,
     security_check_required_next: GOVERNMENT_OF_CANADA_FIXES[row.id]?.securityCheckRequired ?? row.security_check_required,
+    is_active_next: EXCLUDED_GOVERNMENT_OF_CANADA_IDS.has(row.id) ? 0 : row.is_active,
   }));
   const candidates = work.filter(row => row.listing_type !== row.listing_type_next
     || row.url !== row.url_next
     || row.description !== row.description_next
     || row.is_student !== row.is_student_next
     || row.education_requirements !== row.education_requirements_next
-    || row.security_check_required !== row.security_check_required_next);
+    || row.security_check_required !== row.security_check_required_next
+    || row.is_active !== row.is_active_next);
   const typeCounts = candidates.reduce<Record<string, number>>((counts, row) => {
     if (row.listing_type !== row.listing_type_next) counts[row.listing_type_next] = (counts[row.listing_type_next] ?? 0) + 1;
     return counts;
   }, {});
 
   console.log(`[Listing type backfill] Scanned ${work.length} jobs.`);
-  console.log(`[Listing type backfill] Changes available: ${candidates.length}; types ${JSON.stringify(typeCounts)}; URL corrections ${candidates.filter(row => row.url !== row.url_next).length}; source repairs ${candidates.filter(row => row.description !== row.description_next).length}.`);
+  console.log(`[Listing type backfill] Changes available: ${candidates.length}; types ${JSON.stringify(typeCounts)}; URL corrections ${candidates.filter(row => row.url !== row.url_next).length}; source repairs ${candidates.filter(row => row.description !== row.description_next).length}; deactivations ${candidates.filter(row => row.is_active !== row.is_active_next).length}.`);
   for (const row of candidates.slice(0, 40)) {
     console.log(JSON.stringify({ id: row.id, source: row.source, title: row.job_title, listingType: row.listing_type_next, url: row.url_next }));
   }
@@ -91,6 +96,7 @@ async function main() {
       args: [row.listing_type_next, row.description_next, row.is_student_next,
         row.education_requirements_next, row.security_check_required_next, row.id],
     },
+    { sql: 'UPDATE jobs SET is_active = ? WHERE id = ?', args: [row.is_active_next, row.id] },
     ...(row.url !== row.url_next ? [
       { sql: 'UPDATE jobs SET url = ? WHERE id = ?', args: [row.url_next, row.id] },
       { sql: 'UPDATE raw_jobs SET application_url = ? WHERE id = ?', args: [row.url_next, row.id] },

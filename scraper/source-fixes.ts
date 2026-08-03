@@ -7,11 +7,18 @@ export type GovernmentOfCanadaFix = {
   securityCheckRequired?: number;
 };
 
+// This GC link is an account/profile page, not a job posting. The scraper
+// excludes it from future runs and the source backfill deactivates the row.
+export const EXCLUDED_GOVERNMENT_OF_CANADA_IDS = new Set(['2445703']);
+
 // These four records use the GC Jobs listing as a source, but their employer
 // pages contain the stable application destination and clearer source text.
 // Keep these repairs deterministic so a parser rerun does not send them back
 // through an AI rewrite.
 export const GOVERNMENT_OF_CANADA_FIXES: Record<string, GovernmentOfCanadaFix> = {
+  '2434700': {
+    applicationUrl: 'https://careers-carrieres.cra-arc.gc.ca/gol-ged/wcis/pub/rtrvjbpst.action?pi=8EB30FC0002E1FD18383F97AB53463CE',
+  },
   '2387968': {
     applicationUrl: 'https://jobs.smartrecruiters.com/HouseOfCommonsCanadaChambreDesCommunesCanada/744000101043253-student-employment-program',
     description: `## Overview
