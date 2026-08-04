@@ -1,7 +1,7 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
-import { dedupeSkillsAgainstSoftware, extractCertificationRequirements, extractListingType, extractSoftwareRequirements, extractWorkYearDuration, reconcileStructuredRequirements } from './requirements';
+import { dedupeSkillsAgainstSoftware, extractCertificationRequirements, extractListingType, extractSecurityRequirementLabel, extractSoftwareRequirements, extractWorkYearDuration, reconcileStructuredRequirements } from './requirements';
 import { cleanJobDescription } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 
@@ -79,7 +79,9 @@ async function main() {
           license_requirements: JSON.stringify(structuredRequirements.license_requirements),
           vehicle_required: aiResult.vehicle_required === null ? null : (aiResult.vehicle_required ? 1 : 0),
           language_requirements: JSON.stringify(aiResult.language_requirements),
-          security_check_required: sourceFix?.securityCheckRequired ?? (aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0)),
+          security_check_required: sourceFix?.securityCheckRequired
+            ?? (aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0))
+            ?? (extractSecurityRequirementLabel(description) === null ? null : (extractSecurityRequirementLabel(description) ? 1 : 0)),
           certification_requirements: JSON.stringify(certificationRequirements.length ? certificationRequirements : aiResult.certification_requirements),
           software_requirements: JSON.stringify(finalSoftwareRequirements),
           medical_requirements: JSON.stringify(sourceFix?.medicalRequirements ?? aiResult.medical_requirements),

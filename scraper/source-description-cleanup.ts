@@ -78,9 +78,20 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
     // untouched — verified those aren't duplicates worth stripping the same way.
     { name: 'tdsb-salary-range-restatement', pattern: /(?:Salary:\s*)?\$[\d,]+(?:\.\d+)?\s*-\s*\$[\d,]+(?:\.\d+)?\s*per\s+year\.?[ \t]*/gi, mode: 'inline' },
   ],
+  'CMHC': [
+    // Job Requisition ID through Security Requirement/Salary — every field in
+    // this block duplicates work_model/employment_type/language_requirements/
+    // security_check_required/salary, which are correctly populated once the
+    // labeled Security Requirement/Language Designation values are extracted
+    // (requirements.ts extractSecurityRequirementLabel). Verified against all
+    // 7 CMHC postings carrying this block (some via the raw CMHC source,
+    // some scraped through the generic Government of Canada listing).
+    { name: 'cmhc-posting-metadata-block', pattern: /\*{0,2}Job Requisition ID:\*{0,2}[\s\S]*?\*{0,2}Security Requirement:\*{0,2}[^\n]*\n?(?:\s*\n?\*{0,2}Salary:\*{0,2}[^\n]*\n?)?/i, mode: 'inline' },
+  ],
   'Government of Canada': [
     { name: 'selection-thank-you-footer', pattern: /^(?:We wish to thank all applicants|We'd like to thank all those who apply)\.[\s\S]*$/i },
     { name: 'generic-accommodation-footer', pattern: /^We are committed to providing an inclusive and barrier-free work environment,[\s\S]*$/i },
+    { name: 'cmhc-posting-metadata-block', pattern: /\*{0,2}Job Requisition ID:\*{0,2}[\s\S]*?\*{0,2}Security Requirement:\*{0,2}[^\n]*\n?(?:\s*\n?\*{0,2}Salary:\*{0,2}[^\n]*\n?)?/i, mode: 'inline' },
     // Standard Treasury Board / Public Service template sections. Verified against
     // all ~150 occurrences across the GC corpus (2026-08-04): every instance is
     // generic policy or contact boilerplate, never job-specific content. Distinct

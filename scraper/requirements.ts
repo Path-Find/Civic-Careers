@@ -557,3 +557,17 @@ export function extractWorkYearDuration(description: string): string | null {
   const match = description.match(WORK_YEAR_MONTHS_A) ?? description.match(WORK_YEAR_MONTHS_B);
   return match ? `${match[1]}-month work year` : null;
 }
+
+const SECURITY_REQUIREMENT_LABEL = /\*{0,2}Security Requirement:\*{0,2}\s*([^\n]+)/i;
+const SECURITY_REQUIREMENT_NONE = /^(?:none|not required|n\/a)\b/i;
+
+// CMHC / Government of Canada postings state this as a labeled field
+// ("Security Requirement: Reliability Status" / "Secret") rather than a
+// sentence — the existing AI-driven security_check_required extraction
+// doesn't recognize the label format, so it was landing null.
+export function extractSecurityRequirementLabel(description: string): boolean | null {
+  const match = description.match(SECURITY_REQUIREMENT_LABEL);
+  if (!match) return null;
+  const value = match[1].trim();
+  return SECURITY_REQUIREMENT_NONE.test(value) ? false : true;
+}
