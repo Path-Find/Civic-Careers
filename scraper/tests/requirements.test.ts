@@ -273,7 +273,7 @@ test('keeps explicit language requirements from a required section', () => {
 - English Essential
 - Bilingual (English/French), BBB/BBB
 - Excellent oral and written French proficiency
-`), ['English Essential', 'Bilingual (English/French, BBB/BBB)', 'French']);
+`), ['English', 'French', 'Bilingual']);
   assert.deepEqual(extractLanguageRequirements(`## Qualifications
 - French
 `), ['French']);
@@ -292,13 +292,13 @@ test('drops optional, generic, programming, and course language wording', () => 
 });
 
 test('accepts an explicit labelled language requirement outside a standard heading', () => {
-  assert.deepEqual(extractLanguageRequirements('Language Requirement: Bilingual - English and French (CBC)'), ['Bilingual (English/French)']);
+  assert.deepEqual(extractLanguageRequirements('Language Requirement: Bilingual - English and French (CBC)'), ['Bilingual']);
   assert.deepEqual(extractLanguageRequirements('## Qualifications\n- Passive competence in a second language (English)'), ['English']);
 });
 
 test('extracts labelled language metadata from raw source text', () => {
-  assert.deepEqual(extractLanguageRequirements('Language Requirement: English Essential'), ['English Essential']);
-  assert.deepEqual(extractLanguageRequirements('Language requirements (essential for the job)\nEnglish Essential\nFrench essential\nBilingual imperative BBB/BBB'), ['English Essential', 'French Essential', 'Bilingual (BBB/BBB)']);
+  assert.deepEqual(extractLanguageRequirements('Language Requirement: English Essential'), ['English']);
+  assert.deepEqual(extractLanguageRequirements('Language requirements (essential for the job)\nEnglish Essential\nFrench essential\nBilingual imperative BBB/BBB'), ['English', 'French', 'Bilingual']);
   assert.deepEqual(extractLanguageRequirements('Language of instruction: Français | French\nCompetence in second language: Passive'), ['French']);
   assert.deepEqual(extractLanguageRequirements('## Qualifications\n- Speak English fluently.'), ['English']);
   assert.deepEqual(extractLanguageRequirements('Various language requirements: English only, French only, or Bilingual competencies.'), ['English', 'French', 'Bilingual']);
@@ -345,45 +345,44 @@ test('returns false only for an explicit vehicle negative', () => {
 });
 
 test('normalizes stored field values without changing unknown to false', () => {
-  assert.deepEqual(normalizeLanguageRequirements(['English Essential', 'Bilingual (English/French)', 'Bilingualism is an asset']), ['English Essential', 'Bilingual (English/French)']);
+  assert.deepEqual(
+    normalizeLanguageRequirements(['English Essential', 'Bilingual (English/French)', 'Bilingualism is an asset']),
+    ['English', 'Bilingual'],
+  );
   assert.equal(normalizeVehicleRequired(true), true);
   assert.equal(normalizeVehicleRequired('false'), false);
   assert.equal(normalizeVehicleRequired('unknown'), null);
   assert.equal(normalizeVehicleRequired(undefined), null);
 });
 
-test('collapses redundant bilingual forms and multi-level imperative phrases', () => {
+test('collapses languages to plain English / French / Bilingual / named languages', () => {
   assert.deepEqual(
     normalizeLanguageRequirements(['Bilingual', 'Bilingual (English/French)']),
-    ['Bilingual (English/French)'],
+    ['Bilingual'],
   );
   assert.deepEqual(
     normalizeLanguageRequirements(['English', 'French', 'Bilingual (English/French)']),
-    ['Bilingual (English/French)'],
+    ['English', 'French', 'Bilingual'],
   );
   assert.deepEqual(
     normalizeLanguageRequirements(['Bilingual imperative CCC/CCC, CBC/CBC, or BBB/BBB']),
-    ['Bilingual (BBB/BBB)', 'Bilingual (CBC/CBC)', 'Bilingual (CCC/CCC)'],
+    ['Bilingual'],
   );
   assert.deepEqual(
-    normalizeLanguageRequirements(['Bilingual imperative BBB/BBB']),
-    ['Bilingual (BBB/BBB)'],
-  );
-  assert.deepEqual(
-    normalizeLanguageRequirements(['Bilingual (English/French) (CBC level)']),
-    ['Bilingual (English/French, CBC/CBC)'],
+    normalizeLanguageRequirements(['Bilingual (English/French, CBC/CBC)']),
+    ['Bilingual'],
   );
   assert.deepEqual(
     normalizeLanguageRequirements(['Bilingual (English/French) (BBB/BBB)']),
-    ['Bilingual (English/French, BBB/BBB)'],
+    ['Bilingual'],
   );
   assert.deepEqual(
     normalizeLanguageRequirements(['French Essential', 'French']),
-    ['French Essential'],
+    ['French'],
   );
   assert.deepEqual(
     normalizeLanguageRequirements(['English Essential', 'French Essential', 'Bilingual (BBB/BBB)', 'Bilingual (CBC/CBC)']),
-    ['English Essential', 'French Essential', 'Bilingual (BBB/BBB)', 'Bilingual (CBC/CBC)'],
+    ['English', 'French', 'Bilingual'],
   );
   assert.deepEqual(
     normalizeLanguageRequirements(['English (language of instruction)', 'Active competence in second language']),
@@ -405,7 +404,7 @@ test('extracts both fields together without requiring an AI call', () => {
 - Bilingual (English/French) required
 - Valid driver's licence required
 `), {
-    language_requirements: ['Bilingual (English/French)'],
+    language_requirements: ['Bilingual'],
     vehicle_required: true,
   });
 });
