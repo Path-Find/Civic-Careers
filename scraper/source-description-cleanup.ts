@@ -161,6 +161,11 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
       mode: 'inline',
     },
     {
+      name: 'gc-pool-of-qualified-candidates',
+      pattern: /(?:^|\n)\s*(?:\*{0,2}|#{1,6}\s*)?(?:Intent of the process\*{0,2}\s*:?\s*)?A pool of (?:qualified )?candidates will be established[^\n]{0,400}\.?[ \t]*(?:This pool may be used to staff[^\n]{0,300}\.?[ \t]*)?/gi,
+      mode: 'inline',
+    },
+    {
       name: 'gc-telework-not-an-option',
       pattern: /Telework or alternate work locations will not be an option\.[ \t]*(?:Persons selected for appointments must reside within a commutable distance of the workplace\.[ \t]*)?/gi,
       mode: 'inline',

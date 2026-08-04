@@ -356,6 +356,13 @@ test('classifies an explicit future-vacancy inventory separately', () => {
     'inventory',
   );
   assert.equal(extractListingType('Various administrative roles.', 'Casual Inventory - STREAM 1 CR-04'), 'inventory');
+  assert.equal(
+    extractListingType(
+      'Intent of the process A pool of qualified candidates will be established to staff positions in Quebec City, Quebec. This pool may be used to staff positions with similar qualifications.',
+      'Veterinarian – Animal Health',
+    ),
+    'inventory',
+  );
 });
 
 test('does not treat generic lowercase teams as Microsoft Teams', () => {

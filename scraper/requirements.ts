@@ -188,6 +188,9 @@ const INVENTORY_TEXT_SIGNALS: RegExp[] = [
   /\bstaff\s+current\s+and\s+future\s+vacancies\b[^.\n]{0,200}\binventory\b/i,
   /\bthis\s+(?:is\s+an?\s+)?(?:anticipatory\s+)?(?:staffing\s+)?process\b[^.\n]{0,160}\binventory\b/i,
   /\bselection\s+process\b[^.\n]{0,120}\binventory\b/i,
+  // CFIA / common GC pool wording
+  /\b(?:a\s+)?pool\s+of\s+(?:qualified\s+)?candidates?\s+will\s+be\s+established\b/i,
+  /\bthis\s+pool\s+may\s+be\s+used\s+to\s+staff\b/i,
 ];
 const INVENTORY_TITLE_SIGNAL = /\b(?:inventory|talent\s+pool)\b/i;
 const ONGOING_TEXT_SIGNALS: RegExp[] = [
