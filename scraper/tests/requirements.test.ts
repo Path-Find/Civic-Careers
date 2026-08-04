@@ -352,6 +352,50 @@ test('normalizes stored field values without changing unknown to false', () => {
   assert.equal(normalizeVehicleRequired(undefined), null);
 });
 
+test('collapses redundant bilingual forms and multi-level imperative phrases', () => {
+  assert.deepEqual(
+    normalizeLanguageRequirements(['Bilingual', 'Bilingual (English/French)']),
+    ['Bilingual (English/French)'],
+  );
+  assert.deepEqual(
+    normalizeLanguageRequirements(['English', 'French', 'Bilingual (English/French)']),
+    ['Bilingual (English/French)'],
+  );
+  assert.deepEqual(
+    normalizeLanguageRequirements(['Bilingual imperative CCC/CCC, CBC/CBC, or BBB/BBB']),
+    ['Bilingual (BBB/BBB)', 'Bilingual (CBC/CBC)', 'Bilingual (CCC/CCC)'],
+  );
+  assert.deepEqual(
+    normalizeLanguageRequirements(['Bilingual imperative BBB/BBB']),
+    ['Bilingual (BBB/BBB)'],
+  );
+  assert.deepEqual(
+    normalizeLanguageRequirements(['Bilingual (English/French) (CBC level)']),
+    ['Bilingual (English/French) (CBC/CBC)'],
+  );
+  assert.deepEqual(
+    normalizeLanguageRequirements(['French Essential', 'French']),
+    ['French Essential'],
+  );
+  assert.deepEqual(
+    normalizeLanguageRequirements(['English Essential', 'French Essential', 'Bilingual (BBB/BBB)', 'Bilingual (CBC/CBC)']),
+    ['English Essential', 'French Essential', 'Bilingual (BBB/BBB)', 'Bilingual (CBC/CBC)'],
+  );
+  assert.deepEqual(
+    normalizeLanguageRequirements(['English (language of instruction)', 'Active competence in second language']),
+    ['English'],
+  );
+  assert.deepEqual(
+    normalizeLanguageRequirements(['Français (enseignement)', 'Compétence passive en seconde langue']),
+    ['French'],
+  );
+  // Inventory-style menu: English only, French only, or bilingual — keep all three.
+  assert.deepEqual(
+    normalizeLanguageRequirements(['English', 'French', 'Bilingual']),
+    ['English', 'French', 'Bilingual'],
+  );
+});
+
 test('extracts both fields together without requiring an AI call', () => {
   assert.deepEqual(extractLanguageVehicleRequirements(`## Qualifications
 - Bilingual (English/French) required

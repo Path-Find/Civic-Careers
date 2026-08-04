@@ -516,21 +516,176 @@ function toStringList(value: unknown): string[] {
   return [];
 }
 
-export function normalizeLanguageRequirements(value: unknown): string[] {
-  const seen = new Set<string>();
-  const normalized: string[] = [];
-  for (const item of toStringList(value)) {
-    const compact = compactText(item).replace(/^[-*]\s*/, '');
-    if (!compact || LANGUAGE_OPTIONAL_REQUIREMENT.test(compact) || LANGUAGE_NON_REQUIREMENT.test(compact)) continue;
-    for (const value of canonicalLanguageLine(compact)) {
-      const key = value.toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        normalized.push(value);
+const PSC_PROFILE = /\b([A-C]{2,3})\s*\/\s*([A-C]{2,3})\b/gi;
+const PSC_LEVEL_WORD = /\b([A-C]{2,3})\s+level\b/i;
+
+function extractPscLevels(text: string): string[] {
+  const levels: string[] = [];
+  for (const match of text.matchAll(PSC_PROFILE)) {
+    const level = `${match[1]}/${match[2]}`.toUpperCase();
+    if (!levels.includes(level)) levels.push(level);
+  }
+  if (levels.length === 0) {
+    // "CBC level" / "BBB level" in federal postings means a full X/X profile.
+    const word = text.match(PSC_LEVEL_WORD)?.[1];
+    if (word) levels.push(`${word.toUpperCase()}/${word.toUpperCase()}`);
+  }
+  return levels;
+}
+
+function hasEnglishFrenchPair(languages: string[]): boolean {
+  return languages.includes('English') && languages.includes('French');
+}
+
+/**
+ * Canonicalize one free-text language requirement into zero or more
+ * stable tokens used across the corpus:
+ *   English | English Essential | French | French Essential |
+ *   Bilingual | Bilingual (English/French) |
+ *   Bilingual (BBB/BBB) | Bilingual (English/French) (BBB/BBB) |
+ *   named other languages (Mandarin, ASL, …)
+ */
+function expandLanguageItem(item: string): string[] {
+  const compact = compactText(item).replace(/^[-*]\s*/, '');
+  if (!compact || LANGUAGE_OPTIONAL_REQUIREMENT.test(compact)) return [];
+
+  // "Language of instruction: French" is a real requirement on teaching posts;
+  // the broader NON_REQUIREMENT pattern would otherwise drop the whole item.
+  const instructionOnly = /\blanguage\s+of\s+instruction\b/i.test(compact)
+    && !/\bbilingual/i.test(compact);
+  if (instructionOnly) {
+    return namedLanguages(compact).map(canonicalLanguageName);
+  }
+
+  if (LANGUAGE_NON_REQUIREMENT.test(compact)) return [];
+
+  // Pure "second language competence" notes without a named language are not filterable.
+  if (/\b(?:competence|competency|comp[eé]tence)\b/i.test(compact)
+    && !LANGUAGE_NAME_PATTERN.test(compact)
+    && extractPscLevels(compact).length === 0
+    && !/\bbilingual/i.test(compact)) {
+    return [];
+  }
+
+  const levels = extractPscLevels(compact);
+  const languages = namedLanguages(compact).map(canonicalLanguageName);
+  const bilingual = /\b(?:bilingual(?:ism)?|bilingue)\b/i.test(compact)
+    || (/\bimperative\b/i.test(compact) && levels.length > 0)
+    || (hasEnglishFrenchPair(languages)
+      && /\b(?:both|official\s+languages?|english\s+and\s+french|french\s+and\s+english)\b/i.test(compact));
+  const englishEssential = /\benglish\s+essential\b/i.test(compact);
+  const frenchEssential = /\b(?:french|fran[cç]ais)\s+essential\b/i.test(compact);
+  // Only attach the EN/FR pair when the source actually named both languages
+  // (or the token already said English/French). Bare "Bilingual" / "Bilingual (BBB/BBB)"
+  // stay without a pair so they don't invent an unstated profile.
+  const namedEnFrPair = hasEnglishFrenchPair(languages)
+    || /\benglish\s*\/\s*french\b|\bfrench\s*\/\s*english\b/i.test(compact);
+
+  const out: string[] = [];
+
+  if (englishEssential) out.push('English Essential');
+  if (frenchEssential) out.push('French Essential');
+
+  if (bilingual) {
+    if (levels.length > 0) {
+      for (const level of levels) {
+        out.push(namedEnFrPair
+          ? `Bilingual (English/French) (${level})`
+          : `Bilingual (${level})`);
       }
+    } else if (namedEnFrPair) {
+      out.push('Bilingual (English/French)');
+    } else {
+      out.push('Bilingual');
+    }
+  } else {
+    for (const language of languages) {
+      if (language === 'English' && englishEssential) continue;
+      if (language === 'French' && frenchEssential) continue;
+      out.push(language);
+    }
+    if (out.length === 0 && levels.length > 0) {
+      for (const level of levels) out.push(level);
     }
   }
-  return normalized;
+
+  if (out.length === 0) return canonicalLanguageLine(compact);
+  return out;
+}
+
+function languageSortKey(value: string): [number, string] {
+  if (value === 'English Essential') return [0, value];
+  if (value === 'French Essential') return [1, value];
+  if (value === 'English') return [2, value];
+  if (value === 'French') return [3, value];
+  if (value.startsWith('Bilingual')) return [5, value];
+  return [4, value];
+}
+
+/**
+ * Collapse redundant language tokens produced by independent extractions:
+ * bare "Bilingual" under a more specific bilingual form; English/French when
+ * a bilingual EN/FR requirement already implies both; Essential superseding
+ * the plain language name.
+ */
+function dedupeLanguageTokens(values: string[]): string[] {
+  const unique = [...new Set(values.map(v => v.trim()).filter(Boolean))];
+
+  const bilingual = unique.filter(v => v.startsWith('Bilingual'));
+  const hasBilingualEnFr = bilingual.some(v => v.includes('(English/French)'));
+
+  const kept: string[] = [];
+  for (const value of unique) {
+    if (value === 'English' && unique.includes('English Essential')) continue;
+    if (value === 'French' && unique.includes('French Essential')) continue;
+
+    // Bare "Bilingual" is redundant when any more specific bilingual form exists.
+    if (value === 'Bilingual' && bilingual.some(v => v !== 'Bilingual')) continue;
+
+    // "Bilingual (English/French)" is redundant when a leveled EN/FR form exists.
+    if (value === 'Bilingual (English/French)'
+      && bilingual.some(v => v.startsWith('Bilingual (English/French) ('))) {
+      continue;
+    }
+
+    // "Bilingual (LEVEL)" is redundant when the same level exists with the EN/FR pair.
+    const levelOnly = value.match(/^Bilingual \(([A-C]{2,3}\/[A-C]{2,3})\)$/i);
+    if (levelOnly) {
+      const level = levelOnly[1].toUpperCase();
+      if (bilingual.some(v => v === `Bilingual (English/French) (${level})`)) continue;
+    }
+
+    // Standalone English/French is implied by a bilingual EN/FR requirement.
+    // Keep Essential variants — inventory postings use them as alternate profiles.
+    if ((value === 'English' || value === 'French') && hasBilingualEnFr) continue;
+
+    kept.push(value);
+  }
+
+  // Prefer EN/FR pair form on leveled bilingual when any EN/FR bilingual is already present.
+  const upgraded = kept.map(value => {
+    const levelOnly = value.match(/^Bilingual \(([A-C]{2,3}\/[A-C]{2,3})\)$/i);
+    if (levelOnly && hasBilingualEnFr) {
+      return `Bilingual (English/French) (${levelOnly[1].toUpperCase()})`;
+    }
+    return value;
+  });
+
+  return [...new Set(upgraded)].sort((a, b) => {
+    const [ai, as] = languageSortKey(a);
+    const [bi, bs] = languageSortKey(b);
+    return ai - bi || as.localeCompare(bs);
+  });
+}
+
+export function normalizeLanguageRequirements(value: unknown): string[] {
+  const expanded: string[] = [];
+  for (const item of toStringList(value)) {
+    for (const token of expandLanguageItem(item)) {
+      expanded.push(token);
+    }
+  }
+  return dedupeLanguageTokens(expanded);
 }
 
 export function normalizeVehicleRequired(value: unknown): boolean | null {
