@@ -273,7 +273,7 @@ test('keeps explicit language requirements from a required section', () => {
 - English Essential
 - Bilingual (English/French), BBB/BBB
 - Excellent oral and written French proficiency
-`), ['English Essential', 'Bilingual (English/French) (BBB/BBB)', 'French']);
+`), ['English Essential', 'Bilingual (English/French, BBB/BBB)', 'French']);
   assert.deepEqual(extractLanguageRequirements(`## Qualifications
 - French
 `), ['French']);
@@ -371,7 +371,11 @@ test('collapses redundant bilingual forms and multi-level imperative phrases', (
   );
   assert.deepEqual(
     normalizeLanguageRequirements(['Bilingual (English/French) (CBC level)']),
-    ['Bilingual (English/French) (CBC/CBC)'],
+    ['Bilingual (English/French, CBC/CBC)'],
+  );
+  assert.deepEqual(
+    normalizeLanguageRequirements(['Bilingual (English/French) (BBB/BBB)']),
+    ['Bilingual (English/French, BBB/BBB)'],
   );
   assert.deepEqual(
     normalizeLanguageRequirements(['French Essential', 'French']),

@@ -430,8 +430,11 @@ function canonicalLanguageLine(line: string): string[] {
   const level = text.match(/\b[A-C]{2,3}\s*\/\s*[A-C]{2,3}\b/i)?.[0]?.replace(/\s+/g, '')
     || text.match(/\b[A-C]{2,3}\s+level\b/i)?.[0];
   if (bilingual) {
-    const pair = languages.length >= 2 ? ` (${languages.slice(0, 3).join('/')})` : '';
-    return [`Bilingual${pair}${level ? ` (${level})` : ''}`];
+    const pair = languages.length >= 2 ? languages.slice(0, 3).join('/') : '';
+    if (pair && level) return [`Bilingual (${pair}, ${level})`];
+    if (pair) return [`Bilingual (${pair})`];
+    if (level) return [`Bilingual (${level})`];
+    return ['Bilingual'];
   }
   if (!languages.length) {
     const officialLevel = text.match(/\b[A-C]{2,3}\s*\/\s*[A-C]{2,3}\b/i)?.[0]?.replace(/\s+/g, '');
@@ -542,12 +545,16 @@ function hasEnglishFrenchPair(languages: string[]): boolean {
  * stable tokens used across the corpus:
  *   English | English Essential | French | French Essential |
  *   Bilingual | Bilingual (English/French) |
- *   Bilingual (BBB/BBB) | Bilingual (English/French) (BBB/BBB) |
+ *   Bilingual (BBB/BBB) | Bilingual (English/French, BBB/BBB) |
  *   named other languages (Mandarin, ASL, …)
  */
 function expandLanguageItem(item: string): string[] {
   const compact = compactText(item).replace(/^[-*]\s*/, '');
   if (!compact || LANGUAGE_OPTIONAL_REQUIREMENT.test(compact)) return [];
+
+  // Already-canonical (or legacy double-paren) bilingual tokens — rewrite and stop.
+  const already = parseBilingualToken(compact);
+  if (already) return [formatBilingualToken(already.pair, already.level)];
 
   // "Language of instruction: French" is a real requirement on teaching posts;
   // the broader NON_REQUIREMENT pattern would otherwise drop the whole item.
@@ -590,7 +597,7 @@ function expandLanguageItem(item: string): string[] {
     if (levels.length > 0) {
       for (const level of levels) {
         out.push(namedEnFrPair
-          ? `Bilingual (English/French) (${level})`
+          ? `Bilingual (English/French, ${level})`
           : `Bilingual (${level})`);
       }
     } else if (namedEnFrPair) {
@@ -628,11 +635,67 @@ function languageSortKey(value: string): [number, string] {
  * a bilingual EN/FR requirement already implies both; Essential superseding
  * the plain language name.
  */
+/** Accept both the current `Bilingual (English/French, LEVEL)` form and the
+ * legacy double-paren `Bilingual (English/French) (LEVEL)` form so re-running
+ * normalize on already-stored values is idempotent.
+ * Returns null when the string is free-form prose, not a stored token. */
+function parseBilingualToken(value: string): { pair: boolean; level: string | null } | null {
+  if (value === 'Bilingual') return { pair: false, level: null };
+
+  // Bilingual (English/French, BBB/BBB)  or  Bilingual (English/French, CBC level)
+  const combined = value.match(
+    /^Bilingual \((English\/French|French\/English),\s*([^)]+)\)$/i,
+  );
+  if (combined) {
+    const levels = extractPscLevels(combined[2]);
+    return { pair: true, level: levels[0] ?? null };
+  }
+
+  // Bilingual (English/French)
+  if (/^Bilingual \((English\/French|French\/English)\)$/i.test(value)) {
+    return { pair: true, level: null };
+  }
+
+  // Legacy: Bilingual (English/French) (BBB/BBB)  or  … (CBC level)
+  const legacy = value.match(
+    /^Bilingual \((English\/French|French\/English)\) \(([^)]+)\)$/i,
+  );
+  if (legacy) {
+    const levels = extractPscLevels(legacy[2]);
+    return { pair: true, level: levels[0] ?? null };
+  }
+
+  // Bilingual (BBB/BBB)
+  const levelOnly = value.match(/^Bilingual \(([A-C]{2,3}\/[A-C]{2,3})\)$/i);
+  if (levelOnly) return { pair: false, level: levelOnly[1].toUpperCase() };
+
+  return null;
+}
+
+function formatBilingualToken(pair: boolean, level: string | null): string {
+  if (pair && level) return `Bilingual (English/French, ${level})`;
+  if (pair) return 'Bilingual (English/French)';
+  if (level) return `Bilingual (${level})`;
+  return 'Bilingual';
+}
+
 function dedupeLanguageTokens(values: string[]): string[] {
-  const unique = [...new Set(values.map(v => v.trim()).filter(Boolean))];
+  // Re-canonicalize any legacy double-paren bilingual tokens first.
+  const rewritten = values.map(v => {
+    const parsed = parseBilingualToken(v);
+    if (!parsed) return v.trim();
+    // Only rewrite tokens that parse as bilingual forms we understand.
+    if (v.startsWith('Bilingual')) return formatBilingualToken(parsed.pair, parsed.level);
+    return v.trim();
+  }).filter(Boolean);
+
+  const unique = [...new Set(rewritten)];
 
   const bilingual = unique.filter(v => v.startsWith('Bilingual'));
-  const hasBilingualEnFr = bilingual.some(v => v.includes('(English/French)'));
+  const hasBilingualEnFr = bilingual.some(v => {
+    const p = parseBilingualToken(v);
+    return p?.pair;
+  });
 
   const kept: string[] = [];
   for (const value of unique) {
@@ -642,17 +705,23 @@ function dedupeLanguageTokens(values: string[]): string[] {
     // Bare "Bilingual" is redundant when any more specific bilingual form exists.
     if (value === 'Bilingual' && bilingual.some(v => v !== 'Bilingual')) continue;
 
+    const parsed = parseBilingualToken(value);
+
     // "Bilingual (English/French)" is redundant when a leveled EN/FR form exists.
-    if (value === 'Bilingual (English/French)'
-      && bilingual.some(v => v.startsWith('Bilingual (English/French) ('))) {
+    if (parsed?.pair && !parsed.level
+      && bilingual.some(v => {
+        const p = parseBilingualToken(v);
+        return p?.pair && p.level;
+      })) {
       continue;
     }
 
     // "Bilingual (LEVEL)" is redundant when the same level exists with the EN/FR pair.
-    const levelOnly = value.match(/^Bilingual \(([A-C]{2,3}\/[A-C]{2,3})\)$/i);
-    if (levelOnly) {
-      const level = levelOnly[1].toUpperCase();
-      if (bilingual.some(v => v === `Bilingual (English/French) (${level})`)) continue;
+    if (parsed && !parsed.pair && parsed.level) {
+      if (bilingual.some(v => {
+        const p = parseBilingualToken(v);
+        return p?.pair && p.level === parsed.level;
+      })) continue;
     }
 
     // Standalone English/French is implied by a bilingual EN/FR requirement.
@@ -664,9 +733,9 @@ function dedupeLanguageTokens(values: string[]): string[] {
 
   // Prefer EN/FR pair form on leveled bilingual when any EN/FR bilingual is already present.
   const upgraded = kept.map(value => {
-    const levelOnly = value.match(/^Bilingual \(([A-C]{2,3}\/[A-C]{2,3})\)$/i);
-    if (levelOnly && hasBilingualEnFr) {
-      return `Bilingual (English/French) (${levelOnly[1].toUpperCase()})`;
+    const parsed = parseBilingualToken(value);
+    if (parsed && !parsed.pair && parsed.level && hasBilingualEnFr) {
+      return formatBilingualToken(true, parsed.level);
     }
     return value;
   });
