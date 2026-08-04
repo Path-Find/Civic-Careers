@@ -134,7 +134,7 @@ const EDUCATION_CONTEXT_ONLY = /^\s*(?:familiarity|knowledge|experience|proficie
 const FORMAL_EDUCATION_CUE = /\b(?:bachelor|master|ph\.?d|doctor(?:ate|al)|diploma|degree|bscn|bsn|b\.?a\.?|m\.?a\.?|undergraduate|graduate|enrol(?:l|led|ment)|completion of)\b/i;
 const STRUCTURED_OPTIONAL_REQUIREMENT = /\b(?:asset|assets|preferred|preferable|preference|nice\s+to\s+have|would\s+be\s+an?\s+asset|considered\s+an?\s+asset|desirable|advantage|optional)\b/i;
 // Class letters are often quoted in source text: Class "G", Class “C”, Class 'DZ'.
-const LICENSE_CLASS = String.raw`class\s+[“"'']?[a-z0-9]+[”"'']?`;
+const LICENSE_CLASS = String.raw`class\s+[\u201c\u201d"'‘’]?[a-z0-9]+[\u201c\u201d"'‘’]?`;
 const LICENSE_TERM = new RegExp(
   String.raw`\b(?:licen[cs](?:e|ed|ing|ure)|permit|registration|registered\s+(?:as|with|by)|designation|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification|certificate\s+of\s+authorization|${LICENSE_CLASS}\s+(?:driver.?s?\s+)?licen[cs]e)\b`,
   'i',
@@ -314,7 +314,14 @@ function licenseLineCandidates(text: string): string[] {
 
 function tryExtractLicenseFromText(text: string, section: RequirementSection): string | null {
   if (section === 'optional' || section === 'benefits' || !LICENSE_TERM.test(text)) return null;
-  if (STRUCTURED_OPTIONAL_REQUIREMENT.test(text)) return null;
+  // "Must hold Class C licence. Experience as a bus driver is an asset." — the
+  // asset clause is a separate fact; don't let it poison the licence half.
+  // Only strip a *new sentence* (capital after period) so "P.Eng. designation
+  // is an asset" stays intact and is rejected as optional below.
+  const licenseFocus = text
+    .replace(/\.\s+(?=[A-Z])[^.]*\b(?:asset|preferred|nice\s+to\s+have|desirable)\b[^.]*\.?\s*$/i, '')
+    .trim();
+  if (STRUCTURED_OPTIONAL_REQUIREMENT.test(licenseFocus)) return null;
   if (/\bregistered\s+as\s+(?:a\s+)?(?:full[- ]time|part[- ]time)?\s*student\b/i.test(text)) return null;
   if (/\b(?:software|application|product|patent|open[- ]source)\s+licen[cs]e|licen[cs]e\s+information\b/i.test(text)) return null;
   // Job duties about issuing/revoking licences are not candidate requirements.
@@ -328,13 +335,13 @@ function tryExtractLicenseFromText(text: string, section: RequirementSection): s
   const explicitLicense = new RegExp(
     String.raw`\b(?:driver.?s?\s+(?:licen[cs]e|permit|abstract)|${LICENSE_CLASS}\s+(?:driver.?s?\s+)?licen[cs]e|licen[cs]e|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification|certificate\s+of\s+authorization)\b`,
     'i',
-  ).test(text);
-  const explicitRegistration = /\b(?:registration\s+(?:with|in|as|through)|registered\s+(?:as|with|by)|professional\s+registration|designation\s+(?:as|with|required)|registration\b[^\n]{0,30}\b(?:required|must|valid|eligible))\b/i.test(text);
+  ).test(licenseFocus);
+  const explicitRegistration = /\b(?:registration\s+(?:with|in|as|through)|registered\s+(?:as|with|by)|professional\s+registration|designation\s+(?:as|with|required)|registration\b[^\n]{0,30}\b(?:required|must|valid|eligible))\b/i.test(licenseFocus);
   if (!explicitLicense && !explicitRegistration) return null;
-  if (explicitRegistration && !/\b(?:college|university|association|board|professional|regulatory|ontario|nurse|engineer|architect|inspector|MMAH|PEO|CPA|CET|designation|accounting)\b/i.test(text)) return null;
-  if (!LICENSE_REQUIRED_CUE.test(text) && !new RegExp(String.raw`(?:valid|current|${LICENSE_CLASS}|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification)`, 'i').test(text)) return null;
+  if (explicitRegistration && !/\b(?:college|university|association|board|professional|regulatory|ontario|nurse|engineer|architect|inspector|MMAH|PEO|CPA|CET|designation|accounting)\b/i.test(licenseFocus)) return null;
+  if (!LICENSE_REQUIRED_CUE.test(licenseFocus) && !new RegExp(String.raw`(?:valid|current|${LICENSE_CLASS}|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification)`, 'i').test(licenseFocus)) return null;
 
-  const value = cleanLicenseRequirement(text);
+  const value = cleanLicenseRequirement(licenseFocus);
   if (!value || !LICENSE_TERM.test(value) || STRUCTURED_OPTIONAL_REQUIREMENT.test(value)) return null;
   return value;
 }
@@ -387,11 +394,22 @@ export function stripLicenseBulletsFromDescription(description: string, licenses
   const kept: string[] = [];
   let removed = 0;
 
+  const isQualHeading = (raw: string): boolean => {
+    const heading = raw
+      .replace(/^#{1,6}\s+/, '')
+      .replace(/^\*{1,2}/, '')
+      .replace(/\*{1,2}:?\s*$/, '')
+      .replace(/:$/, '')
+      .trim()
+      .toLowerCase();
+    if (!heading || heading.length > 80) return false;
+    return /\b(?:qualifications?|requirements?|skills?|conditions?(?:\s+of\s+employment)?|minimum|essential|what you (?:need|should)|knowledge and skills)\b/i.test(heading)
+      && !/\bnice to have|preferred|asset|benefit|compensation|responsibilit|overview\b/i.test(heading);
+  };
+
   for (const line of lines) {
-    const heading = line.match(/^##\s+(.+?)\s*$/)?.[1]?.trim().toLowerCase() ?? '';
-    if (heading) {
-      inQuals = /\b(?:qualifications?|requirements?|conditions?(?:\s+of\s+employment)?|minimum|essential|what you (?:need|should)|knowledge and skills)\b/i.test(heading)
-        && !/\bnice to have|preferred|asset|benefit|compensation\b/i.test(heading);
+    if (/^#{1,6}\s+/.test(line) || /^\*{1,2}[^*]+\*{1,2}:?\s*$/.test(line.trim()) || /^[A-Z][A-Za-z0-9 /&'’-]{2,60}:\s*$/.test(line.trim())) {
+      inQuals = isQualHeading(line.trim());
       kept.push(line);
       continue;
     }
@@ -399,10 +417,13 @@ export function stripLicenseBulletsFromDescription(description: string, licenses
     const bullet = line.match(/^\s*[-•*]\s+(.+)$/);
     if (inQuals && bullet) {
       const text = bullet[1].trim();
-      if (LICENSE_TERM.test(text) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(text)) {
-        const restates = licenses.some(license => licenseKeysOverlap(license, text));
+      const licenseFocus = text
+        .replace(/\.\s+(?=[A-Z])[^.]*\b(?:asset|preferred|nice\s+to\s+have|desirable)\b[^.]*\.?\s*$/i, '')
+        .trim();
+      if (LICENSE_TERM.test(licenseFocus) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(licenseFocus)) {
+        const restates = licenses.some(license => licenseKeysOverlap(license, licenseFocus));
         // Short pure licence bullets that duplicate any structured driver licence.
-        const pureDriver = DRIVER_LICENSE_PHRASE.test(text) && text.length < 220
+        const pureDriver = DRIVER_LICENSE_PHRASE.test(licenseFocus) && licenseFocus.length < 220
           && licenses.some(license => /\bdriver|class\b/i.test(license));
         if (restates || pureDriver) {
           removed += 1;

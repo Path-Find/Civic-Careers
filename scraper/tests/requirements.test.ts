@@ -136,8 +136,7 @@ test('does not treat student registration as a professional licence', () => {
 
 test('extracts quoted class driver licences and skips nice-to-have licences', () => {
   assert.deepEqual(extractLicenseRequirements(`## Qualifications
-- Must have valid class “C” driver’s license to operate a trolley
-- Previous demonstrated experience as a bus driver is an asset
+- Must have valid class “C” driver’s license to operate a trolley. Previous demonstrated experience as a bus driver is an asset.
 `), ['Must have valid class “C” driver’s license to operate a trolley']);
   assert.deepEqual(extractLicenseRequirements(`## Qualifications
 - College diploma
@@ -175,6 +174,21 @@ test('strips qualification bullets that restate structured licences', () => {
 
 ## Responsibilities
 - Drive between sites`,
+  );
+
+  // Bold/non-markdown headings used by some municipal parsers.
+  assert.equal(
+    stripLicenseBulletsFromDescription(
+      `**Qualifications/Skills:**
+- College diploma
+- Valid Ontario Class G Driver’s License in good standing.
+- Strong knowledge of standards.
+`,
+      ['Valid Ontario Class G Driver’s License in good standing'],
+    ),
+    `**Qualifications/Skills:**
+- College diploma
+- Strong knowledge of standards.`,
   );
 });
 
