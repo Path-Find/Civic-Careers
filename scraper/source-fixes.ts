@@ -72,17 +72,14 @@ The House of Commons offers 16-week, full-time, temporary, on-site co-op placeme
   },
   '2393494': {
     applicationUrl: 'https://rcmp.ca/en/bc/careers/9-1-1-police-dispatchers/application-process',
-    description: `## Overview
-The BC RCMP is recruiting 9-1-1 Police Dispatchers in British Columbia. Applicants must live within 500 km of Courtenay, Kelowna, Surrey or Prince George. Surrey is temporarily not accepting applications while the 2026 recruiting goal is met; check the RCMP site for future events.
-
-## Qualifications
-- Attend a 9-1-1 Police Dispatcher career presentation before applying.
-- Submit the application form, cover letter and resume.
-- Pass the CritiCall skills test, including typing 40 words per minute with less than 5% errors.
-- Complete the panel interview, reference checks, security investigation and medical assessment.
-
-## Selection process
-Applications are reviewed before CritiCall testing, followed by a panel interview, reference checks, security and medical assessments, and an offer for the full-time Police Dispatcher Training Program when selected.`,
+    // Prior override was built from the RCMP site's "application process" page,
+    // which has no job content — no salary, no duties, no qualifications, just
+    // eligibility notes and how-to-apply steps. Neither belongs in a job
+    // description (the radius/Surrey note has no structured field to live in,
+    // and the application steps aren't part of the job itself), so the
+    // description is empty until it's rebuilt from the site's actual job pages
+    // (/what-we-do, /compensation) with real duties and pay.
+    description: '',
     securityCheckRequired: 1,
   },
   '2393495': {
