@@ -14,20 +14,23 @@ const MONTHS: Record<string, number> = {
 };
 
 const WEEKDAY = '(?:Mon(?:day)?|Tue(?:s(?:day)?)?|Wed(?:nesday)?|Thu(?:rs(?:day)?)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)';
-// Month name + day + year, optional weekday prefix (e.g. "Tuesday, January 6, 2026")
-const MONTH_DAY_YEAR = `(?:${WEEKDAY},?\\s+)?[A-Za-z]{3,9}\\s+\\d{1,2},?\\s*\\d{2,4}`;
+// Month name + day + year, optional weekday prefix (e.g. "Tuesday, January 6, 2026" / "July 9th, 2026")
+const MONTH_DAY_YEAR = `(?:${WEEKDAY},?\\s+)?[A-Za-z]{3,9}\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s*\\d{2,4}`;
+// Day + month name + year (GC style: "9 February 2026")
+const DAY_MONTH_YEAR = `\\d{1,2}(?:st|nd|rd|th)?\\s+[A-Za-z]{3,9},?\\s*\\d{2,4}`;
 const ISO_LIKE = '\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}';
 const MDY = '\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}';
-const DATE_VALUE = `(?:${MONTH_DAY_YEAR}|${ISO_LIKE}|${MDY})`;
+const DATE_VALUE = `(?:${MONTH_DAY_YEAR}|${DAY_MONTH_YEAR}|${ISO_LIKE}|${MDY})`;
 
 // Labels that introduce a real calendar posted date (not "Posted 10 Days Ago").
+// Prefer longer labels first in the alternation so "date posted" wins over bare "posted".
 const POSTED_DATE_LABEL = new RegExp(
-  `(?:date\\s+posted(?:\\s+by)?|posting\\s+date|posted\\s+on|posted)\\s*(?:\\([^)]*\\))?\\s*[:\\-]?\\s*(${DATE_VALUE})`,
+  `(?:date\\s+posted(?:\\s+by)?|posting\\s+date|date\\s+published|publication\\s+date|date\\s+de\\s+publication|open(?:ing)?\\s+date|advertised\\s+on|posted\\s+on|posted)\\s*(?:\\([^)]*\\))?\\s*[:\\-–—]?\\s*(${DATE_VALUE})`,
   'i',
 );
 
 // Relative Workday-style noise that must never win.
-const RELATIVE_POSTED = /\bposted\s+(?:on\s+)?posted\s+\d+\+?\s+days?\s+ago\b|\bposted\s+\d+\+?\s+days?\s+ago\b|\bposted\s+yesterday\b|\bposted\s+today\b/i;
+const RELATIVE_POSTED = /\bposted\s+(?:on\s+)?posted\s+\d+\+?\s+days?\s+ago\b|\bposted\s+\d+\+?\s+days?\s+ago\b|\bposted\s+yesterday\b|\bposted\s+today\b|\bposted\s+\d+\+?\s+hours?\s+ago\b/i;
 
 function expandTwoDigitYear(year: number): number {
   if (year >= 100) return year;
@@ -62,15 +65,30 @@ export function normalizePostedDate(
   match = cleaned.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
   if (match) return toIsoDate(Number(match[1]), Number(match[2]), Number(match[3]), maxYearsAhead);
 
-  match = cleaned.match(/^([A-Za-z]{3,9})\s+(\d{1,2}),?\s*(\d{2,4})/);
+  match = cleaned.match(/^([A-Za-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{2,4})/);
   if (match) {
     const month = MONTHS[match[1].toLowerCase()];
     if (!month) return null;
     return toIsoDate(Number(match[3]), month, Number(match[2]), maxYearsAhead);
   }
 
+  // Day + month name + year: "9 February 2026" / "1st April 2026"
+  match = cleaned.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9}),?\s*(\d{2,4})/);
+  if (match) {
+    const month = MONTHS[match[2].toLowerCase()];
+    if (!month) return null;
+    return toIsoDate(Number(match[3]), month, Number(match[1]), maxYearsAhead);
+  }
+
   match = cleaned.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
-  if (match) return toIsoDate(Number(match[3]), Number(match[1]), Number(match[2]), maxYearsAhead);
+  if (match) {
+    const a = Number(match[1]);
+    const b = Number(match[2]);
+    const y = Number(match[3]);
+    // Prefer M/D/Y; if first > 12 and second is a valid month, treat as D/M/Y (e.g. 26/06/2026).
+    if (a > 12 && b >= 1 && b <= 12) return toIsoDate(y, b, a, maxYearsAhead);
+    return toIsoDate(y, a, b, maxYearsAhead);
+  }
 
   return null;
 }

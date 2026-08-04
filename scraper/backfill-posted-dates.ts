@@ -34,10 +34,11 @@ async function main() {
 
   const result = await db.execute(`
     SELECT r.id, r.source, r.title, r.raw_text, r.posted_at,
-           jd.id AS details_id, jd.posted_at AS details_posted_at, jd.job_title
+           jd.id AS details_id, jd.posted_at AS details_posted_at, jd.job_title, jd.description
     FROM raw_jobs r
     LEFT JOIN job_details jd ON jd.id = r.id
-    WHERE r.raw_text IS NOT NULL AND r.raw_text != ''
+    WHERE (r.raw_text IS NOT NULL AND r.raw_text != '')
+       OR (jd.description IS NOT NULL AND jd.description != '')
   `);
 
   const candidates: Candidate[] = [];
@@ -48,7 +49,8 @@ async function main() {
 
   for (const row of result.rows) {
     scanned += 1;
-    const extracted = extractPostedDate(String(row.raw_text ?? ''));
+    const extracted = extractPostedDate(String(row.raw_text ?? ''))
+      || extractPostedDate(String(row.description ?? ''));
     if (!extracted) continue;
 
     const currentRaw = normalizePostedDate(row.posted_at as string | null);
