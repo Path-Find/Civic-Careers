@@ -1,7 +1,17 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
-import { dedupeSkillsAgainstSoftware, extractCertificationRequirements, extractListingType, extractSecurityRequirementLabel, extractSoftwareRequirements, extractWorkYearDuration, reconcileStructuredRequirements } from './requirements';
+import {
+  dedupeSkillsAgainstSoftware,
+  extractCertificationRequirements,
+  extractListingType,
+  extractSecurityRequirementLabel,
+  extractSoftwareRequirements,
+  extractWorkYearDuration,
+  normalizeLanguageRequirements,
+  reconcileStructuredRequirements,
+  splitLanguageOutOfSkills,
+} from './requirements';
 import { cleanJobDescription } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 
@@ -47,7 +57,12 @@ async function main() {
         const certificationRequirements = extractCertificationRequirements(description);
         const softwareRequirements = extractSoftwareRequirements(description).values;
         const finalSoftwareRequirements = softwareRequirements.length ? softwareRequirements : aiResult.software_requirements;
-        const finalSkills = dedupeSkillsAgainstSoftware(structuredRequirements.required_skills, finalSoftwareRequirements ?? []);
+        const skillsWithoutSoftware = dedupeSkillsAgainstSoftware(structuredRequirements.required_skills, finalSoftwareRequirements ?? []);
+        const { skills: finalSkills, languages: languagesFromSkills } = splitLanguageOutOfSkills(skillsWithoutSoftware);
+        const finalLanguages = normalizeLanguageRequirements([
+          ...(aiResult.language_requirements ?? []),
+          ...languagesFromSkills,
+        ]);
         const listingType = extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory);
         const isInventory = listingType === 'inventory' || aiResult.is_inventory;
         await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
@@ -78,7 +93,7 @@ async function main() {
           education_requirements: JSON.stringify(sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
           license_requirements: JSON.stringify(structuredRequirements.license_requirements),
           vehicle_required: aiResult.vehicle_required === null ? null : (aiResult.vehicle_required ? 1 : 0),
-          language_requirements: JSON.stringify(aiResult.language_requirements),
+          language_requirements: JSON.stringify(finalLanguages),
           security_check_required: sourceFix?.securityCheckRequired
             ?? (aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0))
             ?? (extractSecurityRequirementLabel(description) === null ? null : (extractSecurityRequirementLabel(description) ? 1 : 0)),

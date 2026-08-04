@@ -353,6 +353,7 @@ export function reconcileStructuredRequirements(description: string, current: Pa
   const currentSkills = toStringList(current.required_skills);
   const requiredLines = descriptionLines(description).filter(line => !line.heading && line.section === 'required').map(line => normalizedRequirement(line.text));
   const skills = currentSkills.filter(skill => {
+    if (isLanguageProficiencySkill(skill)) return false;
     if (licenseRequirements.length > 0 && LICENSE_TERM.test(skill)) return false;
     const skillKey = normalizedRequirement(skill);
     const benefitOnly = namedBenefits.some(benefit => normalizedRequirement(benefit) === skillKey)
@@ -400,6 +401,64 @@ function canonicalSoftwareKey(value: string): string {
 export function dedupeSkillsAgainstSoftware(skills: string[], software: string[]): string[] {
   const softwareKeys = new Set(software.map(canonicalSoftwareKey));
   return skills.filter(skill => !softwareKeys.has(canonicalSoftwareKey(skill)));
+}
+
+/**
+ * Skills that are really language requirements (or bilingualism), not tools/
+ * competencies. Keep academic subjects (Ph.D. in English), teaching methods
+ * (French L2 / FLS), NLP/LLMs, translation craft, and speech-language pathology.
+ */
+const LANGUAGE_SKILL_KEEP = /\b(?:ph\.?d|doctorate|master(?:['’]s)?|degree|diploma|certificate|literature|revolution|teaching|enseignant|l2\b|fls\b|langue\s+seconde|natural\s+language|language\s+models?|speech[- ]language|patholog|translation|traduction|translating|traduire|ancient\s+language|latin|greek|hebrew)\b/i;
+
+export function isLanguageProficiencySkill(skill: string): boolean {
+  const text = compactText(skill);
+  if (!text || LANGUAGE_SKILL_KEEP.test(text)) return false;
+
+  if (/^bilingual(?:ism)?(?:\b.*)?$/i.test(text)) return true;
+  if (/\bbilingual(?:ism)?\b/i.test(text) && /\b(?:english|french|fran[cç]ais|anglais)\b/i.test(text)) return true;
+  if (/\blanguage\s+proficiency\b/i.test(text)) return true;
+  // "Advanced Level II proficiency in French (oral and comprehension)"
+  if (/\bproficiency\s+in\s+(?:english|french|fran[cç]ais|anglais)\b/i.test(text)) return true;
+  if (/^(?:english|french|fran[cç]ais|anglais)(?:\s+language)?(?:\s+proficiency)?$/i.test(text)) return true;
+  if (/^(?:english|french|fran[cç]ais|anglais)\s+(?:oral\s+)?(?:communication|proficiency)$/i.test(text)) return true;
+  if (/^(?:english|french)\s+essential$/i.test(text)) return true;
+  if (/^english\s*\(\s*language\s*\)$/i.test(text)) return true;
+  if (/^fran[cç]ais\s*\|\s*french$/i.test(text)) return true;
+  if (/\bsecond\s+language\b/i.test(text)
+    && /\b(?:reading|writing|oral|comprehension|intermediate|passive|active|competence|competency)\b/i.test(text)) {
+    return true;
+  }
+  // Bare language name only (common AI dump).
+  if (/^(?:english|french|fran[cç]ais|anglais)$/i.test(text)) return true;
+  return false;
+}
+
+/** Map a stripped skill token into plain language field values. */
+export function languagesImpliedBySkill(skill: string): string[] {
+  const text = compactText(skill);
+  if (/\bbilingual(?:ism)?\b/i.test(text)) return ['Bilingual'];
+  const out: string[] = [];
+  if (/\b(?:english|anglais)\b/i.test(text)) out.push('English');
+  if (/\b(?:french|fran[cç]ais)\b/i.test(text)) out.push('French');
+  // "English or French communication" → both named languages, not bilingual.
+  return out;
+}
+
+/**
+ * Pull language-proficiency items out of skills and return the languages they
+ * imply so the caller can merge them into language_requirements.
+ */
+export function splitLanguageOutOfSkills(skills: string[]): { skills: string[]; languages: string[] } {
+  const kept: string[] = [];
+  const languages: string[] = [];
+  for (const skill of skills) {
+    if (isLanguageProficiencySkill(skill)) {
+      languages.push(...languagesImpliedBySkill(skill));
+    } else {
+      kept.push(skill);
+    }
+  }
+  return { skills: kept, languages: normalizeLanguageRequirements(languages) };
 }
 
 function isOptionalLanguageLine(line: DescriptionLine): boolean {

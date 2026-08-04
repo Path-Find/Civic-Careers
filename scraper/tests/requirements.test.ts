@@ -15,6 +15,8 @@ import {
   normalizeLanguageRequirements,
   normalizeVehicleRequired,
   reconcileStructuredRequirements,
+  isLanguageProficiencySkill,
+  splitLanguageOutOfSkills,
 } from '../requirements';
 
 test('extracts required first aid and CPR certification without optional assets', () => {
@@ -342,6 +344,32 @@ test('returns false only for an explicit vehicle negative', () => {
 - Valid Class G driver's licence required
 - Some duties do not require operating a vehicle
 `), true);
+});
+
+test('strips language proficiency items out of skills into languages', () => {
+  assert.equal(isLanguageProficiencySkill('French language proficiency'), true);
+  assert.equal(isLanguageProficiencySkill('English language proficiency'), true);
+  assert.equal(isLanguageProficiencySkill('Bilingualism'), true);
+  assert.equal(isLanguageProficiencySkill('English'), true);
+  assert.equal(isLanguageProficiencySkill('databases'), false);
+  assert.equal(isLanguageProficiencySkill('Natural Language Processing'), false);
+  assert.equal(isLanguageProficiencySkill('Ph.D in English'), false);
+  assert.equal(isLanguageProficiencySkill('French as a Second Language teaching'), false);
+  assert.equal(isLanguageProficiencySkill('French to English translation'), false);
+
+  assert.deepEqual(
+    splitLanguageOutOfSkills([
+      'databases',
+      'French language proficiency',
+      'English language proficiency',
+      'Microsoft Office',
+    ]),
+    { skills: ['databases', 'Microsoft Office'], languages: ['English', 'French'] },
+  );
+  assert.deepEqual(
+    splitLanguageOutOfSkills(['Bilingual (English/French)', 'JIRA']),
+    { skills: ['JIRA'], languages: ['Bilingual'] },
+  );
 });
 
 test('normalizes stored field values without changing unknown to false', () => {
