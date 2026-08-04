@@ -238,13 +238,49 @@ function cleanRequirementText(value: string): string {
     .trim();
 }
 
+/**
+ * Strip federal/municipal extraction artifacts that are not education content:
+ * "Education:", "*Education:**", "ED1:", "AED1 -", "Stream 1 – …:", "AS-01 only:",
+ * "Engineers (EN-ENG-03):", "Your application must clearly explain…".
+ */
+function stripEducationLabelPrefix(value: string): string {
+  let text = compactText(value);
+  // Repeatedly peel known labels (some rows stack "Education: Stream 1: …").
+  for (let i = 0; i < 4; i += 1) {
+    const next = text
+      // "Your application must clearly explain how you meet the followingEducation:-"
+      .replace(/^your\s+application\s+must\s+clearly\s+explain\s+how\s+you\s+meet\s+the\s+following\s*/i, '')
+      .replace(/^\*{0,2}education\*{0,2}\s*:\s*/i, '')
+      .replace(/^amendment\s+to\s+education\s*:\s*/i, '')
+      .replace(/^\*{0,2}ed(?:ucation)?\s*\d+\.?\s*[-–—:]?\s*/i, '')
+      .replace(/^\*{0,2}aed\s*\d+\.?\s*[-–—:]?\s*/i, '')
+      // Stream 1 – Performance Audit:** / **Stream 2**:
+      .replace(/^\*{0,2}stream\s*\d+\s*[-–—:]?[^*:\n]{0,80}\*{0,2}\s*:\s*/i, '')
+      // Classification-scoped: "AS-01 only:", "CR-04 only:-", "AS-01 only -"
+      .replace(/^(?:[a-z]{1,6}-\d{2}(?:\s*\/\s*[a-z]{1,6}-\d{2})*)\s+only\s*[:\-–—]?\s*/i, '')
+      // "Engineers (EN-ENG-03): Graduation…" / "**Engineers (ENG-04):**"
+      .replace(/^\*{0,2}[A-Za-z][A-Za-z\s/().-]{1,40}\s*\([A-Z]{2,}(?:-[A-Z0-9]+)+\)\*{0,2}\s*:\s*/i, '')
+      // Bare group codes: "EN-ENG-03:" / "SR-APA-00:"
+      .replace(/^(?:[A-Z]{2,}(?:-[A-Z0-9]+)+)\s*:\s*/i, '')
+      // Leading markdown residue from broken "*Education:**"
+      .replace(/^\*+\s*/, '')
+      .replace(/^:\s*/, '')
+      .replace(/^[-–—]\s*/, '')
+      .trim();
+    if (next === text) break;
+    text = next;
+  }
+  return text;
+}
+
 function cleanEducationRequirement(value: string): string {
-  const initial = cleanRequirementText(value);
-  const educationIndex = initial.search(/\b(?:bachelor|master|ph\.?d|doctor(?:ate|al)|diploma|degree|bscn|bsn|undergraduate|graduate)\b/i);
+  const initial = cleanRequirementText(stripEducationLabelPrefix(value));
+  const educationIndex = initial.search(/\b(?:bachelor|master|ph\.?d|doctor(?:ate|al)|diploma|degree|bscn|bsn|undergraduate|graduate|post[- ]secondary|secondary\s+school|high\s+school|successful\s+completion|completion\s+of|currently\s+enrol|enrol(?:l(?:ed|ment)?))\b/i);
   const educationPrefix = educationIndex >= 0 ? initial.slice(0, educationIndex) : '';
   const withoutAdministrativeTail = initial
     .replace(/^your\s+application\s+must\s+clearly\s+explain\s+how\s+you\s+meet\s+the\s+following\s*education\s*:\s*[-–—]?\s*/i, '')
     .replace(/\s*(?:learn more about\b|applied\s*\/\s*assessed\b|competencies?\s*:).*/i, '')
+    .replace(/\*\*candidates?\s+invited\b[\s\S]*$/i, '')
     .replace(/\.\s+(?=(?:a|an|the)\s+(?:demonstrated|ability)\b|candidate\s+has\b).*/i, '.');
   const cleaned = (educationIndex >= 0 && LICENSE_TERM.test(educationPrefix) ? withoutAdministrativeTail.slice(educationIndex) : withoutAdministrativeTail)
     .replace(/\s+(?:and\s+)?(?:valid\s+|current\s+|must\s+(?:have|hold|possess)\s+|registered\s+(?:as|with)\s+|registration\s+(?:with|in|as)\s+)(?:[^.]+(?:licen[cs]e|p\.?\s*eng\.?|professional\s+engineer|certificate\s+of\s+qualification|registration)[^.]*).*$/i, '')
@@ -253,7 +289,26 @@ function cleanEducationRequirement(value: string): string {
     .replace(/[;,.]+$/, '')
     .replace(/\s+(?:with|and|or)$/i, '')
     .trim();
-  return cleaned;
+  return stripEducationLabelPrefix(cleaned);
+}
+
+/** Normalize stored or AI education list items (idempotent). */
+export function normalizeEducationRequirements(value: unknown): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of toStringList(value)) {
+    const cleaned = cleanEducationRequirement(item);
+    if (!cleaned) continue;
+    if (!EDUCATION_TERM.test(cleaned) && !STUDENT_EDUCATION_TERM.test(cleaned)
+      && !/\b(?:secondary\s+school|high\s+school|post[- ]secondary|diploma|degree|certificate|enrol)\b/i.test(cleaned)) {
+      continue;
+    }
+    const key = normalizedRequirement(cleaned);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(cleaned);
+  }
+  return out;
 }
 
 function cleanLicenseRequirement(value: string): string {
@@ -270,10 +325,14 @@ function normalizedRequirement(value: string): string {
 }
 
 function retainExistingEducation(value: string): boolean {
-  if (value.length > 300 || (!EDUCATION_TERM.test(value) && !STUDENT_EDUCATION_TERM.test(value))) return false;
-  if (/\b(?:leading|supports? students|position is|this role|post[- ]secondary institution offering|navigate|campus events)\b/i.test(value)) return false;
-  return /^\s*(?:a|an|minimum|completion|completed|degree|diploma|post[- ]secondary|undergraduate|graduate|your\s+educational|candidates?\s+must|must|current(?:ly)?\s+enrol(?:l(?:ed|ment)?|ment)?|registration\s+in\s+(?:a\s+)?co-?op|we\s+are\s+seeking|\d+[- ]year|university|college|bachelor|master|ph\.?d)/i.test(value)
-    || /\b(?:completion\s+of|degree\s+in|diploma\s+in|equivalent\s+combination)\b/i.test(value);
+  const cleaned = cleanEducationRequirement(value);
+  if (cleaned.length > 300 || (!EDUCATION_TERM.test(cleaned) && !STUDENT_EDUCATION_TERM.test(cleaned)
+    && !/\b(?:secondary\s+school|high\s+school|post[- ]secondary)\b/i.test(cleaned))) {
+    return false;
+  }
+  if (/\b(?:leading|supports? students|position is|this role|post[- ]secondary institution offering|navigate|campus events)\b/i.test(cleaned)) return false;
+  return /^\s*(?:a|an|minimum|completion|completed|successful|degree|diploma|post[- ]secondary|undergraduate|graduate|secondary\s+school|high\s+school|your\s+educational|candidates?\s+must|must|current(?:ly)?\s+enrol(?:l(?:ed|ment)?|ment)?|registration\s+in\s+(?:a\s+)?co-?op|we\s+are\s+seeking|\d+[- ]year|university|college|bachelor|master|ph\.?d|graduation)/i.test(cleaned)
+    || /\b(?:completion\s+of|degree\s+in|diploma\s+in|equivalent\s+combination|secondary\s+school\s+diploma)\b/i.test(cleaned);
 }
 
 function retainExistingLicense(value: string): boolean {
@@ -286,18 +345,29 @@ function retainExistingLicense(value: string): boolean {
 export function extractEducationRequirements(description: string): string[] {
   const values = new Set<string>();
   for (const line of descriptionLines(description)) {
-    if (line.heading || line.section === 'optional' || line.section === 'benefits' || (!EDUCATION_TERM.test(line.text) && !STUDENT_EDUCATION_TERM.test(line.text))) continue;
-    if (/\b(?:leading|post[- ]secondary institution offering|supports? students|position is|campus events)\b/i.test(line.text)) continue;
-    if (line.section !== 'required' && line.text.length > 300) continue;
-    if (EDUCATION_CONTEXT_ONLY.test(line.text) && !FORMAL_EDUCATION_CUE.test(line.text)) continue;
-    if (line.section !== 'required' && !/^\s*(?:a|an|minimum|completion|completed|degree|diploma|post[- ]secondary|undergraduate|graduate|your\s+educational|candidates?\s+must|must|currently\s+enrolled|we\s+are\s+seeking)\b/i.test(line.text)) continue;
-    const educationIndex = line.text.search(EDUCATION_TERM);
-    const educationContext = line.text.slice(Math.max(0, educationIndex - 80), educationIndex + 40);
-    if (line.section !== 'required' && !STUDENT_EDUCATION_TERM.test(line.text) && !EDUCATION_REQUIRED_CUE.test(educationContext)) continue;
-    const value = cleanEducationRequirement(line.text);
-    if (value && (EDUCATION_TERM.test(value) || STUDENT_EDUCATION_TERM.test(value)) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(value)) values.add(value);
+    if (line.heading || line.section === 'optional' || line.section === 'benefits') continue;
+    const text = stripEducationLabelPrefix(line.text);
+    if (!EDUCATION_TERM.test(text) && !STUDENT_EDUCATION_TERM.test(text)
+      && !/\b(?:secondary\s+school|high\s+school)\b/i.test(text)) {
+      continue;
+    }
+    if (/\b(?:leading|post[- ]secondary institution offering|supports? students|position is|campus events)\b/i.test(text)) continue;
+    if (line.section !== 'required' && text.length > 300) continue;
+    if (EDUCATION_CONTEXT_ONLY.test(text) && !FORMAL_EDUCATION_CUE.test(text)) continue;
+    if (line.section !== 'required' && !/^\s*(?:a|an|minimum|completion|completed|successful|degree|diploma|post[- ]secondary|undergraduate|graduate|secondary\s+school|your\s+educational|candidates?\s+must|must|currently\s+enrolled|we\s+are\s+seeking|graduation)\b/i.test(text)) continue;
+    const educationIndex = text.search(EDUCATION_TERM);
+    const educationContext = text.slice(Math.max(0, educationIndex - 80), educationIndex + 40);
+    if (line.section !== 'required' && !STUDENT_EDUCATION_TERM.test(text) && !EDUCATION_REQUIRED_CUE.test(educationContext)
+      && !/\b(?:secondary\s+school|successful\s+completion)\b/i.test(text)) {
+      continue;
+    }
+    const value = cleanEducationRequirement(text);
+    if (value && (EDUCATION_TERM.test(value) || STUDENT_EDUCATION_TERM.test(value) || /\b(?:secondary\s+school|high\s+school)\b/i.test(value))
+      && !STRUCTURED_OPTIONAL_REQUIREMENT.test(value)) {
+      values.add(value);
+    }
   }
-  return [...values];
+  return normalizeEducationRequirements([...values]);
 }
 
 function licenseLineCandidates(text: string): string[] {
@@ -509,9 +579,12 @@ export function reconcileStructuredRequirements(description: string, current: Pa
       }
     }
   }
+  const education = educationRequirements.length
+    ? educationRequirements
+    : normalizeEducationRequirements(currentEducation);
   return {
     experience_requirements: experienceRequirements.length ? experienceRequirements : currentExperience,
-    education_requirements: educationRequirements.length ? educationRequirements : currentEducation,
+    education_requirements: education,
     license_requirements: licenseRequirements.length ? licenseRequirements : currentLicenses,
     benefits,
     required_skills: skills,

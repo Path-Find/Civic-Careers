@@ -1,7 +1,7 @@
 import type { ParsedJob } from './ai_parser';
 import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
 import { cleanJobDescription } from './cleanup_description';
-import { normalizeLanguageRequirements } from './requirements';
+import { normalizeEducationRequirements, normalizeLanguageRequirements } from './requirements';
 
 function coerceString(v: unknown): string {
   if (typeof v === 'string') return v.trim();
@@ -178,7 +178,7 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     benefits: normalizeStringList(o['benefits']),
     required_skills: normalizeStringList(o['required_skills']),
     experience_requirements: normalizeStringList(o['experience_requirements']),
-    education_requirements: normalizeStringList(o['education_requirements']),
+    education_requirements: normalizeEducationRequirements(o['education_requirements']),
     license_requirements: normalizeStringList(o['license_requirements']),
     vehicle_required: normalizeOptionalBool(o['vehicle_required']),
     language_requirements: normalizeLanguageRequirements(o['language_requirements']),

@@ -5,6 +5,7 @@ import {
   extractEducationRequirements,
   extractExperienceRequirements,
   extractLanguageRequirements,
+  normalizeEducationRequirements,
   extractLanguageVehicleRequirements,
   extractLicenseRequirements,
   extractNamedBenefits,
@@ -75,6 +76,33 @@ test('extracts required education and drops optional degrees from the same line'
   assert.deepEqual(extractEducationRequirements(`## Qualifications
 - Bachelor's degree in Corporate Communications, Media Relations, Public Relations, or related field (Master's preferred)
 `), ["Bachelor's degree in Corporate Communications, Media Relations, Public Relations, or related field"]);
+});
+
+test('strips Education:/classification/stream prefixes from education requirements', () => {
+  assert.deepEqual(
+    normalizeEducationRequirements([
+      'AS-01 only:- Successful completion of a post-secondary diploma or degree in a law related field (already obtained OR obtained before appointment) or an acceptable combination of education, training, and/or experience',
+    ]),
+    ['Successful completion of a post-secondary diploma or degree in a law related field (already obtained OR obtained before appointment) or an acceptable combination of education, training, and/or experience'],
+  );
+  assert.deepEqual(
+    normalizeEducationRequirements(['*Education:** A secondary school diploma or employer-approved alternatives']),
+    ['A secondary school diploma or employer-approved alternatives'],
+  );
+  assert.deepEqual(
+    normalizeEducationRequirements(['ED1: Graduation with a degree from a recognized post-secondary institution in mechanical engineering']),
+    ['Graduation with a degree from a recognized post-secondary institution in mechanical engineering'],
+  );
+  assert.deepEqual(
+    normalizeEducationRequirements(['Engineers (EN-ENG-03): Graduation with a degree from a recognized post-secondary institution in civil engineering']),
+    ['Graduation with a degree from a recognized post-secondary institution in civil engineering'],
+  );
+  assert.deepEqual(
+    normalizeEducationRequirements([
+      'Your application must clearly explain how you meet the followingA secondary school diploma or an acceptable combination of education, training or experience**Candidates invited to an interview will be required to bring proof of their education credentials',
+    ]),
+    ['A secondary school diploma or an acceptable combination of education, training or experience'],
+  );
 });
 
 test('keeps education extraction from absorbing unrelated qualification sentences', () => {
