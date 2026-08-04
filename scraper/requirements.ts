@@ -163,7 +163,17 @@ const NAMED_BENEFITS: Array<[string, RegExp]> = [
 ];
 
 const ONGOING_TITLE_SIGNAL = /\b(?:ongoing recruitment|recruitment program|student employment program|talent pool|candidate pool|future opportunities|expression of interest|co-?op students?\s*[-–—:]\s*(?:various|multiple))\b/i;
-const INVENTORY_TEXT_SIGNAL = /\bnot\s+applying\s+for\s+a\s+specific\s+(?:job|position)\b[^.\n]{0,100}\b(?:an?\s+)?inventory\s+for\s+future\s+vacancies\b/i;
+// Federal "inventory" / talent-pool postings — flexible wording; do not require
+// the exact phrase "inventory for future vacancies" (many say "but to an inventory;").
+const INVENTORY_TEXT_SIGNALS: RegExp[] = [
+  /\bnot\s+applying\s+for\s+a\s+specific\s+(?:job|position)\b[^.\n]{0,120}\binventory\b/i,
+  /\bto\s+an\s+inventory(?:\s+for\s+future\s+vacancies)?\b/i,
+  /\binventory\s+for\s+future\s+vacancies\b/i,
+  /\bstaff\s+current\s+and\s+future\s+vacancies\b[^.\n]{0,200}\binventory\b/i,
+  /\bthis\s+(?:is\s+an?\s+)?(?:anticipatory\s+)?(?:staffing\s+)?process\b[^.\n]{0,160}\binventory\b/i,
+  /\bselection\s+process\b[^.\n]{0,120}\binventory\b/i,
+];
+const INVENTORY_TITLE_SIGNAL = /\b(?:inventory|talent\s+pool)\b/i;
 const ONGOING_TEXT_SIGNALS: RegExp[] = [
   /\b(?:candidate|talent)\s+pool\b/i,
   /\b(?:general recruitment call|standing job posting)\b/i,
@@ -184,7 +194,9 @@ const ONGOING_TEXT_SIGNALS: RegExp[] = [
 export function extractListingType(description: string, title = '', isInventory = false): ListingType {
   if (isInventory) return 'inventory';
   const text = `${title}\n${description}`;
-  if (INVENTORY_TEXT_SIGNAL.test(text)) return 'inventory';
+  if (INVENTORY_TITLE_SIGNAL.test(title) || INVENTORY_TEXT_SIGNALS.some(signal => signal.test(text))) {
+    return 'inventory';
+  }
   if (ONGOING_TITLE_SIGNAL.test(title)) return 'ongoing_recruitment';
   return ONGOING_TEXT_SIGNALS.some(signal => signal.test(text)) ? 'ongoing_recruitment' : 'regular';
 }

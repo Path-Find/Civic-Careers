@@ -333,6 +333,15 @@ test('classifies a source-labelled recruitment pool as ongoing recruitment', () 
 
 test('classifies an explicit future-vacancy inventory separately', () => {
   assert.equal(extractListingType('When you apply to this selection process, you are not applying for a specific job, but to an inventory for future vacancies.', 'Casual Stable Worker'), 'inventory');
+  // Common GC wording without "for future vacancies" glued to inventory.
+  assert.equal(
+    extractListingType(
+      'This process is being used to staff current and future vacancies in Calgary or Edmonton, Alberta. When you apply, you are not applying for a specific job but to an inventory; applicants who meet the qualifications may be contacted for further assessment as positions become available.',
+      'Legal Support Clerk / Litigation Legal Assistant',
+    ),
+    'inventory',
+  );
+  assert.equal(extractListingType('Various administrative roles.', 'Casual Inventory - STREAM 1 CR-04'), 'inventory');
 });
 
 test('does not treat generic lowercase teams as Microsoft Teams', () => {
