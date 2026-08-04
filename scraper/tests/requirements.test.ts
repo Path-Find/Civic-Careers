@@ -233,6 +233,20 @@ test('extracts required years of experience and ignores optional experience', ()
   ]);
 });
 
+test('extracts month-based experience and high-school education without splitting Grade 12', () => {
+  const description = `## Qualifications
+- High school (Grade 12) graduation, plus an additional program of over one and up to two years in Law and Security, Police Foundations or equivalent
+- Over two months and up to 6 months of related experience
+- Valid non-probationary class G license
+`;
+  assert.deepEqual(extractEducationRequirements(description), [
+    'High school (Grade 12) graduation, plus an additional program of over one and up to two years in Law and Security, Police Foundations or equivalent',
+  ]);
+  assert.deepEqual(extractExperienceRequirements(description), [
+    'Over two months and up to 6 months of related experience',
+  ]);
+});
+
 test('drops obvious stale overview and software-licence values during reconciliation', () => {
   const result = reconcileStructuredRequirements('## Overview\nA college is a post-secondary institution offering programs.\n\n## Qualifications\n- Must possess a valid Class G driver\'s licence', {
     education_requirements: ['A college is a leading post-secondary institution offering programs.'],

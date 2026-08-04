@@ -145,15 +145,31 @@ const DRIVER_LICENSE_PHRASE = new RegExp(
   'i',
 );
 const EXPERIENCE_NUMBER = '(?:\\d+(?:\\.\\d+)?\\+?|one|two|three|four|five|six|seven|eight|nine|ten|several)';
+const EXPERIENCE_UNIT = '(?:years?|yrs?|months?)';
 const EXPERIENCE_SUFFIX = `(?:[’\\']?\\s+(?:of\\s+)?(?:[a-z-]+\\s+){0,5}experience)`;
-const EXPERIENCE_YEARS_PATTERN = new RegExp(`\\b${EXPERIENCE_NUMBER}(?:\\s*(?:-|–|—|to)\\s*${EXPERIENCE_NUMBER})?\\s*(?:years?|yrs?)${EXPERIENCE_SUFFIX}\\b`, 'i');
-const EXPERIENCE_CLAUSE_PATTERN = new RegExp(`(?:(?:a\\s+)?minimum\\s+of|minimum|at\\s+least)?\\s*${EXPERIENCE_NUMBER}(?:\\s*(?:-|–|—|to)\\s*${EXPERIENCE_NUMBER})?\\s*(?:years?|yrs?)${EXPERIENCE_SUFFIX}\\b[^.;\\n]{0,180}`, 'i');
-const EXPERIENCE_HISTORY_SIGNAL = new RegExp(`\\b(?:with\\s+)?(?:more\\s+than|over)\\s+${EXPERIENCE_NUMBER}\\s+years?\\s+of\\s+experience\\b`, 'i');
+// "2 years of experience", "Over two months and up to 6 months of related experience"
+// (unit may appear on both ends of a range: "two months and up to 6 months").
+const EXPERIENCE_AMOUNT = `${EXPERIENCE_NUMBER}(?:\\s*${EXPERIENCE_UNIT})?(?:\\s*(?:-|–|—|to|and\\s+up\\s+to)\\s*${EXPERIENCE_NUMBER})?\\s*${EXPERIENCE_UNIT}`;
+const EXPERIENCE_YEARS_PATTERN = new RegExp(
+  `\\b(?:(?:over|more\\s+than|at\\s+least|minimum(?:\\s+of)?)\\s+)?${EXPERIENCE_AMOUNT}${EXPERIENCE_SUFFIX}\\b`,
+  'i',
+);
+const EXPERIENCE_CLAUSE_PATTERN = new RegExp(
+  `(?:(?:a\\s+)?minimum\\s+of|minimum|at\\s+least|over|more\\s+than)?\\s*${EXPERIENCE_AMOUNT}${EXPERIENCE_SUFFIX}\\b[^.;\\n]{0,180}`,
+  'i',
+);
+const EXPERIENCE_HISTORY_SIGNAL = new RegExp(
+  `\\b(?:with\\s+)?(?:more\\s+than|over)\\s+${EXPERIENCE_NUMBER}\\s*${EXPERIENCE_UNIT}\\s+of\\s+experience\\b`,
+  'i',
+);
 // Source text often states education and experience as one combined sentence
 // ("Degree in X and seven years of experience..."); extractExperienceRequirements
 // already isolates its own clause from that same line, so education needs the
 // identical tail cut or the two fields end up holding the same sentence twice.
-const EDUCATION_EXPERIENCE_TAIL = new RegExp(`\\s+and\\s+${EXPERIENCE_NUMBER}(?:\\s*(?:-|–|—|to)\\s*${EXPERIENCE_NUMBER})?\\s*(?:years?|yrs?)${EXPERIENCE_SUFFIX}\\b[^.;\\n]*$`, 'i');
+const EDUCATION_EXPERIENCE_TAIL = new RegExp(
+  `\\s+and\\s+${EXPERIENCE_AMOUNT}${EXPERIENCE_SUFFIX}\\b[^.;\\n]*$`,
+  'i',
+);
 const NAMED_BENEFITS: Array<[string, RegExp]> = [
   ['OMERS', /\bOMERS\b/i],
   ['HOOPP', /\bHOOPP\b/i],
@@ -176,6 +192,7 @@ const INVENTORY_TEXT_SIGNALS: RegExp[] = [
 const INVENTORY_TITLE_SIGNAL = /\b(?:inventory|talent\s+pool)\b/i;
 const ONGOING_TEXT_SIGNALS: RegExp[] = [
   /\b(?:candidate|talent)\s+pool\b/i,
+  /\bopen\s+(?:till|until)\s+filled\b/i,
   /\b(?:general recruitment call|standing job posting)\b/i,
   /\b(?:pool of (?:qualified )?candidates?)\b[^.\n]{0,120}\b(?:future opportunities|future vacancies|future openings)\b/i,
   /\b(?:applications?|applicants?|posting|position|role)\b[^.\n]{0,180}\b(?:kept on file|future opportunities|future vacancies|future openings)\b/i,
@@ -229,7 +246,9 @@ function descriptionLines(description: string): DescriptionLine[] {
   let section: RequirementSection = 'other';
   const normalizedDescription = description
     .replace(/\\r?\\n/g, '\n')
-    .replace(/\s+(?=\d+[.)]\s+)/g, '\n')
+    // Numbered list split — only after a non-letter so "Grade 12) graduation"
+    // is not broken into "High school (Grade" + "12) graduation".
+    .replace(/(?<![A-Za-z])\s+(?=\d{1,2}[.)]\s+\S)/g, '\n')
     .replace(/\s+(?=(?:key|minimum|essential|education|licen[cs]e|language|other)\s+qualifications?\s*:)/gi, '\n');
   return normalizedDescription.split(/\r?\n/).map(raw => {
     const heading = headingText(raw);
