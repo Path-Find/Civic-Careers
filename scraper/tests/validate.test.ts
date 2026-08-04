@@ -60,6 +60,37 @@ describe('validateParsedJob', () => {
     assert.equal(validateParsedJob({ ...BASE, job_title: '' }, 'Policy Analyst')?.job_title, 'Policy Analyst');
   });
 
+  describe('department casing', () => {
+    it('title-cases ALL CAPS multi-word departments', () => {
+      assert.equal(
+        validateParsedJob({ ...BASE, department: 'LEGISLATIVE SERVICES' })?.department,
+        'Legislative Services',
+      );
+      assert.equal(
+        validateParsedJob({ ...BASE, department: 'COMMUNITY SERVICES' })?.department,
+        'Community Services',
+      );
+      assert.equal(
+        validateParsedJob({ ...BASE, department: 'OFFICE OF THE CAO' })?.department,
+        'Office of the CAO',
+      );
+    });
+
+    it('keeps short department codes uppercase', () => {
+      assert.equal(validateParsedJob({ ...BASE, department: 'EECS' })?.department, 'EECS');
+      assert.equal(validateParsedJob({ ...BASE, department: 'CMHC' })?.department, 'CMHC');
+      assert.equal(validateParsedJob({ ...BASE, department: 'HR_7701_2C' })?.department, 'HR_7701_2C');
+    });
+
+    it('title-cases longer single-word ALL CAPS labels', () => {
+      assert.equal(validateParsedJob({ ...BASE, department: 'TRANSIT' })?.department, 'Transit');
+    });
+
+    it('leaves already mixed-case departments alone', () => {
+      assert.equal(validateParsedJob({ ...BASE, department: 'Legislative Services' })?.department, 'Legislative Services');
+    });
+  });
+
   describe('salary normalization', () => {
     it('coerces salary from currency strings', () => {
       const result = validateParsedJob({ ...BASE, salary_min: '$80,000', salary_max: '$100,000.00' });

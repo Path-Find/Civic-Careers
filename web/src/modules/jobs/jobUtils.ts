@@ -82,6 +82,46 @@ export function isExpired(job: Job): boolean {
   return days !== null && days < 0;
 }
 
+/** Title-case ALL CAPS department labels; leave short codes (EECS, CMHC) alone. */
+export function normalizeDepartment(value: string | null | undefined): string {
+  if (!value) return '';
+  let cleaned = value
+    .replace(/\(\d+\)/g, '')
+    .replace(/\s*[-–—]\s*Job Opportunity.*/i, '')
+    .replace(/\s*[-–—].*/, '')
+    .replace(/^General$/i, '')
+    .replace(/&/g, ' & ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned || /^n\/a$/i.test(cleaned)) return '';
+
+  // Pure department codes / bargaining units (EECS, CMHC, HR_7701) — keep as stored.
+  // Longer single words like TRANSIT fall through to title case.
+  if (/^[A-Z0-9][A-Z0-9_/-]{0,14}$/.test(cleaned) && !/\s/.test(cleaned)) {
+    if (/[0-9_]/.test(cleaned) || cleaned.length <= 5) return cleaned;
+  }
+
+  if (cleaned === cleaned.toUpperCase() && cleaned !== cleaned.toLowerCase()) {
+    const small = new Set(['and', 'of', 'the', 'for', 'to', 'in', 'or', 'at', 'by', 'as', 'a', 'an']);
+    cleaned = cleaned
+      .split(' ')
+      .map((word, index) => {
+        if (!word) return word;
+        const lower = word.toLowerCase();
+        if (lower === 'mgmt') return 'Management';
+        if (lower === 'dept') return 'Department';
+        if (small.has(lower) && index > 0) return lower;
+        // Short tokens (IT, HR, CAO, EMS) stay acronym-style when source was ALL CAPS.
+        if (word.length <= 3 && !small.has(lower)) return word.toUpperCase();
+        return lower.charAt(0).toUpperCase() + lower.slice(1);
+      })
+      .join(' ')
+      .replace(/\s+&\s+/g, ' & ');
+    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+  return cleaned;
+}
+
 export function normalizeJob(job: Job): Job {
   const normalizeLocation = (value: string | null): string => {
     if (!value) return '';
@@ -98,12 +138,7 @@ export function normalizeJob(job: Job): Job {
       .replace(/ -([A-Z])/, ' - $1')
       .trim()),
     location: normalizeLocation(job.location),
-    department: (job.department || '')
-      .replace(/\(\d+\)/g, '')
-      .replace(/\s*[-–—]\s*Job Opportunity.*/i, '')
-      .replace(/\s*[-–—].*/, '')
-      .replace(/^General$/i, '')
-      .trim(),
+    department: normalizeDepartment(job.department),
     closing_date: (job.closing_date || '').replace(/Posted on\s+/i, '').trim(),
     source: job.source === 'WATERFRONT TORONTO' ? 'Waterfront Toronto' : job.source,
   };
