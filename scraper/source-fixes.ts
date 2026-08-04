@@ -9,7 +9,11 @@ export type GovernmentOfCanadaFix = {
 
 // This GC link is an account/profile page, not a job posting. The scraper
 // excludes it from future runs and the source backfill deactivates the row.
-export const EXCLUDED_GOVERNMENT_OF_CANADA_IDS = new Set(['2445703']);
+export const EXCLUDED_GOVERNMENT_OF_CANADA_IDS = new Set(['2352259', '2445703']);
+
+export function isRetiredGovernmentOfCanadaPage(rawText: string): boolean {
+  return /This job has moved or is no longer available\. Please search our current job openings\./i.test(rawText);
+}
 
 // This legacy Toronto row was first captured from the search shell. Keep its
 // existing ID when the SuccessFactors scraper sees the now-canonical detail URL.

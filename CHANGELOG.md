@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Retired Government of Canada postings could remain active**: moved or unavailable detail pages now deactivate their existing row and are excluded from parsing, including previously parsed records.
 - **Empty placeholder sections could survive parsing**: deterministic cleanup now removes sections containing only values such as “None” or “N/A”, while backfills skip changes that would erase an entire stored description.
 - **Recurring source boilerplate could remain in job descriptions**: confirmed Metrolinx variants, Government of Canada, Brock University, City of Brantford, University of Waterloo, City of Barrie, and City of St. Catharines employer/application blocks are now removed deterministically while role-specific requirements and eligibility remain intact.
 - **Structured criteria were stored but hidden on job pages**: languages, vehicle requirements, certifications, and software now appear alongside education, licences, benefits, and skills.

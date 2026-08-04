@@ -2,7 +2,7 @@ import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 import { saveRawJob } from '../db';
-import { EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES } from '../source-fixes';
+import { EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES, isRetiredGovernmentOfCanadaPage } from '../source-fixes';
 
 // These federal postings are listed in GC Jobs but the employer's own page is
 // the real application destination. Keep stable canonical URLs here so a
@@ -95,6 +95,7 @@ export async function scrapeGC(db: Client, context: BrowserContext) {
         await scrapeRawAndStage(db, context, {
           ...job,
           applicationUrl: GOVERNMENT_OF_CANADA_FIXES[job.id]?.applicationUrl,
+          retiredPage: isRetiredGovernmentOfCanadaPage,
         }, sourceName);
       }
       console.log(`\n[${sourceName}] Finished page ${pageNum}.`);

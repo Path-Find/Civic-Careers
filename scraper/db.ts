@@ -350,6 +350,20 @@ export async function saveRawJob(client: Client, job: {
   });
 }
 
+export async function retireJob(client: Client, id: string): Promise<void> {
+  await client.batch([
+    {
+      sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
+            SELECT id, COALESCE(application_url, url), source, 0, first_seen_at, CURRENT_TIMESTAMP
+            FROM raw_jobs WHERE id = ?
+            ON CONFLICT(id) DO UPDATE SET is_active = 0, scraped_at = CURRENT_TIMESTAMP`,
+      args: [id],
+    },
+    { sql: `UPDATE raw_jobs SET parsed_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [id] },
+    { sql: `DELETE FROM parse_failures WHERE id = ?`, args: [id] },
+  ], 'write');
+}
+
 // A detail page that never renders usable content must not remain queued for
 // parsing forever. The next scrape can recreate the row if the source recovers.
 export async function discardRawJob(client: Client, id: string) {

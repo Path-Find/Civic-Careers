@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import { Page, Frame, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import pdfParse from 'pdf-parse';
-import { discardRawJob, saveRawJob } from './db';
+import { discardRawJob, retireJob, saveRawJob } from './db';
 import { extractPostedDate, normalizePostedDate } from './posted-date';
 
 export function urlId(url: string): string {
@@ -29,6 +29,7 @@ export interface JobSummary {
   location?: string;
   closingDate?: string;
   salary?: string;
+  retiredPage?: (rawText: string) => boolean;
 }
 
 export const BASE_CONFIG = {
@@ -109,8 +110,13 @@ export function looksUnrendered(text: string): boolean {
 export async function scrapeRawAndStage(db: Client, context: BrowserContext, job: JobSummary, sourceName: string): Promise<boolean> {
   const descriptionUrl = job.descriptionUrl ?? job.url;
   const applicationUrl = job.applicationUrl ?? job.url;
-  const existing = await db.execute({ sql: `SELECT parsed_at FROM raw_jobs WHERE id = ?`, args: [job.id!] });
+  const existing = await db.execute({ sql: `SELECT parsed_at, raw_text FROM raw_jobs WHERE id = ?`, args: [job.id!] });
   if (existing.rows.length > 0 && existing.rows[0]!['parsed_at'] !== null) {
+    if (job.retiredPage?.(String(existing.rows[0]!['raw_text'] ?? ''))) {
+      await retireJob(db, job.id!);
+      process.stdout.write(' ⛔');
+      return true;
+    }
     await db.execute({
       sql: `UPDATE raw_jobs SET scraped_at = CURRENT_TIMESTAMP, application_url = COALESCE(?, application_url) WHERE id = ?`,
       args: [job.applicationUrl ?? null, job.id!],
@@ -236,6 +242,11 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       || normalizePostedDate(structuredPostedAt)
       || labeledPostedAt;
     await saveRawJob(db, { id: job.id!, url: descriptionUrl, application_url: applicationUrl, source: sourceName, title: job.title, raw_text: rawText, posted_at: postedAt });
+    if (job.retiredPage?.(rawText)) {
+      await retireJob(db, job.id!);
+      process.stdout.write(' ⛔');
+      return true;
+    }
     process.stdout.write(' ✅');
     return true;
   } catch (err: any) {

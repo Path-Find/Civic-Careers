@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractNanaimoJobs, extractPhenomJobs, extractStLawrenceJobs, shouldScrapeGovernmentOfCanadaListing } from '../engines/custom';
-import { APPLICATION_URL_FIXES, EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES } from '../source-fixes';
+import { APPLICATION_URL_FIXES, EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES, isRetiredGovernmentOfCanadaPage } from '../source-fixes';
 
 test('ignores the Government of Canada candidate profile page as a job', () => {
   assert.equal(shouldScrapeGovernmentOfCanadaListing('Candidate profile', 'Candidate profile'), false);
@@ -11,7 +11,13 @@ test('ignores the Government of Canada candidate profile page as a job', () => {
 
 test('keeps the CRA recruitment posting on its official application page', () => {
   assert.equal(GOVERNMENT_OF_CANADA_FIXES['2434700']?.applicationUrl, 'https://careers-carrieres.cra-arc.gc.ca/gol-ged/wcis/pub/rtrvjbpst.action?pi=8EB30FC0002E1FD18383F97AB53463CE');
+  assert.equal(EXCLUDED_GOVERNMENT_OF_CANADA_IDS.has('2352259'), true);
   assert.equal(EXCLUDED_GOVERNMENT_OF_CANADA_IDS.has('2445703'), true);
+});
+
+test('recognizes retired Government of Canada detail pages', () => {
+  assert.equal(isRetiredGovernmentOfCanadaPage('Cookies\nThis job has moved or is no longer available. Please search our current job openings.'), true);
+  assert.equal(isRetiredGovernmentOfCanadaPage('Coordinator, Construction Services\nApply now\nClosing date: 2026-08-15'), false);
 });
 
 test('keeps the legacy Toronto posting ID when its canonical URL is found', () => {
