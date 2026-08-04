@@ -41,21 +41,16 @@ async function openJobList(page: Page, listUrl: string) {
 }
 
 function collectJobsFromList(page: Page): Promise<TechnomediaJob[]> {
+  // Keep this evaluate body free of nested function declarations — tsx/esbuild
+  // injects a __name helper that does not exist in the browser context.
   return page.evaluate((base) => {
-    const seen = new Set<string>();
-    const jobs: TechnomediaJob[] = [];
-
-    const absolutize = (href: string): string => {
-      try {
-        return new URL(href, base).toString();
-      } catch {
-        return `${base.replace(/\/?$/, '/')}${href.replace(/^\//, '')}`;
-      }
-    };
+    const seen = new Set();
+    const jobs = [];
+    const origin = base.replace(/\/?$/, '/');
 
     const rows = document.querySelectorAll('#CTG_JOB_LIST tbody tr, tr.tblStripingEven, tr.tblStripingOdd');
     for (const row of rows) {
-      const link = row.querySelector('a.relink[href*="offerid="]') as HTMLAnchorElement | null;
+      const link = row.querySelector('a.relink[href*="offerid="]');
       if (!link) continue;
       const href = link.getAttribute('href') || '';
       const match = href.match(/offerid=(\d+)/i)
@@ -68,10 +63,15 @@ function collectJobsFromList(page: Page): Promise<TechnomediaJob[]> {
         .replace(/&amp;/g, '&')
         .trim();
       // Prefer the list's own detail href (includes Technomedia state blob).
-      // Bare ?offerid= works sometimes but dies mid-run with "resource not available".
-      const detailUrl = href.includes('offerid=')
-        ? absolutize(href)
-        : absolutize(`?offerid=${match[1]}`);
+      const path = href.includes('offerid=') ? href : `?offerid=${match[1]}`;
+      let detailUrl = path;
+      try {
+        detailUrl = new URL(path, origin).toString();
+      } catch {
+        detailUrl = path.startsWith('?') || path.startsWith('/')
+          ? `${origin.replace(/\/$/, '')}${path.startsWith('?') ? path : path}`
+          : `${origin}${path}`;
+      }
       jobs.push({ id: match[1], title, detailUrl });
     }
 
@@ -85,11 +85,13 @@ function collectJobsFromList(page: Page): Promise<TechnomediaJob[]> {
         const title = card.querySelector('.jobName')?.textContent?.trim()
           || card.querySelector('span[title]')?.getAttribute('title')
           || `Posting ${match[1]}`;
-        jobs.push({
-          id: match[1],
-          title,
-          detailUrl: absolutize(`?offerid=${match[1]}`),
-        });
+        let detailUrl = `${origin}?offerid=${match[1]}`;
+        try {
+          detailUrl = new URL(`?offerid=${match[1]}`, origin).toString();
+        } catch {
+          // keep fallback
+        }
+        jobs.push({ id: match[1], title, detailUrl });
       }
     }
 

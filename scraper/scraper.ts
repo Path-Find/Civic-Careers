@@ -208,12 +208,13 @@ async function main() {
       });
       results.push({ label: task.label, ok: true });
     } catch (err: any) {
+      console.error(`[${task.label}] Scrape failed:`, err?.message || err);
       await db.execute({
         sql: `INSERT INTO source_scrape_status (source, last_successful_scrape_at, last_status)
               VALUES (?, NULL, 'failed')
               ON CONFLICT(source) DO UPDATE SET last_status = 'failed'`,
         args: [task.label],
-      });
+      }).catch(statusErr => console.error(`[${task.label}] Failed to record status:`, statusErr));
       results.push({ label: task.label, ok: false, error: err.message });
     }
   }
