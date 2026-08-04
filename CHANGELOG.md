@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **More real posted dates pulled from source text** — Opening Date / Date Published / day-first and ordinal forms (`9 February 2026`, `July 9th, 2026`, `26/06/2026`) now fill empty `posted_at` fields; corpus re-scanned.
+- **Union field no longer shows “Non-Union?”** — non-union postings hide the Union row instead of listing Non-Union as if it were a bargaining unit; ~70 bad flags cleaned.
 - **Wordy licence and education text collapsed to short labels** — e.g. driver walls → `Ontario Class G`; high-school walls (“Completion of a high school diploma – or a combination of education, training and experience…”) → `High school diploma`; CNO/P.Eng. registrations too. Stored rows rewritten; job detail UI also compacts on display.
 - **Department names no longer shout in ALL CAPS** (e.g. City of Brampton · `LEGISLATIVE SERVICES` → Legislative Services). Title-cased on display and on parse; short codes like EECS/CMHC stay uppercase.
 - **Language requirements were a mess of federal jargon** (`English Essential`, `Bilingual (English/French, CBC/CBC)`, PSC levels). They now store plain labels only — `English`, `French`, `Bilingual`, or other named languages — and the existing corpus was rewritten to match.

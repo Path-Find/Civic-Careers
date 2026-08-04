@@ -211,8 +211,21 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     work_model: normalizeWorkModel(o['work_model'], job_title),
     employment_type: normalizeEmploymentType(o['employment_type']),
     duration: coerceString(o['duration']),
-    is_unionized: coerceBool(o['is_unionized']),
-    union_name: coerceString(o['union_name']),
+    ...(() => {
+      const rawName = coerceString(o['union_name']).replace(/\?+$/g, '').replace(/\s+/g, ' ').trim();
+      const flag = coerceBool(o['is_unionized']);
+      const nameIsNonUnion = !!rawName && (
+        /^(non[-\s]?union(?:ized)?|none|n\/?a|no|not unionized|non union(?: staff| employees)?|mgmt non union|non union\/non mpe|non union, management)$/i.test(rawName)
+        || /^non[-\s]?union\b/i.test(rawName)
+      );
+      // "Non-Union" / "Non-Union?" is never a union membership.
+      if (nameIsNonUnion) return { is_unionized: false, union_name: '' };
+      // AI sometimes sets is_unionized true with name "Union" only.
+      if (/^union$/i.test(rawName)) return { is_unionized: true, union_name: '' };
+      // A real union name implies unionized even if the flag was wrong.
+      if (rawName) return { is_unionized: true, union_name: rawName };
+      return { is_unionized: flag, union_name: '' };
+    })(),
     is_student: coerceBool(o['is_student']),
     is_inventory: coerceBool(o['is_inventory']),
     benefits: normalizeStringList(o['benefits']),

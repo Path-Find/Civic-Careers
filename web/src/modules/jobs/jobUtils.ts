@@ -184,6 +184,24 @@ export function parseTagList(raw: string | null): string[] {
   }
 }
 
+/** True when the stored name means "not in a union" (never show under Union). */
+export function isNonUnionName(value: string | null | undefined): boolean {
+  if (!value) return true;
+  const s = value.trim().replace(/\?+$/g, '').replace(/\s+/g, ' ');
+  if (!s) return true;
+  return /^(non[-\s]?union(?:ized)?|none|n\/?a|no|not unionized|non union(?: staff| employees)?|mgmt non union|non union\/non mpe|non union, management)$/i.test(s)
+    || /^non[-\s]?union\b/i.test(s);
+}
+
+/** Only show a real union name; never "Union: Non-Union?". */
+export function formatUnionLabel(isUnionized: number | boolean | null | undefined, unionName: string | null | undefined): string | null {
+  if (!isUnionized) return null;
+  const name = (unionName || '').trim().replace(/\?+$/g, '').replace(/\s+/g, ' ');
+  if (!name || isNonUnionName(name)) return null;
+  if (/^union$/i.test(name)) return 'Unionized';
+  return name;
+}
+
 export function parseJobDetails(job: Job): JobDetails {
   return {
     salary: formatSalary(job),
@@ -193,7 +211,7 @@ export function parseJobDetails(job: Job): JobDetails {
     startDate: formatStartDate(job.start_date),
     hours: job.hours || null,
     availability: job.availability || null,
-    union: job.is_unionized ? (job.union_name || 'Unionized') : null,
+    union: formatUnionLabel(job.is_unionized, job.union_name),
     listingType: job.listing_type === 'ongoing_recruitment' ? 'Ongoing recruitment' : job.listing_type === 'inventory' || job.is_inventory === 1 ? 'Candidate inventory' : null,
     studentRequirement: job.is_student === 1 ? 'Yes' : null,
     experience: joinJsonArray(job.experience_requirements),

@@ -207,8 +207,14 @@ describe('validateParsedJob', () => {
   describe('boolean coercion', () => {
     it('coerces string booleans', () => {
       assert.equal(validateParsedJob({ ...BASE, is_unionized: 'true' })?.is_unionized, true);
-      assert.equal(validateParsedJob({ ...BASE, is_unionized: 'false' })?.is_unionized, false);
+      assert.equal(validateParsedJob({ ...BASE, is_unionized: 'false', union_name: '' })?.is_unionized, false);
       assert.equal(validateParsedJob({ ...BASE, is_student: 'true' })?.is_student, true);
+    });
+
+    it('never treats Non-Union as a union membership', () => {
+      const result = validateParsedJob({ ...BASE, is_unionized: true, union_name: 'Non-Union?' });
+      assert.equal(result?.is_unionized, false);
+      assert.equal(result?.union_name, '');
     });
 
     it('coerces numeric booleans', () => {
