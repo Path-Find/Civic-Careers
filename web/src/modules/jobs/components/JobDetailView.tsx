@@ -126,7 +126,10 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
       </div>
       <div className="detail-content">
         <div className="detail-card">
-          <div className="detail-source" onClick={() => onNavigate('jobs', job.source)}>{job.source}{job.department && job.department !== job.source ? ` · ${job.department}` : ''}</div>
+          <div className="detail-source-row">
+            <span className="detail-source" onClick={() => onNavigate('jobs', job.source)}>{job.source}</span>
+            {job.department && job.department !== job.source && <span className="detail-department"> · {job.department}</span>}
+          </div>
           <h1 className="detail-title" title={job.job_title || undefined}>{job.job_title}</h1>
           {hasRequirementsCard && <section className="detail-requirements-card" aria-labelledby="requirements-heading">
             <h2 id="requirements-heading" className="detail-requirements-heading">Job requirements & details</h2>

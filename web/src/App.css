@@ -101,7 +101,9 @@
 .metadata-value.highlight { color: #9a3412; }
 .detail-content { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; }
 .detail-card { background: white; }
-.detail-source { color: #2563eb; font-size: 0.8125rem; font-weight: 700; margin-bottom: 0.5rem; cursor: pointer; }
+.detail-source-row { margin-bottom: 0.5rem; }
+.detail-source { color: #2563eb; font-size: 0.8125rem; font-weight: 700; cursor: pointer; }
+.detail-department { color: #64748b; font-size: 0.8125rem; font-weight: 700; }
 .detail-title { font-size: 2.5rem; font-weight: 800; margin: 0 0 1.5rem; letter-spacing: -0.04em; line-height: 1.1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
 .detail-requirements-card { margin-bottom: 1.5rem; padding: 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; background: white; }
 .detail-requirements-heading { margin: 0 0 1rem; color: #0f172a; font-size: 1rem; font-weight: 800; }
