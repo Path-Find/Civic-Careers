@@ -10,6 +10,8 @@ export interface Job {
   work_model: string | null;
   employment_type: string | null;
   duration: string | null;
+  hours: string | null;
+  availability: string | null;
   is_unionized: number | null;
   union_name: string | null;
   benefits: string | null;
@@ -65,6 +67,8 @@ export interface JobDetails {
   mode: string | null;
   type: string | null;
   duration: string | null;
+  hours: string | null;
+  availability: string | null;
   union: string | null;
   listingType: string | null;
   studentRequirement: string | null;
@@ -73,6 +77,7 @@ export interface JobDetails {
   licenses: string | null;
   language: string | null;
   vehicle: string | null;
+  securityCheck: string | null;
   certifications: string | null;
   software: string | null;
   benefits: string | null;

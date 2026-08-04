@@ -96,16 +96,20 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Department', value: job.department }, { label: 'Location', value: job.location },
     { label: 'Salary', value: details.salary }, { label: 'Work Mode', value: details.mode },
     { label: 'Employment', value: details.type }, { label: 'Duration', value: details.duration },
+    { label: 'Hours', value: details.hours },
     { label: 'Listing type', value: details.listingType }, { label: 'Student requirement', value: details.studentRequirement },
-    { label: 'Union', value: details.union },
+    { label: 'Union', value: details.union }, { label: 'Education', value: details.education },
   ];
   const requirementMetadata: DetailMetadata[] = [
     { label: 'Experience', value: details.experience },
+    { label: 'Availability', value: details.availability },
     { label: 'Licences', value: details.licenses }, { label: 'Languages', value: details.language },
-    { label: 'Vehicle', value: details.vehicle }, { label: 'Certifications', value: details.certifications },
+    { label: 'Vehicle', value: details.vehicle }, { label: 'Security check', value: details.securityCheck },
+    { label: 'Certifications', value: details.certifications },
     { label: 'Software', value: details.software }, { label: 'Skills / Programs', value: details.skills },
     { label: 'Benefits', value: details.benefits }, { label: 'Eligibility', value: details.future, highlight: true },
   ].filter(item => item.value);
+  const hasRequirementsCard = requirementMetadata.length > 0 || Boolean(otherInformation);
 
   return <main className="detail-main">
     <div className="detail-grid">
@@ -122,7 +126,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
         <div className="detail-card">
           <div className="detail-source" onClick={() => onNavigate('jobs', job.source)}>{job.source}</div>
           <h1 className="detail-title" title={job.job_title || undefined}>{job.job_title}</h1>
-          {(requirementMetadata.length > 0 || otherInformation) && <section className="detail-requirements-card" aria-labelledby="requirements-heading">
+          {hasRequirementsCard && <section className="detail-requirements-card" aria-labelledby="requirements-heading">
             <h2 id="requirements-heading" className="detail-requirements-heading">Job requirements & details</h2>
             {requirementMetadata.length > 0 && <div className="detail-requirements-grid">
               {requirementMetadata.map(item => <div key={item.label} className="detail-requirement-item">
@@ -146,14 +150,13 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
               if (!isLongSection) {
                 return <div key={section.heading} dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${section.heading}\n${section.body}`) }} />;
               }
-              return <details className="detail-section-collapsible" key={section.heading} open={/qualif|responsibilit/i.test(section.heading)}>
-                <summary className="detail-section-summary">
+              return <section className="detail-section" key={section.heading}>
+                <div className="detail-section-heading">
                   <span className="detail-section-title">{section.heading}</span>
-                  <span className="detail-section-action">View details</span>
-                </summary>
+                </div>
                 {labels.length > 0 && <div className="detail-quick-scan" aria-label={`${section.heading} summary`}>{labels.map(label => <span className="detail-quick-chip" key={label}>{label}</span>)}</div>}
                 <div className="detail-full-section" dangerouslySetInnerHTML={{ __html: renderMarkdown(section.body) }} />
-              </details>;
+              </section>;
             })}
           </div> : <div className="detail-loading">{[80, 95, 60, 90, 40].map(width => <div key={width} className="detail-loading-line animate-pulse" style={{ width: `${width}%` }} />)}</div>}
         </div>

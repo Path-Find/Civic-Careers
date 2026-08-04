@@ -128,6 +128,8 @@ async function initializeDbOnce(): Promise<Client> {
       work_model TEXT,
       employment_type TEXT,
       duration TEXT,
+      hours TEXT,
+      availability TEXT,
       is_unionized INTEGER,
       union_name TEXT,
       benefits TEXT,
@@ -171,7 +173,7 @@ async function initializeDbOnce(): Promise<Client> {
   for (const column of [
     'listing_type', 'experience_requirements', 'education_requirements', 'license_requirements', 'vehicle_required',
     'language_requirements', 'security_check_required', 'certification_requirements',
-    'software_requirements',
+    'software_requirements', 'hours', 'availability',
   ]) {
     try {
       await client.execute(`ALTER TABLE job_details ADD COLUMN ${column} ${column.endsWith('_required') ? 'INTEGER' : 'TEXT'}`);
