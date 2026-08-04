@@ -50,10 +50,36 @@ test('recognizes a program name at the end of a sentence', () => {
   assert.deepEqual(result.values, ['Word']);
 });
 
+test('recognizes named web technologies in required qualifications', () => {
+  const result = extractSoftwareRequirements(`## Qualifications
+- Candidate has experience with web-app programming -- HTML, CSS, JavaScript and TypeScript.
+`);
+  assert.deepEqual(result.values, ['JavaScript', 'HTML', 'CSS', 'TypeScript']);
+});
+
 test('extracts required education and drops optional degrees from the same line', () => {
   assert.deepEqual(extractEducationRequirements(`## Qualifications
 - Bachelor's degree in Corporate Communications, Media Relations, Public Relations, or related field (Master's preferred)
 `), ["Bachelor's degree in Corporate Communications, Media Relations, Public Relations, or related field"]);
+});
+
+test('keeps education extraction from absorbing unrelated qualification sentences', () => {
+  assert.deepEqual(extractEducationRequirements(`## Qualifications
+A PhD degree (completed, in progress, near-completion, or equivalent experience) in a relevant discipline. A demonstrated interest in accessible and equitable AI. Candidate has experience with web-app programming -- HTML, CSS, JavaScript and TypeScript.
+`), ['A PhD degree (completed, in progress, near-completion, or equivalent experience) in a relevant discipline']);
+  assert.deepEqual(extractEducationRequirements(`## Qualifications
+Your application must clearly explain how you meet the followingEducation:- A Bachelor of Law degree (i.e. Bachelor of Law (LL.B), Juris Doctor (J.D.), LL.L, or equivalent).Learn more about degree equivalency.Applied / assessed at a later dateCompetencies:- Judgement
+`), ['A Bachelor of Law degree (i.e. Bachelor of Law (LL.B), Juris Doctor (J.D.), LL.L, or equivalent)']);
+});
+
+test('keeps student enrolment and co-op conditions as education requirements', () => {
+  assert.deepEqual(extractEducationRequirements(`## Qualifications
+- Current enrolment as a full-time student at an accredited post-secondary institution
+- Registration in a co-op program
+`), [
+    'Current enrolment as a full-time student at an accredited post-secondary institution',
+    'Registration in a co-op program',
+  ]);
 });
 
 test('does not treat optional education or Master Electrician as required education', () => {
@@ -116,6 +142,12 @@ test('extracts required licences and excludes optional licences', () => {
     "Valid Class 'G' Ontario Driver's License with no more than six demerit points",
     'Registered Professional Engineer in Ontario',
   ]);
+});
+
+test('keeps travel and overtime out of a driver licence requirement', () => {
+  assert.deepEqual(extractLicenseRequirements(`## Qualifications
+Possession of a valid driver’s licence that authorizes the holder to independently operate a passenger-class vehicle.- Travel: sometimes on short notice.- Overtime: including evenings and weekends.
+`), ["valid driver’s licence that authorizes the holder to independently operate a passenger-class vehicle"]);
 });
 
 test('does not turn licence mentions in duties into licence requirements', () => {

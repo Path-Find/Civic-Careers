@@ -1,7 +1,7 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
-import { extractListingType, reconcileStructuredRequirements } from './requirements';
+import { extractListingType, extractSoftwareRequirements, reconcileStructuredRequirements } from './requirements';
 import { cleanJobDescription } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 
@@ -43,6 +43,7 @@ async function main() {
           benefits: aiResult.benefits,
           required_skills: aiResult.required_skills,
         });
+        const softwareRequirements = extractSoftwareRequirements(description).values;
         const listingType = extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory);
         await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
         await saveJobDetails(db, {
@@ -74,7 +75,7 @@ async function main() {
           language_requirements: JSON.stringify(aiResult.language_requirements),
           security_check_required: sourceFix?.securityCheckRequired ?? (aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0)),
           certification_requirements: JSON.stringify(aiResult.certification_requirements),
-          software_requirements: JSON.stringify(aiResult.software_requirements),
+          software_requirements: JSON.stringify(softwareRequirements.length ? softwareRequirements : aiResult.software_requirements),
           responsibility_tags: JSON.stringify(aiResult.responsibility_tags),
           qualification_tags: JSON.stringify(aiResult.qualification_tags),
           posted_at: raw.posted_at,
