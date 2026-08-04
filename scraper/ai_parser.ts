@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import * as dotenv from "dotenv";
 import { validateParsedJob } from "./validate";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const deepseekClient = new OpenAI({
     baseURL: "https://api.deepseek.com",

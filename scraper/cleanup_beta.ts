@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@libsql/client';
 import { cleanOverviewBoilerplate } from './cleanup_description';
 
-dotenv.config({ path: 'scraper/.env' });
+dotenv.config({ path: 'scraper/.env', quiet: true });
 
 async function main() {
   const db = createClient({

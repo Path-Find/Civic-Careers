@@ -1,6 +1,6 @@
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ quiet: true });
 
 async function migrate() {
   const db = createClient({

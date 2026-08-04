@@ -1,6 +1,6 @@
 import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ quiet: true });
 
 // After this many failed parse attempts, a job is excluded from getUnparsedJobs
 // (stops burning AI calls on something permanently broken) but stays in

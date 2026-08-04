@@ -2,7 +2,7 @@ import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import { extractExperienceRequirements } from './requirements';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const apply = process.argv.includes('--apply');
 const limitArg = process.argv.find(value => value.startsWith('--limit='));
