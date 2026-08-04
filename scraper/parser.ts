@@ -45,6 +45,7 @@ async function main() {
         });
         const softwareRequirements = extractSoftwareRequirements(description).values;
         const listingType = extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory);
+        const isInventory = listingType === 'inventory' || aiResult.is_inventory;
         await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
         await saveJobDetails(db, {
           id: raw.id,
@@ -56,7 +57,7 @@ async function main() {
             : '',
           description,
           closing_date: aiResult.closing_date || '',
-          is_inventory: aiResult.is_inventory ? 1 : 0,
+          is_inventory: isInventory ? 1 : 0,
           listing_type: listingType,
           is_student: sourceFix?.isStudent ?? (aiResult.is_student ? 1 : 0),
           salary_min: aiResult.salary_min,

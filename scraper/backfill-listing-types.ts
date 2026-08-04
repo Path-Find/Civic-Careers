@@ -23,6 +23,7 @@ type Row = {
 
 type Work = Row & {
   listing_type_next: ListingType;
+  is_inventory_next: number;
   url_next: string;
   description_next: string;
   is_student_next: number;
@@ -61,6 +62,7 @@ async function main() {
   const work: Work[] = rows.map(row => ({
     ...row,
     listing_type_next: extractListingType(`${row.raw_text}\n${GOVERNMENT_OF_CANADA_FIXES[row.id]?.description ?? row.description}`, row.job_title, row.is_inventory === 1),
+    is_inventory_next: row.is_inventory === 1 || extractListingType(`${row.raw_text}\n${GOVERNMENT_OF_CANADA_FIXES[row.id]?.description ?? row.description}`, row.job_title, row.is_inventory === 1) === 'inventory' ? 1 : 0,
     url_next: GOVERNMENT_OF_CANADA_FIXES[row.id]?.applicationUrl ?? row.url,
     description_next: GOVERNMENT_OF_CANADA_FIXES[row.id]?.description ?? row.description,
     is_student_next: GOVERNMENT_OF_CANADA_FIXES[row.id]?.isStudent ?? row.is_student,
@@ -71,6 +73,7 @@ async function main() {
     is_active_next: EXCLUDED_GOVERNMENT_OF_CANADA_IDS.has(row.id) ? 0 : row.is_active,
   }));
   const candidates = work.filter(row => row.listing_type !== row.listing_type_next
+    || row.is_inventory !== row.is_inventory_next
     || row.url !== row.url_next
     || row.description !== row.description_next
     || row.is_student !== row.is_student_next
@@ -83,7 +86,7 @@ async function main() {
   }, {});
 
   console.log(`[Listing type backfill] Scanned ${work.length} jobs.`);
-  console.log(`[Listing type backfill] Changes available: ${candidates.length}; types ${JSON.stringify(typeCounts)}; URL corrections ${candidates.filter(row => row.url !== row.url_next).length}; source repairs ${candidates.filter(row => row.description !== row.description_next).length}; deactivations ${candidates.filter(row => row.is_active !== row.is_active_next).length}.`);
+  console.log(`[Listing type backfill] Changes available: ${candidates.length}; types ${JSON.stringify(typeCounts)}; inventory flags ${candidates.filter(row => row.is_inventory !== row.is_inventory_next).length}; URL corrections ${candidates.filter(row => row.url !== row.url_next).length}; source repairs ${candidates.filter(row => row.description !== row.description_next).length}; deactivations ${candidates.filter(row => row.is_active !== row.is_active_next).length}.`);
   for (const row of candidates.slice(0, 40)) {
     console.log(JSON.stringify({ id: row.id, source: row.source, title: row.job_title, listingType: row.listing_type_next, url: row.url_next }));
   }
@@ -91,9 +94,9 @@ async function main() {
 
   await db.batch(candidates.flatMap(row => [
     {
-      sql: `UPDATE job_details SET listing_type = ?, description = ?, is_student = ?,
+      sql: `UPDATE job_details SET listing_type = ?, is_inventory = ?, description = ?, is_student = ?,
         education_requirements = ?, security_check_required = ? WHERE id = ?`,
-      args: [row.listing_type_next, row.description_next, row.is_student_next,
+      args: [row.listing_type_next, row.is_inventory_next, row.description_next, row.is_student_next,
         row.education_requirements_next, row.security_check_required_next, row.id],
     },
     { sql: 'UPDATE jobs SET is_active = ? WHERE id = ?', args: [row.is_active_next, row.id] },

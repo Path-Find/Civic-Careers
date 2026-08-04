@@ -218,6 +218,10 @@ test('classifies a source-labelled recruitment pool as ongoing recruitment', () 
   assert.equal(extractListingType('Pool to be created\nYes\nTemporary: Term', 'Clerical and Administrative Positions'), 'ongoing_recruitment');
 });
 
+test('classifies an explicit future-vacancy inventory separately', () => {
+  assert.equal(extractListingType('When you apply to this selection process, you are not applying for a specific job, but to an inventory for future vacancies.', 'Casual Stable Worker'), 'inventory');
+});
+
 test('does not treat generic lowercase teams as Microsoft Teams', () => {
   const result = extractSoftwareRequirements(`## Qualifications
 - Experience leading internal teams
