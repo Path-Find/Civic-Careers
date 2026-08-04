@@ -27,6 +27,7 @@ const COMPANY_PORTALS: Record<string, string> = {
   'City of Barrie': 'https://www.barrie.ca/government-contact/careers',
   'Brock University': 'https://brocku.wd3.myworkdayjobs.com/brocku_careers',
   'University of Waterloo': 'https://uwaterloo.wd3.myworkdayjobs.com/uw_careers',
+  'York University': 'https://jobs-ca.technomedia.com/yorkuniversity/',
   'University of Ottawa': 'https://uottawa.wd3.myworkdayjobs.com/en-US/uOttawa_External_Career_Site',
   'TTC': 'https://www.ttc.ca/jobs',
   'City of Richmond Hill': 'https://www.richmondhill.ca/en/find-or-learn-about/careers.aspx',

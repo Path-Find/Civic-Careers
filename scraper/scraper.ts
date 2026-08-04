@@ -36,6 +36,7 @@ import { scrapeWorkland } from './engines/workland';
 import { scrapeJibe } from './engines/jibe';
 import { scrapePeopleSoft } from './engines/peoplesoft';
 import { scrapeCSOD } from './engines/csod';
+import { scrapeTechnomedia } from './engines/technomedia';
 
 export { scrapeSuccessFactors, scrapeWorkday, scrapeWaterfront, scrapeConservationHalton, scrapeADP };
 export { urlId, scrapeRawAndStage } from './utils';
@@ -140,6 +141,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'csod', label: 'Mohawk College', run: (db, ctx) => scrapeCSOD(db, ctx, 'https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege', 'Mohawk College') },
   { engine: 'csod', label: 'Durham College', run: (db, ctx) => scrapeCSOD(db, ctx, 'https://durham.csod.com/ux/ats/careersite/4/home?c=durham', 'Durham College') },
   { engine: 'csod', label: 'Ontario Tech University', run: (db, ctx) => scrapeCSOD(db, ctx, 'https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu', 'Ontario Tech University') },
+  { engine: 'technomedia', label: 'York University', run: (db, ctx) => scrapeTechnomedia(db, ctx) },
 
   // 11. Health & Other Agencies
   { engine: 'oracle', label: 'EFHC', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'EFHC') },

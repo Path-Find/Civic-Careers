@@ -113,6 +113,10 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 - **Mississauga** — [Search](https://jobs.mississauga.ca/search/)
 - **TTC** — [Careers](https://career17.sapsf.com/career?company=TTCPRODUCTION&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH)
 
+## Technomedia (1)
+
+- **York University** — [Job Postings](https://jobs-ca.technomedia.com/yorkuniversity/)
+
 ## Taleo (5)
 
 - **City of St. Catharines** — [Careers](https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=COSC&cws=37)

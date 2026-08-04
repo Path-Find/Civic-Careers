@@ -76,6 +76,7 @@ export const COMPANY_TYPES: Record<string, CompanyType[]> = {
   'University of Ottawa': ['higherEducation'],
   'University of Toronto': ['higherEducation'],
   'University of Waterloo': ['higherEducation'],
+  'York University': ['higherEducation'],
   'Algonquin College': ['higherEducation'],
   'Brock University': ['higherEducation'],
   'Carleton University': ['higherEducation'],

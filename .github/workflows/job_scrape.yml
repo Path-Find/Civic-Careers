@@ -32,6 +32,8 @@ on:
           - workland
           - jibe
           - peoplesoft
+          - csod
+          - technomedia
 
 jobs:
   setup:
@@ -42,7 +44,7 @@ jobs:
       - id: set
         run: |
           if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.engine }}" = "all" ] || [ -z "${{ inputs.engine }}" ]; then
-            echo 'engines=["successfactors","workday","njoyn","oracle","dayforce","jobs2web","icims","hrsmart","ultipro","adp","taleo","avanti","bamboohr","talentpoolbuilder","custom","rss","jazzhr","workland","jibe","peoplesoft"]' >> "$GITHUB_OUTPUT"
+            echo 'engines=["successfactors","workday","njoyn","oracle","dayforce","jobs2web","icims","hrsmart","ultipro","adp","taleo","avanti","bamboohr","talentpoolbuilder","custom","rss","jazzhr","workland","jibe","peoplesoft","csod","technomedia"]' >> "$GITHUB_OUTPUT"
           else
             echo 'engines=["${{ inputs.engine }}"]' >> "$GITHUB_OUTPUT"
           fi
