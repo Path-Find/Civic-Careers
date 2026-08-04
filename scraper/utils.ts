@@ -104,7 +104,10 @@ export async function handleRedirections(page: Page, depth = 0): Promise<boolean
 // was slipping through as if it were a real posting, then silently failing
 // AI parsing (no job_title to extract) on every single parse run forever.
 export function looksUnrendered(text: string): boolean {
-  return /skip to main content/i.test(text) && text.length < 400;
+  return (/skip to main content/i.test(text) && text.length < 400)
+    // Technomedia session/expiry dead-end (seen mid-scrape on York University).
+    || /resource you have requested is not available/i.test(text)
+    || /La ressource que vous avez demandée n'est pas disponible/i.test(text);
 }
 
 export async function scrapeRawAndStage(db: Client, context: BrowserContext, job: JobSummary, sourceName: string): Promise<boolean> {

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **York University job board** — Technomedia portal (~400 postings) now scrapes on the regular schedule (was engine-only, never on the production task list).
+- **York University job board** — Technomedia portal (~400 postings) now scrapes on the regular schedule (was engine-only, never on the production task list). First full pull uses list detail links + rate limiting so mid-run “resource not available” dead-ends don’t fill the DB.
 
 ### Fixed
 - **CMHC “About CMHC” employer pitch stripped** (“The work you do… well-functioning housing system” + generic “What’s in it for you” benefits package) so postings open on the role, not the mission statement. Existing CMHC/GC rows cleaned.

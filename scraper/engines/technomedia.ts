@@ -4,6 +4,8 @@ import { scrapeRawAndStage, urlId } from '../utils';
 
 const YORK_U_BASE = 'https://jobs-ca.technomedia.com/yorkuniversity/';
 
+type TechnomediaJob = { id: string; title: string; detailUrl: string };
+
 async function dismissTechnomediaChrome(page: Page) {
   await page.evaluate(() => {
     const modal = document.getElementById('modalCookiesDisclaimer');
@@ -38,26 +40,39 @@ async function openJobList(page: Page, listUrl: string) {
   await page.waitForTimeout(1500);
 }
 
-function collectJobsFromList(page: Page): Promise<{ id: string; title: string }[]> {
-  return page.evaluate(() => {
+function collectJobsFromList(page: Page): Promise<TechnomediaJob[]> {
+  return page.evaluate((base) => {
     const seen = new Set<string>();
-    const jobs: { id: string; title: string }[] = [];
+    const jobs: TechnomediaJob[] = [];
+
+    const absolutize = (href: string): string => {
+      try {
+        return new URL(href, base).toString();
+      } catch {
+        return `${base.replace(/\/?$/, '/')}${href.replace(/^\//, '')}`;
+      }
+    };
 
     const rows = document.querySelectorAll('#CTG_JOB_LIST tbody tr, tr.tblStripingEven, tr.tblStripingOdd');
     for (const row of rows) {
       const link = row.querySelector('a.relink[href*="offerid="]') as HTMLAnchorElement | null;
       if (!link) continue;
-      const match = link.getAttribute('href')?.match(/offerid=(\d+)/i)
+      const href = link.getAttribute('href') || '';
+      const match = href.match(/offerid=(\d+)/i)
         || link.getAttribute('onclick')?.match(/detailOffre\((\d+)\)/);
       if (!match || seen.has(match[1])) continue;
       seen.add(match[1]);
 
       const titleLinks = [...row.querySelectorAll('a.relink')].map((a) => a.textContent?.trim() || '').filter(Boolean);
-      // First relink is usually posting number; second is job title.
       const title = (titleLinks.find((t) => !/^\d+$/.test(t)) || titleLinks[0] || `Posting ${match[1]}`)
         .replace(/&amp;/g, '&')
         .trim();
-      jobs.push({ id: match[1], title });
+      // Prefer the list's own detail href (includes Technomedia state blob).
+      // Bare ?offerid= works sometimes but dies mid-run with "resource not available".
+      const detailUrl = href.includes('offerid=')
+        ? absolutize(href)
+        : absolutize(`?offerid=${match[1]}`);
+      jobs.push({ id: match[1], title, detailUrl });
     }
 
     // Homepage carousel fallback (featured jobs only).
@@ -70,20 +85,24 @@ function collectJobsFromList(page: Page): Promise<{ id: string; title: string }[
         const title = card.querySelector('.jobName')?.textContent?.trim()
           || card.querySelector('span[title]')?.getAttribute('title')
           || `Posting ${match[1]}`;
-        jobs.push({ id: match[1], title });
+        jobs.push({
+          id: match[1],
+          title,
+          detailUrl: absolutize(`?offerid=${match[1]}`),
+        });
       }
     }
 
     return jobs;
-  });
+  }, YORK_U_BASE);
 }
 
-async function loadMoreJobPages(page: Page, sourceName: string): Promise<{ id: string; title: string }[]> {
-  const all = new Map<string, string>();
+async function loadMoreJobPages(page: Page, sourceName: string): Promise<TechnomediaJob[]> {
+  const all = new Map<string, TechnomediaJob>();
 
   const absorb = async () => {
     for (const job of await collectJobsFromList(page)) {
-      if (!all.has(job.id)) all.set(job.id, job.title);
+      if (!all.has(job.id)) all.set(job.id, job);
     }
   };
 
@@ -95,7 +114,6 @@ async function loadMoreJobPages(page: Page, sourceName: string): Promise<{ id: s
     if (!visible) break;
 
     const before = all.size;
-    // Prefer the site's own loader (replaces tbody with the next 50 rows).
     await page.evaluate(() => {
       const fn = (window as unknown as { loadJobResultContent?: () => void }).loadJobResultContent;
       if (typeof fn === 'function') fn();
@@ -103,7 +121,6 @@ async function loadMoreJobPages(page: Page, sourceName: string): Promise<{ id: s
       await loadMore.click({ force: true });
     });
 
-    // Wait until tbody content changes or we pick up new IDs.
     let grew = false;
     for (let attempt = 0; attempt < 20; attempt++) {
       await page.waitForTimeout(500);
@@ -118,7 +135,6 @@ async function loadMoreJobPages(page: Page, sourceName: string): Promise<{ id: s
     console.log(`[${sourceName}] After load-more page ${pageNum}: ${all.size} unique postings`);
     if (!grew) break;
 
-    // Site hides #loadMoreJob once remaining rows fit the last page (50/page).
     const remainingHidden = await page.evaluate(() => {
       const total = Number((document.getElementById('hidNbJob') as HTMLInputElement | null)?.value || 0);
       const next = (window as unknown as { iNextPage?: number }).iNextPage;
@@ -131,15 +147,7 @@ async function loadMoreJobPages(page: Page, sourceName: string): Promise<{ id: s
     }
   }
 
-  return [...all.entries()].map(([id, title]) => ({ id, title }));
-}
-
-function detailUrl(baseUrl: string, offerId: string): string {
-  const url = new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
-  // Drop Technomedia's opaque state blob so offerid is the only query param.
-  url.search = '';
-  url.searchParams.set('offerid', offerId);
-  return url.toString();
+  return [...all.values()];
 }
 
 export async function scrapeTechnomedia(
@@ -155,14 +163,16 @@ export async function scrapeTechnomedia(
     const jobs = await loadMoreJobPages(page, sourceName);
     console.log(`[${sourceName}] Found ${jobs.length} postings.`);
 
-    const base = url.includes('technomedia.com') ? url.split('?')[0] : YORK_U_BASE;
     for (const job of jobs) {
-      const jobUrl = detailUrl(base, job.id);
+      // Stable id by offer number so list-state query blobs don't fork rows.
+      const stableUrl = `${YORK_U_BASE}?offerid=${job.id}`;
       await scrapeRawAndStage(db, context, {
-        id: urlId(jobUrl),
-        url: jobUrl,
+        id: urlId(stableUrl),
+        url: job.detailUrl,
         title: job.title,
       }, sourceName);
+      // Technomedia starts returning "resource not available" under rapid fire.
+      await page.waitForTimeout(400);
     }
   } finally {
     await page.close();
