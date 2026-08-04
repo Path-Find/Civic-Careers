@@ -72,14 +72,34 @@ The House of Commons offers 16-week, full-time, temporary, on-site co-op placeme
   },
   '2393494': {
     applicationUrl: 'https://rcmp.ca/en/bc/careers/9-1-1-police-dispatchers/application-process',
-    // Prior override was built from the RCMP site's "application process" page,
-    // which has no job content — no salary, no duties, no qualifications, just
-    // eligibility notes and how-to-apply steps. Neither belongs in a job
-    // description (the radius/Surrey note has no structured field to live in,
-    // and the application steps aren't part of the job itself), so the
-    // description is empty until it's rebuilt from the site's actual job pages
-    // (/what-we-do, /compensation) with real duties and pay.
-    description: '',
+    // Rebuilt from the site's actual job-content pages — /what-we-do/roles
+    // (duties) and /compensation (pay/benefits) — rather than the
+    // application-process page the prior override was built from.
+    description: `## Overview
+The BC RCMP recruits 9-1-1 Police Dispatchers on an ongoing basis for its dispatch centres in British Columbia. This is a standing recruitment program rather than a single vacancy. Applicants must live within 500 km of Courtenay, Kelowna, Surrey or Prince George; Surrey is temporarily not accepting applications while the 2026 recruiting goal is met.
+
+## Responsibilities
+- Answer emergency and non-emergency calls from the public, gathering location, incident details, timing, and descriptions of people and vehicles involved
+- Direct and coordinate police officers responding to calls, relaying accurate, timely information to keep officers and the public safe
+- Track and call in available resources such as K9 units, air services, and negotiators
+- Monitor multiple radio and communication systems by headset across day, evening, night, weekend and holiday shifts
+
+## Qualifications
+- Live within 500 km of Courtenay, Kelowna, Surrey or Prince George, BC
+- Able to work shift schedules, including nights, weekends and holidays
+- Normal color vision, or medical confirmation of visual acuity (Snellen format) if corrected or color blind
+- Pass a comprehensive security investigation and medical assessment
+
+## Nice to Have
+- Strong ability to work under pressure and think or respond quickly in high-stress situations
+- Comfort adapting to a team-based, shift-work environment
+
+## Compensation & Benefits
+- Starting salary during the nine-month training program: $65,714/year, rising to $72,282/year on completion
+- Five annual pay increments after training, reaching $87,946/year after five years of service
+- Shift premium of $2.25/hour for hours worked 4pm-8am, plus an additional $2.25/hour for weekend hours
+- Statutory holidays paid at time and a half
+- Extended health and dental coverage after 3 months, 85% employer-paid disability insurance, 50% employer-paid pension, three weeks vacation, parental leave at 93% of weekly pay`,
     securityCheckRequired: 1,
   },
   '2393495': {
