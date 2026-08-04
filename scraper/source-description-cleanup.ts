@@ -54,6 +54,13 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
     { name: 'tdsb-work-year-duration-restatement', pattern: /\d{1,2}[ \t-]*months?\s+work\s+year[.,]?[ \t]*/gi, mode: 'inline' },
     { name: 'tdsb-work-year-duration-restatement-labeled', pattern: /Work\s+Year:?[ \t]*\d{1,2}[ \t]*[Mm]onths?[.,]?[ \t]*/g, mode: 'inline' },
     { name: 'tdsb-work-model-eligible-restatement', pattern: /[ \t]*,?[ \t]*(?:Hybrid|Remote|On-site|Onsite)\s+[Ww]ork\s+[Ee]ligible[.,]?[ \t]*/gi, mode: 'inline' },
+    // "Salary: $X - $Y per year" duplicates salary_min/max/salary_range.
+    // Stops right after "per year" (never consumes a trailing parenthetical
+    // like "(Schedule II, Level 7)", which is genuinely new pay-grade info
+    // with no structured field). Only matches a hyphenated range, so single
+    // figures ("$227,378 per year") and "per annum" pay-table rows are
+    // untouched — verified those aren't duplicates worth stripping the same way.
+    { name: 'tdsb-salary-range-restatement', pattern: /(?:Salary:\s*)?\$[\d,]+(?:\.\d+)?\s*-\s*\$[\d,]+(?:\.\d+)?\s*per\s+year\.?[ \t]*/gi, mode: 'inline' },
   ],
   'Government of Canada': [
     { name: 'selection-thank-you-footer', pattern: /^(?:We wish to thank all applicants|We'd like to thank all those who apply)\.[\s\S]*$/i },
