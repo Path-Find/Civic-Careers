@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **More real posted dates pulled from source text** — Opening Date / Date Published / day-first and ordinal forms (`9 February 2026`, `July 9th, 2026`, `26/06/2026`) now fill empty `posted_at` fields; corpus re-scanned.
-- **Wordy professional licences collapsed to short labels** (e.g. “registration as Registered Nurse (RN) with the College of Nurses of Ontario” → `RN (CNO)`; bare “registration with the College of Nurses of Ontario” → `CNO`; P.Eng./PEO too). Stored rows rewritten; the job detail UI also compacts on display so old values can’t reappear.
+- **Wordy licence text collapsed to short labels** — professional registrations (`RN (CNO)`, `P.Eng. (PEO)`) and driver licences (`Ontario Class G`, `Class DZ`, `Ontario Class C with Z endorsement (able to obtain)` instead of multi-sentence “must have / corporate standard / demerit points” walls). Stored rows rewritten; the job detail UI also compacts on display.
 - **Department names no longer shout in ALL CAPS** (e.g. City of Brampton · `LEGISLATIVE SERVICES` → Legislative Services). Title-cased on display and on parse; short codes like EECS/CMHC stay uppercase.
 - **Language requirements were a mess of federal jargon** (`English Essential`, `Bilingual (English/French, CBC/CBC)`, PSC levels). They now store plain labels only — `English`, `French`, `Bilingual`, or other named languages — and the existing corpus was rewritten to match.
 - **Language proficiency kept showing up under Skills** (`French language proficiency`, bare `English`/`French`, bilingualism). Those tokens are stripped from skills, merged into Languages when useful, and 289 existing rows were cleaned.

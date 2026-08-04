@@ -29,9 +29,8 @@ export function formatStartDate(value: string | null | undefined): string | null
 }
 
 /**
- * Compact wordy professional-registration labels for display.
- * Mirrors scraper normalizeLicenseRequirement for the common CNO / P.Eng cases
- * so stale or re-parsed rows never shout the full “registration with the College…” prose.
+ * Compact wordy licence labels for display (CNO / P.Eng / driver classes).
+ * Keeps the detail UI short even when stored rows still carry source prose.
  */
 export function compactLicenseLabel(value: string): string {
   const s = value.replace(/\s+/g, ' ').trim();
@@ -41,6 +40,47 @@ export function compactLicenseLabel(value: string): string {
   if (/\bregistered as a (?:full[- ]time|part[- ]time)?\s*student\b/i.test(s)
     || /\b(?:full[- ]time|part[- ]time)\s+(?:secondary|post[- ]secondary)\s+student\b/i.test(s)) {
     return '';
+  }
+
+  // Already compact driver labels.
+  if (/^(?:(?:Ontario|BC|Alberta|Manitoba|Saskatchewan|Nova Scotia)\s+)?(?:Class\s+[A-Z0-9/]+|Driver'?s licence)\b/i.test(s)
+    || /^DND 404 driver'?s licence\b/i.test(s)) {
+    return s;
+  }
+
+  // Driver licences → "Ontario Class G", "Class DZ", etc.
+  if (/\bdriver.?s?\s+licen[cs]e\b|\bclass\s*[\u201c\u201d"'‘’]?[a-z0-9]{1,3}\b|\bendorsement\b|\bDND\s*404\b/i.test(s)
+    && !/\b(?:aircraft|nurse|p\.?\s*eng|professional engineer|college of)\b/i.test(s)) {
+    const isValidClass = (code: string) => /^(?:G[12]?|[A-F]|[1-6]|AZ|BZ|CZ|DZ|EZ|FZ|MZ)$/i.test(code);
+    const classes: string[] = [];
+    for (const m of s.matchAll(/\bclass\s*[\u201c\u201d"'‘’]?([A-Za-z0-9]{1,3})[\u201c\u201d"'‘’]?/gi)) {
+      if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
+    }
+    const hasZ = /\b[\u201c\u201d"'‘’]?Z[\u201c\u201d"'‘’]?\s*endorsement|\bendorsement\s*[\u201c\u201d"'‘’]?Z/i.test(s);
+    let unique = [...new Set(classes)];
+    if (unique.includes('D') && hasZ && !unique.some(c => c.includes('Z'))) {
+      unique = unique.map(c => (c === 'D' ? 'DZ' : c));
+    }
+    let province = '';
+    if (/\bontario\b|\bMTO\b/i.test(s)) province = 'Ontario';
+    else if (/\bBC\b|british columbia/i.test(s)) province = 'BC';
+    else if (/\balberta\b/i.test(s)) province = 'Alberta';
+    else if (/\bmanitoba\b/i.test(s)) province = 'Manitoba';
+    else if (/\bsaskatchewan\b/i.test(s)) province = 'Saskatchewan';
+    else if (/\bnova scotia\b/i.test(s)) province = 'Nova Scotia';
+    const able = /\b(?:ability|able|willing)\s+to\s+obtain\b|\bobtain and maintain\b/i.test(s)
+      && !/\bmust\s+have\s+a\s+valid\b/i.test(s.slice(0, 40));
+    if (/\bDND\s*404\b/i.test(s)) return able ? "DND 404 driver's licence (able to obtain)" : "DND 404 driver's licence";
+    if (unique.length) {
+      let out = province ? `${province} Class ${unique.join('/')}` : `Class ${unique.join('/')}`;
+      if (hasZ && !unique.some(c => /Z/i.test(c))) out += ' with Z endorsement';
+      if (able) out += ' (able to obtain)';
+      return out;
+    }
+    if (/\bdriver.?s?\s+licen[cs]e\b/i.test(s)) {
+      const base = province ? `${province} driver's licence` : "Driver's licence";
+      return able ? `${base} (able to obtain)` : base;
+    }
   }
 
   const eligible = /\beligib(?:le|ility)\b/i.test(s) ? ' or eligible' : '';

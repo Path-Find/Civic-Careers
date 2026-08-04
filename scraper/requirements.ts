@@ -482,20 +482,195 @@ function formatProfessionalLicense(role: string | null, body: string | null, eli
   return core;
 }
 
+/** True when the text is primarily a driver's / vehicle licence requirement. */
+function looksLikeDriverLicense(text: string): boolean {
+  if (/\b(?:aircraft maintenance|ame\b|professional engineer|p\.?\s*eng|nurse|wastewater|pesticide|software\s+licen|certificate of qualification|college of nurses)\b/i.test(text)
+    && !/\bdriver/i.test(text)) {
+    return false;
+  }
+  return /\bdriver.?s?\s+licen[cs]e\b|\bclass\s*[\u201c\u201d"'‘’]?[a-z0-9]{1,3}[\u201c\u201d"'‘’]?\b|\b[a-z0-9]{1,3}-class\b|\bendorsement\b|\bDND\s*404\b|\bG2\b|\bDZ\b|\bAZ\b|\bCZ\b/i.test(text);
+}
+
 /**
- * Collapse wordy professional-registration prose into a short credential label.
+ * Collapse wordy driver-licence prose to a short label.
+ * e.g. 'Must have a valid Ontario Class "G" driver’s licence and meet the corporate standard…'
+ *   → "Ontario Class G"
+ */
+export function compactDriverLicense(value: string): string | null {
+  if (!value || !looksLikeDriverLicense(value)) return null;
+
+  let s = value.replace(/\s+/g, ' ').trim();
+
+  // Isolate the licence clause from multi-requirement walls.
+  s = s
+    .replace(/[;,]?\s*physical ability to perform.*$/i, '')
+    .replace(/[;,]?\s*demonstrated ability to (?:communicate|lead).*$/i, '')
+    .replace(/[;,]?\s*Benefits include.*$/i, '')
+    .replace(/[;,]?\s*Health Canada Medical.*$/i, '')
+    .replace(/[;,]?\s*proficient in Microsoft.*$/i, '')
+    .replace(/[;,]?\s*good interpersonal skills.*$/i, '')
+    .replace(/[;,]?\s*Well-developed human relations.*$/i, '')
+    .replace(/[;,]?\s*This is a unionized position.*$/i, '')
+    .replace(/\s+and (?:will be )?required to (?:use|provide|pass|have access).*$/i, '')
+    .replace(/\s+(?:and|,)\s*(?:have )?access to (?:a )?(?:reliable )?(?:vehicle|transportation|personal vehicle).*$/i, '')
+    .replace(/\s+(?:and|,)\s*insurance for \$?[\d,]+.*$/i, '')
+    .replace(/\s+(?:and|,)\s*(?:use of )?(?:own|a reliable) vehicle.*$/i, '')
+    .replace(/\s+would be required to complete travel.*$/i, '')
+    .replace(/\s+are required for travel\b.*$/i, '')
+    .replace(/\s+Note:.*$/i, '')
+    .replace(/\s+The successful (?:applicant|candidate).*$/i, '')
+    .replace(/\s+Applicants with \d+ or more points.*$/i, '')
+    .replace(/\s+new hires must provide.*$/i, '')
+    .replace(/\s+Provision of a driver.?s? abstract.*$/i, '')
+    .replace(/\s+and (?:you )?must provide a (?:current )?(?:satisfactory )?driver.?s? abstract.*$/i, '')
+    .replace(/\s+with (?:a )?(?:satisfactory|acceptable|clean|good) (?:driver.?s?\s+)?(?:abstract|driving record|record).*$/i, '')
+    .replace(/\s+with no more than \d+ demerit.*$/i, '')
+    .replace(/\s+free of serious offences.*$/i, '')
+    .replace(/\s+and meet(?:s)? (?:the )?corporate standard.*$/i, '')
+    .replace(/\s+and must meet corporate standard.*$/i, '')
+    .replace(/\s+must meet corporate standard.*$/i, '')
+    .replace(/\s+meet the definition of a competent driver.*$/i, '')
+    .replace(/\s+in accordance with the Highway Traffic Act.*$/i, '')
+    .replace(/\s+and an abstract clear of demerit.*$/i, '')
+    .replace(/\s+and\/or a record found to be satisfactory.*$/i, '')
+    .replace(/\s*\(mileage compensated\).*$/i, '')
+    .replace(/\s*\(6\+ points disqualifies\).*$/i, '')
+    .replace(/\s*with a driving record that demonstrates.*$/i, '')
+    .replace(/\s*with a driving record demonstrating.*$/i, '')
+    .trim();
+
+  if (/\bDND\s*404\b/i.test(s)) {
+    return /\bability to obtain|able to obtain|willing|eligibility/i.test(value)
+      ? "DND 404 driver's licence (able to obtain)"
+      : "DND 404 driver's licence";
+  }
+
+  // Travel-if-driving boilerplate with no specific class.
+  if (/\bability to travel to off[- ]?site\b/i.test(value) && /\bif method of travel is by vehicle\b/i.test(value)) {
+    return "Driver's licence";
+  }
+
+  // Real licence class codes only — not "class vehicle", "passenger-class", etc.
+  const isValidClass = (code: string): boolean =>
+    /^(?:G[12]?|[A-F]|[1-6]|AZ|BZ|CZ|DZ|EZ|FZ|MZ)$/i.test(code);
+
+  const classes: string[] = [];
+  for (const m of s.matchAll(/\bclass\s*[\u201c\u201d"'‘’]?([A-Za-z0-9]{1,3})[\u201c\u201d"'‘’]?/gi)) {
+    if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
+  }
+  for (const m of s.matchAll(/\b([A-Za-z0-9]{1,3})-class\b/gi)) {
+    if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
+  }
+  // "G class driver's licence" / "5 class" — not the article in "a Class G".
+  for (const m of s.matchAll(/\b([A-Za-z0-9]{1,3})\s+class\b/gi)) {
+    if (/^(?:a|an|the|this|that|any|our|your|no|one)$/i.test(m[1])) continue;
+    if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
+  }
+  for (const m of s.matchAll(/\(\s*class\s*([A-Za-z0-9]{1,3})\s*\)/gi)) {
+    if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
+  }
+  // Bare quoted class next to licence wording (not endorsement alone).
+  for (const m of s.matchAll(/[\u201c\u201d"'‘’]([A-Za-z0-9]{1,3})[\u201c\u201d"'‘’]\s*(?:driver|licen|class)\b/gi)) {
+    if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
+  }
+  // "Ontario G driver's licence" / "valid G driver's licence" — not the article "a driver".
+  for (const m of s.matchAll(/\b([BCDEFG][12]?|DZ|AZ|CZ|BZ|[1-6])\s+driver/gi)) {
+    if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
+  }
+
+  const endorsements: string[] = [];
+  if (/\b[\u201c\u201d"'‘’]?Z[\u201c\u201d"'‘’]?\s*endorsement|\bendorsement\s*[\u201c\u201d"'‘’]?Z[\u201c\u201d"'‘’]?/i.test(s)) {
+    endorsements.push('Z');
+  }
+  if (/\bair[- ]?brake/i.test(s)) endorsements.push('air brake');
+
+  let province = '';
+  if (/\bontario\b|\bMTO\b|province of ontario/i.test(s)) province = 'Ontario';
+  else if (/\bbritish columbia\b|\bBC\b(?!\s*Class)/i.test(s) || /\bClass\s+\d+\s+BC\b/i.test(s) || /\bBC\s+Driver/i.test(s) || /\bBC Class\b/i.test(s)) province = 'BC';
+  else if (/\balberta\b/i.test(s)) province = 'Alberta';
+  else if (/\bmanitoba\b/i.test(s)) province = 'Manitoba';
+  else if (/\bsaskatchewan\b/i.test(s)) province = 'Saskatchewan';
+  else if (/\bnova scotia\b/i.test(s)) province = 'Nova Scotia';
+
+  // Fold D + Z endorsement → DZ (standard Ontario air-brake combo class label).
+  // Drop bare "A" when it co-occurs with another class — almost always the article in
+  // "a Class G" / "and an abstract", not Ontario Class A (rare; usually written "Class A").
+  let unique = [...new Set(classes.filter(Boolean))];
+  if (unique.includes('A') && unique.some(c => c !== 'A')) {
+    unique = unique.filter(c => c !== 'A');
+  }
+  if (unique.includes('D') && endorsements.includes('Z') && !unique.some(c => c.includes('Z'))) {
+    unique = unique.map(c => (c === 'D' ? 'DZ' : c));
+  }
+  // C + Z stays "C with Z endorsement" (not always a formal CZ class).
+  const zAbsorbed = unique.some(c => /Z/i.test(c));
+  const remainingEnd = endorsements.filter(e => !(e === 'Z' && zAbsorbed));
+
+  const ableToObtain = /\b(?:ability|able|willing(?:ness)?)\s+to\s+obtain\b|\beligibility and willingness to obtain\b|\bobtain and maintain\b/i.test(value)
+    && !/\b(?:must|currently)\s+have\s+a\s+valid\b/i.test(value.slice(0, 80));
+  // "ability to obtain Class C" while also "must have Class G" is multi-clause — handled by split.
+  const pureObtain = /\b(?:ability|able|willing(?:ness)?)\s+to\s+obtain\b|\bobtain and maintain\b/i.test(s);
+
+  if (unique.length === 0) {
+    if (!/\bdriver.?s?\s+licen[cs]e\b/i.test(s)) return null;
+    const base = province ? `${province} driver's licence` : "Driver's licence";
+    if (/\bor (?:other )?provincial(?:\/territorial)? equivalen/i.test(value)) {
+      return pureObtain ? `${base} or equivalent (able to obtain)` : `${base} or equivalent`;
+    }
+    return pureObtain || ableToObtain ? `${base} (able to obtain)` : base;
+  }
+
+  const classLabel = unique.join('/');
+  let out = province ? `${province} Class ${classLabel}` : `Class ${classLabel}`;
+  if (remainingEnd.includes('Z') && !/Z/i.test(classLabel)) {
+    out += ' with Z endorsement';
+  } else if (remainingEnd.filter(e => e !== 'Z').length) {
+    out += ` with ${remainingEnd.filter(e => e !== 'Z').join(' & ')} endorsement`;
+  } else if (remainingEnd.includes('air brake')) {
+    out += ' with air brake endorsement';
+  }
+
+  if (/\bor (?:other )?provincial(?:\/territorial)? equivalen|\bor equivalent\b/i.test(value)) {
+    out += ' or equivalent';
+  }
+  if (pureObtain || (ableToObtain && /\bobtain\b/i.test(s))) {
+    out += ' (able to obtain)';
+  }
+  return out;
+}
+
+/** Split multi-licence walls into separate clauses before compacting. */
+function splitLicenseClauses(value: string): string[] {
+  const parts = value
+    .split(/(?<=[.!?])\s+(?=Must\b)|;\s+(?=Must\b)|\.\s*(?=Must have the ability)|\band must have the ability to\b/i)
+    .map(part => part.trim().replace(/^and\s+/i, ''))
+    .filter(part => part.length > 8);
+  return parts.length > 1 ? parts : [value];
+}
+
+/**
+ * Collapse wordy professional-registration / driver-licence prose into a short label.
  * e.g. "registration as Registered Nurse (RN) with the College of Nurses of Ontario"
  *   → "RN (CNO)"
+ * e.g. 'Must have a valid Ontario Class "G" driver’s licence and meet corporate standard…'
+ *   → "Ontario Class G"
  */
 export function normalizeLicenseRequirement(value: string): string {
   if (!value) return '';
-  // Already compact (e.g. "RN (CNO)", "P.Eng. (PEO)", "CNO") — leave alone.
-  // Already compact (e.g. "RN (CNO)", "P.Eng. (PEO)", "CNO") — leave alone.
+  // Already compact (e.g. "RN (CNO)", "P.Eng. (PEO)", "Ontario Class G") — leave alone.
   const compactProbe = value.trim().replace(/[;]+$/g, '').replace(/\bP\.?\s*Eng\.*/gi, 'P.Eng.');
   if (/^(?:RN|RPN|LPN|RN-EC|P\.Eng\.|EIT|CET|RPP|CPA|MLT)(?:\s*\([A-Za-z0-9./-]+\))?(?:\s+or eligible)?$/i.test(compactProbe)
     || /^(?:CNO|CRNA|CRNS|PEO|EGBC|CPSO|CASLPO|CPBAO|CRPO|CECE|CDO|OACETT|OPPI)(?:\s+or eligible)?$/i.test(compactProbe)
-    || /^(?:CET \(OACETT\) or P\.Eng\. \(PEO\))(?: or eligible)?$/i.test(compactProbe)) {
+    || /^(?:CET \(OACETT\) or P\.Eng\. \(PEO\))(?: or eligible)?$/i.test(compactProbe)
+    || /^(?:(?:Ontario|BC|Alberta|Manitoba|Saskatchewan|Nova Scotia)\s+)?(?:Class\s+[A-Z0-9/]+(?:\s+with\s+[\w\s]+ endorsement)?|Driver'?s licence)(?:\s+or equivalent)?(?:\s+\(able to obtain\))?$/i.test(compactProbe)
+    || /^DND 404 driver'?s licence(?:\s+\(able to obtain\))?$/i.test(compactProbe)) {
     return compactProbe;
+  }
+
+  // Multi-clause driver walls → first clause only here; list normalizer expands the rest.
+  if (looksLikeDriverLicense(value) && splitLicenseClauses(value).length === 1) {
+    const driver = compactDriverLicense(value);
+    if (driver) return driver;
   }
 
   let s = cleanLicenseRequirement(value);
@@ -524,6 +699,12 @@ export function normalizeLicenseRequirement(value: string): string {
     .replace(/\s*\(must attain designation to teach in the program\)\s*$/i, '')
     .replace(/\s+or actively involved with the graduate studies.*$/i, '')
     .trim();
+
+  // Prefer compact driver form whenever this clause is driver-shaped.
+  if (looksLikeDriverLicense(s)) {
+    const driver = compactDriverLicense(s);
+    if (driver) return driver;
+  }
 
   const looksProfessional = /\b(?:registration|registered|college of|professional engineer|p\.?\s*eng|membership with|designation|licen[cs]e to practi[cs]e|certificate of registration|regulatory|oacett|law society|early childhood educator|psycholog|dietitian|audiolog|social worker|nurse|architect)\b/i.test(s);
   const isDriverHeavy = /\bdriver/i.test(s) && !/\b(?:nurse|engineer|college of|p\.?\s*eng|oacett|psycholog|dietitian|lawyer|law society|early childhood|architect|accountant|cpa)\b/i.test(s);
@@ -577,16 +758,20 @@ export function normalizeLicenseRequirement(value: string): string {
     }
   }
 
-  // Driver / other licences: keep wording; only drop "in good standing" fluff.
+  // Non-driver leftovers: light fluff strip only.
   s = s
     .replace(/\s+in good standing\b/gi, '')
-    .replace(/\s+and (?:you )?must provide a current satisfactory current driver.?s? abstract.*$/i, '')
     .replace(/(?<!P\.Eng)[;,.]+$/i, '')
     .replace(/[;,]+\s*$/i, '')
     .replace(/\s+/g, ' ')
     .trim();
 
   if (!s || s.length < 3) return cleanLicenseRequirement(value);
+  // Last chance driver compact after light clean.
+  if (looksLikeDriverLicense(s)) {
+    const driver = compactDriverLicense(s);
+    if (driver) return driver;
+  }
   return s;
 }
 
@@ -597,6 +782,9 @@ function isAcceptableNormalizedLicense(value: string): boolean {
   // Short body/role-only labels after compaction (e.g. "CNO", "P.Eng.").
   if (/^(?:CNO|CRNA|CRNS|PEO|EGBC|EGM|CPSO|CASLPO|CPBAO|CRPO|CECE|CDO|OACETT|OPPI|CIPHI|CSMLS|HSCPOA|MMAH|CPA|RPP|EIT|CET|MLT|P\.Eng\.?|RN|RPN|LPN|RN-EC)$/i.test(value)) return true;
   if (/^(?:RN|RPN|LPN|RN-EC|P\.Eng\.?|EIT|CET|RPP|CPA|MLT|Landscape Architect)\s*\(/i.test(value)) return true;
+  // Compacted driver labels: "Ontario Class G", "Class 5 or equivalent", "Driver's licence"
+  if (/^(?:(?:Ontario|BC|Alberta|Manitoba|Saskatchewan|Nova Scotia)\s+)?(?:Class\s+[A-Z0-9/]+|Driver'?s licence)\b/i.test(value)) return true;
+  if (/^DND 404 driver'?s licence\b/i.test(value)) return true;
   // Trade tickets: "Metal Fabricator (437A)", "Industrial Electrician (442-A)", "Certificate of Qualification (437A)"
   if (/\([0-9A-Z-]{2,}\)\s*$/.test(value) && value.length <= 80) return true;
   if (/^certificate of qualification\b/i.test(value)) return true;
@@ -608,12 +796,16 @@ export function normalizeLicenseRequirements(value: unknown): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const item of toStringList(value)) {
-    const cleaned = normalizeLicenseRequirement(item);
-    if (!isAcceptableNormalizedLicense(cleaned)) continue;
-    const key = normalizedRequirement(cleaned);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    out.push(cleaned);
+    // Expand multi-clause walls ("Must have Class G. Must obtain Class C…") into separate labels.
+    const clauses = looksLikeDriverLicense(item) ? splitLicenseClauses(item) : [item];
+    for (const clause of clauses) {
+      const cleaned = normalizeLicenseRequirement(clause);
+      if (!isAcceptableNormalizedLicense(cleaned)) continue;
+      const key = normalizedRequirement(cleaned);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(cleaned);
+    }
   }
   return out;
 }

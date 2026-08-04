@@ -185,6 +185,28 @@ test('compacts wordy professional registration licences', () => {
   );
 });
 
+test('compacts wordy driver licence requirements', () => {
+  assert.deepEqual(
+    extractLicenseRequirements(`## Qualifications
+- Must have a valid Ontario Class “G” driver’s licence and meet the corporate standard for a good driving record
+- Must have the ability to obtain and maintain Ontario Class “C” driver’s licence and “Z” endorsement
+`),
+    ['Ontario Class G', 'Ontario Class C with Z endorsement (able to obtain)'],
+  );
+  assert.deepEqual(
+    extractLicenseRequirements(`## Qualifications
+- Valid Ontario Class G Driver's Licence with clean driving record
+`),
+    ['Ontario Class G'],
+  );
+  assert.deepEqual(
+    extractLicenseRequirements(`## Qualifications
+- Must possess a Class "D" Licence with a "Z" endorsement and an abstract clear of demerit points
+`),
+    ['Class DZ'],
+  );
+});
+
 test('does not treat student registration as a professional licence', () => {
   assert.deepEqual(extractLicenseRequirements('Registration as a full-time student in a post-secondary accredited academic institution is required.'), []);
 });
@@ -192,7 +214,7 @@ test('does not treat student registration as a professional licence', () => {
 test('extracts quoted class driver licences and skips nice-to-have licences', () => {
   assert.deepEqual(extractLicenseRequirements(`## Qualifications
 - Must have valid class “C” driver’s license to operate a trolley. Previous demonstrated experience as a bus driver is an asset.
-`), ['Must have valid class “C” driver’s license to operate a trolley']);
+`), ['Class C']);
   assert.deepEqual(extractLicenseRequirements(`## Qualifications
 - College diploma
 
@@ -209,7 +231,8 @@ test('extracts driver licences from conditions-of-employment walls', () => {
 COE3: Must possess and maintain a valid, non-graduated, and unrestricted provincial or territorial Class 5 driver's license.
 COE4: Current and acceptable driver’s abstract
 `);
-  assert.ok(licenses.some(value => /class\s*5/i.test(value) && /driver/i.test(value)));
+  assert.ok(licenses.some(value => /class\s*5/i.test(value)));
+  assert.deepEqual(licenses.filter(v => /class\s*5/i.test(v)), ['Class 5']);
 });
 
 test('strips qualification bullets that restate structured licences', () => {
@@ -282,7 +305,7 @@ test('drops obvious stale overview and software-licence values during reconcilia
     required_skills: [],
   });
   assert.deepEqual(result.education_requirements, []);
-  assert.deepEqual(result.license_requirements, ["Must possess a valid Class G driver's licence"]);
+  assert.deepEqual(result.license_requirements, ['Class G']);
 });
 
 test('extracts required licences and excludes optional licences', () => {
@@ -293,7 +316,7 @@ test('extracts required licences and excludes optional licences', () => {
 ## Nice to Have
 - A DZ licence is an asset
 `), [
-    "Valid Class 'G' Ontario Driver's License with no more than six demerit points",
+    'Ontario Class G',
     'P.Eng. (Ontario)',
   ]);
 });
@@ -301,7 +324,7 @@ test('extracts required licences and excludes optional licences', () => {
 test('keeps travel and overtime out of a driver licence requirement', () => {
   assert.deepEqual(extractLicenseRequirements(`## Qualifications
 Possession of a valid driver’s licence that authorizes the holder to independently operate a passenger-class vehicle.- Travel: sometimes on short notice.- Overtime: including evenings and weekends.
-`), ["valid driver’s licence that authorizes the holder to independently operate a passenger-class vehicle"]);
+`), ["Driver's licence"]);
 });
 
 test('does not turn licence mentions in duties into licence requirements', () => {
@@ -326,7 +349,7 @@ test('moves named benefits out of skills only when the source puts them in benef
     required_skills: ['OMERS', "Class G driver's licence", 'Microsoft Office'],
   });
   assert.deepEqual(result.education_requirements, ["Bachelor's degree in communications"]);
-  assert.deepEqual(result.license_requirements, ["Valid Class G driver's licence"]);
+  assert.deepEqual(result.license_requirements, ['Class G']);
   assert.deepEqual(result.benefits, ['pension', 'OMERS']);
   assert.deepEqual(result.required_skills, ['Microsoft Office']);
   assert.deepEqual(extractNamedBenefits('## Qualifications\n- Administer OMERS pension plans\n'), []);
