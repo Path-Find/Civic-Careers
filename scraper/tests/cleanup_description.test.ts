@@ -105,6 +105,16 @@ Salary range: $140,764.00 - $198,828.00 per year.`, 'Senior Manager');
   assert.ok(!result.includes('Compensation'));
 });
 
+test('drops annual salary plus generic federal benefits package restatement', () => {
+  const result = cleanJobDescription(`## Qualifications
+- Two years of experience.
+## Compensation
+Annual salary: $70,688–$86,007. The position includes the federal government benefits and pension package.`, 'Dispatcher');
+  assert.ok(!result.includes('Compensation'));
+  assert.ok(!result.includes('70,688'));
+  assert.ok(result.includes('Two years'));
+});
+
 test('keeps Compensation sections that describe real benefits', () => {
   const result = cleanJobDescription(`## Responsibilities
 - Lead the team.
@@ -113,6 +123,14 @@ test('keeps Compensation sections that describe real benefits', () => {
 - Extended health and dental`, 'Senior Manager');
   assert.ok(result.includes('Compensation & Benefits'));
   assert.ok(result.includes('OMERS'));
+});
+
+test('keeps unique pay like bilingual bonus', () => {
+  const result = cleanJobDescription(`## Qualifications
+- Degree required.
+## Compensation
+From $78,167 to $91,895 per annum. In addition, the incumbent who meets the language requirements will receive the Bilingualism Bonus of $800 per year.`, 'Officer');
+  assert.ok(result.includes('Bilingualism Bonus'));
 });
 
 test('placeholder-only cleanup does not trim legitimate overview text', () => {

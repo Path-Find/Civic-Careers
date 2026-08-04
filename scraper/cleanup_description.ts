@@ -210,30 +210,82 @@ export function removePlaceholderSections(description: string): string {
 }
 
 /**
- * Drop Compensation & Benefits sections that only restate salary already shown
- * in the structured salary sidebar fields.
+ * Drop Compensation/Benefits/Salary sections that only restate pay (and maybe a
+ * generic "benefits package" line) already shown in structured sidebar fields.
+ * Keep unique pay (bonuses, premiums) and itemized benefit lists.
  */
 export function isRedundantCompensationSection(heading: string, body: string): boolean {
-  if (!/compensation|benefit|salary|pay\b/i.test(heading)) return false;
-  const text = body.replace(/\s+/g, ' ').trim();
+  if (!/compensation|benefit|salary|pay\b|remuneration/i.test(heading)) return false;
+  let text = body.replace(/\s+/g, ' ').trim();
   if (!text) return true;
 
-  const pureSalary = /^(?:salary(?:\s+range)?|pay(?:\s+rate)?|rate|wage|compensation)\s*:?\s*\$?[\d,]+(?:\.\d{2})?\s*(?:to|[-–—])\s*\$?[\d,]+(?:\.\d{2})?\s*(?:per\s+)?(?:hour|hr|year|yr|annum|annual(?:ly)?)?(?:\s+as\s+per\s+the\s+collective\s+agreement)?\.?\s*$/i;
-  const bareRange = /^\$?[\d,]+(?:\.\d{2})?\s*(?:to|[-–—])\s*\$?[\d,]+(?:\.\d{2})?\s*(?:per\s+)?(?:hour|hr|year|yr|annum|annual(?:ly)?)?\.?\s*$/i;
-  if (pureSalary.test(text) || bareRange.test(text)) return true;
+  // Unique pay beyond base salary — keep.
+  if (/\b(?:bilingual(?:ism)?\s+bonus|northern\s+allowance|shift\s+premium|market\s+(?:modifier|premium|adjustment)|performance\s+bonus|overtime\s+rate|standby|isolation\s+pay)\b/i.test(text)) {
+    return false;
+  }
 
-  const lines = body.split('\n').map(line => line.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean);
-  if (lines.length > 0 && lines.every(line => pureSalary.test(line) || bareRange.test(line)
-    || /^(?:salary|pay|rate|wage)\b[^$]*\$[\d,]+/i.test(line) && !/\b(?:pension|health|dental|vacation|benefit)\b/i.test(line))) {
+  // Strip generic package noise (not unique benefit detail).
+  text = text
+    .replace(/,?\s*(?:the\s+position\s+includes|includes|plus|with)\s+(?:the\s+)?(?:federal\s+government\s+)?benefits?(?:\s+and\s+pension)?(?:\s+package)?(?:\s*\([^)]{0,100}\))?\.?/gi, ' ')
+    .replace(/\b(?:federal\s+government\s+)?benefits?\s+and\s+pension\s+package\.?/gi, ' ')
+    .replace(/\b(?:competitive|comprehensive|excellent|standard|generous)\s+(?:employer[- ]paid\s+)?(?:extended\s+health\s+)?benefits?(?:\s+package)?\.?/gi, ' ')
+    .replace(/,?\s*plus\s+benefits?\s*\([^)]{0,100}\)\.?/gi, ' ')
+    .replace(/,?\s*plus\s+benefits?\.?/gi, ' ')
+    .replace(/,?\s*plus\s+applicable\s+premiums?\.?/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^[.,;:\s]+|[.,;:\s]+$/g, '');
+
+  if (!text) return true;
+
+  const money = String.raw`\$?[\d,]+(?:\.\d{1,4})?`;
+  const period = String.raw`(?:per\s+)?(?:hour|hr|year|yr|annum|annual(?:ly)?|\/per\s+hour)?`;
+  const salaryLine = new RegExp(
+    String.raw`^(?:(?:annual\s+|yearly\s+|hourly\s+)?salary(?:\s+range)?|pay(?:\s+rate)?|rate(?:\s+of\s+pay)?|wage|compensation|yearly\s+salary|hourly(?:\s+(?:pay\s+)?rate)?|from|starting\s+at)\s*:?\s*${money}\s*(?:to|[-–—])\s*${money}\s*${period}(?:\s*\([^)]*\))?(?:\s+as\s+per\s+the\s+collective\s+agreement)?(?:\s+plus\s+applicable\s+premiums?)?\.?$`,
+    'i',
+  );
+  const bareRange = new RegExp(
+    String.raw`^${money}\s*(?:to|[-–—])\s*${money}\s*${period}(?:\s*\([^)]*\))?\.?$`,
+    'i',
+  );
+  const fromRange = new RegExp(
+    String.raw`^from\s+${money}\s+to\s+${money}\s*${period}\.?$`,
+    'i',
+  );
+  const singleRate = new RegExp(
+    String.raw`^(?:starting\s+at\s+)?${money}\s*(?:per\s+)?(?:hour|hr|year|yr|annum)?(?:\s*,?\s*plus\s+\d+%\s+vacation\s+pay)?\.?$`,
+    'i',
+  );
+  if (salaryLine.test(text) || bareRange.test(text) || fromRange.test(text) || singleRate.test(text)) return true;
+
+  const lines = body.split('\n').map(line => {
+    let t = line.replace(/^\s*[-•*]\s*/, '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+    t = t
+      .replace(/\b(?:the\s+position\s+includes|includes|plus|with)\s+(?:the\s+)?(?:federal\s+government\s+)?benefits?(?:\s+and\s+pension)?(?:\s+package)?\.?/gi, ' ')
+      .replace(/\bplus\s+benefits?\s*\([^)]{0,80}\)\.?/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^[.,;:\s]+|[.,;:\s]+$/g, '');
+    return t;
+  }).filter(Boolean);
+
+  if (lines.length > 0 && lines.every(line =>
+    salaryLine.test(line) || bareRange.test(line) || fromRange.test(line) || singleRate.test(line)
+    || /^(?:salary|pay|rate|wage|annual\s+salary|yearly\s+salary|hourly)\b.*\$[\d,]+/i.test(line)
+  )) {
     return true;
   }
 
-  if (/\$[\d,]+/.test(text)
-    && /(?:salary|pay|rate|wage|compensation|range)/i.test(text)
-    && !/\b(?:pension|om\s*ers|health|dental|vision|vacation|rrsp|insurance|leave|wellness|benefit(?:s)?\s+include|extended\s+health|life\s+insurance|disability|employee\s+assistance|tuition)\b/i.test(text)
-    && text.length < 200) {
+  const hasItemizedBenefits = /\b(?:\d+%\s*employer|employer-paid|sick\s+leave|wellness\s+allowance|\$\d+\s+for|paramedical|health care spending|telus virtual|group insurance|defined benefit|annual paid vacation|vacation\s+days|weeks?\s+vacation|om\s*ers)\b/i.test(body)
+    || (/(?:^|\n)\s*[-•*]\s+/.test(body) && /\b(?:health|dental|pension|vacation|insurance|leave)\b/i.test(body) && body.split('\n').filter(l => /^\s*[-•*]/.test(l)).length >= 2);
+
+  if (!hasItemizedBenefits
+    && /\$[\d,]+/.test(text)
+    && /(?:salary|pay|rate|wage|compensation|range|annum|annual)/i.test(text)
+    && text.length < 280) {
     return true;
   }
+
   return false;
 }
 
