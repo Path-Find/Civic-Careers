@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Algonquin, Brock, and Fanshawe postings had Qualifications bullets that fully restated the education/experience/license fields already shown structured**, and Fanshawe's stated work hours and daytime availability were sitting in prose instead of the (previously unused) hours/availability fields.
 - **CMHC postings never captured whether a security clearance was required**, despite stating it as a labeled field ("Security Requirement: Reliability Status"/"Secret"): the parser now recognizes that label. The same posting-metadata block (Job Requisition ID, Position Status, Language Designation, etc.) is now stripped once its content is confirmed captured elsewhere.
 - **Education requirements sometimes included the entire experience clause** ("...and seven years of experience...") duplicating the experience field verbatim; the extractor now stops before the experience clause. Applied to the 10 existing rows carrying this pattern.
 - **Named software could appear in both the skills and software fields** ("Microsoft Word" in one, "Word" in the other) since they were extracted independently with no shared naming. Skills extraction now recognizes the same canonical names software already uses. Applied DB-wide (over 900 rows across the two backfill passes).
