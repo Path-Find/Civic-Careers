@@ -101,4 +101,4 @@ A separate deterministic 2% holistic audit sampled 103 of 5,149 stored jobs acro
 
 - The findings support deterministic cleanup candidates, but they do not by themselves authorize removing eligibility, compensation, location, duties, qualifications, availability, police-check, driver-abstract, vaccination, or other role-dependent text.
 - The two sources without independent multi-posting evidence are CreateTO and Waterfront Toronto. EFHC also needs source-attribution review because its repeated raw shell contains employer text that may belong to a shared portal.
-- City of Toronto and other unimplemented candidates remain dry-run/review only where the generic cleanup would also remove legitimate role context. The separate fresh 2% holistic database audit remains required.
+- City of Toronto and other unimplemented candidates remain dry-run/review only where the generic cleanup would also remove legitimate role context. The fresh 2% holistic database audit is complete; its remaining follow-up queues are tracked separately.
