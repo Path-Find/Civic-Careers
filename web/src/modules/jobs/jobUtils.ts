@@ -11,6 +11,23 @@ export function jobFreshnessTimestamp(job: Pick<Job, 'posted_at' | 'first_seen_a
   return Number.isFinite(firstSeenAt) ? firstSeenAt : 0;
 }
 
+/** ISO dates get a short display form; seasonal/Immediate text passes through. */
+export function formatStartDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    try {
+      const date = new Date(`${trimmed.slice(0, 10)}T00:00:00Z`);
+      if (Number.isNaN(date.getTime())) return trimmed;
+      return date.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+    } catch {
+      return trimmed;
+    }
+  }
+  return trimmed;
+}
+
 export function joinJsonArray(raw: string | null): string | null {
   try {
     const values = JSON.parse(raw || '[]');
@@ -35,6 +52,7 @@ export function parseJobDetails(job: Job): JobDetails {
     mode: job.work_model === 'On-site' ? 'In-person' : (job.work_model || null),
     type: job.employment_type || null,
     duration: job.duration || null,
+    startDate: formatStartDate(job.start_date),
     hours: job.hours || null,
     availability: job.availability || null,
     union: job.is_unionized ? (job.union_name || 'Unionized') : null,

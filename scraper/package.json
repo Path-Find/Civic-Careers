@@ -9,6 +9,7 @@
     "parse": "npx tsx parser.ts",
     "backfill-software": "npx tsx backfill-software.ts",
     "backfill-posted-dates": "npx tsx backfill-posted-dates.ts",
+    "backfill-start-dates": "npx tsx backfill-start-dates.ts",
     "backfill-language-vehicle": "npx tsx backfill-language-vehicle.ts",
     "backfill-experience": "npx tsx backfill-experience.ts",
     "backfill-education-license": "npx tsx backfill-education-license.ts",

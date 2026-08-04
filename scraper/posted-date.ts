@@ -35,38 +35,42 @@ function expandTwoDigitYear(year: number): number {
   return year >= 80 ? 1900 + year : 2000 + year;
 }
 
-function toIsoDate(year: number, month: number, day: number): string | null {
+function toIsoDate(year: number, month: number, day: number, maxYearsAhead = 1): string | null {
   const fullYear = expandTwoDigitYear(year);
   const nowYear = new Date().getUTCFullYear();
-  if (fullYear < 2000 || fullYear > nowYear + 1 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  if (fullYear < 2000 || fullYear > nowYear + maxYearsAhead || month < 1 || month > 12 || day < 1 || day > 31) return null;
 
   const date = new Date(Date.UTC(fullYear, month - 1, day));
   if (date.getUTCFullYear() !== fullYear || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
   return `${fullYear.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 }
 
-export function normalizePostedDate(value: string | null | undefined): string | null {
+export function normalizePostedDate(
+  value: string | null | undefined,
+  options: { maxYearsAhead?: number } = {},
+): string | null {
   const text = value?.trim();
   if (!text) return null;
+  const maxYearsAhead = options.maxYearsAhead ?? 1;
 
   // Strip leading weekday if present.
   const cleaned = text.replace(new RegExp(`^${WEEKDAY},?\\s+`, 'i'), '').trim();
 
   let match = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (match) return toIsoDate(Number(match[1]), Number(match[2]), Number(match[3]));
+  if (match) return toIsoDate(Number(match[1]), Number(match[2]), Number(match[3]), maxYearsAhead);
 
   match = cleaned.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
-  if (match) return toIsoDate(Number(match[1]), Number(match[2]), Number(match[3]));
+  if (match) return toIsoDate(Number(match[1]), Number(match[2]), Number(match[3]), maxYearsAhead);
 
   match = cleaned.match(/^([A-Za-z]{3,9})\s+(\d{1,2}),?\s*(\d{2,4})/);
   if (match) {
     const month = MONTHS[match[1].toLowerCase()];
     if (!month) return null;
-    return toIsoDate(Number(match[3]), month, Number(match[2]));
+    return toIsoDate(Number(match[3]), month, Number(match[2]), maxYearsAhead);
   }
 
   match = cleaned.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
-  if (match) return toIsoDate(Number(match[3]), Number(match[1]), Number(match[2]));
+  if (match) return toIsoDate(Number(match[3]), Number(match[1]), Number(match[2]), maxYearsAhead);
 
   return null;
 }

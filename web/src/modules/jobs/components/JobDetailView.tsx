@@ -96,6 +96,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Location', value: job.location },
     { label: 'Salary', value: details.salary }, { label: 'Work Mode', value: details.mode },
     { label: 'Employment', value: details.type }, { label: 'Duration', value: details.duration },
+    { label: 'Start date', value: details.startDate },
     { label: 'Hours', value: details.hours },
     { label: 'Listing type', value: details.listingType }, { label: 'Student requirement', value: details.studentRequirement },
     { label: 'Benefits', value: details.benefits }, { label: 'Union', value: details.union },

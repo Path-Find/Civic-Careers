@@ -30,6 +30,8 @@ export interface Job {
   description?: string | null;
   closing_date: string | null;
   posted_at: string | null;
+  /** ISO date (YYYY-MM-DD) or short free text (Immediate, Fall 2026, October 2026). */
+  start_date: string | null;
   url: string;
   source: string;
   first_seen_at: string;
@@ -68,6 +70,7 @@ export interface JobDetails {
   mode: string | null;
   type: string | null;
   duration: string | null;
+  startDate: string | null;
   hours: string | null;
   availability: string | null;
   union: string | null;

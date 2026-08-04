@@ -189,6 +189,12 @@ async function initializeDbOnce(): Promise<Client> {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
 
+  try {
+    await client.execute(`ALTER TABLE job_details ADD COLUMN start_date TEXT`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+
   // Records why a raw job failed to parse, so a batch failure count is
   // diagnosable after the fact instead of only existing in transient stdout.
   await client.execute(`
@@ -270,6 +276,7 @@ export async function saveJobDetails(client: Client, job: {
   qualification_tags?: string;
   parser_version?: number;
   posted_at?: string | null;
+  start_date?: string | null;
 }) {
   await client.execute({
     sql: `INSERT INTO job_details (
@@ -278,12 +285,12 @@ export async function saveJobDetails(client: Client, job: {
       work_model, employment_type, duration, experience_requirements, is_unionized, union_name, benefits, required_skills,
       education_requirements, license_requirements, vehicle_required, language_requirements,
       security_check_required, certification_requirements, software_requirements, medical_requirements,
-      responsibility_tags, qualification_tags, parser_version, posted_at
+      responsibility_tags, qualification_tags, parser_version, posted_at, start_date
     )
     VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
@@ -317,7 +324,8 @@ export async function saveJobDetails(client: Client, job: {
       responsibility_tags = excluded.responsibility_tags,
       qualification_tags = excluded.qualification_tags,
       parser_version = excluded.parser_version,
-      posted_at = excluded.posted_at`,
+      posted_at = excluded.posted_at,
+      start_date = COALESCE(excluded.start_date, job_details.start_date)`,
     args: [
       job.id, job.job_title, job.department, job.location, job.salary_range,
       job.description, job.closing_date,
@@ -329,7 +337,7 @@ export async function saveJobDetails(client: Client, job: {
       job.vehicle_required ?? null, job.language_requirements ?? null, job.security_check_required ?? null,
       job.certification_requirements ?? null, job.software_requirements ?? null, job.medical_requirements ?? null,
       job.responsibility_tags ?? null, job.qualification_tags ?? null,
-      job.parser_version ?? null, job.posted_at ?? null,
+      job.parser_version ?? null, job.posted_at ?? null, job.start_date ?? null,
     ],
   });
 }

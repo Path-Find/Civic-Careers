@@ -14,6 +14,7 @@ import {
 } from './requirements';
 import { cleanJobDescription } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
+import { extractStartDate } from './start-date';
 
 const CONCURRENCY = 5;
 
@@ -103,6 +104,7 @@ async function main() {
           responsibility_tags: JSON.stringify(aiResult.responsibility_tags),
           qualification_tags: JSON.stringify(aiResult.qualification_tags),
           posted_at: raw.posted_at,
+          start_date: extractStartDate(`${raw.raw_text}\n${description}`),
           parser_version: PARSER_VERSION,
         });
         await markJobParsed(db, raw.id);
