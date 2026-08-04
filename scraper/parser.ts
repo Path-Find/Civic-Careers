@@ -1,7 +1,7 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
-import { extractCertificationRequirements, extractListingType, extractSoftwareRequirements, reconcileStructuredRequirements } from './requirements';
+import { extractCertificationRequirements, extractListingType, extractSoftwareRequirements, extractWorkYearDuration, reconcileStructuredRequirements } from './requirements';
 import { cleanJobDescription } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 
@@ -67,7 +67,7 @@ async function main() {
           salary_period: aiResult.salary_period,
           work_model: aiResult.work_model,
           employment_type: aiResult.employment_type,
-          duration: aiResult.duration,
+          duration: aiResult.duration || extractWorkYearDuration(description) || '',
           experience_requirements: JSON.stringify(structuredRequirements.experience_requirements),
           is_unionized: aiResult.is_unionized ? 1 : 0,
           union_name: aiResult.union_name,

@@ -521,3 +521,14 @@ export const LANGUAGE_VEHICLE_CANDIDATE = /\b(?:english|french|fran[cç]ais|angl
 export function hasLanguageVehicleCandidate(description: string): boolean {
   return LANGUAGE_VEHICLE_CANDIDATE.test(description);
 }
+
+const WORK_YEAR_MONTHS_A = /(\d{1,2})[\s-]*months?\s+work\s+year/i;
+const WORK_YEAR_MONTHS_B = /work\s+year:?\s*(\d{1,2})\s*months?/i;
+
+// Narrow on purpose: only matches an explicit "N-month work year" phrase, not
+// school-calendar day-count schedules ("Work Year: 194 + 3 days") or other
+// duration phrasing — those need a human to interpret, not a regex.
+export function extractWorkYearDuration(description: string): string | null {
+  const match = description.match(WORK_YEAR_MONTHS_A) ?? description.match(WORK_YEAR_MONTHS_B);
+  return match ? `${match[1]}-month work year` : null;
+}

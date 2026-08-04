@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Toronto District School Board postings restated salary and work mode as prose, and never captured a stated "N-month work year" into the duration field**: the parser now extracts that phrase into duration automatically, and existing postings with it stripped from the description no longer repeat what's already shown structured.
+
 ### Added
 - **Medical/fitness requirements (vision tests, physical fitness standards) now have their own structured field** instead of living as prose in the description, and the job's department now shows next to the source name above the title instead of only in the sidebar.
 - **Benefits moved to the main sidebar and Education moved to the requirements card**, grouping each with fields of the same kind (quick facts vs. candidate requirements).

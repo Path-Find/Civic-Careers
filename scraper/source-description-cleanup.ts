@@ -46,6 +46,14 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
     { name: 'tdsb-equity-footer', pattern: /^The Toronto District School Board adheres to equitable hiring and employment practices\.[\s\S]*$/i },
     { name: 'tdsb-ai-disclosure', pattern: /^TDSB uses artificial intelligence \(AI\) tools to support parts of the recruitment process[\s\S]*$/i },
     { name: 'tdsb-application-administration', pattern: /^Key points about applying for ERP and LRS positions at TDSB:[\s\S]*$/i },
+    // "N-month work year" duplicates the `duration` field (parser.ts now
+    // extracts it from this exact phrasing) and "[mode] work eligible"
+    // duplicates `work_model`. Deliberately narrow — does not touch school-
+    // calendar day-count schedules like "Work Year: 194 + 3 days", which
+    // aren't captured by any structured field and need to stay as prose.
+    { name: 'tdsb-work-year-duration-restatement', pattern: /\d{1,2}[ \t-]*months?\s+work\s+year[.,]?[ \t]*/gi, mode: 'inline' },
+    { name: 'tdsb-work-year-duration-restatement-labeled', pattern: /Work\s+Year:?[ \t]*\d{1,2}[ \t]*[Mm]onths?[.,]?[ \t]*/g, mode: 'inline' },
+    { name: 'tdsb-work-model-eligible-restatement', pattern: /[ \t]*,?[ \t]*(?:Hybrid|Remote|On-site|Onsite)\s+[Ww]ork\s+[Ee]ligible[.,]?[ \t]*/gi, mode: 'inline' },
   ],
   'Government of Canada': [
     { name: 'selection-thank-you-footer', pattern: /^(?:We wish to thank all applicants|We'd like to thank all those who apply)\.[\s\S]*$/i },
