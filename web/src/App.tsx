@@ -110,7 +110,7 @@ function LoadingState({ view }: { view: View }) {
 }
 
 function App() {
-  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
+  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -134,9 +134,23 @@ function App() {
     return !latest || job.last_checked_at > latest ? job.last_checked_at : latest;
   }, null);
   const lastCheckedAt = homeData?.lastCheckedAt ?? latestJobCheckedAt;
-  const hasJobFilters = Boolean(searchTerm || locationTerm || selectedModes.length > 0 || selectedLanguages.length > 0 || vehicleRequired || minSalary || deadlineDays !== null || showStudentJobs || listingTypeFilter || newlyAdded);
-  const displayedJobCount = currentView === 'jobs' && !hasJobFilters ? jobsAvailableTotal : filteredJobs.length;
-  const isCompanyPage = currentView === 'jobs' && Boolean(searchTerm) && (activeCompanies.includes(searchTerm) || inactiveCompanies.includes(searchTerm));
+  const isCompanyPage = currentView === 'jobs' && Boolean(jobsSource) && searchTerm === jobsSource;
+  const hasJobFilters = Boolean(
+    (!isCompanyPage && searchTerm)
+    || locationTerm
+    || selectedModes.length > 0
+    || selectedLanguages.length > 0
+    || vehicleRequired
+    || minSalary
+    || deadlineDays !== null
+    || showStudentJobs
+    || listingTypeFilter
+    || newlyAdded
+  );
+  // Company pages are source-scoped server-side; show API total, not just loaded rows.
+  const displayedJobCount = currentView === 'jobs' && (isCompanyPage || !hasJobFilters)
+    ? jobsAvailableTotal
+    : filteredJobs.length;
   const isListingView = currentView === 'jobs' || currentView === 'saved' || currentView === 'companies';
   const filteredCompanySummaries = companySummaries.filter(company => selectedCompanyTypes.length === 0 || selectedCompanyTypes.some(type => companyTypes(company.name).includes(type)));
   const visibleCompanySummaries = companyStatus === 'hiring'
@@ -184,15 +198,10 @@ function App() {
         setCurrentView('saved');
         setSelectedJob(null);
       } else if (path.startsWith('/companies/')) {
-        const slug = path.replace('/companies/', '');
-        // Find matching company from the jobs data by slugifying sources
-        const company = Array.from(new Set(jobs.map(j => j.source))).find(name => slugify(name) === slug);
         setCurrentView('jobs');
-        if (company) {
-          setSearchTerm(company);
-        } else {
-          setSearchTerm(decodeURIComponent(slug.replace(/-/g, ' ')));
-        }
+        // Exact employer name comes from the scoped jobs API (jobsSource); until
+        // that resolves, keep whatever is already set (e.g. from a click).
+        if (jobsSource) setSearchTerm(jobsSource);
         setSelectedJob(null);
       } else if (path === '/companies') {
         setCurrentView('companies');
@@ -215,7 +224,14 @@ function App() {
     handlePopState();
     window.scrollTo(0, 0);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [jobs, refresh]);
+  }, [jobs, jobsSource, refresh]);
+
+  // Company deep links resolve the real source name from the API after fetch.
+  useEffect(() => {
+    if (jobsSource && window.location.pathname.startsWith('/companies/')) {
+      setSearchTerm(jobsSource);
+    }
+  }, [jobsSource]);
 
   useEffect(() => {
     if (!selectedJob) return;
@@ -407,13 +423,13 @@ function App() {
                   {currentView === 'companies' && <div className="company-sort-options"><button className={companySort === 'alphabetical' ? 'active' : ''} onClick={() => setCompanySort('alphabetical')}>A–Z</button><button className={companySort === 'mostJobs' ? 'active' : ''} onClick={() => setCompanySort('mostJobs')}>Most jobs</button><button className={companySort === 'recent' ? 'active' : ''} onClick={() => setCompanySort('recent')}>Recently added</button></div>}
                   {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setDeadlineDays(null); setNewlyAdded(false); }} onClosingSoon={() => { setSortNewest(false); setDeadlineDays(14); setNewlyAdded(false); }} onNewlyAdded={() => { setSortNewest(false); setDeadlineDays(null); setNewlyAdded(true); }} />}
                 </div>
-                {currentView === 'jobs' && searchTerm && (activeCompanies.includes(searchTerm) || inactiveCompanies.includes(searchTerm)) && (
+                {isCompanyPage && (
                   <div style={{ marginBottom: '1.5rem', padding: '1.25rem 1.5rem', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: '#0f172a' }}>{searchTerm}</h2>
-                      {COMPANY_PORTALS[searchTerm] && (
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: '#0f172a' }}>{jobsSource}</h2>
+                      {jobsSource && COMPANY_PORTALS[jobsSource] && (
                         <a 
-                          href={COMPANY_PORTALS[searchTerm]} 
+                          href={COMPANY_PORTALS[jobsSource]} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#2563eb', fontSize: '0.8125rem', fontWeight: 600, marginTop: '0.4rem', textDecoration: 'none' }}

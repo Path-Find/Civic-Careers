@@ -21,6 +21,15 @@ const jobJoins = `
 
 const freshnessDate = `date(CASE WHEN jd.posted_at IS NOT NULL AND date(jd.posted_at) <= date('now') THEN jd.posted_at ELSE j.first_seen_at END)`;
 
+/** Match web/src/utils.ts slugify — company URLs are /companies/{slug}. */
+function slugifySource(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'GET') {
     res.writeHead(405, { 'Content-Type': 'application/json' });
@@ -33,9 +42,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   const ids = parsed.searchParams.get('ids');
   const rid = parsed.searchParams.get('rid');
   const view = parsed.searchParams.get('view');
+  const sourceParam = parsed.searchParams.get('source');
+  const sourceSlug = parsed.searchParams.get('sourceSlug');
   const limit = Math.min(Math.max(Number(parsed.searchParams.get('limit') ?? 50), 1), 100);
   const offset = Math.max(Number(parsed.searchParams.get('offset') ?? 0), 0);
-
   res.setHeader('Content-Type', 'application/json');
 
   try {
@@ -136,24 +146,46 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (view === 'jobs') {
+      let sourceFilter: string | null = sourceParam;
+
+      // Company pages: /companies/university-of-ottawa → sourceSlug=university-of-ottawa
+      if (!sourceFilter && sourceSlug) {
+        const sources = await db.execute('SELECT DISTINCT j.source AS source FROM jobs j');
+        const match = sources.rows.find(row => slugifySource(String(row.source ?? '')) === sourceSlug);
+        sourceFilter = match?.source != null ? String(match.source) : null;
+        if (!sourceFilter) {
+          res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+          res.end(JSON.stringify({ jobs: [], total: 0, availableTotal: 0, source: null }));
+          return;
+        }
+      }
+
+      const sourceClause = sourceFilter ? ' AND j.source = ?' : '';
       const activeJobWhere = `
         WHERE j.is_active = 1
-          AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))`;
+          AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))
+          ${sourceClause}`;
+      const listArgs = sourceFilter ? [sourceFilter, limit, offset] : [limit, offset];
+      const countArgs = sourceFilter ? [sourceFilter] : [];
       const [result, count] = await Promise.all([
         db.execute({
           sql: `SELECT ${jobColumns} ${jobJoins} ${activeJobWhere} ORDER BY ${freshnessDate} DESC, j.first_seen_at DESC LIMIT ? OFFSET ?`,
-          args: [limit, offset],
+          args: listArgs,
         }),
-        db.execute(`SELECT
-          COUNT(*) AS total,
-          SUM(CASE WHEN COALESCE(jd.is_inventory, 0) = 0 THEN 1 ELSE 0 END) AS available_total
-          ${jobJoins} ${activeJobWhere}`),
+        db.execute({
+          sql: `SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN COALESCE(jd.is_inventory, 0) = 0 THEN 1 ELSE 0 END) AS available_total
+            ${jobJoins} ${activeJobWhere}`,
+          args: countArgs,
+        }),
       ]);
       res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
       res.end(JSON.stringify({
         jobs: result.rows,
         total: Number(count.rows[0]?.total ?? 0),
         availableTotal: Number(count.rows[0]?.available_total ?? 0),
+        source: sourceFilter,
       }));
       return;
     }
@@ -170,13 +202,29 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
 
-    const result = await db.execute(`
-      SELECT ${jobColumns}
-      ${jobJoins}
-      ORDER BY j.is_active DESC, ${freshnessDate} DESC, j.first_seen_at DESC
-    `);
+    // Never dump the full corpus — that path was ~7MB / multi-second and made
+    // company deep links (/companies/…) unusable. Paginated jobs list instead.
+    const [result, count] = await Promise.all([
+      db.execute({
+        sql: `SELECT ${jobColumns} ${jobJoins}
+          WHERE j.is_active = 1
+            AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))
+          ORDER BY ${freshnessDate} DESC, j.first_seen_at DESC LIMIT ? OFFSET ?`,
+        args: [limit, offset],
+      }),
+      db.execute(`SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN COALESCE(jd.is_inventory, 0) = 0 THEN 1 ELSE 0 END) AS available_total
+        ${jobJoins}
+        WHERE j.is_active = 1
+          AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))`),
+    ]);
     res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
-    res.end(JSON.stringify(result.rows));
+    res.end(JSON.stringify({
+      jobs: result.rows,
+      total: Number(count.rows[0]?.total ?? 0),
+      availableTotal: Number(count.rows[0]?.available_total ?? 0),
+    }));
   } catch (error) {
     console.error('[API] Failed to load jobs:', error);
     res.writeHead(500);

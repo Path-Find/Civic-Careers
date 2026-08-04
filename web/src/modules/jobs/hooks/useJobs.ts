@@ -16,6 +16,12 @@ function fetchJson(endpoint: string) {
   return request;
 }
 
+function companySlugFromPath(path: string): string | null {
+  if (!path.startsWith('/companies/')) return null;
+  const slug = path.slice('/companies/'.length).split('/')[0];
+  return slug || null;
+}
+
 export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [homeData, setHomeData] = useState<HomeData | null>(null);
@@ -24,15 +30,49 @@ export function useJobs() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [jobsTotal, setJobsTotal] = useState(0);
   const [jobsAvailableTotal, setJobsAvailableTotal] = useState(0);
+  /** Exact source name when the jobs list is scoped to one employer (company page). */
+  const [jobsSource, setJobsSource] = useState<string | null>(null);
   const loadingMoreRef = useRef(false);
+  const jobsSourceRef = useRef<string | null>(null);
+
+  const clearSourceScope = () => {
+    setJobsSource(null);
+    jobsSourceRef.current = null;
+  };
+
+  const setSourceScope = (source: string | null) => {
+    setJobsSource(source);
+    jobsSourceRef.current = source;
+  };
 
   const refresh = useCallback((singleRid?: number) => {
     setLoading(true);
     const path = window.location.pathname;
-    const view = path === '/' || path === '/about' ? 'home' : path === '/companies' ? 'companies' : path === '/jobs' ? 'jobs' : path === '/saved' ? 'saved' : null;
-    const endpoint = singleRid !== undefined
-      ? `${API}/api/jobs?rid=${singleRid}`
-      : view ? `${API}/api/jobs?view=${view}` : `${API}/api/jobs`;
+    const companySlug = companySlugFromPath(path);
+    const view = path === '/' || path === '/about'
+      ? 'home'
+      : path === '/companies'
+        ? 'companies'
+        : path === '/jobs' || companySlug
+          ? 'jobs'
+          : path === '/saved'
+            ? 'saved'
+            : null;
+
+    let endpoint: string;
+    if (singleRid !== undefined) {
+      endpoint = `${API}/api/jobs?rid=${singleRid}`;
+    } else if (companySlug) {
+      // Company deep link: only that employer's jobs (not the full corpus).
+      endpoint = `${API}/api/jobs?view=jobs&sourceSlug=${encodeURIComponent(companySlug)}&limit=50`;
+    } else if (view === 'jobs') {
+      endpoint = `${API}/api/jobs?view=jobs&limit=50`;
+    } else if (view) {
+      endpoint = `${API}/api/jobs?view=${view}`;
+    } else {
+      endpoint = `${API}/api/jobs?view=jobs&limit=50`;
+    }
+
     fetchJson(endpoint)
       .then(data => {
         if (view === 'home') {
@@ -40,17 +80,29 @@ export function useJobs() {
           const closingSoonJobs = data.closingSoonJobs.map(normalizeJob);
           setHomeData({ ...data, recentJobs, closingSoonJobs });
           setJobs([...recentJobs, ...closingSoonJobs]);
-        } else if (view === 'companies') {
+          clearSourceScope();
+          return;
+        }
+
+        if (view === 'companies') {
           setCompanySummaries(data);
           setJobs([]);
-        } else if (view === 'jobs') {
-          const loadedJobs = data.jobs.map(normalizeJob);
-          setJobs(loadedJobs);
-          setJobsTotal(Number(data.total ?? loadedJobs.length));
-          setJobsAvailableTotal(Number(data.availableTotal ?? data.total ?? loadedJobs.length));
-        } else {
-          setJobs((Array.isArray(data) ? data : [data]).map(normalizeJob));
+          clearSourceScope();
+          return;
         }
+
+        if (view === 'saved') {
+          setJobs((Array.isArray(data) ? data : []).map(normalizeJob));
+          clearSourceScope();
+          return;
+        }
+
+        // Paginated jobs list (all employers or one company via sourceSlug)
+        const list = Array.isArray(data.jobs) ? data.jobs.map(normalizeJob) : [];
+        setJobs(list);
+        setJobsTotal(Number(data.total ?? list.length));
+        setJobsAvailableTotal(Number(data.availableTotal ?? data.total ?? list.length));
+        setSourceScope(data.source ?? null);
       })
       .catch(error => console.error('Error fetching jobs:', error))
       .finally(() => setLoading(false));
@@ -61,9 +113,16 @@ export function useJobs() {
     loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
-      const response = await fetch(`${API}/api/jobs?view=jobs&limit=50&offset=${jobs.length}`);
+      const source = jobsSourceRef.current;
+      const params = new URLSearchParams({
+        view: 'jobs',
+        limit: '50',
+        offset: String(jobs.length),
+      });
+      if (source) params.set('source', source);
+      const response = await fetch(`${API}/api/jobs?${params}`);
       const data = await response.json();
-      setJobs(previous => [...previous, ...data.jobs.map(normalizeJob)]);
+      setJobs(previous => [...previous, ...(data.jobs ?? []).map(normalizeJob)]);
     } catch (error) {
       console.error('Error loading more jobs:', error);
     } finally {
@@ -102,5 +161,19 @@ export function useJobs() {
     return is_saved as number;
   }, [updateJob]);
 
-  return { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, loadMore, refresh, updateJob, loadDescription, toggleSaved };
+  return {
+    jobs,
+    homeData,
+    companySummaries,
+    loading,
+    loadingMore,
+    jobsTotal,
+    jobsAvailableTotal,
+    jobsSource,
+    loadMore,
+    refresh,
+    updateJob,
+    loadDescription,
+    toggleSaved,
+  };
 }

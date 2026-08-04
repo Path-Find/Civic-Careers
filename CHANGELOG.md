@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **York University job board** — Technomedia portal (~400 postings) now scrapes on the regular schedule (was engine-only, never on the production task list).
 
 ### Fixed
+- **Company pages took 30+ seconds** (e.g. `/companies/university-of-ottawa`) because they loaded the entire job corpus (~5k rows / 7MB). They now fetch only that employer’s jobs.
 - **CSOD engines were missing from the scheduled scrape matrix** (George Brown, Mohawk, Durham, Ontario Tech) so those boards could go stale between manual runs.
 - **More real posted dates pulled from source text** — Opening Date / Date Published / day-first and ordinal forms (`9 February 2026`, `July 9th, 2026`, `26/06/2026`) now fill empty `posted_at` fields; corpus re-scanned.
 - **Qualifications bullets that only restated structured Education / Experience / Licence fields are stripped from the body** (corpus-wide, ~2.5k rows) so the same fact isn’t in the sidebar and again in the description.
