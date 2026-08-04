@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  extractCertificationRequirements,
   extractEducationRequirements,
   extractLanguageRequirements,
   extractLanguageVehicleRequirements,
@@ -14,6 +15,15 @@ import {
   normalizeVehicleRequired,
   reconcileStructuredRequirements,
 } from '../requirements';
+
+test('extracts required first aid and CPR certification without optional assets', () => {
+  assert.deepEqual(extractCertificationRequirements(`## Qualifications
+- Hold a current Intermediate First Aid CPR C
+
+## Nice to Have
+- WHMIS is an asset
+`), ['Intermediate First Aid CPR C']);
+});
 
 test('extracts named software and ignores ambiguous categories', () => {
   const result = extractSoftwareRequirements(`## Qualifications

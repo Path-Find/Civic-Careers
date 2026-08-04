@@ -3,6 +3,19 @@ export interface SoftwareBackfillResult {
   skippedOptionalLines: number;
 }
 
+const CERTIFICATION_PATTERN = /\b(?:(?:basic|standard|intermediate|advanced|emergency)\s+)?first\s+aid(?:\s*(?:\/|and)\s*|\s+)cpr(?:\s+[a-c])?\b|\b(?:WHMIS|Smart\s+Serve|Food\s+Handler|Nonviolent\s+Crisis\s+Intervention)\b/i;
+
+export function extractCertificationRequirements(description: string): string[] {
+  const values = new Set<string>();
+  for (const line of descriptionLines(description)) {
+    if (line.heading || line.section === 'optional' || line.section === 'benefits' || !CERTIFICATION_PATTERN.test(line.text)) continue;
+    const match = line.text.match(CERTIFICATION_PATTERN);
+    if (!match) continue;
+    values.add(compactText(match[0]).replace(/\s*\/\s*/g, ' / '));
+  }
+  return [...values];
+}
+
 const SOFTWARE_PATTERNS: Array<[string, RegExp]> = [
   ['Microsoft Office', /(?:Microsoft Office(?: Suite)?|Microsoft Suite|MS Office(?: Suite)?|Office 365)/i],
   ['Microsoft 365', /(?:Microsoft 365|M365)/i],
