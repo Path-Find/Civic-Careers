@@ -326,15 +326,173 @@ function cleanEducationRequirement(value: string): string {
   return stripEducationLabelPrefix(cleaned);
 }
 
+/**
+ * Collapse wordy education prose into a short label.
+ * e.g. "Completion of a high school diploma – or a combination of education, training and experience deemed equivalent"
+ *   → "High school diploma"
+ */
+export function compactEducationRequirement(value: string): string {
+  if (!value) return '';
+  const already = value.trim();
+  if (/^High school diploma$/i.test(already)) return 'High school diploma';
+  if (/^(?:\d|one|two|three|four) years of high school$/i.test(already)) {
+    return already.charAt(0).toUpperCase() + already.slice(1);
+  }
+
+  let s = cleanEducationRequirement(value);
+  if (!s) return '';
+
+  // Drop emoji / ED1 walls and competency dump.
+  if (/[🎓💼]|𝐄𝐃𝐔𝐂𝐀𝐓𝐈𝐎𝐍|ED\d+\s*:/i.test(s) && s.length > 120) {
+    const secondaryYears = s.match(/(?:successful\s+)?completion of\s+(\w+)\s+years?\s+of\s+secondary school/i);
+    if (secondaryYears) {
+      const n = secondaryYears[1].toLowerCase();
+      const num = ({ one: '1', two: '2', three: '3', four: '4' } as Record<string, string>)[n] || n;
+      return `${num} years of high school`;
+    }
+    if (/secondary school diploma|high school/i.test(s)) return 'High school diploma';
+  }
+
+  // Strip leading boilerplate.
+  s = s
+    .replace(/^(?:successful\s+)?completion of\s+(?:a\s+|an\s+)?/i, '')
+    .replace(/^(?:must\s+(?:have|hold|possess)\s+(?:an?\s+)?|minimum(?:\s+of)?\s+(?:an?\s+)?|candidates?\s+must\s+(?:have\s+)?)/i, '')
+    .replace(/^(?:a|an|the)\s+/i, '')
+    .replace(/^up to\s+/i, '')
+    .trim();
+
+  // High school / secondary school family.
+  if (/\b(?:high\s+school|secondary\s+school|grade\s*12|ossd|g\.?e\.?d\.?|c\.?a\.?e\.?c\.?|mature\s+high\s+school)\b/i.test(s)
+    || /\bsecondary school (?:graduation\s+)?diploma\b/i.test(s)) {
+    // High school + additional program (e.g. Law and Security) — keep the program, drop fluff.
+    if (/\bplus\b.+\b(?:program|diploma|certificate)\b/i.test(s) || /\bgraduation,\s*plus\b/i.test(s)) {
+      const field = s.match(/\bin\s+([A-Za-z0-9][A-Za-z0-9 ,/-]+?)(?:\s+or\s+equivalent)?\s*$/i)?.[1]?.trim();
+      if (field && field.length < 80) return `High school diploma plus program in ${field.replace(/,?\s+or equivalent$/i, '').trim()}`;
+      return 'High school diploma plus related program';
+    }
+    // Partial years (GC two/three years of secondary).
+    const years = s.match(/(?:successful\s+)?completion of\s+(\w+)\s+years?\s+of\s+(?:secondary|high)\s+school|(\w+)\s+years?\s+of\s+(?:secondary|high)\s+school/i)
+      || value.match(/(?:successful\s+)?completion of\s+(\w+)\s+years?\s+of\s+secondary school/i);
+    if (years || /\b(?:two|three|2|3)\s+years?\s+of\s+(?:secondary|high)\s+school\b/i.test(value)) {
+      const raw = (years?.[1] || years?.[2] || value.match(/\b(two|three|2|3)\s+years?/i)?.[1] || '').toLowerCase();
+      const num = ({ one: '1', two: '2', three: '3', four: '4', '1': '1', '2': '2', '3': '3', '4': '4' } as Record<string, string>)[raw] || raw;
+      if (num) return `${num} years of high school`;
+    }
+    if (/\bpartial\s+secondary\b/i.test(s)) return 'Partial high school';
+    // PSC test alternative alone (no diploma stated as primary).
+    if (/\bpublic service commission\b|\bPSC\b/i.test(value) && /alternative to a secondary school/i.test(value) && !/secondary school diploma \(high school\)/i.test(value)) {
+      return 'High school diploma or PSC alternative';
+    }
+    // "Secondary school + PSW certificate" keep both short
+    if (/\bpersonal support worker\b/i.test(s)) {
+      return 'High school diploma and Personal Support Worker certificate';
+    }
+    // Technical training tacked on — drop the training clause for the education field.
+    if (/\band current technical and practical training\b/i.test(s)) {
+      return 'High school diploma';
+    }
+    return 'High school diploma';
+  }
+
+  // Generic equivalent-combo tails on degrees/diplomas (end-of-string only — don't
+  // chew through "PhD (… or equivalent experience) in …").
+  s = s
+    // Metrolinx-style: "– or a combination of education, training and experience deemed equivalent"
+    .replace(/\s*[-–—,]\s*or\s+a\s+combination of education,?\s*training and(?:\/or)?\s+experience(?:\s+deemed\s+equivalent)?.*$/i, '')
+    .replace(/\s+or\s+a\s+combination of education,?\s*training and(?:\/or)?\s+experience(?:\s+deemed\s+equivalent)?.*$/i, '')
+    .replace(/\s+or\s+combination of education,?\s*training and(?:\/or)?\s+experience(?:\s+deemed\s+equivalent)?.*$/i, '')
+    // "; an equivalent combination…" / "(or an equivalent combination…)" / "OR an acceptable combination…"
+    .replace(/\s*\([^)]*equivalent combination[^)]*\)\s*$/i, '')
+    .replace(/\s*[;,]?\s*(?:an?\s+)?equivalent combination of education(?:\s+and\/or\s+experience|\s+and\s+[^.]*)?\s*$/i, '')
+    .replace(/\s+OR\s+an?\s+acceptable combination of education.*$/i, '')
+    .replace(/\s+or\s+an?\s+acceptable combination of education.*$/i, '')
+    .replace(/\s+or\s+an?\s+equivalent combination of education.*$/i, '')
+    .replace(/\s+or\s+the\s+equivalent combination of education(?:\s+and(?:\s+related)?\s+experience)?\s*$/i, '')
+    .replace(/\s+or\s+(?:the\s+)?equivalent combination of education(?:\s+and(?:\s+related)?\s+experience)?\s*$/i, '')
+    .replace(/\s*[-–—,]?\s*or\s+(?:an?\s+)?(?:acceptable\s+|approved\s+|employer[- ]approved\s+)?combination of\s+(?:education|training|experience)(?:\s*,?\s*(?:education|training|experience|and|or|\/|related|relevant)+)*.*$/i, '')
+    .replace(/\s+or\s+(?:an?\s+|the\s+)?(?:approved\s+)?equivalent combination(?:\s+of\s+(?:education|experience|related\s+education|related\s+experience)[^.]*)?\s*$/i, '')
+    .replace(/\s+or\s+the\s*$/i, '')
+    .replace(/\s+or\s+(?:an?\s+)?acceptable combination of equivalent experience\s*$/i, '')
+    .replace(/\s+or\s+employer-approved alternatives?(?:\s*\([^)]*\))?\s*$/i, '')
+    .replace(/\s+or\s+higher\s*$/i, '')
+    .replace(/\s+or\s+(?:the\s+)?equivalent\s*$/i, '')
+    .replace(/\.\s*An?\s+equivalent combination.*$/i, '')
+    .replace(/\s*[—–-]\s*or an?\s+equivalent combination of education and experience\s*$/i, '')
+    .replace(/\s*,\s*with at least .+ years?['']?\s+relevant experience.*$/i, '')
+    // Catch-all: remaining "… or equivalent/acceptable combination …" tails
+    .replace(/\s*[,;]?\s*(?:OR\s+)?(?:an?\s+)?(?:acceptable|approved|equivalent)\s+combination(?:s)?(?:\s+of\b[^.;]*)?(?:\s+considered)?\s*$/i, '')
+    .replace(/\s+or\s+(?:an?\s+)?(?:acceptable|equivalent)\s+combination(?:s)?(?:\s+of\b.*)?\s*$/i, '')
+    .replace(/\s+and an?\s+acceptable combination of education.*$/i, '')
+    .replace(/\s*;\s*equivalent combination(?:\s+considered)?\s*$/i, '')
+    .replace(/\s+or equivalent combination\s*\([^)]*\)\s*$/i, '')
+    .replace(/\s+may be considered\.?$/i, '')
+    .replace(/\s+will be considered\.?$/i, '')
+    .replace(/\s+be considered\.?$/i, '')
+    .replace(/^(?:graduation with\s+(?:a\s+)?)/i, '')
+    .replace(/^(?:graduation from an accredited community college with\s+(?:a\s+)?)/i, '')
+    .replace(/^(?:obtained\s+(?:a\s+)?)/i, '')
+    .replace(/^minimum:\s*/i, '')
+    .replace(/^OR\s+/i, '')
+    // Pure "acceptable combination…" with no credential named first — drop.
+    .replace(/^(?:an?\s+)?acceptable combination of education\b.*$/i, '')
+    .replace(/\s+from a recognized post[- ]secondary institution\b/i, '')
+    .replace(/\s+with acceptable specialization in\b/i, ' in ')
+    .replace(/\s*\(already obtained OR obtained before appointment\)\s*/i, ' ')
+    .replace(/\s+or an Advanced Diploma in a related field of study.*$/i, ' or college diploma in a related field')
+    .replace(/^a\s+bachelor'?s?\s+degree\b/i, "Bachelor's degree")
+    .replace(/^bachelor'?s?\s+degree\b/i, "Bachelor's degree")
+    .replace(/^undergraduate degree\b/i, "Bachelor's degree")
+    .replace(/^a\s+ph\.?d\.?\s+degree\b/i, 'PhD')
+    .replace(/^ph\.?d\.?\s+degree\b/i, 'PhD')
+    .replace(/^degree\b/i, 'Degree')
+    // Broken paren leftovers from partial combo strips
+    .replace(/\s*\(\s*or\s*$/i, '')
+    .replace(/\s+\(\s*$/i, '')
+    .replace(/[,\s]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Bachelor / Master / College short forms when field is present or not.
+  if (/^bachelor(?:['’]s)?(?:\s+degree)?(?:\s+in\s+.+)?$/i.test(s)) {
+    return s.replace(/^bachelor(?:['’]s)?(?:\s+degree)?/i, "Bachelor's degree").replace(/^bachelor's degree$/i, "Bachelor's degree");
+  }
+  if (/^master(?:['’]s)?(?:\s+degree)?(?:\s+in\s+.+)?$/i.test(s)) {
+    return s.replace(/^master(?:['’]s)?(?:\s+degree)?/i, "Master's degree");
+  }
+  if (/^undergraduate degree(?:\s+in\s+.+)?$/i.test(s)) {
+    return s.replace(/^undergraduate degree/i, "Bachelor's degree");
+  }
+  if (/^(?:advanced\s+)?college diploma(?:\s*\(\d+\s*years?\))?(?:\s+in\s+.+)?$/i.test(s)) {
+    return s.replace(/^(?:advanced\s+)?college diploma(?:\s*\(\d+\s*years?\))?/i, 'College diploma');
+  }
+
+  // Minimum: college diploma in X with N years… → College diploma in X (experience is separate field)
+  const minCollege = s.match(/^minimum:\s*college diploma in ([^,]+?)(?:\s+with\s+\w+\s+years?.*)?$/i);
+  if (minCollege) return `College diploma in ${minCollege[1].trim()}`;
+
+  // Drop years-of-experience gloms that belong in experience field.
+  s = s.replace(/\s+with\s+(?:\w+\s+)?(?:years?|yrs?)[’']?\s+(?:of\s+)?(?:relevant\s+)?experience.*$/i, '');
+
+  // Pure combination-only / empty after combo strips — drop entirely.
+  if (!s || /^(?:an?\s+)?acceptable combination\b/i.test(s) || /^OR\b/i.test(s)) return '';
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  // If still a novel-length wall, fall back to first clause.
+  if (s.length > 160) {
+    const first = s.split(/[.;]/)[0]?.trim() || s;
+    if (first.length < s.length && first.length >= 12) return first;
+  }
+  return s;
+}
+
 /** Normalize stored or AI education list items (idempotent). */
 export function normalizeEducationRequirements(value: unknown): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const item of toStringList(value)) {
-    const cleaned = cleanEducationRequirement(item);
+    const cleaned = compactEducationRequirement(item);
     if (!cleaned) continue;
     if (!EDUCATION_TERM.test(cleaned) && !STUDENT_EDUCATION_TERM.test(cleaned)
-      && !/\b(?:secondary\s+school|high\s+school|post[- ]secondary|diploma|degree|certificate|enrol)\b/i.test(cleaned)) {
+      && !/\b(?:secondary\s+school|high\s+school|post[- ]secondary|diploma|degree|certificate|enrol(?:l(?:ed|ment)?)?|grade\s*12|years of high school|BScN|BA\b|BSc\b|MBA|PhD|LL\.?B|J\.?D)\b/i.test(cleaned)) {
       continue;
     }
     const key = normalizedRequirement(cleaned);

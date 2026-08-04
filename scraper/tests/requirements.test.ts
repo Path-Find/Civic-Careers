@@ -84,35 +84,42 @@ test('strips Education:/classification/stream prefixes from education requiremen
     normalizeEducationRequirements([
       'AS-01 only:- Successful completion of a post-secondary diploma or degree in a law related field (already obtained OR obtained before appointment) or an acceptable combination of education, training, and/or experience',
     ]),
-    ['Successful completion of a post-secondary diploma or degree in a law related field (already obtained OR obtained before appointment) or an acceptable combination of education, training, and/or experience'],
+    ['Post-secondary diploma or degree in a law related field'],
   );
   assert.deepEqual(
     normalizeEducationRequirements(['*Education:** A secondary school diploma or employer-approved alternatives']),
-    ['A secondary school diploma or employer-approved alternatives'],
+    ['High school diploma'],
   );
   assert.deepEqual(
     normalizeEducationRequirements(['ED1: Graduation with a degree from a recognized post-secondary institution in mechanical engineering']),
-    ['Graduation with a degree from a recognized post-secondary institution in mechanical engineering'],
+    ['Degree in mechanical engineering'],
   );
   assert.deepEqual(
     normalizeEducationRequirements(['Engineers (EN-ENG-03): Graduation with a degree from a recognized post-secondary institution in civil engineering']),
-    ['Graduation with a degree from a recognized post-secondary institution in civil engineering'],
+    ['Degree in civil engineering'],
   );
   assert.deepEqual(
     normalizeEducationRequirements([
       'Your application must clearly explain how you meet the followingA secondary school diploma or an acceptable combination of education, training or experience**Candidates invited to an interview will be required to bring proof of their education credentials',
     ]),
-    ['A secondary school diploma or an acceptable combination of education, training or experience'],
+    ['High school diploma'],
+  );
+  assert.deepEqual(
+    normalizeEducationRequirements([
+      'Completion of a high school diploma – or a combination of education, training and experience deemed equivalent',
+    ]),
+    ['High school diploma'],
   );
 });
 
 test('keeps education extraction from absorbing unrelated qualification sentences', () => {
   assert.deepEqual(extractEducationRequirements(`## Qualifications
 A PhD degree (completed, in progress, near-completion, or equivalent experience) in a relevant discipline. A demonstrated interest in accessible and equitable AI. Candidate has experience with web-app programming -- HTML, CSS, JavaScript and TypeScript.
-`), ['A PhD degree (completed, in progress, near-completion, or equivalent experience) in a relevant discipline']);
+`), ['PhD (completed, in progress, near-completion, or equivalent experience) in a relevant discipline']);
+  // keep as-is if already correct; compact must not truncate mid-parenthesis
   assert.deepEqual(extractEducationRequirements(`## Qualifications
 Your application must clearly explain how you meet the followingEducation:- A Bachelor of Law degree (i.e. Bachelor of Law (LL.B), Juris Doctor (J.D.), LL.L, or equivalent).Learn more about degree equivalency.Applied / assessed at a later dateCompetencies:- Judgement
-`), ['A Bachelor of Law degree (i.e. Bachelor of Law (LL.B), Juris Doctor (J.D.), LL.L, or equivalent)']);
+`), ['Bachelor of Law degree (i.e. Bachelor of Law (LL.B), Juris Doctor (J.D.), LL.L, or equivalent)']);
 });
 
 test('keeps student enrolment and co-op conditions as education requirements', () => {
@@ -142,7 +149,7 @@ test('does not capture incidental post-secondary wording from a long overview', 
   assert.deepEqual(extractEducationRequirements(`## Qualifications
 - Familiarity with provincial legislation regarding post-secondary education facilities
 - Completion of a post-secondary program in a related field
-`), ['Completion of a post-secondary program in a related field']);
+`), ['Post-secondary program in a related field']);
 });
 
 test('separates education and licence clauses from a combined requirement', () => {
@@ -152,7 +159,7 @@ test('separates education and licence clauses from a combined requirement', () =
 `;
   assert.deepEqual(extractEducationRequirements(description), [
     'University degree in engineering',
-    "Bachelor's Degree or an Advanced Diploma in a related field of study will be considered",
+    "Bachelor's degree or college diploma in a related field",
   ]);
   assert.deepEqual(extractLicenseRequirements(description), [
     'P.Eng. (Ontario)',
@@ -302,7 +309,7 @@ test('extracts month-based experience and high-school education without splittin
 - Valid non-probationary class G license
 `;
   assert.deepEqual(extractEducationRequirements(description), [
-    'High school (Grade 12) graduation, plus an additional program of over one and up to two years in Law and Security, Police Foundations or equivalent',
+    'High school diploma plus program in Law and Security, Police Foundations',
   ]);
   assert.deepEqual(extractExperienceRequirements(description), [
     'Over two months and up to 6 months of related experience',

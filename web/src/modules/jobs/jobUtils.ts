@@ -129,6 +129,38 @@ export function compactLicenseLabel(value: string): string {
   return s;
 }
 
+/** Compact wordy education labels for display (esp. high-school walls). */
+export function compactEducationLabel(value: string): string {
+  const s = value.replace(/\s+/g, ' ').trim();
+  if (!s) return s;
+  if (/^High school diploma$/i.test(s)) return 'High school diploma';
+
+  if (/\b(?:high\s+school|secondary\s+school|grade\s*12|ossd|g\.?e\.?d\.?)\b/i.test(s)) {
+    if (/\bplus\b.+\b(?:program|diploma)\b/i.test(s) || /\bgraduation,\s*plus\b/i.test(s)) {
+      const field = s.match(/\bin\s+([A-Za-z0-9][A-Za-z0-9 ,/-]+?)(?:\s+or\s+equivalent)?\s*$/i)?.[1]?.trim();
+      if (field && field.length < 80) return `High school diploma plus program in ${field}`;
+    }
+    if (/\b(?:two|2)\s+years?\s+of\s+(?:secondary|high)\s+school\b/i.test(s)) return '2 years of high school';
+    if (/\b(?:three|3)\s+years?\s+of\s+(?:secondary|high)\s+school\b/i.test(s)) return '3 years of high school';
+    if (/\bpersonal support worker\b/i.test(s)) return 'High school diploma and Personal Support Worker certificate';
+    return 'High school diploma';
+  }
+
+  return s
+    .replace(/^(?:successful\s+)?completion of\s+(?:a\s+|an\s+)?/i, '')
+    .replace(/\s*[-–—,]\s*or\s+a\s+combination of education,?\s*training and(?:\/or)?\s+experience.*$/i, '')
+    .replace(/\s+or\s+a\s+combination of education,?\s*training and(?:\/or)?\s+experience.*$/i, '')
+    .replace(/\s*[-–—,]?\s*or\s+(?:an?\s+)?(?:acceptable\s+|employer[- ]approved\s+)?combination of\s+(?:education|training|experience).*$/i, '')
+    .replace(/\s+or\s+(?:an?\s+|the\s+)?(?:approved\s+)?equivalent combination.*$/i, '')
+    .replace(/\s+or\s+equivalent(?:\s+combination.*)?$/i, '')
+    .replace(/\s+or\s+employer-approved alternatives?.*$/i, '')
+    .replace(/\s+or\s+higher$/i, '')
+    .replace(/^(?:a|an|must have|minimum(?: of)?)\s+/i, '')
+    .replace(/[,\s]+$/g, '')
+    .replace(/^(.)/, c => c.toUpperCase())
+    .trim() || s;
+}
+
 export function joinJsonArray(raw: string | null, mapItem?: (value: string) => string): string | null {
   try {
     const values = JSON.parse(raw || '[]');
@@ -165,7 +197,7 @@ export function parseJobDetails(job: Job): JobDetails {
     listingType: job.listing_type === 'ongoing_recruitment' ? 'Ongoing recruitment' : job.listing_type === 'inventory' || job.is_inventory === 1 ? 'Candidate inventory' : null,
     studentRequirement: job.is_student === 1 ? 'Yes' : null,
     experience: joinJsonArray(job.experience_requirements),
-    education: joinJsonArray(job.education_requirements),
+    education: joinJsonArray(job.education_requirements, compactEducationLabel),
     licenses: joinJsonArray(job.license_requirements, compactLicenseLabel),
     language: joinJsonArray(job.language_requirements),
     vehicle: job.vehicle_required === 1 ? 'Required' : null,
