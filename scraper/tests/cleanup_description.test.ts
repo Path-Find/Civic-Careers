@@ -152,6 +152,51 @@ The Administrative Coordinator provides support to undergraduate programs and re
   assert.equal(result, '## Overview\n\nThe Administrative Coordinator provides support to undergraduate programs and research activities.');
 });
 
+test('removes GC work-environment / intent / important-messages process blocks', () => {
+  const input = `**Work environment:**
+
+The Public Prosecution Service of Canada (PPSC) is a national organization of approximately 1,000 employees across Canada, dedicated to prosecuting federal offences. We offer meaningful career opportunities for legal and business professionals.
+
+Our updated Mission and Values reflect a strong commitment to Truth and Reconciliation, as well as Equity and Inclusion. We recognize the impact of systemic discrimination and are working to support a fairer justice system for all, particularly Indigenous and racialized communities.
+
+At the PPSC, every employee contributes to a workplace where people feel valued, respected, and empowered to bring their whole selves to work. Through our Equity, Diversity, Inclusion, and Accessibility (EDIA) structure, employees can engage with one of five National Councils for Employees: Persons living with Disabilities, Racialized Persons, Black Persons, Indigenous Peoples, and 2SLGBTQIA+.
+
+**Intent of the process:**
+This process is being used to staff current and future vacancies. A list of qualified and/or partially qualified candidates will be established from this process to staff positions in Calgary or Edmonton, Alberta, with varying tenures and/or security requirements according to the position to be staffed.
+
+When you apply to this selection process, you are not applying for a specific job, but to an inventory. As positions become available, applicants who meet the qualifications may be contacted for further assessment.
+
+**Important messages**
+Successful applicants are required to work in Calgary or Edmonton, Alberta, depending on the location of the position being staffed. Telework or alternate work locations will not be an option. Persons selected for appointments must reside within a commutable distance of the workplace.
+
+**Essential Qualifications:**
+- Successful completion of a post-secondary diploma or degree in a law related field
+`;
+  const result = cleanSourceDescriptionBoilerplate('Government of Canada', input);
+  assert.match(result, /Essential Qualifications/);
+  assert.match(result, /post-secondary diploma or degree in a law related field/);
+  assert.doesNotMatch(result, /Work environment/i);
+  assert.doesNotMatch(result, /Intent of the process/i);
+  assert.doesNotMatch(result, /Important messages/i);
+  assert.doesNotMatch(result, /1,000 employees/);
+  assert.doesNotMatch(result, /not applying for a specific job/i);
+  assert.doesNotMatch(result, /commutable distance/i);
+});
+
+test('keeps duty-heavy GC Work environment sections that are not employer pitch', () => {
+  const input = `### Work environment
+BSOs across Canada facilitate legitimate trade and travel while preventing prohibited goods from entering the country.
+
+Following assessment, candidates must successfully complete the Officer Induction Training Program (OITP).
+
+### Essential qualifications
+**Education:** Secondary school diploma
+`;
+  const result = cleanSourceDescriptionBoilerplate('Government of Canada', input);
+  assert.match(result, /Officer Induction Training Program/);
+  assert.match(result, /Secondary school diploma/);
+});
+
 test('removes the reviewed Barrie administrative blocks without deleting requirements', () => {
   const result = cleanSourceDescriptionBoilerplate('City of Barrie', `## Qualifications
 - Valid Class G licence.

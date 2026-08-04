@@ -119,6 +119,65 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
     // the second as an orphaned fragment.
     { name: 'additional-links-section', pattern: /^##\s+Additional links\s*\n[\s\S]*$/im, mode: 'suffix' },
     { name: 'hiring-organization-contact-section', pattern: /^##\s+Hiring organization contact\s*\n[\s\S]*$/im, mode: 'suffix' },
+
+    // ── Process / inventory / employer-pitch blocks (2026-08-04) ──────────
+    // Next-section look-ahead shared by Work environment / Intent / Important
+    // messages. Stops before real role or qualifications content.
+    // Intent of the process — pure staffing-process inventory text.
+    {
+      name: 'gc-intent-of-the-process-section',
+      pattern: /(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2})Intent of the process\*{0,2}\s*:?\s*[\s\S]*?(?=\n\s*(?:#{1,6}\s+|\*{1,2}(?!Intent)[A-Za-z*]|##\s)|(?=\n\s*(?:Duties|About the position|Positions to be filled|Essential|Conditions of employment|Operational Requirements|Qualifications|Overview|Responsibilities|Who can apply|Language requirements|Information you must provide|Asset qualifications|Important messages|Work environment)\b)|$)/i,
+      mode: 'inline',
+    },
+    // Important messages — inventory application notices, telework disclaimers,
+    // equity prioritization process notes (location already structured).
+    {
+      name: 'gc-important-messages-section',
+      pattern: /(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2})Important messages?\*{0,2}\s*:?\s*[\s\S]*?(?=\n\s*(?:#{1,6}\s+|\*{1,2}(?!Important)[A-Za-z*]|##\s)|(?=\n\s*(?:Duties|About the position|Positions to be filled|Essential|Conditions of employment|Operational Requirements|Qualifications|Overview|Responsibilities|Who can apply|Language requirements|Information you must provide|Asset qualifications|Intent of the process|Work environment)\b)|$)/i,
+      mode: 'inline',
+    },
+    // Work environment that is an employer pitch (PPSC "The Department:", RCMP
+    // "employer of choice", mission/EDIA national councils). Leaves duty-heavy
+    // Work environment sections (e.g. CBSA BSO training pathway) alone.
+    {
+      name: 'gc-work-environment-employer-pitch',
+      pattern: /(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2})Work environment\*{0,2}\s*:?\s*[\s\S]*?(?:The Department\s*:|employer of choice|national organization of approximately|promises a career like no other|Mission and Values|National Councils for Employees|Equity, Diversity, Inclusion, and Accessibility \(EDIA\)|we offer meaningful career opportunities)[\s\S]*?(?=\n\s*(?:#{1,6}\s+|\*{1,2}(?!Work)[A-Za-z*]|##\s)|(?=\n\s*(?:Duties|About the position|Positions to be filled|Essential|Conditions of employment|Operational Requirements|Qualifications|Overview|Responsibilities|Who can apply|Language requirements|Information you must provide|Asset qualifications|Intent of the process|Important messages)\b)|$)/i,
+      mode: 'inline',
+    },
+    // Standalone inventory sentences (heading already stripped or missing).
+    {
+      name: 'gc-inventory-not-specific-job',
+      pattern: /(?:When you apply[^.!\n]{0,120})?you are not applying for a specific job,? but to an inventory[^.!\n]{0,400}\.?[ \t]*/gi,
+      mode: 'inline',
+    },
+    {
+      name: 'gc-staff-current-and-future-vacancies',
+      pattern: /This process is being used to staff current and future vacancies[^.!\n]{0,250}\.[ \t]*(?:A list of qualified[^.!\n]{0,300}\.[ \t]*)?/gi,
+      mode: 'inline',
+    },
+    {
+      name: 'gc-intent-of-the-process-inline',
+      pattern: /(?:^|\n)\s*[-•*]?\s*The intent of the process is to[^\n]{10,400}\n?/gi,
+      mode: 'inline',
+    },
+    {
+      name: 'gc-telework-not-an-option',
+      pattern: /Telework or alternate work locations will not be an option\.[ \t]*(?:Persons selected for appointments must reside within a commutable distance of the workplace\.[ \t]*)?/gi,
+      mode: 'inline',
+    },
+    // PPSC department pitch when it appears without a Work environment heading.
+    {
+      name: 'gc-ppsc-department-pitch',
+      pattern: /(?:The Department:\s*)?The Public Prosecution Service of Canada \(PPSC\) is a national organization of approximately[\s\S]*?(?:business professionals|2SLGBTQIA\+\.?)\.?[ \t]*/gi,
+      mode: 'inline',
+    },
+    // Broader employer-pitch Work environment (RCMP maple-leaf intros, etc.)
+    // when the section is still present after the fingerprint-gated rule above.
+    {
+      name: 'gc-work-environment-rcmp-pitch',
+      pattern: /(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2})Work environment\*{0,2}\s*:?\s*[\s\S]*?(?:Royal Canadian Mounted Police|RCMP promises|civilian employees play a critical role)[\s\S]*?(?=\n\s*(?:#{1,6}\s+|\*{1,2}(?!Work)[A-Za-z*]|##\s)|(?=\n\s*(?:Duties|About the position|Positions to be filled|Essential|Conditions of employment|Operational Requirements|Qualifications|Overview|Responsibilities|Who can apply|Language requirements|Information you must provide|Asset qualifications|Intent of the process|Important messages)\b)|$)/i,
+      mode: 'inline',
+    },
   ],
 };
 
