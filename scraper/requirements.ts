@@ -441,6 +441,8 @@ function detectLicenseRole(text: string): string | null {
 function isNonLicenseJunk(value: string): boolean {
   return /\bregistered as a (?:full[- ]time|part[- ]time)?\s*student\b/i.test(value)
     || /\b(?:full[- ]time|part[- ]time)\s+(?:secondary|post[- ]secondary)\s+student\b/i.test(value)
+    || /\breturning to full[- ]time studies\b/i.test(value)
+    || /\bin final year and not intending to return\b/i.test(value)
     || /\bwe are seeking an experienced professional\b/i.test(value)
     || /\bexperience requirements correspond to the licen/i.test(value)
     || /\bprepares death registration\b/i.test(value)
@@ -453,7 +455,11 @@ function isNonLicenseJunk(value: string): boolean {
     || /\bregistered with the university of toronto\b/i.test(value)
     || /\binclude license number and province\b/i.test(value)
     || /\bprofessional engineer \(include license number\b/i.test(value)
-    || /\blicense number and province of (?:registration|issuance)\b/i.test(value);
+    || /\blicense number and province of (?:registration|issuance)\b/i.test(value)
+    // Vague fragments that never name a real credential (not "College of Nurses…").
+    || /^registration with a college\s*$/i.test(value)
+    || /^registration with regulated college\b/i.test(value)
+    || /\bregistered with the ontario ministry of skills and development\b/i.test(value);
 }
 
 function formatProfessionalLicense(role: string | null, body: string | null, eligible: boolean): string {

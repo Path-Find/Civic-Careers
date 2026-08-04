@@ -28,10 +28,61 @@ export function formatStartDate(value: string | null | undefined): string | null
   return trimmed;
 }
 
-export function joinJsonArray(raw: string | null): string | null {
+/**
+ * Compact wordy professional-registration labels for display.
+ * Mirrors scraper normalizeLicenseRequirement for the common CNO / P.Eng cases
+ * so stale or re-parsed rows never shout the full “registration with the College…” prose.
+ */
+export function compactLicenseLabel(value: string): string {
+  const s = value.replace(/\s+/g, ' ').trim();
+  if (!s) return s;
+
+  // Drop student-registration false positives from the Licences field.
+  if (/\bregistered as a (?:full[- ]time|part[- ]time)?\s*student\b/i.test(s)
+    || /\b(?:full[- ]time|part[- ]time)\s+(?:secondary|post[- ]secondary)\s+student\b/i.test(s)) {
+    return '';
+  }
+
+  const eligible = /\beligib(?:le|ility)\b/i.test(s) ? ' or eligible' : '';
+  const cno = /college of nurses(?: of ontario)?|ontario college of nurses|\bCNO\b/i.test(s);
+  const peo = /professional engineers(?: of)? ontario|\bPEO\b/i.test(s);
+  const rnEc = /extended class|nurse practitioner|\bRN[- ]?EC\b/i.test(s);
+  const rpn = /registered practical nurse|\blicensed practical nurse\b|\bRPN\b|\bLPN\b/i.test(s);
+  const rn = /registered nurse|\bRN\b/i.test(s) && !rnEc && !rpn;
+  const peng = /professional engineer|p\.?\s*eng/i.test(s);
+
+  if (cno && rnEc) return `RN-EC (CNO)${eligible}`;
+  if (cno && rpn) return `RPN (CNO)${eligible}`;
+  if (cno && rn) return `RN (CNO)${eligible}`;
+  if (cno && /registration|registered|licen[cs]e|member/i.test(s)) return `CNO${eligible}`;
+  if (peng && peo) return `P.Eng. (PEO)${eligible}`;
+  if (peng && /\bin ontario\b|province of ontario/i.test(s)) return `P.Eng. (Ontario)${eligible}`;
+  if (peng && !/\bdriver/i.test(s) && s.length > 40) return `P.Eng.${eligible}`;
+
+  // Generic “registration as X with Y” → keep X, drop the registration shell.
+  const asWith = s.match(/^registration as (?:a |an )?(.+?) with (.+)$/i);
+  if (asWith) {
+    const role = asWith[1].trim();
+    const body = asWith[2].replace(/\bin good standing\b/gi, '').trim();
+    if (role.length < 80) return body ? `${role} (${body})${eligible}` : `${role}${eligible}`;
+  }
+  const regWith = s.match(/^registration with (.+)$/i);
+  if (regWith && regWith[1].length < 60) {
+    return regWith[1].replace(/\bin good standing\b/gi, '').trim() + eligible;
+  }
+
+  return s;
+}
+
+export function joinJsonArray(raw: string | null, mapItem?: (value: string) => string): string | null {
   try {
     const values = JSON.parse(raw || '[]');
-    return Array.isArray(values) && values.length ? values.join(', ') : null;
+    if (!Array.isArray(values) || !values.length) return null;
+    const mapped = values
+      .filter((value): value is string => typeof value === 'string')
+      .map(value => (mapItem ? mapItem(value) : value).trim())
+      .filter(Boolean);
+    return mapped.length ? mapped.join(', ') : null;
   } catch {
     return null;
   }
@@ -60,7 +111,7 @@ export function parseJobDetails(job: Job): JobDetails {
     studentRequirement: job.is_student === 1 ? 'Yes' : null,
     experience: joinJsonArray(job.experience_requirements),
     education: joinJsonArray(job.education_requirements),
-    licenses: joinJsonArray(job.license_requirements),
+    licenses: joinJsonArray(job.license_requirements, compactLicenseLabel),
     language: joinJsonArray(job.language_requirements),
     vehicle: job.vehicle_required === 1 ? 'Required' : null,
     securityCheck: job.security_check_required === 1 ? 'Required' : null,
