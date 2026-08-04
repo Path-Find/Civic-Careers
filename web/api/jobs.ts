@@ -12,7 +12,7 @@ const jobColumns = `
   jd.is_unionized, jd.union_name, jd.benefits, jd.required_skills,
   jd.experience_requirements, jd.education_requirements, jd.license_requirements, jd.vehicle_required,
   jd.language_requirements, jd.security_check_required, jd.certification_requirements,
-  jd.software_requirements,
+  jd.software_requirements, jd.medical_requirements,
   jd.responsibility_tags, jd.qualification_tags`;
 
 const jobJoins = `

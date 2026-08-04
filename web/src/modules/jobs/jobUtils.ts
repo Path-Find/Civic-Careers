@@ -48,6 +48,7 @@ export function parseJobDetails(job: Job): JobDetails {
     securityCheck: job.security_check_required === 1 ? 'Required' : null,
     certifications: joinJsonArray(job.certification_requirements),
     software: joinJsonArray(job.software_requirements),
+    medical: joinJsonArray(job.medical_requirements),
     benefits: joinJsonArray(job.benefits),
     skills: joinJsonArray(job.required_skills),
     future: (job.description || '').toLowerCase().includes('future requirements')

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Medical/fitness requirements (vision tests, physical fitness standards) now have their own structured field** instead of living as prose in the description, and the job's department now shows next to the source name above the title instead of only in the sidebar.
+
 ### Fixed
 - **The RCMP 9-1-1 Police Dispatchers listing had no salary or real job content**: the hand-written override was sourced from the RCMP's "application process" page instead of their actual job pages, so it only ever had how-to-apply steps and eligibility notes, not duties or pay. Rebuilt from the RCMP's actual duties and compensation pages, with real salary ($65,714–$87,946/yr) and benefits now in the structured fields instead of missing entirely.
 - **Government of Canada job listings carried generic template clutter in the description** (veteran/citizen preference notices, EDIA boilerplate, accessibility commitment text, HR contact names/emails, and unrelated "additional links"): these are now stripped for every posting from that source instead of being fixed one job at a time.

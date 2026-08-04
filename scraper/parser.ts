@@ -80,6 +80,7 @@ async function main() {
           security_check_required: sourceFix?.securityCheckRequired ?? (aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0)),
           certification_requirements: JSON.stringify(certificationRequirements.length ? certificationRequirements : aiResult.certification_requirements),
           software_requirements: JSON.stringify(softwareRequirements.length ? softwareRequirements : aiResult.software_requirements),
+          medical_requirements: JSON.stringify(sourceFix?.medicalRequirements ?? aiResult.medical_requirements),
           responsibility_tags: JSON.stringify(aiResult.responsibility_tags),
           qualification_tags: JSON.stringify(aiResult.qualification_tags),
           posted_at: raw.posted_at,

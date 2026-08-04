@@ -24,6 +24,7 @@ export interface Job {
   security_check_required: number | null;
   certification_requirements: string | null;
   software_requirements: string | null;
+  medical_requirements: string | null;
   responsibility_tags: string | null;
   qualification_tags: string | null;
   description?: string | null;
@@ -80,6 +81,7 @@ export interface JobDetails {
   securityCheck: string | null;
   certifications: string | null;
   software: string | null;
+  medical: string | null;
   benefits: string | null;
   skills: string | null;
   future: string | null;
