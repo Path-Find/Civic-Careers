@@ -94,11 +94,38 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
     // 7 CMHC postings carrying this block (some via the raw CMHC source,
     // some scraped through the generic Government of Canada listing).
     { name: 'cmhc-posting-metadata-block', pattern: /\*{0,2}Job Requisition ID:\*{0,2}[\s\S]*?\*{0,2}Security Requirement:\*{0,2}[^\n]*\n?(?:\s*\n?\*{0,2}Salary:\*{0,2}[^\n]*\n?)?/i, mode: 'inline' },
+    // Employer mission / culture pitch that opens nearly every CMHC posting
+    // ("well-functioning housing system…"). Never role-specific. Verified on
+    // long form + short "We contribute to a well-functioning housing system."
+    {
+      name: 'cmhc-about-employer-pitch',
+      pattern: /(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2})About CMHC\*{0,2}\s*\n[\s\S]*?(?=\n\s*(?:#{1,6}\s+|\*{1,2}(?!About CMHC)[A-Za-z*])|$)/i,
+      mode: 'inline',
+    },
+    // Generic permanent-employee benefits package ("purpose, the people and the
+    // perks…") — same on every posting; benefits already live structured when
+    // stated. Hybrid/in-office lines under this heading go with it.
+    {
+      name: 'cmhc-whats-in-it-for-you',
+      pattern: /(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2})What[’']s in it for you\*{0,2}\s*\n[\s\S]*?(?=\n\s*(?:#{1,6}\s+|\*{1,2}(?!What)[A-Za-z*])|$)/i,
+      mode: 'inline',
+    },
   ],
   'Government of Canada': [
     { name: 'selection-thank-you-footer', pattern: /^(?:We wish to thank all applicants|We'd like to thank all those who apply)\.[\s\S]*$/i },
     { name: 'generic-accommodation-footer', pattern: /^We are committed to providing an inclusive and barrier-free work environment,[\s\S]*$/i },
     { name: 'cmhc-posting-metadata-block', pattern: /\*{0,2}Job Requisition ID:\*{0,2}[\s\S]*?\*{0,2}Security Requirement:\*{0,2}[^\n]*\n?(?:\s*\n?\*{0,2}Salary:\*{0,2}[^\n]*\n?)?/i, mode: 'inline' },
+    // CMHC postings that land under the GC source still carry the same pitch.
+    {
+      name: 'cmhc-about-employer-pitch',
+      pattern: /(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2})About CMHC\*{0,2}\s*\n[\s\S]*?(?=\n\s*(?:#{1,6}\s+|\*{1,2}(?!About CMHC)[A-Za-z*])|$)/i,
+      mode: 'inline',
+    },
+    {
+      name: 'cmhc-whats-in-it-for-you',
+      pattern: /(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2})What[’']s in it for you\*{0,2}\s*\n[\s\S]*?(?=\n\s*(?:#{1,6}\s+|\*{1,2}(?!What)[A-Za-z*])|$)/i,
+      mode: 'inline',
+    },
     // Same generic employment-equity boilerplate as the Equity/DEI heading
     // rule below, just nested inside "You may need (asset qualifications)"
     // instead of its own heading — verified against every occurrence.
