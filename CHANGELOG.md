@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Alongside/CareerBeacon sources were not scrapeable through their widget links**: UNB and Saint Mary’s now use a shared widget extractor and accessible canonical CareerBeacon detail URLs, preserving raw descriptions, application links, and official posted dates for trial validation.
 - **Years-of-experience requirements were buried in descriptions**: required experience is now extracted into structured job details, backfilled for existing postings, and shown in a separate requirements panel from application metadata.
 - **Structured requirements could absorb unrelated sentences**: education and licence fields now keep only the requirement itself, named HTML/CSS/TypeScript tools are captured, and existing records were deterministically backfilled.
 - **A Government of Canada future-vacancy inventory looked like a regular job**: explicit inventory wording now sets the inventory type and keeps the posting hidden from the default catalogue.

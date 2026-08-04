@@ -27,6 +27,7 @@ import { scrapeAvanti } from './engines/avanti';
 import { scrapeVipCloud } from './engines/vipcloud';
 import { scrapeWorkzoom } from './engines/workzoom';
 import { scrapeSapWebDynpro } from './engines/sap-webdynpro';
+import { scrapeAlongside } from './engines/alongside';
 import { scrapeBrassRing, scrapeCollingwood, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNanaimo, scrapeNipissing, scrapeNorthBay, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
@@ -153,6 +154,17 @@ const SOURCES = {
     scrapeJobs2Web(db, context, 'https://careers.saskatoon.ca/search/', 'City of Saskatoon'),
   'Regional Municipality of Wood Buffalo': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://jobs.rmwb.ca/search/', 'Regional Municipality of Wood Buffalo'),
+  'University of New Brunswick': (db: Client, context: BrowserContext) =>
+    scrapeAlongside(db, context, [
+      'https://widget.alongside.com/widgets/jobs_widget/horizontal/235818/en',
+      'https://widget.alongside.com/widgets/jobs_widget/horizontal/235818/en/internal',
+      'https://widget.alongside.com/widgets/jobs_widget/horizontal/249707/en/internal',
+    ], 'University of New Brunswick'),
+  "Saint Mary's University": (db: Client, context: BrowserContext) =>
+    scrapeAlongside(db, context, [
+      'https://widget.alongside.com/widgets/jobs_widget/horizontal/247668/en',
+      'https://widget.alongside.com/widgets/jobs_widget/horizontal/201305/en',
+    ], "Saint Mary's University"),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {

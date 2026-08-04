@@ -170,6 +170,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       : null;
 
     const structuredPostedAt = ['City of Barrie', 'City of Windsor', 'City of Thunder Bay', 'City of Belleville', 'City of Burlington', 'City of St. Catharines', 'City of Niagara Falls'].includes(sourceName)
+      || /www\.careerbeacon\.com\/en\/job\/\d+/i.test(descriptionUrl)
       ? await page.locator('script[type="application/ld+json"]').evaluateAll((scripts) => {
         for (const script of scripts) {
           try {
