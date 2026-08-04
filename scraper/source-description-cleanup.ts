@@ -50,6 +50,22 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
   'Government of Canada': [
     { name: 'selection-thank-you-footer', pattern: /^(?:We wish to thank all applicants|We'd like to thank all those who apply)\.[\s\S]*$/i },
     { name: 'generic-accommodation-footer', pattern: /^We are committed to providing an inclusive and barrier-free work environment,[\s\S]*$/i },
+    // Standard Treasury Board / Public Service template sections. Verified against
+    // all ~150 occurrences across the GC corpus (2026-08-04): every instance is
+    // generic policy or contact boilerplate, never job-specific content. Distinct
+    // from "How to apply" and "Language requirements", which were checked too but
+    // left alone — both mix in real per-posting instructions/qualifications often
+    // enough that a blanket strip would lose signal.
+    { name: 'veteran-preference-section', pattern: /^##\s+Preference\s*\n[\s\S]*$/im },
+    { name: 'equity-diversity-inclusion-section', pattern: /^##\s+Equity,?\s+diversity and inclusion\s*\n[\s\S]*$/im },
+    { name: 'our-commitment-accessibility-section', pattern: /^##\s+Our commitment\s*\n[\s\S]*$/im },
+    // 'suffix' (not paragraph-scoped) because these two are always the last
+    // sections in the template, and some postings put a blank line between
+    // multiple named contacts within "Hiring organization contact" — a
+    // paragraph-scoped match would only catch the first contact and leave
+    // the second as an orphaned fragment.
+    { name: 'additional-links-section', pattern: /^##\s+Additional links\s*\n[\s\S]*$/im, mode: 'suffix' },
+    { name: 'hiring-organization-contact-section', pattern: /^##\s+Hiring organization contact\s*\n[\s\S]*$/im, mode: 'suffix' },
   ],
 };
 

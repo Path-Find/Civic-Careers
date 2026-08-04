@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Government of Canada job listings carried generic template clutter in the description** (veteran/citizen preference notices, EDIA boilerplate, accessibility commitment text, HR contact names/emails, and unrelated "additional links"): these are now stripped for every posting from that source instead of being fixed one job at a time.
 - **Job detail requirements were duplicated and visually fragmented**: structured requirements, hours, responsibilities, qualifications, and other details now have clearer single-purpose placement in the sidebar and body cards.
 - **Alongside/CareerBeacon sources were not scrapeable through their widget links**: UNB and Saint Mary’s now use a shared widget extractor and accessible canonical CareerBeacon detail URLs, preserving raw descriptions, application links, and official posted dates for trial validation.
 - **Years-of-experience requirements were buried in descriptions**: required experience is now extracted into structured job details, backfilled for existing postings, and shown in a separate requirements panel from application metadata.
