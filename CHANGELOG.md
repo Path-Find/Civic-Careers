@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **More real posted dates pulled from source text** — Opening Date / Date Published / day-first and ordinal forms (`9 February 2026`, `July 9th, 2026`, `26/06/2026`) now fill empty `posted_at` fields; corpus re-scanned.
+- **Qualifications bullets that only restated structured Education / Experience / Licence fields are stripped from the body** (corpus-wide, ~2.5k rows) so the same fact isn’t in the sidebar and again in the description.
 - **Compensation body sections that only restated sidebar pay are gone** — pure salary ranges and “annual salary + federal benefits package” fluff no longer duplicate the sidebar (e.g. RCMP dispatcher $70,688–$86,007). Unique pay (bilingual bonus, shift premium) and real itemized benefits stay.
 - **Union field no longer shows “Non-Union?”** — non-union postings hide the Union row instead of listing Non-Union as if it were a bargaining unit; ~70 bad flags cleaned.
 - **Wordy licence and education text collapsed to short labels** — e.g. driver walls → `Ontario Class G`; high-school walls (“Completion of a high school diploma – or a combination of education, training and experience…”) → `High school diploma`; CNO/P.Eng. registrations too. Stored rows rewritten; job detail UI also compacts on display.

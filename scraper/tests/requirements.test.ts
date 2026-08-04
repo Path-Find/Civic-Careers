@@ -11,6 +11,7 @@ import {
   normalizeLicenseRequirements,
   extractNamedBenefits,
   stripLicenseBulletsFromDescription,
+  stripStructuredQualBullets,
   extractListingType,
   extractSoftwareRequirements,
   extractVehicleRequired,
@@ -271,6 +272,30 @@ test('strips qualification bullets that restate structured licences', () => {
 
 ## Responsibilities
 - Drive between sites`,
+  );
+
+  assert.equal(
+    stripStructuredQualBullets(
+      `## Qualifications
+- High school (Grade 12) graduation, plus Law and Security program
+- Over two months and up to 6 months of related experience
+- Valid Class G driver's licence
+- Strong communication skills
+
+## Responsibilities
+- Enforce by-laws
+`,
+      {
+        education: ['High school diploma plus program in Law and Security, Police Foundations'],
+        experience: ['Over two months and up to 6 months of related experience'],
+        licenses: ['Class G'],
+      },
+    ),
+    `## Qualifications
+- Strong communication skills
+
+## Responsibilities
+- Enforce by-laws`,
   );
 
   // Bold/non-markdown headings used by some municipal parsers.

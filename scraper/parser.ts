@@ -12,7 +12,7 @@ import {
   normalizeLanguageRequirements,
   reconcileStructuredRequirements,
   splitLanguageOutOfSkills,
-  stripLicenseBulletsFromDescription,
+  stripStructuredQualBullets,
 } from './requirements';
 import { cleanJobDescription } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
@@ -57,7 +57,11 @@ async function main() {
           benefits: aiResult.benefits,
           required_skills: aiResult.required_skills,
         });
-        description = stripLicenseBulletsFromDescription(description, structuredRequirements.license_requirements);
+        description = stripStructuredQualBullets(description, {
+          licenses: structuredRequirements.license_requirements,
+          education: structuredRequirements.education_requirements,
+          experience: structuredRequirements.experience_requirements,
+        });
         const certificationRequirements = extractCertificationRequirements(description);
         const softwareRequirements = extractSoftwareRequirements(description).values;
         const finalSoftwareRequirements = softwareRequirements.length ? softwareRequirements : aiResult.software_requirements;

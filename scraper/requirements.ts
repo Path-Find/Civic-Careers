@@ -1121,34 +1121,80 @@ function licenseKeysOverlap(left: string, right: string): boolean {
   return false;
 }
 
+function isQualificationsHeading(raw: string): boolean {
+  const heading = raw
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/^\*{1,2}/, '')
+    .replace(/\*{1,2}:?\s*$/, '')
+    .replace(/:$/, '')
+    .trim()
+    .toLowerCase();
+  if (!heading || heading.length > 80) return false;
+  return /\b(?:qualifications?|requirements?|skills?|conditions?(?:\s+of\s+employment)?|minimum|essential|what you (?:need|should)|knowledge and skills|education and experience)\b/i.test(heading)
+    && !/\bnice to have|preferred|asset|benefit|compensation|responsibilit|overview\b/i.test(heading);
+}
+
+function educationCoreKey(value: string): string {
+  return normalizedRequirement(value)
+    .replace(/\b(?:must|have|hold|completion|completed|successful|minimum|required|a|an|the|of|in|or|and|equivalent|combination|education|training|experience|degree|diploma|certificate|plus|program)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function experienceCoreKey(value: string): string {
+  return normalizedRequirement(value)
+    .replace(/\b(?:must|have|possess|minimum|required|of|in|related|relevant|experience|years?|months?|yrs?)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function keysOverlapLoose(left: string, right: string): boolean {
+  if (!left || !right) return false;
+  if (left === right || left.includes(right) || right.includes(left)) return true;
+  // Shared substantial token (e.g. "high school", "bachelor", "nursing")
+  const leftTokens = left.split(' ').filter(t => t.length > 3);
+  const rightSet = new Set(right.split(' '));
+  const shared = leftTokens.filter(t => rightSet.has(t));
+  return shared.length >= 2 || (shared.length === 1 && shared[0].length >= 6);
+}
+
 /**
  * Drop Qualifications (and similar) bullets that only restate a licence already
  * captured in license_requirements — QUALITY.md rule 1.
  */
 export function stripLicenseBulletsFromDescription(description: string, licenses: string[]): string {
-  if (!description.trim() || licenses.length === 0) return description;
+  return stripStructuredQualBullets(description, { licenses });
+}
+
+/**
+ * Drop Qualifications bullets that restate structured education / experience / licence
+ * fields (QUALITY.md rule 1: no fact in two places).
+ */
+export function stripStructuredQualBullets(
+  description: string,
+  fields: {
+    licenses?: string[];
+    education?: string[];
+    experience?: string[];
+  },
+): string {
+  if (!description.trim()) return description;
+  const licenses = fields.licenses ?? [];
+  const education = fields.education ?? [];
+  const experience = fields.experience ?? [];
+  if (!licenses.length && !education.length && !experience.length) return description;
+
+  const eduKeys = education.map(educationCoreKey).filter(Boolean);
+  const expKeys = experience.map(experienceCoreKey).filter(Boolean);
 
   const lines = description.split('\n');
   let inQuals = false;
   const kept: string[] = [];
   let removed = 0;
 
-  const isQualHeading = (raw: string): boolean => {
-    const heading = raw
-      .replace(/^#{1,6}\s+/, '')
-      .replace(/^\*{1,2}/, '')
-      .replace(/\*{1,2}:?\s*$/, '')
-      .replace(/:$/, '')
-      .trim()
-      .toLowerCase();
-    if (!heading || heading.length > 80) return false;
-    return /\b(?:qualifications?|requirements?|skills?|conditions?(?:\s+of\s+employment)?|minimum|essential|what you (?:need|should)|knowledge and skills)\b/i.test(heading)
-      && !/\bnice to have|preferred|asset|benefit|compensation|responsibilit|overview\b/i.test(heading);
-  };
-
   for (const line of lines) {
     if (/^#{1,6}\s+/.test(line) || /^\*{1,2}[^*]+\*{1,2}:?\s*$/.test(line.trim()) || /^[A-Z][A-Za-z0-9 /&'’-]{2,60}:\s*$/.test(line.trim())) {
-      inQuals = isQualHeading(line.trim());
+      inQuals = isQualificationsHeading(line.trim());
       kept.push(line);
       continue;
     }
@@ -1156,15 +1202,46 @@ export function stripLicenseBulletsFromDescription(description: string, licenses
     const bullet = line.match(/^\s*[-•*]\s+(.+)$/);
     if (inQuals && bullet) {
       const text = bullet[1].trim();
-      const licenseFocus = text
+      const focus = text
         .replace(/\.\s+(?=[A-Z])[^.]*\b(?:asset|preferred|nice\s+to\s+have|desirable)\b[^.]*\.?\s*$/i, '')
         .trim();
-      if (LICENSE_TERM.test(licenseFocus) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(licenseFocus)) {
-        const restates = licenses.some(license => licenseKeysOverlap(license, licenseFocus));
-        // Short pure licence bullets that duplicate any structured driver licence.
-        const pureDriver = DRIVER_LICENSE_PHRASE.test(licenseFocus) && licenseFocus.length < 220
+
+      // Licence restatement
+      if (licenses.length && LICENSE_TERM.test(focus) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)) {
+        const restates = licenses.some(license => licenseKeysOverlap(license, focus));
+        const pureDriver = DRIVER_LICENSE_PHRASE.test(focus) && focus.length < 220
           && licenses.some(license => /\bdriver|class\b/i.test(license));
         if (restates || pureDriver) {
+          removed += 1;
+          continue;
+        }
+      }
+
+      // Education restatement (high school / degree / diploma already structured)
+      if (eduKeys.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+        && /\b(?:high\s+school|secondary\s+school|grade\s*12|bachelor|master|ph\.?d|diploma|degree|post[- ]secondary|college|university|ossd|certificate\s+in)\b/i.test(focus)) {
+        const bulletKey = educationCoreKey(focus);
+        const restatesEdu = eduKeys.some(key => keysOverlapLoose(key, bulletKey));
+        // Pure education credential bullet (not skills + education mashup over 200 chars of unique content)
+        const mostlyEdu = focus.length < 220
+          || /^(?:must\s+(?:have|hold|possess|complete)|completion|completed|successful|minimum|a|an)\b/i.test(focus);
+        if (restatesEdu && mostlyEdu) {
+          removed += 1;
+          continue;
+        }
+      }
+
+      // Experience restatement
+      if (expKeys.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+        && EXPERIENCE_YEARS_PATTERN.test(focus) && /\bexperience\b/i.test(focus)) {
+        const bulletKey = experienceCoreKey(focus);
+        const restatesExp = expKeys.some(key => keysOverlapLoose(key, bulletKey));
+        // Same time unit already structured (e.g. both "3 years of experience…") and bullet is mostly that fact
+        const bothHaveTime = focus.length < 180
+          && /\b\d+\s*(?:\+)?\s*(?:years?|months?)\b/i.test(focus)
+          && experience.some(e => /\b\d+\s*(?:\+)?\s*(?:years?|months?)\b/i.test(e));
+        if ((restatesExp || bothHaveTime)
+          && !/\b(?:and\s+)?(?:excellent|strong|proven)\s+(?:communication|organizational|leadership)\b/i.test(focus.slice(0, 40))) {
           removed += 1;
           continue;
         }
