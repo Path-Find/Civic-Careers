@@ -34,6 +34,29 @@ test('removes sentence-level employer copy without cutting the role sentence', (
   );
 });
 
+test('strips fused city-tourism lead-in from municipal overviews', () => {
+  assert.equal(
+    cleanOverviewBoilerplate(
+      'Cornwall is a community of 47,000 on the St. Lawrence River in Eastern Ontario. The city offers urban amenities and quality of life. The Case Manager assesses client needs and eligibility, develops service plans, and coordinates support services to assist individuals and families in accessing human services programs.',
+      'Case Manager',
+    ),
+    'The Case Manager assesses client needs and eligibility, develops service plans, and coordinates support services to assist individuals and families in accessing human services programs.',
+  );
+});
+
+test('strips multi-paragraph municipal tourism even when body title mismatches', () => {
+  const result = cleanOverviewBoilerplate(
+    `Cornwall is a beautiful community with a population of 47,000 situated on the banks of the St. Lawrence River in Eastern Ontario. The city offers a wide array of urban amenities, making it an excellent place for a career and raising a family. With a growing economy, expanding population and fantastic quality of life, there has never been a better time to start the next phase of your career with the City of Cornwall! Cornwall is a diverse and progressive community where residents and partners feel safe, welcomed, and enjoy a high quality of life supported by access to financially responsible and sustainable municipal services and infrastructure.
+
+The Program Administrator is responsible for coordinating and administering business support programs.`,
+    'Client Services Representative, Visual Arts',
+  );
+  assert.equal(
+    result,
+    'The Program Administrator is responsible for coordinating and administering business support programs.',
+  );
+});
+
 test('removes an inline marketing label before the role summary', () => {
   assert.equal(
     cleanOverviewBoilerplate(

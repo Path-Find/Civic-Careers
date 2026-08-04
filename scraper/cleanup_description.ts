@@ -16,21 +16,73 @@ function sentenceCount(text: string): number {
   return (text.match(/[.!?](?=\s|$)/g) || []).length;
 }
 
+function splitSentences(paragraph: string): string[] {
+  return paragraph
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9“"])/)
+    .map(sentence => sentence.trim())
+    .filter(Boolean);
+}
+
+// City/employer marketing that never describes the work of the role.
+// Deliberately lifestyle/geography/population oriented — not duties.
+const TOURISM_SENTENCE = /\b(?:population of\s+\d|community of\s+[\d,]+|quality of life|urban amenities|raising a family|never been a better time|st\.?\s*lawrence river|live,?\s*work(?:ing)?,?\s*and play|situated on the (?:banks|shores)|fantastic quality of life|expanding population|growing economy|beautiful (?:community|city|town)|known as the|world[- ]class|proud to (?:call|be)|vibrant (?:community|city)|municipal services and infrastructure|residents and partners feel safe|excellent place for a career)\b/i;
+
+// Signals that a sentence is actually about the job, not the town.
+const ROLE_SENTENCE = /\b(?:responsible for|this (?:role|position|job)|the successful candidate|reporting to|duties include|you will|the incumbent|assess(?:es|ing)?|coordinate(?:s|ing)?|manage(?:s|ing)?|provide(?:s|ing)?|support(?:s|ing)?|lead(?:s|ing)?|oversee(?:s|ing)?|deliver(?:s|ing)?|process(?:es|ing)?)\b/i;
+
+function sentenceMentionsTitle(sentence: string, jobTitle: string): boolean {
+  const core = titleCore(jobTitle);
+  if (core.length < 4) return false;
+  const lower = sentence.toLocaleLowerCase();
+  if (lower.includes(core.toLocaleLowerCase())) return true;
+  // Also match the head of a long title ("Client Services Representative, Visual Arts"
+  // → "Client Services Representative") when the body uses a shorter form.
+  const head = core.split(/[,–—-]/)[0]?.trim() ?? '';
+  return head.length >= 8 && lower.includes(head.toLocaleLowerCase());
+}
+
+function isTourismSentence(sentence: string): boolean {
+  return TOURISM_SENTENCE.test(sentence) && !ROLE_SENTENCE.test(sentence);
+}
+
+function isRoleSentence(sentence: string, jobTitle: string): boolean {
+  return sentenceMentionsTitle(sentence, jobTitle) || ROLE_SENTENCE.test(sentence);
+}
+
+function isTourismParagraph(paragraph: string, jobTitle: string): boolean {
+  const sentences = splitSentences(paragraph);
+  if (sentences.length === 0) return false;
+  if (sentences.some(sentence => isRoleSentence(sentence, jobTitle))) return false;
+  // Pure marketing: majority of sentences look like tourism/city pitch.
+  const tourismHits = sentences.filter(isTourismSentence).length;
+  return tourismHits > 0 && tourismHits >= Math.ceil(sentences.length * 0.5);
+}
+
 function removeLeadInSentences(paragraph: string, jobTitle: string): string {
-  const sentences = paragraph.split(/(?<=[.!?])\s+(?=[A-Z0-9])/);
-  const titleLower = titleCore(jobTitle).toLocaleLowerCase();
-  const roleSentence = sentences.findIndex(sentence =>
-    sentence.toLocaleLowerCase().includes(titleLower)
-  );
-  const result = roleSentence > 0 ? sentences.slice(roleSentence).join(' ') : paragraph;
-  return result.replace(/^(your opportunity|the opportunity|about the (role|position)|what you(?:'|’)ll do)\s*:?[\s-]*/i, '').trim();
+  const sentences = splitSentences(paragraph);
+  if (sentences.length === 0) return paragraph.trim();
+
+  // Prefer cutting to the first sentence that names the role.
+  const titleIndex = sentences.findIndex(sentence => sentenceMentionsTitle(sentence, jobTitle));
+  let start = 0;
+  if (titleIndex > 0) {
+    start = titleIndex;
+  } else if (titleIndex < 0) {
+    // Title never appears (AI synonym / wrong title): drop leading city-tourism
+    // sentences until a role-like sentence appears.
+    while (start < sentences.length && isTourismSentence(sentences[start])) start += 1;
+    if (start >= sentences.length) return paragraph.trim();
+  }
+
+  const result = sentences.slice(start).join(' ');
+  return result
+    .replace(/^(your opportunity|the opportunity|about the (role|position)|what you(?:'|’)ll do)\s*:?[\s-]*/i, '')
+    .trim();
 }
 
 /**
- * Remove employer/facility boilerplate from an existing Overview without
- * asking the AI to parse the job again. The cut is deliberately paragraph
- * based: a paragraph containing the trusted title is kept intact so names,
- * credentials, and lead-in phrases are not cut mid-sentence.
+ * Remove employer/facility/city-tourism boilerplate from an Overview without
+ * asking the AI to parse the job again.
  */
 export function cleanOverviewBoilerplate(overview: string, jobTitle: string): string {
   const paragraphs = overview
@@ -39,26 +91,40 @@ export function cleanOverviewBoilerplate(overview: string, jobTitle: string): st
     .map(paragraph => paragraph.trim())
     .filter(Boolean);
 
-  const core = titleCore(jobTitle);
-  if (core.length < 4) return overview.trim();
+  if (paragraphs.length === 0) return overview.trim();
 
-  if (paragraphs.length === 1) {
-    return removeLeadInSentences(paragraphs[0], jobTitle);
+  // Drop whole leading paragraphs that are pure city/employer tourism, even
+  // when the job title never appears in a later paragraph (title mismatch).
+  let firstKeep = 0;
+  while (firstKeep < paragraphs.length && isTourismParagraph(paragraphs[firstKeep], jobTitle)) {
+    firstKeep += 1;
+  }
+  // Prefer the paragraph that names the title when present.
+  const core = titleCore(jobTitle);
+  if (core.length >= 4) {
+    const titleIndex = paragraphs.findIndex(paragraph =>
+      paragraph.toLocaleLowerCase().includes(core.toLocaleLowerCase())
+      || paragraph.toLocaleLowerCase().includes((core.split(/[,–—-]/)[0] ?? '').toLocaleLowerCase())
+    );
+    if (titleIndex > firstKeep) firstKeep = titleIndex;
   }
 
-  const roleIndex = paragraphs.findIndex(paragraph =>
-    paragraph.toLocaleLowerCase().includes(core.toLocaleLowerCase())
-  );
-  if (roleIndex <= 0) return overview.trim();
+  if (firstKeep >= paragraphs.length) {
+    // Everything looked like tourism — try sentence-level rescue on the last para.
+    const rescued = removeLeadInSentences(paragraphs[paragraphs.length - 1], jobTitle);
+    return rescued || overview.trim();
+  }
 
-  let kept = paragraphs.slice(roleIndex);
+  let kept = paragraphs.slice(firstKeep);
   kept[0] = removeLeadInSentences(kept[0], jobTitle);
-
-  // A few feeds emit a standalone marketing label immediately before the
-  // actual role paragraph. It has no content and should not survive cleanup.
-  kept = kept.filter(paragraph =>
-    !/^(your opportunity|the opportunity|about the (role|position)|what you(?:'|’)ll do)\s*:?[.!]?$/i.test(paragraph)
-  );
+  kept = kept
+    .map((paragraph, index) => (index === 0 ? paragraph : removeLeadInSentences(paragraph, jobTitle)))
+    .filter(paragraph => paragraph.trim())
+    .filter(paragraph =>
+      !/^(your opportunity|the opportunity|about the (role|position)|what you(?:'|’)ll do)\s*:?[.!]?$/i.test(paragraph)
+    )
+    // Drop any remaining pure-tourism paragraphs after the cut.
+    .filter(paragraph => !isTourismParagraph(paragraph, jobTitle));
 
   const result = kept.join('\n\n').trim();
   if (!result || sentenceCount(result) === 0) return overview.trim();

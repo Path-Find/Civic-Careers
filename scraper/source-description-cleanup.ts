@@ -25,6 +25,13 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
     { name: 'equal-opportunity-footer', pattern: /The City of Barrie is an equal opportunity employer,[\s\S]*?we will work with you to meet your needs\./i, mode: 'inline' },
     { name: 'job-description-disclaimer', pattern: /The job posting has been designed to indicate[\s\S]*?HR\.Recruitment@Barrie\.ca\./i, mode: 'inline' },
   ],
+  'City of Cornwall': [
+    // Repeated city tourism pitch (population / St. Lawrence / quality of life /
+    // "never been a better time…") that opens every Workland posting. Verified
+    // across active Cornwall rows — never contains role duties.
+    { name: 'cornwall-tourism-intro', pattern: /Cornwall is a (?:beautiful )?community[\s\S]*?(?:municipal services and infrastructure|quality of life)\.?[ \t]*\n?/i, mode: 'inline' },
+    { name: 'cornwall-tourism-intro-short', pattern: /Cornwall is a community of[\s\S]*?quality of life\.?[ \t]*/i, mode: 'inline' },
+  ],
   'City of St. Catharines': [
     { name: 'additional-information-footer', pattern: /(?:^|\n\s*)(?:#{1,6}\s*)?Additional Information:\s*Equal Opportunity Employer[\s\S]*$/i, mode: 'suffix' },
     { name: 'additional-information-section', pattern: /(?:^|\n\s*)(?:#{1,6}\s*)?Additional Information\s*\n\s*-?\s*Equal Opportunity Employer[\s\S]*$/i, mode: 'suffix' },
@@ -92,6 +99,10 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
     { name: 'selection-thank-you-footer', pattern: /^(?:We wish to thank all applicants|We'd like to thank all those who apply)\.[\s\S]*$/i },
     { name: 'generic-accommodation-footer', pattern: /^We are committed to providing an inclusive and barrier-free work environment,[\s\S]*$/i },
     { name: 'cmhc-posting-metadata-block', pattern: /\*{0,2}Job Requisition ID:\*{0,2}[\s\S]*?\*{0,2}Security Requirement:\*{0,2}[^\n]*\n?(?:\s*\n?\*{0,2}Salary:\*{0,2}[^\n]*\n?)?/i, mode: 'inline' },
+    // Same generic employment-equity boilerplate as the Equity/DEI heading
+    // rule below, just nested inside "You may need (asset qualifications)"
+    // instead of its own heading — verified against every occurrence.
+    { name: 'organizational-needs-equity-paragraph', pattern: /^\*{0,2}Organizational Needs:?\*{0,2}[\s\S]*$/im, mode: 'inline' },
     // Standard Treasury Board / Public Service template sections. Verified against
     // all ~150 occurrences across the GC corpus (2026-08-04): every instance is
     // generic policy or contact boilerplate, never job-specific content. Distinct
