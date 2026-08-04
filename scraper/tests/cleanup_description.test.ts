@@ -96,6 +96,25 @@ test('removes sections whose only content is a placeholder', () => {
   assert.equal(result, '## Responsibilities\n- Operate equipment.');
 });
 
+test('drops Compensation sections that only restate salary already in structured fields', () => {
+  const result = cleanJobDescription(`## Responsibilities
+- Lead the team.
+## Compensation & Benefits
+Salary range: $140,764.00 - $198,828.00 per year.`, 'Senior Manager');
+  assert.equal(result, '## Responsibilities\n- Lead the team.');
+  assert.ok(!result.includes('Compensation'));
+});
+
+test('keeps Compensation sections that describe real benefits', () => {
+  const result = cleanJobDescription(`## Responsibilities
+- Lead the team.
+## Compensation & Benefits
+- Pension (OMERS)
+- Extended health and dental`, 'Senior Manager');
+  assert.ok(result.includes('Compensation & Benefits'));
+  assert.ok(result.includes('OMERS'));
+});
+
 test('placeholder-only cleanup does not trim legitimate overview text', () => {
   const result = removePlaceholderSections(`## Overview
 The department supports a growing community.

@@ -210,6 +210,34 @@ export function removePlaceholderSections(description: string): string {
 }
 
 /**
+ * Drop Compensation & Benefits sections that only restate salary already shown
+ * in the structured salary sidebar fields.
+ */
+export function isRedundantCompensationSection(heading: string, body: string): boolean {
+  if (!/compensation|benefit|salary|pay\b/i.test(heading)) return false;
+  const text = body.replace(/\s+/g, ' ').trim();
+  if (!text) return true;
+
+  const pureSalary = /^(?:salary(?:\s+range)?|pay(?:\s+rate)?|rate|wage|compensation)\s*:?\s*\$?[\d,]+(?:\.\d{2})?\s*(?:to|[-–—])\s*\$?[\d,]+(?:\.\d{2})?\s*(?:per\s+)?(?:hour|hr|year|yr|annum|annual(?:ly)?)?(?:\s+as\s+per\s+the\s+collective\s+agreement)?\.?\s*$/i;
+  const bareRange = /^\$?[\d,]+(?:\.\d{2})?\s*(?:to|[-–—])\s*\$?[\d,]+(?:\.\d{2})?\s*(?:per\s+)?(?:hour|hr|year|yr|annum|annual(?:ly)?)?\.?\s*$/i;
+  if (pureSalary.test(text) || bareRange.test(text)) return true;
+
+  const lines = body.split('\n').map(line => line.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean);
+  if (lines.length > 0 && lines.every(line => pureSalary.test(line) || bareRange.test(line)
+    || /^(?:salary|pay|rate|wage)\b[^$]*\$[\d,]+/i.test(line) && !/\b(?:pension|health|dental|vacation|benefit)\b/i.test(line))) {
+    return true;
+  }
+
+  if (/\$[\d,]+/.test(text)
+    && /(?:salary|pay|rate|wage|compensation|range)/i.test(text)
+    && !/\b(?:pension|om\s*ers|health|dental|vision|vacation|rrsp|insurance|leave|wellness|benefit(?:s)?\s+include|extended\s+health|life\s+insurance|disability|employee\s+assistance|tuition)\b/i.test(text)
+    && text.length < 200) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Deterministic cleanup for stored and newly parsed Markdown descriptions.
  * It removes only recognizable portal/employer boilerplate and exact repeated
  * bullets; it does not summarize or invent content.
@@ -231,7 +259,9 @@ export function cleanJobDescription(description: string, jobTitle: string, sourc
       body: removePlaceholderSectionBody(deduplicateBullets(removeBoilerplate(section.heading.toLocaleLowerCase() === 'overview'
         ? cleanOverviewBoilerplate(removeBoilerplate(section.body), jobTitle)
         : removeBoilerplate(section.body)))),
-    }));
+    }))
+    // Salary already lives in structured fields / sidebar — drop pure restatements.
+    .filter(section => !section.heading || !isRedundantCompensationSection(section.heading, section.body));
 
   const cleaned = sections
     .filter(section => !section.heading || section.body.trim())

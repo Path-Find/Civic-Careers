@@ -85,9 +85,36 @@ export const compactOverview = (overview: string): string => {
   return boilerplate.test(sentences[0]) ? sentences.slice(1).join(' ') : overview;
 };
 
+/** True when a Compensation/Benefits section only restates salary already shown in the sidebar. */
 export const isRedundantCompensation = (heading: string, body: string): boolean => {
-  if (!/compensation|benefit/i.test(heading)) return false;
-  return /^\s*(?:salary|pay|rate)\s*:\s*\$?[\d,.]+\s*(?:to|[-–])\s*\$?[\d,.]+\s+per\s+hour(?:\s+as\s+per\s+the\s+collective\s+agreement)?\.?\s*$/i.test(body);
+  if (!/compensation|benefit|salary|pay\b/i.test(heading)) return false;
+  const text = body.replace(/\s+/g, ' ').trim();
+  if (!text) return true;
+
+  // Keep sections that describe real benefits (not just salary restatement).
+  const hasRealBenefits = /\b(?:pension|om\s*ers|health|dental|vision|vacation|rrsp|insurance|leave|wellness|benefit(?:s)?\s+include|extended\s+health|life\s+insurance|disability|employee\s+assistance|tuition|professional\s+development)\b/i.test(text);
+
+  // Pure salary-range restatement (hourly or yearly).
+  const pureSalary = /^(?:salary(?:\s+range)?|pay(?:\s+rate)?|rate|wage|compensation)\s*:?\s*\$?[\d,]+(?:\.\d{2})?\s*(?:to|[-–—])\s*\$?[\d,]+(?:\.\d{2})?\s*(?:per\s+)?(?:hour|hr|year|yr|annum|annual(?:ly)?)?(?:\s+as\s+per\s+the\s+collective\s+agreement)?\.?\s*$/i;
+  const bareRange = /^\$?[\d,]+(?:\.\d{2})?\s*(?:to|[-–—])\s*\$?[\d,]+(?:\.\d{2})?\s*(?:per\s+)?(?:hour|hr|year|yr|annum|annual(?:ly)?)?\.?\s*$/i;
+  if (pureSalary.test(text) || bareRange.test(text)) return true;
+
+  // Multi-line section where every non-empty line is only a salary restatement.
+  const lines = body.split('\n').map(line => line.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean);
+  if (lines.length > 0 && lines.every(line => pureSalary.test(line) || bareRange.test(line)
+    || /^(?:salary|pay|rate|wage)\b[^$]*\$[\d,]+/i.test(line) && !/\b(?:pension|health|dental|vacation|benefit)\b/i.test(line))) {
+    return true;
+  }
+
+  // Short salary-only section with no real benefits keywords.
+  if (!hasRealBenefits
+    && /\$[\d,]+/.test(text)
+    && /(?:salary|pay|rate|wage|compensation|range)/i.test(text)
+    && text.length < 200) {
+    return true;
+  }
+
+  return false;
 };
 
 const PLACEHOLDER_LINE = /^(?:\(?(?:none|n\/a|not applicable|not specified|not provided)\)?[.!]?)$/i;
