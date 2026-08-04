@@ -154,8 +154,35 @@ test('separates education and licence clauses from a combined requirement', () =
     "Bachelor's Degree or an Advanced Diploma in a related field of study will be considered",
   ]);
   assert.deepEqual(extractLicenseRequirements(description), [
-    'registration as a Professional Engineer in Ontario',
+    'P.Eng. (Ontario)',
   ]);
+});
+
+test('compacts wordy professional registration licences', () => {
+  assert.deepEqual(
+    extractLicenseRequirements(`## Qualifications
+- Current registration as Registered Nurse (RN) with the College of Nurses of Ontario is required
+`),
+    ['RN (CNO)'],
+  );
+  assert.deepEqual(
+    extractLicenseRequirements(`## Qualifications
+- Registration with the College of Nurses of Ontario
+`),
+    ['CNO'],
+  );
+  assert.deepEqual(
+    extractLicenseRequirements(`## Qualifications
+- Registered as a Professional Engineer (P.Eng.) with Professional Engineers Ontario
+`),
+    ['P.Eng. (PEO)'],
+  );
+  assert.deepEqual(
+    extractLicenseRequirements(`## Qualifications
+- registration as a registered nurse in a province or territory of Canada
+`),
+    ['RN (Canada)'],
+  );
 });
 
 test('does not treat student registration as a professional licence', () => {
@@ -267,7 +294,7 @@ test('extracts required licences and excludes optional licences', () => {
 - A DZ licence is an asset
 `), [
     "Valid Class 'G' Ontario Driver's License with no more than six demerit points",
-    'Registered Professional Engineer in Ontario',
+    'P.Eng. (Ontario)',
   ]);
 });
 

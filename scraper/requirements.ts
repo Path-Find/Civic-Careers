@@ -350,8 +350,266 @@ function cleanLicenseRequirement(value: string): string {
   const cleaned = cleanRequirementText(start ? value.slice(start.index) : value);
   return cleaned
     .replace(/\s*(?:\.\s*[-–—]\s*|[-–—]\s+)(?:travel|overtime|mobility|security|operational requirements?)\s*:.*/i, '')
-    .replace(/[;,.]+$/, '')
+    // Don't strip the trailing period on abbreviations like P.Eng.
+    .replace(/(?<!P\.Eng)[;,.]+$/i, '')
+    .replace(/[;,]+\s*$/i, '')
     .trim();
+}
+
+/** Known regulatory body long-name → short label. */
+const LICENSE_BODIES: Array<[string, RegExp]> = [
+  ['CNO', /(?:the\s+)?(?:ontario\s+)?college of nurses(?: of ontario)?|college of nurses of ontario/i],
+  ['CRNA', /college of registered nurses of alberta/i],
+  ['CRNS', /college of registered nurses of saskatchewan/i],
+  ['PEO', /professional engineers(?: of)? ontario|\bPEO\b/i],
+  ['EGBC', /engineers(?: and)? geoscientists(?: of)? (?:bc|british columbia)|engineers and geoscientists bc|\bEGBC\b/i],
+  ['EGM', /engineers geoscientists manitoba|\bE\.?G\.?M\.?\b/i],
+  ['CPSO', /college of physicians and surgeons of ontario|\bCPSO\b/i],
+  ['CASLPO', /college of audiologists and speech[- ]language pathologists of ontario|\bCASLPO\b/i],
+  ['CPBAO', /college of psychologists and behaviour analysts of ontario|\bCPBAO\b/i],
+  ['CRPO', /college of registered psychotherapists of ontario|\bCRPO\b/i],
+  ['OCSWSSW', /ontario college of social workers and social service workers/i],
+  ['CECE', /(?:ontario\s+)?college of early childhood educators/i],
+  ['CDO', /college of dietitians of ontario/i],
+  ['OACETT', /\bOACETT\b/i],
+  ['OPPI', /\bOPPI\b/i],
+  ['Law Society of Ontario', /law society(?:'s)?(?: of ontario)?/i],
+  ['CPA Ontario', /\bCPA Ontario\b|chartered professional accountants?(?:\s+(?:of|with))?\s+ontario/i],
+  ['CIPHI', /canadian institute of public health inspectors|\bCIPHI\b/i],
+  ['CSMLS', /\bCSMLS\b/i],
+  ['HSCPOA', /\bHSCPOA\b/i],
+  ['MMAH', /ministry of municipal affairs(?: and housing)?|\bMMAH\b/i],
+  // Ontario College of Trades is an issuer, not a credential — handled separately.
+];
+
+/** Credential / role short labels — more specific patterns first. */
+const LICENSE_ROLES: Array<[string, RegExp]> = [
+  ['Nurse Practitioner (RN-EC)', /registered nurse in the extended class|nurse(?:\s+in the)?\s+extended class|nurse practitioner|\bRN[- ]?EC\b|extended class\s*\([^)]*primary health/i],
+  ['Registered Practical Nurse (RPN)', /registered practical nurse|\blicensed practical nurse\b|\bRPN\b|\bLPN\b/i],
+  ['Registered Nurse (RN)', /registered nurse|\bRN\b(?!\s*[- ]?EC)/i],
+  ['P.Eng.', /professional engineer(?:ing)?(?:\s+licen[cs]e)?|p\.?\s*eng\.?/i],
+  ['EIT', /engineering intern|\bEIT\b|limited license with the peo/i],
+  ['CET', /certified engineering technologist|\bC\.?E\.?T\.?\b/i],
+  ['RPP', /\bRPP\b|registered professional planner/i],
+  ['CPA', /\bchartered professional accountant\b|\bCPA\b(?!\s+ontario)/i],
+  ['Psychotherapist', /psychotherapist/i],
+  ['Lawyer', /\blawyer\b|barrister|solicitor/i],
+  ['MLT', /\bgeneral MLT\b|\bmedical laboratory technologist\b|\bMLT\b/i],
+  ['Landscape Architect', /professional landscape architect|landscape architect/i],
+  ['Architect (OAA)', /professional architect|\bOAA\b/i],
+];
+
+function detectLicenseBody(text: string): string | null {
+  for (const [label, pattern] of LICENSE_BODIES) {
+    if (pattern.test(text)) return label;
+  }
+  // Already-compacted short labels / jurisdictions (idempotent second pass).
+  if (/\(\s*CNO\s*\)|\bCNO\b/i.test(text) && !/\bcollege of nurses\b/i.test(text)) {
+    /* fall through — CNO already handled above when bare */
+  }
+  // Generic "provincial/territorial regulatory body" nursing without named college.
+  if (/\bprovince or territory of canada\b|\bprovincial(?:\/territorial)?\s+(?:nursing\s+)?regulatory\b|\bprovince of (?:work|practice|position)\b|\bcanadian province\b|\bin canada\b|\(\s*Canada\s*\)|\b,\s*Canada\b/i.test(text)
+    && !/\bcanadian airline|transport canada\b/i.test(text)) {
+    return 'Canada';
+  }
+  if (/\bin ontario\b|\bprovince of ontario\b|\(\s*Ontario\s*\)|\b,\s*Ontario\b|\bOntario\b/i.test(text)
+    && /\b(?:engineer|p\.?\s*eng|nurse|registration|RN|RPN)\b/i.test(text)) {
+    return 'Ontario';
+  }
+  if (/\bin british columbia\b|\bin bc\b|\(\s*BC\s*\)|\b,\s*BC\b/i.test(text)
+    && /\b(?:engineer|registration|architect|p\.?\s*eng)\b/i.test(text)) {
+    return 'BC';
+  }
+  // Compacted "P.Eng. (Ontario)" / "RN (CNO)" — body already in parens.
+  const parenBody = text.match(/\(([A-Za-z0-9./-]+)\)\s*$/);
+  if (parenBody) {
+    const inner = parenBody[1];
+    if (/^(?:CNO|CRNA|CRNS|PEO|EGBC|EGM|CPSO|CASLPO|CPBAO|CRPO|CECE|CDO|OACETT|OPPI|CIPHI|CSMLS|Ontario|Canada|BC)$/i.test(inner)) {
+      return /ontario/i.test(inner) ? 'Ontario' : /canada/i.test(inner) ? 'Canada' : /^(?:bc)$/i.test(inner) ? 'BC' : inner.toUpperCase() === inner || inner.length <= 6 ? inner : inner;
+    }
+  }
+  return null;
+}
+
+function detectLicenseRole(text: string): string | null {
+  for (const [label, pattern] of LICENSE_ROLES) {
+    if (pattern.test(text)) return label;
+  }
+  return null;
+}
+
+function isNonLicenseJunk(value: string): boolean {
+  return /\bregistered as a (?:full[- ]time|part[- ]time)?\s*student\b/i.test(value)
+    || /\b(?:full[- ]time|part[- ]time)\s+(?:secondary|post[- ]secondary)\s+student\b/i.test(value)
+    || /\bwe are seeking an experienced professional\b/i.test(value)
+    || /\bexperience requirements correspond to the licen/i.test(value)
+    || /\bprepares death registration\b/i.test(value)
+    || /\bsupports the registration of deaths\b/i.test(value)
+    || /\bthe eit will engage in the technical work\b/i.test(value)
+    || /\bprofessional engineer\/architect applicant for building permit\b/i.test(value)
+    || /\bforge a career with the municipality\b/i.test(value)
+    || /\bmust have been trained and registered as a volunteer\b/i.test(value)
+    || /\bregistered with academic accommodations\b/i.test(value)
+    || /\bregistered with the university of toronto\b/i.test(value)
+    || /\binclude license number and province\b/i.test(value)
+    || /\bprofessional engineer \(include license number\b/i.test(value)
+    || /\blicense number and province of (?:registration|issuance)\b/i.test(value);
+}
+
+function formatProfessionalLicense(role: string | null, body: string | null, eligible: boolean): string {
+  let core = '';
+  if (role && body) {
+    // Prefer short form when role already has a parenthetical acronym: "RN (CNO)".
+    const acronym = role.match(/\(([A-Z0-9.-]+)\)$/)?.[1];
+    if (acronym) {
+      core = `${acronym} (${body})`;
+    } else {
+      core = `${role} (${body})`;
+    }
+  } else if (role) {
+    core = role;
+  } else if (body) {
+    core = body;
+  }
+  if (!core) return '';
+  if (eligible && !/\beligib/i.test(core)) core = `${core} or eligible`;
+  return core;
+}
+
+/**
+ * Collapse wordy professional-registration prose into a short credential label.
+ * e.g. "registration as Registered Nurse (RN) with the College of Nurses of Ontario"
+ *   → "RN (CNO)"
+ */
+export function normalizeLicenseRequirement(value: string): string {
+  if (!value) return '';
+  // Already compact (e.g. "RN (CNO)", "P.Eng. (PEO)", "CNO") — leave alone.
+  // Already compact (e.g. "RN (CNO)", "P.Eng. (PEO)", "CNO") — leave alone.
+  const compactProbe = value.trim().replace(/[;]+$/g, '').replace(/\bP\.?\s*Eng\.*/gi, 'P.Eng.');
+  if (/^(?:RN|RPN|LPN|RN-EC|P\.Eng\.|EIT|CET|RPP|CPA|MLT)(?:\s*\([A-Za-z0-9./-]+\))?(?:\s+or eligible)?$/i.test(compactProbe)
+    || /^(?:CNO|CRNA|CRNS|PEO|EGBC|CPSO|CASLPO|CPBAO|CRPO|CECE|CDO|OACETT|OPPI)(?:\s+or eligible)?$/i.test(compactProbe)
+    || /^(?:CET \(OACETT\) or P\.Eng\. \(PEO\))(?: or eligible)?$/i.test(compactProbe)) {
+    return compactProbe;
+  }
+
+  let s = cleanLicenseRequirement(value);
+  if (!s || isNonLicenseJunk(s)) return '';
+
+  // Chop experience / travel / multi-requirement gloms that rode along.
+  s = s
+    .replace(/\s*(?:;|,)?\s*(?:and\s+)?(?:a\s+)?minimum of \d+.*$/i, '')
+    .replace(/\s*(?:;|,)?\s*(?:and\s+)?\d+\s*(?:to\s*\d+\s+)?years?[’']?\s+(?:of\s+)?(?:related\s+)?experience.*$/i, '')
+    .replace(/\s*(?:;|,)?\s*(?:and\s+)?three years?[’']? experience.*$/i, '')
+    .replace(/\s*(?:;|,)?\s*with one year in the occupational health field.*$/i, '')
+    .replace(/\s*(?:;|,)?\s*(?:valid\s+)?unrestricted driver.?s?\s+licen[cs]e.*$/i, '')
+    .replace(/\s*(?:;|,)?\s*basic life support.*$/i, '')
+    .replace(/\s*(?:;|,)?\s*willingness and ability to travel.*$/i, '')
+    .replace(/\s+accompanied with minimum \d+ years?.*$/i, '')
+    .replace(/\s+with progressive relevant work experience.*$/i, '')
+    .replace(/\s+with a degree in civil engineering.*$/i, '')
+    .replace(/\s+and forge a career.*$/i, '')
+    .replace(/\s+and at least \d+ years?.*$/i, '')
+    .replace(/\s*,?\s*including direct development.*$/i, '')
+    .replace(/\s*[-–—:]\s*include license number.*$/i, '')
+    .replace(/\s*\(to be met at the time of appointment\)\s*$/i, '')
+    .replace(/\s+as a condition of (?:continued\s+)?employment.*$/i, '')
+    .replace(/\s+and entitled to practise.*$/i, '')
+    .replace(/\s+with no conditions or restrictions.*$/i, '')
+    .replace(/\s*\(must attain designation to teach in the program\)\s*$/i, '')
+    .replace(/\s+or actively involved with the graduate studies.*$/i, '')
+    .trim();
+
+  const looksProfessional = /\b(?:registration|registered|college of|professional engineer|p\.?\s*eng|membership with|designation|licen[cs]e to practi[cs]e|certificate of registration|regulatory|oacett|law society|early childhood educator|psycholog|dietitian|audiolog|social worker|nurse|architect)\b/i.test(s);
+  const isDriverHeavy = /\bdriver/i.test(s) && !/\b(?:nurse|engineer|college of|p\.?\s*eng|oacett|psycholog|dietitian|lawyer|law society|early childhood|architect|accountant|cpa)\b/i.test(s);
+
+  if (looksProfessional && !isDriverHeavy) {
+    const eligible = /\beligib(?:le|ility)\b|\bor eligibility\b/i.test(s);
+    const role = detectLicenseRole(s);
+    const body = detectLicenseBody(s);
+
+    // "Full membership with OPPI and RPP designation"
+    if (/\bOPPI\b/i.test(s) && /\bRPP\b/i.test(s)) {
+      return formatProfessionalLicense('RPP', 'OPPI', eligible);
+    }
+    // "Registration with OACETT with CET ... or ... P.Eng"
+    if (/\bOACETT\b/i.test(s) && /\b(?:CET|P\.?\s*Eng)\b/i.test(s) && /\bor\b/i.test(s) && /\bPEO\b|professional engineers/i.test(s)) {
+      return eligible ? 'CET (OACETT) or P.Eng. (PEO) or eligible' : 'CET (OACETT) or P.Eng. (PEO)';
+    }
+    // Trade tickets: keep the trade name + code, not just the issuer.
+    if (/\bontario college of trades\b|\bcertificate of qualification\b/i.test(s)) {
+      const asTrade = s.match(/\bas an?\s+([A-Za-z][A-Za-z0-9 /&'-]{2,50}?)(?:\s*\(([0-9A-Z-]+)\))/i)
+        || s.match(/\bas an?\s+([A-Za-z][A-Za-z0-9 /&'-]{3,50})(?:\s*[,;.]|$)/i);
+      const namedTicket = s.match(/\bvalid\s+([A-Za-z][^,(]{2,40}?)\s+certificate of qualification\s*\(([0-9A-Z-]+)\)/i);
+      const coqCode = s.match(/\bcertificate of qualification\s*\(([0-9A-Z-]+)\)/i);
+      if (namedTicket) {
+        return `${compactText(namedTicket[1])} (${namedTicket[2]})`;
+      }
+      if (asTrade) {
+        const trade = compactText(asTrade[1]);
+        return asTrade[2] ? `${trade} (${asTrade[2]})` : trade;
+      }
+      if (coqCode) return `Certificate of Qualification (${coqCode[1]})`;
+    }
+
+    // "Registration with PEO as a licensed Engineer"
+    if (!role && /\b(?:PEO|professional engineers(?: of)? ontario)\b/i.test(s)
+      && /\b(?:licensed engineer|professional engineer|p\.?\s*eng|engineer)\b/i.test(s)) {
+      return formatProfessionalLicense('P.Eng.', detectLicenseBody(s) || 'PEO', eligible);
+    }
+
+    // Optional-only designations ("is ideal" / "highly desired") aren't hard requirements.
+    if (/\b(?:is ideal|is preferred|would be (?:an?\s+)?(?:asset|ideal)|highly desired)\b/i.test(s)) {
+      return '';
+    }
+
+    const formatted = formatProfessionalLicense(role, body, eligible);
+    if (formatted) return formatted;
+
+    // Body-only "registration with the College of Nurses of Ontario"
+    if (body && /\b(?:registration|registered|member|membership|licen[cs]e)\b/i.test(s)) {
+      return formatProfessionalLicense(null, body, eligible);
+    }
+  }
+
+  // Driver / other licences: keep wording; only drop "in good standing" fluff.
+  s = s
+    .replace(/\s+in good standing\b/gi, '')
+    .replace(/\s+and (?:you )?must provide a current satisfactory current driver.?s? abstract.*$/i, '')
+    .replace(/(?<!P\.Eng)[;,.]+$/i, '')
+    .replace(/[;,]+\s*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!s || s.length < 3) return cleanLicenseRequirement(value);
+  return s;
+}
+
+function isAcceptableNormalizedLicense(value: string): boolean {
+  if (!value) return false;
+  if (LICENSE_TERM.test(value)) return true;
+  if (detectLicenseRole(value) || detectLicenseBody(value)) return true;
+  // Short body/role-only labels after compaction (e.g. "CNO", "P.Eng.").
+  if (/^(?:CNO|CRNA|CRNS|PEO|EGBC|EGM|CPSO|CASLPO|CPBAO|CRPO|CECE|CDO|OACETT|OPPI|CIPHI|CSMLS|HSCPOA|MMAH|CPA|RPP|EIT|CET|MLT|P\.Eng\.?|RN|RPN|LPN|RN-EC)$/i.test(value)) return true;
+  if (/^(?:RN|RPN|LPN|RN-EC|P\.Eng\.?|EIT|CET|RPP|CPA|MLT|Landscape Architect)\s*\(/i.test(value)) return true;
+  // Trade tickets: "Metal Fabricator (437A)", "Industrial Electrician (442-A)", "Certificate of Qualification (437A)"
+  if (/\([0-9A-Z-]{2,}\)\s*$/.test(value) && value.length <= 80) return true;
+  if (/^certificate of qualification\b/i.test(value)) return true;
+  return false;
+}
+
+/** Normalize stored or AI licence list items (idempotent). */
+export function normalizeLicenseRequirements(value: unknown): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of toStringList(value)) {
+    const cleaned = normalizeLicenseRequirement(item);
+    if (!isAcceptableNormalizedLicense(cleaned)) continue;
+    const key = normalizedRequirement(cleaned);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(cleaned);
+  }
+  return out;
 }
 
 function normalizedRequirement(value: string): string {
@@ -370,10 +628,11 @@ function retainExistingEducation(value: string): boolean {
 }
 
 function retainExistingLicense(value: string): boolean {
-  if (value.length > 300 || !LICENSE_TERM.test(value)) return false;
-  if (/\b(?:software|application|product|patent|open[- ]source)\s+licen[cs]e|licen[cs]e\s+information|registered\s+as\s+(?:a\s+)?(?:full[- ]time|part[- ]time)?\s*student\b/i.test(value)) return false;
-  return /^(?:\s*(?:a|an|valid|current|must|possess|hold|maintain|obtain|registered|registration|professional|accounting|trade|engineering|certificate|class)\b)/i.test(value)
-    || /\b(?:professional|accounting|trade|engineering)\s+designation\b/i.test(value);
+  const cleaned = normalizeLicenseRequirement(value);
+  if (!cleaned || cleaned.length > 300) return false;
+  if (isNonLicenseJunk(value)) return false;
+  if (/\b(?:software|application|product|patent|open[- ]source)\s+licen[cs]e|licen[cs]e\s+information\b/i.test(value)) return false;
+  return isAcceptableNormalizedLicense(cleaned);
 }
 
 export function extractEducationRequirements(description: string): string[] {
@@ -445,8 +704,9 @@ function tryExtractLicenseFromText(text: string, section: RequirementSection): s
   if (explicitRegistration && !/\b(?:college|university|association|board|professional|regulatory|ontario|nurse|engineer|architect|inspector|MMAH|PEO|CPA|CET|designation|accounting)\b/i.test(licenseFocus)) return null;
   if (!LICENSE_REQUIRED_CUE.test(licenseFocus) && !new RegExp(String.raw`(?:valid|current|${LICENSE_CLASS}|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification)`, 'i').test(licenseFocus)) return null;
 
-  const value = cleanLicenseRequirement(licenseFocus);
-  if (!value || !LICENSE_TERM.test(value) || STRUCTURED_OPTIONAL_REQUIREMENT.test(value)) return null;
+  const value = normalizeLicenseRequirement(licenseFocus);
+  if (!value || STRUCTURED_OPTIONAL_REQUIREMENT.test(value)) return null;
+  if (!LICENSE_TERM.test(value) && !isAcceptableNormalizedLicense(value)) return null;
   return value;
 }
 
@@ -459,7 +719,7 @@ export function extractLicenseRequirements(description: string): string[] {
       if (value) values.add(value);
     }
   }
-  return [...values];
+  return normalizeLicenseRequirements([...values]);
 }
 
 function licenseCoreKey(value: string): string {
@@ -586,7 +846,9 @@ export function reconcileStructuredRequirements(description: string, current: Pa
   const namedBenefits = extractNamedBenefits(description);
   const currentEducation = toStringList(current.education_requirements).filter(retainExistingEducation);
   const currentExperience = toStringList(current.experience_requirements);
-  const currentLicenses = toStringList(current.license_requirements).filter(retainExistingLicense);
+  const currentLicenses = normalizeLicenseRequirements(
+    toStringList(current.license_requirements).filter(retainExistingLicense),
+  );
   const currentBenefits = toStringList(current.benefits);
   const currentSkills = toStringList(current.required_skills);
   const requiredLines = descriptionLines(description).filter(line => !line.heading && line.section === 'required').map(line => normalizedRequirement(line.text));
