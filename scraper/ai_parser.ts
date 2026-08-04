@@ -34,6 +34,7 @@ export interface ParsedJob {
     is_inventory: boolean;
     benefits: string[];
     required_skills: string[];
+    experience_requirements: string[];
     education_requirements: string[];
     license_requirements: string[];
     vehicle_required: boolean | null;
@@ -96,6 +97,7 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
       "is_inventory": boolean,
       "benefits": ["pension", "health", "dental", etc],
       "required_skills": "Specific named technical skills not captured by the dedicated requirement fields below. Only concrete named things a candidate would list on a resume, NOT generic soft-skill phrases like 'strong communication' or 'attention to detail'. Empty array if none are named.",
+      "experience_requirements": "Required experience, especially explicit durations such as '3 years of experience in case management'. Include only mandatory experience; exclude preferred or asset experience. Preserve short source wording. Empty array if none is stated.",
       "education_requirements": "Required degrees, diplomas, fields of study, enrolment conditions, or equivalent education requirements. Preserve the source wording in short list items. Empty array if none are stated.",
       "license_requirements": "Required professional licences, registrations, designations, or legally required permits, such as P.Eng., EIT, a teaching certificate, or a Class G licence. Do not include optional assets. Empty array if none are required.",
       "vehicle_required": true | false | null (true only when the posting explicitly requires driving, a driver's licence, a vehicle, or reliable transportation; false only when it explicitly says one is not required; null when not mentioned),

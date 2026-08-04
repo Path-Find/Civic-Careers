@@ -135,6 +135,11 @@ const FORMAL_EDUCATION_CUE = /\b(?:bachelor|master|ph\.?d|doctor(?:ate|al)|diplo
 const STRUCTURED_OPTIONAL_REQUIREMENT = /\b(?:asset|assets|preferred|preferable|preference|nice\s+to\s+have|would\s+be\s+an?\s+asset|considered\s+an?\s+asset|desirable|advantage|optional)\b/i;
 const LICENSE_TERM = /\b(?:licen[cs](?:e|ed|ing|ure)|permit|registration|registered\s+(?:as|with|by)|designation|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification|certificate\s+of\s+authorization|class\s+[a-z0-9]+\s+(?:driver.?s?\s+)?licen[cs]e)\b/i;
 const LICENSE_REQUIRED_CUE = /\b(?:required|minimum|must|possess|hold|maintain|valid|current|eligible|obtain|provide|registered|registration|designation|certified)\b/i;
+const EXPERIENCE_NUMBER = '(?:\\d+(?:\\.\\d+)?\\+?|one|two|three|four|five|six|seven|eight|nine|ten|several)';
+const EXPERIENCE_SUFFIX = `(?:[’\\']?\\s+(?:of\\s+)?(?:[a-z-]+\\s+){0,5}experience)`;
+const EXPERIENCE_YEARS_PATTERN = new RegExp(`\\b${EXPERIENCE_NUMBER}(?:\\s*(?:-|–|—|to)\\s*${EXPERIENCE_NUMBER})?\\s*(?:years?|yrs?)${EXPERIENCE_SUFFIX}\\b`, 'i');
+const EXPERIENCE_CLAUSE_PATTERN = new RegExp(`(?:(?:a\\s+)?minimum\\s+of|minimum|at\\s+least)?\\s*${EXPERIENCE_NUMBER}(?:\\s*(?:-|–|—|to)\\s*${EXPERIENCE_NUMBER})?\\s*(?:years?|yrs?)${EXPERIENCE_SUFFIX}\\b[^.;\\n]{0,180}`, 'i');
+const EXPERIENCE_HISTORY_SIGNAL = new RegExp(`\\b(?:with\\s+)?(?:more\\s+than|over)\\s+${EXPERIENCE_NUMBER}\\s+years?\\s+of\\s+experience\\b`, 'i');
 const NAMED_BENEFITS: Array<[string, RegExp]> = [
   ['OMERS', /\bOMERS\b/i],
   ['HOOPP', /\bHOOPP\b/i],
@@ -299,6 +304,18 @@ export function extractLicenseRequirements(description: string): string[] {
   return [...values];
 }
 
+export function extractExperienceRequirements(description: string): string[] {
+  const values = new Set<string>();
+  for (const line of descriptionLines(description)) {
+    if (line.heading || line.section === 'optional' || line.section === 'benefits' || STRUCTURED_OPTIONAL_REQUIREMENT.test(line.text) || EXPERIENCE_HISTORY_SIGNAL.test(line.text)) continue;
+    if (!EXPERIENCE_YEARS_PATTERN.test(line.text)) continue;
+    const match = line.text.match(EXPERIENCE_CLAUSE_PATTERN);
+    const value = compactText(match?.[0] || line.text).replace(/^[,;:–—-]\s*/, '').trim();
+    if (value && value.length <= 240) values.add(value);
+  }
+  return [...values];
+}
+
 export function extractNamedBenefits(description: string): string[] {
   const values = new Set<string>();
   for (const line of descriptionLines(description)) {
@@ -311,6 +328,7 @@ export function extractNamedBenefits(description: string): string[] {
 }
 
 export interface StructuredRequirementValues {
+  experience_requirements: string[];
   education_requirements: string[];
   license_requirements: string[];
   benefits: string[];
@@ -318,10 +336,12 @@ export interface StructuredRequirementValues {
 }
 
 export function reconcileStructuredRequirements(description: string, current: Partial<StructuredRequirementValues>): StructuredRequirementValues {
+  const experienceRequirements = extractExperienceRequirements(description);
   const educationRequirements = extractEducationRequirements(description);
   const licenseRequirements = extractLicenseRequirements(description);
   const namedBenefits = extractNamedBenefits(description);
   const currentEducation = toStringList(current.education_requirements).filter(retainExistingEducation);
+  const currentExperience = toStringList(current.experience_requirements);
   const currentLicenses = toStringList(current.license_requirements).filter(retainExistingLicense);
   const currentBenefits = toStringList(current.benefits);
   const currentSkills = toStringList(current.required_skills);
@@ -349,6 +369,7 @@ export function reconcileStructuredRequirements(description: string, current: Pa
     }
   }
   return {
+    experience_requirements: experienceRequirements.length ? experienceRequirements : currentExperience,
     education_requirements: educationRequirements.length ? educationRequirements : currentEducation,
     license_requirements: licenseRequirements.length ? licenseRequirements : currentLicenses,
     benefits,

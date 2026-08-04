@@ -14,6 +14,7 @@ export interface Job {
   union_name: string | null;
   benefits: string | null;
   required_skills: string | null;
+  experience_requirements: string | null;
   education_requirements: string | null;
   license_requirements: string | null;
   vehicle_required: number | null;
@@ -68,6 +69,7 @@ export interface JobDetails {
   listingType: string | null;
   studentRequirement: string | null;
   education: string | null;
+  experience: string | null;
   licenses: string | null;
   language: string | null;
   vehicle: string | null;

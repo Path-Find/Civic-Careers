@@ -38,6 +38,7 @@ export function parseJobDetails(job: Job): JobDetails {
     union: job.is_unionized ? (job.union_name || 'Unionized') : null,
     listingType: job.listing_type === 'ongoing_recruitment' ? 'Ongoing recruitment' : job.listing_type === 'inventory' || job.is_inventory === 1 ? 'Candidate inventory' : null,
     studentRequirement: job.is_student === 1 ? 'Yes' : null,
+    experience: joinJsonArray(job.experience_requirements),
     education: joinJsonArray(job.education_requirements),
     licenses: joinJsonArray(job.license_requirements),
     language: joinJsonArray(job.language_requirements),

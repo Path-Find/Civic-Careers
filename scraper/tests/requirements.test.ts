@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   extractCertificationRequirements,
   extractEducationRequirements,
+  extractExperienceRequirements,
   extractLanguageRequirements,
   extractLanguageVehicleRequirements,
   extractLicenseRequirements,
@@ -128,6 +129,19 @@ test('separates education and licence clauses from a combined requirement', () =
 
 test('does not treat student registration as a professional licence', () => {
   assert.deepEqual(extractLicenseRequirements('Registration as a full-time student in a post-secondary accredited academic institution is required.'), []);
+});
+
+test('extracts required years of experience and ignores optional experience', () => {
+  assert.deepEqual(extractExperienceRequirements(`## Qualifications
+- Minimum of 3 years of experience in case management, social services, or community support.
+- Five years' experience leading teams.
+
+## Nice to Have
+- Two years of municipal experience is an asset.
+`), [
+    'Minimum of 3 years of experience in case management, social services, or community support',
+    "Five years' experience leading teams",
+  ]);
 });
 
 test('drops obvious stale overview and software-licence values during reconciliation', () => {

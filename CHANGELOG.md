@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Years-of-experience requirements were buried in descriptions**: required experience is now extracted into structured job details, backfilled for existing postings, and shown in a separate requirements panel from application metadata.
 - **Structured requirements could absorb unrelated sentences**: education and licence fields now keep only the requirement itself, named HTML/CSS/TypeScript tools are captured, and existing records were deterministically backfilled.
 - **A Government of Canada future-vacancy inventory looked like a regular job**: explicit inventory wording now sets the inventory type and keeps the posting hidden from the default catalogue.
 - **Required certifications could be omitted from structured details**: deterministic extraction now captures named certifications such as Intermediate First Aid CPR C, including the existing Burlington posting.

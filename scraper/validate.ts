@@ -176,6 +176,7 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     is_inventory: coerceBool(o['is_inventory']),
     benefits: normalizeStringList(o['benefits']),
     required_skills: normalizeStringList(o['required_skills']),
+    experience_requirements: normalizeStringList(o['experience_requirements']),
     education_requirements: normalizeStringList(o['education_requirements']),
     license_requirements: normalizeStringList(o['license_requirements']),
     vehicle_required: normalizeOptionalBool(o['vehicle_required']),

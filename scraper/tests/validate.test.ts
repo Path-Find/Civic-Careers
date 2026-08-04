@@ -18,6 +18,7 @@ const BASE = {
   is_student: false,
   is_inventory: false,
   benefits: ['pension', 'health', 'dental'],
+  experience_requirements: ['3 years of experience'],
   education_requirements: ['Bachelor\'s degree'],
   license_requirements: [],
   vehicle_required: null,

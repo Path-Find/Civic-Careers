@@ -132,6 +132,7 @@ async function initializeDbOnce(): Promise<Client> {
       union_name TEXT,
       benefits TEXT,
       required_skills TEXT,
+      experience_requirements TEXT,
       education_requirements TEXT,
       license_requirements TEXT,
       vehicle_required INTEGER,
@@ -168,7 +169,7 @@ async function initializeDbOnce(): Promise<Client> {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
   for (const column of [
-    'listing_type', 'education_requirements', 'license_requirements', 'vehicle_required',
+    'listing_type', 'experience_requirements', 'education_requirements', 'license_requirements', 'vehicle_required',
     'language_requirements', 'security_check_required', 'certification_requirements',
     'software_requirements',
   ]) {
@@ -249,6 +250,7 @@ export async function saveJobDetails(client: Client, job: {
   work_model?: string;
   employment_type?: string;
   duration?: string;
+  experience_requirements?: string;
   is_unionized?: number;
   union_name?: string;
   benefits?: string;
@@ -269,7 +271,7 @@ export async function saveJobDetails(client: Client, job: {
     sql: `INSERT INTO job_details (
       id, job_title, department, location, salary_range, description, closing_date,
       is_inventory, listing_type, is_student, salary_min, salary_max, salary_period,
-      work_model, employment_type, duration, is_unionized, union_name, benefits, required_skills,
+      work_model, employment_type, duration, experience_requirements, is_unionized, union_name, benefits, required_skills,
       education_requirements, license_requirements, vehicle_required, language_requirements,
       security_check_required, certification_requirements, software_requirements,
       responsibility_tags, qualification_tags, parser_version, posted_at
@@ -277,7 +279,7 @@ export async function saveJobDetails(client: Client, job: {
     VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
@@ -295,6 +297,7 @@ export async function saveJobDetails(client: Client, job: {
       work_model = excluded.work_model,
       employment_type = excluded.employment_type,
       duration = excluded.duration,
+      experience_requirements = excluded.experience_requirements,
       is_unionized = excluded.is_unionized,
       union_name = excluded.union_name,
       benefits = excluded.benefits,
@@ -315,7 +318,7 @@ export async function saveJobDetails(client: Client, job: {
       job.description, job.closing_date,
       job.is_inventory ?? 0, job.listing_type ?? 'regular', job.is_student ?? 0,
       job.salary_min ?? null, job.salary_max ?? null, job.salary_period ?? null,
-      job.work_model ?? null, job.employment_type ?? null, job.duration ?? null,
+      job.work_model ?? null, job.employment_type ?? null, job.duration ?? null, job.experience_requirements ?? null,
       job.is_unionized ?? null, job.union_name ?? null, job.benefits ?? null,
       job.required_skills ?? null, job.education_requirements ?? null, job.license_requirements ?? null,
       job.vehicle_required ?? null, job.language_requirements ?? null, job.security_check_required ?? null,

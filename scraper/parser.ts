@@ -38,6 +38,7 @@ async function main() {
         const sourceFix = GOVERNMENT_OF_CANADA_FIXES[raw.id];
         const description = sourceFix?.description ?? cleanJobDescription(aiResult.clean_description, aiResult.job_title, raw.source);
         const structuredRequirements = reconcileStructuredRequirements(description, {
+          experience_requirements: aiResult.experience_requirements,
           education_requirements: aiResult.education_requirements,
           license_requirements: aiResult.license_requirements,
           benefits: aiResult.benefits,
@@ -67,6 +68,7 @@ async function main() {
           work_model: aiResult.work_model,
           employment_type: aiResult.employment_type,
           duration: aiResult.duration,
+          experience_requirements: JSON.stringify(structuredRequirements.experience_requirements),
           is_unionized: aiResult.is_unionized ? 1 : 0,
           union_name: aiResult.union_name,
           benefits: JSON.stringify(structuredRequirements.benefits),

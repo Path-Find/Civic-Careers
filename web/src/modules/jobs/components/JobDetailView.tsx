@@ -64,6 +64,10 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
   </div>;
 }
 
+type DetailMetadata = { label: string; value: string | null; highlight?: boolean };
+
+const HIDDEN_SOURCE_SECTION = /^(?:the opportunity|corporate culture|our culture and qualifications of the job|knowledge\/skill\/ability)$/i;
+
 export function JobDetailView({ job, details, headerHeight, onNavigate, onToggleSave }: {
   job: Job;
   details: JobDetails;
@@ -78,20 +82,30 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   };
   const descriptionSections = reclassifyMandatoryNiceToHave(parseMarkdownSections(job.description ?? null));
   const overview = descriptionSections.find(section => section.heading.toLowerCase() === 'overview');
-  const detailSections = descriptionSections.filter(section => section !== overview && section.body && !isPlaceholderSection(section.body) && !isRedundantCompensation(section.heading, section.body));
+  const otherInformation = descriptionSections.find(section => /^other important information$/i.test(section.heading));
+  const detailSections = descriptionSections.filter(section => section !== overview
+    && section !== otherInformation
+    && !HIDDEN_SOURCE_SECTION.test(section.heading)
+    && !/^education\b/i.test(section.heading)
+    && section.body
+    && !isPlaceholderSection(section.body)
+    && !isRedundantCompensation(section.heading, section.body));
   const responsibilityTags = parseTagList(job.responsibility_tags);
   const qualificationTags = parseTagList(job.qualification_tags);
-  const metadata = [
+  const metadata: DetailMetadata[] = [
     { label: 'Department', value: job.department }, { label: 'Location', value: job.location },
     { label: 'Salary', value: details.salary }, { label: 'Work Mode', value: details.mode },
     { label: 'Employment', value: details.type }, { label: 'Duration', value: details.duration },
     { label: 'Listing type', value: details.listingType }, { label: 'Student requirement', value: details.studentRequirement },
-    { label: 'Union', value: details.union }, { label: 'Education', value: details.education },
+    { label: 'Union', value: details.union },
+  ];
+  const requirementMetadata: DetailMetadata[] = [
+    { label: 'Experience', value: details.experience },
     { label: 'Licences', value: details.licenses }, { label: 'Languages', value: details.language },
     { label: 'Vehicle', value: details.vehicle }, { label: 'Certifications', value: details.certifications },
     { label: 'Software', value: details.software }, { label: 'Skills / Programs', value: details.skills },
     { label: 'Benefits', value: details.benefits }, { label: 'Eligibility', value: details.future, highlight: true },
-  ];
+  ].filter(item => item.value);
 
   return <main className="detail-main">
     <div className="detail-grid">
@@ -108,6 +122,19 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
         <div className="detail-card">
           <div className="detail-source" onClick={() => onNavigate('jobs', job.source)}>{job.source}</div>
           <h1 className="detail-title" title={job.job_title || undefined}>{job.job_title}</h1>
+          {(requirementMetadata.length > 0 || otherInformation) && <section className="detail-requirements-card" aria-labelledby="requirements-heading">
+            <h2 id="requirements-heading" className="detail-requirements-heading">Job requirements & details</h2>
+            {requirementMetadata.length > 0 && <div className="detail-requirements-grid">
+              {requirementMetadata.map(item => <div key={item.label} className="detail-requirement-item">
+                <div className="metadata-label">{item.label}</div>
+                <div className={`metadata-value ${item.highlight ? 'highlight' : ''}`}>{item.value}</div>
+              </div>)}
+            </div>}
+            {otherInformation && <div className="detail-other-information">
+              <h3 className="detail-other-information-heading">Other important information</h3>
+              <div dangerouslySetInnerHTML={{ __html: renderMarkdown(otherInformation.body) }} />
+            </div>}
+          </section>}
           {job.description ? <div className="detail-description">
             {overview && <div className="detail-overview" dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${overview.heading}\n${compactOverview(overview.body)}`) }} />}
             {detailSections.map(section => {
