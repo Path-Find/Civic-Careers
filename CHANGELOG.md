@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Education requirements sometimes included the entire experience clause** ("...and seven years of experience...") duplicating the experience field verbatim; the extractor now stops before the experience clause. Applied to the 10 existing rows carrying this pattern.
+- **Named software could appear in both the skills and software fields** ("Microsoft Word" in one, "Word" in the other) since they were extracted independently with no shared naming. Skills extraction now recognizes the same canonical names software already uses. Applied DB-wide (over 900 rows across the two backfill passes).
+- **City of St. Catharines and City of Belleville postings carried a raw posting-metadata block** (Position Type, Employee Group, File Number, Salary, etc.) duplicating work_model/employment_type/duration/union/salary fields already populated correctly, plus a City of Belleville tourism-brochure paragraph with no job information at all. Stripped for the affected postings; Belleville's stated work hours were extracted into the hours field first since that was genuinely new data.
 - **Toronto District School Board postings restated salary and work mode as prose, and never captured a stated "N-month work year" into the duration field**: the parser now extracts that phrase into duration automatically, and existing postings with it stripped from the description no longer repeat what's already shown structured.
 
 ### Added

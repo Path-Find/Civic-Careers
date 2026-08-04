@@ -1,7 +1,7 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
-import { extractCertificationRequirements, extractListingType, extractSoftwareRequirements, extractWorkYearDuration, reconcileStructuredRequirements } from './requirements';
+import { dedupeSkillsAgainstSoftware, extractCertificationRequirements, extractListingType, extractSoftwareRequirements, extractWorkYearDuration, reconcileStructuredRequirements } from './requirements';
 import { cleanJobDescription } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 
@@ -46,6 +46,8 @@ async function main() {
         });
         const certificationRequirements = extractCertificationRequirements(description);
         const softwareRequirements = extractSoftwareRequirements(description).values;
+        const finalSoftwareRequirements = softwareRequirements.length ? softwareRequirements : aiResult.software_requirements;
+        const finalSkills = dedupeSkillsAgainstSoftware(structuredRequirements.required_skills, finalSoftwareRequirements ?? []);
         const listingType = extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory);
         const isInventory = listingType === 'inventory' || aiResult.is_inventory;
         await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
@@ -72,14 +74,14 @@ async function main() {
           is_unionized: aiResult.is_unionized ? 1 : 0,
           union_name: aiResult.union_name,
           benefits: JSON.stringify(structuredRequirements.benefits),
-          required_skills: JSON.stringify(structuredRequirements.required_skills),
+          required_skills: JSON.stringify(finalSkills),
           education_requirements: JSON.stringify(sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
           license_requirements: JSON.stringify(structuredRequirements.license_requirements),
           vehicle_required: aiResult.vehicle_required === null ? null : (aiResult.vehicle_required ? 1 : 0),
           language_requirements: JSON.stringify(aiResult.language_requirements),
           security_check_required: sourceFix?.securityCheckRequired ?? (aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0)),
           certification_requirements: JSON.stringify(certificationRequirements.length ? certificationRequirements : aiResult.certification_requirements),
-          software_requirements: JSON.stringify(softwareRequirements.length ? softwareRequirements : aiResult.software_requirements),
+          software_requirements: JSON.stringify(finalSoftwareRequirements),
           medical_requirements: JSON.stringify(sourceFix?.medicalRequirements ?? aiResult.medical_requirements),
           responsibility_tags: JSON.stringify(aiResult.responsibility_tags),
           qualification_tags: JSON.stringify(aiResult.qualification_tags),

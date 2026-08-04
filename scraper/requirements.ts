@@ -140,6 +140,11 @@ const EXPERIENCE_SUFFIX = `(?:[’\\']?\\s+(?:of\\s+)?(?:[a-z-]+\\s+){0,5}experi
 const EXPERIENCE_YEARS_PATTERN = new RegExp(`\\b${EXPERIENCE_NUMBER}(?:\\s*(?:-|–|—|to)\\s*${EXPERIENCE_NUMBER})?\\s*(?:years?|yrs?)${EXPERIENCE_SUFFIX}\\b`, 'i');
 const EXPERIENCE_CLAUSE_PATTERN = new RegExp(`(?:(?:a\\s+)?minimum\\s+of|minimum|at\\s+least)?\\s*${EXPERIENCE_NUMBER}(?:\\s*(?:-|–|—|to)\\s*${EXPERIENCE_NUMBER})?\\s*(?:years?|yrs?)${EXPERIENCE_SUFFIX}\\b[^.;\\n]{0,180}`, 'i');
 const EXPERIENCE_HISTORY_SIGNAL = new RegExp(`\\b(?:with\\s+)?(?:more\\s+than|over)\\s+${EXPERIENCE_NUMBER}\\s+years?\\s+of\\s+experience\\b`, 'i');
+// Source text often states education and experience as one combined sentence
+// ("Degree in X and seven years of experience..."); extractExperienceRequirements
+// already isolates its own clause from that same line, so education needs the
+// identical tail cut or the two fields end up holding the same sentence twice.
+const EDUCATION_EXPERIENCE_TAIL = new RegExp(`\\s+and\\s+${EXPERIENCE_NUMBER}(?:\\s*(?:-|–|—|to)\\s*${EXPERIENCE_NUMBER})?\\s*(?:years?|yrs?)${EXPERIENCE_SUFFIX}\\b[^.;\\n]*$`, 'i');
 const NAMED_BENEFITS: Array<[string, RegExp]> = [
   ['OMERS', /\bOMERS\b/i],
   ['HOOPP', /\bHOOPP\b/i],
@@ -235,6 +240,7 @@ function cleanEducationRequirement(value: string): string {
   const cleaned = (educationIndex >= 0 && LICENSE_TERM.test(educationPrefix) ? withoutAdministrativeTail.slice(educationIndex) : withoutAdministrativeTail)
     .replace(/\s+(?:and\s+)?(?:valid\s+|current\s+|must\s+(?:have|hold|possess)\s+|registered\s+(?:as|with)\s+|registration\s+(?:with|in|as)\s+)(?:[^.]+(?:licen[cs]e|p\.?\s*eng\.?|professional\s+engineer|certificate\s+of\s+qualification|registration)[^.]*).*$/i, '')
     .replace(/\s+(?:and\s+)?registration\s+(?:or|with|in|as|through)\b.*$/i, '')
+    .replace(EDUCATION_EXPERIENCE_TAIL, '')
     .replace(/[;,.]+$/, '')
     .replace(/\s+(?:with|and|or)$/i, '')
     .trim();
@@ -375,6 +381,25 @@ export function reconcileStructuredRequirements(description: string, current: Pa
     benefits,
     required_skills: skills,
   };
+}
+
+// Same canonical names SOFTWARE_PATTERNS already assigns during extraction —
+// reused here so "Microsoft Word" (skills) and "Word" (software) collapse to
+// the same key instead of surviving as separate-looking duplicates.
+function canonicalSoftwareKey(value: string): string {
+  for (const [canonical, pattern] of SOFTWARE_PATTERNS) {
+    if (pattern.test(value)) return normalizedRequirement(canonical);
+  }
+  return normalizedRequirement(value);
+}
+
+// required_skills and software_requirements are extracted independently (the
+// latter isn't part of reconcileStructuredRequirements's inputs), so a named
+// product like "Microsoft Office" can end up tagged in both. Software is the
+// more specific field — drop the overlap from the skills list.
+export function dedupeSkillsAgainstSoftware(skills: string[], software: string[]): string[] {
+  const softwareKeys = new Set(software.map(canonicalSoftwareKey));
+  return skills.filter(skill => !softwareKeys.has(canonicalSoftwareKey(skill)));
 }
 
 function isOptionalLanguageLine(line: DescriptionLine): boolean {

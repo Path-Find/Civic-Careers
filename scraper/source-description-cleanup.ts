@@ -10,6 +10,17 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
   'Brock University': [
     { name: 'brock-employer-introduction', pattern: /Brock University is located on the traditional territory of the Haudenosaunee and Anishinaabe peoples,[\s\S]*?Break through at Brock\./i, mode: 'inline' },
   ],
+  'City of Belleville': [
+    // Tourism-brochure paragraph and generic "exciting opportunity" filler,
+    // each their own paragraph ahead of the real ## Overview section. The
+    // posting-metadata block (Position Type through Salary) duplicates
+    // employment_type/location/closing_date/salary_min, already correctly
+    // populated — verified against both Belleville rows carrying this block.
+    { name: 'belleville-tourism-intro', pattern: /The City of Belleville, known as the[\s\S]*?More information is available at www\.belleville\.ca\.?[ \t]*\n?/i, mode: 'inline' },
+    { name: 'belleville-exciting-opportunity-filler', pattern: /Currently, the City of Belleville has an exciting opportunity[\s\S]*?\.[ \t]*\n?/i, mode: 'inline' },
+    { name: 'belleville-posting-metadata-block', pattern: /Position Type:[\s\S]*?Salary:[^\n]*\n?(?:Closing Date:[^\n]*\n?)?/i, mode: 'inline' },
+    { name: 'belleville-closing-tagline', pattern: /-\s*Live, work, and play in the beautiful city of Belleville and experience all that it has to offer\.?[ \t]*\n?/gi, mode: 'inline' },
+  ],
   'City of Barrie': [
     { name: 'equal-opportunity-footer', pattern: /The City of Barrie is an equal opportunity employer,[\s\S]*?we will work with you to meet your needs\./i, mode: 'inline' },
     { name: 'job-description-disclaimer', pattern: /The job posting has been designed to indicate[\s\S]*?HR\.Recruitment@Barrie\.ca\./i, mode: 'inline' },
@@ -17,6 +28,11 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
   'City of St. Catharines': [
     { name: 'additional-information-footer', pattern: /(?:^|\n\s*)(?:#{1,6}\s*)?Additional Information:\s*Equal Opportunity Employer[\s\S]*$/i, mode: 'suffix' },
     { name: 'additional-information-section', pattern: /(?:^|\n\s*)(?:#{1,6}\s*)?Additional Information\s*\n\s*-?\s*Equal Opportunity Employer[\s\S]*$/i, mode: 'suffix' },
+    // Posting-metadata block (Location/Work Mode/Employee Group/Position Type/
+    // Duration/Application Deadline) — verified against all 24 St. Catharines
+    // rows: every field in it is already correctly captured in work_model,
+    // employment_type, duration, is_unionized/union_name. Pure restatement.
+    { name: 'stcatharines-posting-metadata-block', pattern: /Employee Group:[\s\S]*?Position Type:|Position Type:[\s\S]*?Employee Group:/i },
   ],
   'University of Waterloo': [
     { name: 'waterloo-employer-introduction', pattern: /At the\s+University of Waterloo, we create and promote a culture where everyone can reach their full potential\. As an employee, you get support\s*&\s*opportunities that empower you to advance your career\. Explore how we can bring big ideas to life, together\. The University is a welcoming workplace for those of all abilities, interests, and expertise\. As part of our workforce, you can do what you do best, every day\. Learn more about our recruitment process\./i, mode: 'inline' },
