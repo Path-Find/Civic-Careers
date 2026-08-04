@@ -484,11 +484,11 @@ function formatProfessionalLicense(role: string | null, body: string | null, eli
 
 /** True when the text is primarily a driver's / vehicle licence requirement. */
 function looksLikeDriverLicense(text: string): boolean {
-  if (/\b(?:aircraft maintenance|ame\b|professional engineer|p\.?\s*eng|nurse|wastewater|pesticide|software\s+licen|certificate of qualification|college of nurses)\b/i.test(text)
+  if (/\b(?:aircraft maintenance|ame\b|professional engineer|p\.?\s*eng|nurse|wastewater|pesticide|software\s+licen|certificate of qualification|college of nurses|truck and coach|stationary engineer|security guard|gas fitter|exterminator|backflow|arborist|pilot licen|dental licen|veterinary)\b/i.test(text)
     && !/\bdriver/i.test(text)) {
     return false;
   }
-  return /\bdriver.?s?\s+licen[cs]e\b|\bclass\s*[\u201c\u201d"'‘’]?[a-z0-9]{1,3}[\u201c\u201d"'‘’]?\b|\b[a-z0-9]{1,3}-class\b|\bendorsement\b|\bDND\s*404\b|\bG2\b|\bDZ\b|\bAZ\b|\bCZ\b/i.test(text);
+  return /\bdriver.?s?['’]?\s+licen[cs]e\b|\bclass\s*[\u201c\u201d"'‘’]?[a-z0-9]{1,3}[\u201c\u201d"'‘’]?\b|\b[a-z0-9]{1,3}-class\b|\bendorsement\b|\bDND\s*404\b|\bG2\b|\bDZ\b|\bAZ\b|\bCZ\b|\b[A-FG][12]?\s+driver/i.test(text);
 }
 
 /**
@@ -573,7 +573,7 @@ export function compactDriverLicense(value: string): string | null {
   for (const m of s.matchAll(/[\u201c\u201d"'‘’]([A-Za-z0-9]{1,3})[\u201c\u201d"'‘’]\s*(?:driver|licen|class)\b/gi)) {
     if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
   }
-  // "Ontario G driver's licence" / "valid G driver's licence" — not the article "a driver".
+  // "Ontario G driver's licence" / "Valid G Drivers' license" — not the article "a driver".
   for (const m of s.matchAll(/\b([BCDEFG][12]?|DZ|AZ|CZ|BZ|[1-6])\s+driver/gi)) {
     if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
   }
@@ -641,8 +641,27 @@ export function compactDriverLicense(value: string): string | null {
 
 /** Split multi-licence walls into separate clauses before compacting. */
 function splitLicenseClauses(value: string): string[] {
+  // Erroneous merge from earlier pass: "Ontario Class G/C with Z endorsement"
+  const gcMerge = value.match(/^(.*?\b)?Class\s+G\/C\b(.*)$/i);
+  if (gcMerge && /\bZ\b|endorsement/i.test(value)) {
+    const prov = /\bOntario\b/i.test(value) ? 'Ontario ' : '';
+    const able = /\(able to obtain\)/i.test(value) ? ' (able to obtain)' : '';
+    return [
+      `${prov}Class G`.trim(),
+      `${prov}Class C with Z endorsement${able}`.trim(),
+    ];
+  }
+  const gCz = value.match(/^(.*?\b)?Class\s+G\/CZ\b(.*)$/i);
+  if (gCz) {
+    const prov = /\bOntario\b/i.test(value) ? 'Ontario ' : '';
+    const able = /\(able to obtain\)/i.test(value) ? ' (able to obtain)' : '';
+    return [`${prov}Class G`.trim(), `${prov}Class CZ${able}`.trim()];
+  }
+
   const parts = value
-    .split(/(?<=[.!?])\s+(?=Must\b)|;\s+(?=Must\b)|\.\s*(?=Must have the ability)|\band must have the ability to\b/i)
+    .split(
+      /(?<=[.!?])\s+(?=Must\b)|;\s+(?=Must\b)|,\s*(?=Must\b)|\.\s*(?=Must have the ability)|\band must have the ability to\b|\band must be able to obtain\b/i,
+    )
     .map(part => part.trim().replace(/^and\s+/i, ''))
     .filter(part => part.length > 8);
   return parts.length > 1 ? parts : [value];

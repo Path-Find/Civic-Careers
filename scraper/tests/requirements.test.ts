@@ -8,6 +8,7 @@ import {
   normalizeEducationRequirements,
   extractLanguageVehicleRequirements,
   extractLicenseRequirements,
+  normalizeLicenseRequirements,
   extractNamedBenefits,
   stripLicenseBulletsFromDescription,
   extractListingType,
@@ -193,6 +194,13 @@ test('compacts wordy driver licence requirements', () => {
 `),
     ['Ontario Class G', 'Ontario Class C with Z endorsement (able to obtain)'],
   );
+  // Single field with both Must-clauses joined by comma (how some rows were stored).
+  assert.deepEqual(
+    normalizeLicenseRequirements([
+      'Must have a valid Ontario Class “G” driver’s licence and meet the corporate standard for a good driving record, Must have the ability to obtain and maintain Ontario Class “C” driver’s licence and “Z” endorsement',
+    ]),
+    ['Ontario Class G', 'Ontario Class C with Z endorsement (able to obtain)'],
+  );
   assert.deepEqual(
     extractLicenseRequirements(`## Qualifications
 - Valid Ontario Class G Driver's Licence with clean driving record
@@ -204,6 +212,10 @@ test('compacts wordy driver licence requirements', () => {
 - Must possess a Class "D" Licence with a "Z" endorsement and an abstract clear of demerit points
 `),
     ['Class DZ'],
+  );
+  assert.deepEqual(
+    normalizeLicenseRequirements(["Valid G Drivers' license and access to a reliable vehicle for campus and team travel"]),
+    ['Class G'],
   );
 });
 

@@ -42,22 +42,37 @@ export function compactLicenseLabel(value: string): string {
     return '';
   }
 
-  // Already compact driver labels.
-  if (/^(?:(?:Ontario|BC|Alberta|Manitoba|Saskatchewan|Nova Scotia)\s+)?(?:Class\s+[A-Z0-9/]+|Driver'?s licence)\b/i.test(s)
+  // Comma-joined multi-Must driver walls → compact each half.
+  if (/,\s*Must\b/i.test(s) && /\bdriver|class\s|licen[cs]e/i.test(s)) {
+    const parts = s.split(/,\s*(?=Must\b)/i).map(part => compactLicenseLabel(part.trim())).filter(Boolean);
+    if (parts.length > 1) return parts.join(', ');
+  }
+
+  // Already compact driver labels (not G/C merges).
+  if (/^(?:(?:Ontario|BC|Alberta|Manitoba|Saskatchewan|Nova Scotia)\s+)?(?:Class\s+[A-Z0-9]+(?:\s+with\s+[\w\s]+ endorsement)?|Driver'?s licence)\b/i.test(s)
     || /^DND 404 driver'?s licence\b/i.test(s)) {
-    return s;
+    if (!/Class\s+G\/C/i.test(s)) return s;
+  }
+  if (/Class\s+G\/C\b/i.test(s)) {
+    const prov = /\bOntario\b/i.test(s) ? 'Ontario ' : '';
+    const able = /\(able to obtain\)/i.test(s) ? ' (able to obtain)' : '';
+    return `${prov}Class G, ${prov}Class C with Z endorsement${able}`.replace(/\s+/g, ' ').trim();
   }
 
   // Driver licences → "Ontario Class G", "Class DZ", etc.
-  if (/\bdriver.?s?\s+licen[cs]e\b|\bclass\s*[\u201c\u201d"'‘’]?[a-z0-9]{1,3}\b|\bendorsement\b|\bDND\s*404\b/i.test(s)
+  if (/\bdriver.?s?['’]?\s+licen[cs]e\b|\bclass\s*[\u201c\u201d"'‘’]?[a-z0-9]{1,3}\b|\bendorsement\b|\bDND\s*404\b|\b[A-FG][12]?\s+driver/i.test(s)
     && !/\b(?:aircraft|nurse|p\.?\s*eng|professional engineer|college of)\b/i.test(s)) {
     const isValidClass = (code: string) => /^(?:G[12]?|[A-F]|[1-6]|AZ|BZ|CZ|DZ|EZ|FZ|MZ)$/i.test(code);
     const classes: string[] = [];
     for (const m of s.matchAll(/\bclass\s*[\u201c\u201d"'‘’]?([A-Za-z0-9]{1,3})[\u201c\u201d"'‘’]?/gi)) {
       if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
     }
+    for (const m of s.matchAll(/\b([BCDEFG][12]?|DZ|AZ|CZ|BZ|[1-6])\s+driver/gi)) {
+      if (isValidClass(m[1])) classes.push(m[1].toUpperCase());
+    }
     const hasZ = /\b[\u201c\u201d"'‘’]?Z[\u201c\u201d"'‘’]?\s*endorsement|\bendorsement\s*[\u201c\u201d"'‘’]?Z/i.test(s);
     let unique = [...new Set(classes)];
+    if (unique.includes('A') && unique.some(c => c !== 'A')) unique = unique.filter(c => c !== 'A');
     if (unique.includes('D') && hasZ && !unique.some(c => c.includes('Z'))) {
       unique = unique.map(c => (c === 'D' ? 'DZ' : c));
     }
@@ -77,7 +92,7 @@ export function compactLicenseLabel(value: string): string {
       if (able) out += ' (able to obtain)';
       return out;
     }
-    if (/\bdriver.?s?\s+licen[cs]e\b/i.test(s)) {
+    if (/\bdriver.?s?['’]?\s+licen[cs]e\b/i.test(s)) {
       const base = province ? `${province} driver's licence` : "Driver's licence";
       return able ? `${base} (able to obtain)` : base;
     }
