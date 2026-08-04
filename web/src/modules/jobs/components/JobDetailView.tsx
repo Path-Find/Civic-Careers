@@ -98,17 +98,18 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Employment', value: details.type }, { label: 'Duration', value: details.duration },
     { label: 'Hours', value: details.hours },
     { label: 'Listing type', value: details.listingType }, { label: 'Student requirement', value: details.studentRequirement },
-    { label: 'Union', value: details.union }, { label: 'Education', value: details.education },
+    { label: 'Benefits', value: details.benefits }, { label: 'Union', value: details.union },
   ];
   const requirementMetadata: DetailMetadata[] = [
     { label: 'Experience', value: details.experience },
+    { label: 'Education', value: details.education },
     { label: 'Availability', value: details.availability },
     { label: 'Licences', value: details.licenses }, { label: 'Languages', value: details.language },
     { label: 'Vehicle', value: details.vehicle }, { label: 'Security check', value: details.securityCheck },
     { label: 'Certifications', value: details.certifications },
     { label: 'Medical', value: details.medical },
     { label: 'Software', value: details.software }, { label: 'Skills / Programs', value: details.skills },
-    { label: 'Benefits', value: details.benefits }, { label: 'Eligibility', value: details.future, highlight: true },
+    { label: 'Eligibility', value: details.future, highlight: true },
   ].filter(item => item.value);
   const hasRequirementsCard = requirementMetadata.length > 0 || Boolean(otherInformation);
 
