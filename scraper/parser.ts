@@ -8,9 +8,11 @@ import {
   extractSecurityRequirementLabel,
   extractSoftwareRequirements,
   extractWorkYearDuration,
+  licensesImplyVehicle,
   normalizeLanguageRequirements,
   reconcileStructuredRequirements,
   splitLanguageOutOfSkills,
+  stripLicenseBulletsFromDescription,
 } from './requirements';
 import { cleanJobDescription } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
@@ -47,7 +49,7 @@ async function main() {
       const { data: aiResult, error } = await parseJobWithAI(raw.raw_text, raw.title ?? undefined);
       if (aiResult) {
         const sourceFix = GOVERNMENT_OF_CANADA_FIXES[raw.id];
-        const description = sourceFix?.description ?? cleanJobDescription(aiResult.clean_description, aiResult.job_title, raw.source);
+        let description = sourceFix?.description ?? cleanJobDescription(aiResult.clean_description, aiResult.job_title, raw.source);
         const structuredRequirements = reconcileStructuredRequirements(description, {
           experience_requirements: aiResult.experience_requirements,
           education_requirements: aiResult.education_requirements,
@@ -55,6 +57,7 @@ async function main() {
           benefits: aiResult.benefits,
           required_skills: aiResult.required_skills,
         });
+        description = stripLicenseBulletsFromDescription(description, structuredRequirements.license_requirements);
         const certificationRequirements = extractCertificationRequirements(description);
         const softwareRequirements = extractSoftwareRequirements(description).values;
         const finalSoftwareRequirements = softwareRequirements.length ? softwareRequirements : aiResult.software_requirements;
@@ -64,6 +67,7 @@ async function main() {
           ...(aiResult.language_requirements ?? []),
           ...languagesFromSkills,
         ]);
+        const vehicleFromLicense = licensesImplyVehicle(structuredRequirements.license_requirements);
         const listingType = extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory);
         const isInventory = listingType === 'inventory' || aiResult.is_inventory;
         await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
@@ -93,7 +97,9 @@ async function main() {
           required_skills: JSON.stringify(finalSkills),
           education_requirements: JSON.stringify(sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
           license_requirements: JSON.stringify(structuredRequirements.license_requirements),
-          vehicle_required: aiResult.vehicle_required === null ? null : (aiResult.vehicle_required ? 1 : 0),
+          vehicle_required: vehicleFromLicense
+            ? 1
+            : (aiResult.vehicle_required === null ? null : (aiResult.vehicle_required ? 1 : 0)),
           language_requirements: JSON.stringify(finalLanguages),
           security_check_required: sourceFix?.securityCheckRequired
             ?? (aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0))

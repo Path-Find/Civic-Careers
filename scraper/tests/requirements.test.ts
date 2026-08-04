@@ -8,6 +8,7 @@ import {
   extractLanguageVehicleRequirements,
   extractLicenseRequirements,
   extractNamedBenefits,
+  stripLicenseBulletsFromDescription,
   extractListingType,
   extractSoftwareRequirements,
   extractVehicleRequired,
@@ -131,6 +132,50 @@ test('separates education and licence clauses from a combined requirement', () =
 
 test('does not treat student registration as a professional licence', () => {
   assert.deepEqual(extractLicenseRequirements('Registration as a full-time student in a post-secondary accredited academic institution is required.'), []);
+});
+
+test('extracts quoted class driver licences and skips nice-to-have licences', () => {
+  assert.deepEqual(extractLicenseRequirements(`## Qualifications
+- Must have valid class “C” driver’s license to operate a trolley
+- Previous demonstrated experience as a bus driver is an asset
+`), ['Must have valid class “C” driver’s license to operate a trolley']);
+  assert.deepEqual(extractLicenseRequirements(`## Qualifications
+- College diploma
+
+## Nice to Have
+- Valid G driver's license
+`), []);
+  assert.deepEqual(extractLicenseRequirements(`## Qualifications
+- Holder of a Canadian Public Accounting License
+`), ['Holder of a Canadian Public Accounting License']);
+});
+
+test('extracts driver licences from conditions-of-employment walls', () => {
+  const licenses = extractLicenseRequirements(`Conditions of employment
+COE3: Must possess and maintain a valid, non-graduated, and unrestricted provincial or territorial Class 5 driver's license.
+COE4: Current and acceptable driver’s abstract
+`);
+  assert.ok(licenses.some(value => /class\s*5/i.test(value) && /driver/i.test(value)));
+});
+
+test('strips qualification bullets that restate structured licences', () => {
+  const description = `## Qualifications
+- University degree
+- Valid Ontario Class G Driver’s License in good standing
+- Three years of experience
+
+## Responsibilities
+- Drive between sites
+`;
+  assert.equal(
+    stripLicenseBulletsFromDescription(description, ['Valid Ontario Class G Driver’s License in good standing']),
+    `## Qualifications
+- University degree
+- Three years of experience
+
+## Responsibilities
+- Drive between sites`,
+  );
 });
 
 test('extracts required years of experience and ignores optional experience', () => {

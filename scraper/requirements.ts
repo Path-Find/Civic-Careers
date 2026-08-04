@@ -133,8 +133,17 @@ const EDUCATION_REQUIRED_CUE = /\b(?:required|minimum|must|completion|completed|
 const EDUCATION_CONTEXT_ONLY = /^\s*(?:familiarity|knowledge|experience|proficiency|understanding|working knowledge|demonstrated|strong|excellent)\b/i;
 const FORMAL_EDUCATION_CUE = /\b(?:bachelor|master|ph\.?d|doctor(?:ate|al)|diploma|degree|bscn|bsn|b\.?a\.?|m\.?a\.?|undergraduate|graduate|enrol(?:l|led|ment)|completion of)\b/i;
 const STRUCTURED_OPTIONAL_REQUIREMENT = /\b(?:asset|assets|preferred|preferable|preference|nice\s+to\s+have|would\s+be\s+an?\s+asset|considered\s+an?\s+asset|desirable|advantage|optional)\b/i;
-const LICENSE_TERM = /\b(?:licen[cs](?:e|ed|ing|ure)|permit|registration|registered\s+(?:as|with|by)|designation|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification|certificate\s+of\s+authorization|class\s+[a-z0-9]+\s+(?:driver.?s?\s+)?licen[cs]e)\b/i;
-const LICENSE_REQUIRED_CUE = /\b(?:required|minimum|must|possess|hold|maintain|valid|current|eligible|obtain|provide|registered|registration|designation|certified)\b/i;
+// Class letters are often quoted in source text: Class "G", Class “C”, Class 'DZ'.
+const LICENSE_CLASS = String.raw`class\s+[“"'']?[a-z0-9]+[”"'']?`;
+const LICENSE_TERM = new RegExp(
+  String.raw`\b(?:licen[cs](?:e|ed|ing|ure)|permit|registration|registered\s+(?:as|with|by)|designation|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification|certificate\s+of\s+authorization|${LICENSE_CLASS}\s+(?:driver.?s?\s+)?licen[cs]e)\b`,
+  'i',
+);
+const LICENSE_REQUIRED_CUE = /\b(?:required|minimum|must|possess|hold(?:er)?|maintain|valid|current|eligible|obtain|provide|registered|registration|designation|certified|possession)\b/i;
+const DRIVER_LICENSE_PHRASE = new RegExp(
+  String.raw`\b(?:(?:valid|current|must\s+(?:have|hold|possess|maintain)|possession\s+of|holder\s+of)\s+)?(?:(?:a|an)\s+)?(?:${LICENSE_CLASS}\s+)?(?:(?:ontario|bc|alberta|manitoba|canadian|provincial|territorial)\s+)?(?:driver.?s?\s+)?licen[cs]e(?:\s*[-–—:]\s*${LICENSE_CLASS})?\b`,
+  'i',
+);
 const EXPERIENCE_NUMBER = '(?:\\d+(?:\\.\\d+)?\\+?|one|two|three|four|five|six|seven|eight|nine|ten|several)';
 const EXPERIENCE_SUFFIX = `(?:[’\\']?\\s+(?:of\\s+)?(?:[a-z-]+\\s+){0,5}experience)`;
 const EXPERIENCE_YEARS_PATTERN = new RegExp(`\\b${EXPERIENCE_NUMBER}(?:\\s*(?:-|–|—|to)\\s*${EXPERIENCE_NUMBER})?\\s*(?:years?|yrs?)${EXPERIENCE_SUFFIX}\\b`, 'i');
@@ -291,23 +300,127 @@ export function extractEducationRequirements(description: string): string[] {
   return [...values];
 }
 
+function licenseLineCandidates(text: string): string[] {
+  // Federal "COE3: Must possess … Class 5 driver's license" walls and dense
+  // conditions paragraphs need splitting before the line filter runs.
+  if (/\bCOE\d+\s*:/i.test(text) || text.length > 220) {
+    return text
+      .split(/(?:COE\d+\s*:|[.;](?=\s*[A-Z0-9])|\n+)/i)
+      .map(chunk => compactText(chunk))
+      .filter(Boolean);
+  }
+  return [text];
+}
+
+function tryExtractLicenseFromText(text: string, section: RequirementSection): string | null {
+  if (section === 'optional' || section === 'benefits' || !LICENSE_TERM.test(text)) return null;
+  if (STRUCTURED_OPTIONAL_REQUIREMENT.test(text)) return null;
+  if (/\bregistered\s+as\s+(?:a\s+)?(?:full[- ]time|part[- ]time)?\s*student\b/i.test(text)) return null;
+  if (/\b(?:software|application|product|patent|open[- ]source)\s+licen[cs]e|licen[cs]e\s+information\b/i.test(text)) return null;
+  // Job duties about issuing/revoking licences are not candidate requirements.
+  if (/\b(?:approve|refuse|revoke|issue|issuing|administering\s+a\s+driver.?s?\s+licen[cs]ing)\b/i.test(text)
+    && !/\b(?:must|valid|possess|hold|possession|required)\b/i.test(text)) {
+    return null;
+  }
+  if (section !== 'required' && text.length > 300) return null;
+  if (section !== 'required' && !LICENSE_REQUIRED_CUE.test(text) && !new RegExp(LICENSE_CLASS, 'i').test(text)) return null;
+
+  const explicitLicense = new RegExp(
+    String.raw`\b(?:driver.?s?\s+(?:licen[cs]e|permit|abstract)|${LICENSE_CLASS}\s+(?:driver.?s?\s+)?licen[cs]e|licen[cs]e|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification|certificate\s+of\s+authorization)\b`,
+    'i',
+  ).test(text);
+  const explicitRegistration = /\b(?:registration\s+(?:with|in|as|through)|registered\s+(?:as|with|by)|professional\s+registration|designation\s+(?:as|with|required)|registration\b[^\n]{0,30}\b(?:required|must|valid|eligible))\b/i.test(text);
+  if (!explicitLicense && !explicitRegistration) return null;
+  if (explicitRegistration && !/\b(?:college|university|association|board|professional|regulatory|ontario|nurse|engineer|architect|inspector|MMAH|PEO|CPA|CET|designation|accounting)\b/i.test(text)) return null;
+  if (!LICENSE_REQUIRED_CUE.test(text) && !new RegExp(String.raw`(?:valid|current|${LICENSE_CLASS}|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification)`, 'i').test(text)) return null;
+
+  const value = cleanLicenseRequirement(text);
+  if (!value || !LICENSE_TERM.test(value) || STRUCTURED_OPTIONAL_REQUIREMENT.test(value)) return null;
+  return value;
+}
+
 export function extractLicenseRequirements(description: string): string[] {
   const values = new Set<string>();
   for (const line of descriptionLines(description)) {
-    if (line.heading || line.section === 'optional' || line.section === 'benefits' || !LICENSE_TERM.test(line.text)) continue;
-    if (line.section !== 'required' && line.text.length > 300) continue;
-    if (/\bregistered\s+as\s+(?:a\s+)?(?:full[- ]time|part[- ]time)?\s*student\b/i.test(line.text)) continue;
-    if (/\b(?:software|application|product|patent|open[- ]source)\s+licen[cs]e|licen[cs]e\s+information\b/i.test(line.text)) continue;
-    if (line.section !== 'required' && !LICENSE_REQUIRED_CUE.test(line.text)) continue;
-    const explicitLicense = /\b(?:driver.?s?\s+(?:licen[cs]e|permit|abstract)|class\s+[a-z0-9]+\s+(?:driver.?s?\s+)?licen[cs]e|licen[cs]e|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification|certificate\s+of\s+authorization)\b/i.test(line.text);
-    const explicitRegistration = /\b(?:registration\s+(?:with|in|as|through)|registered\s+(?:as|with|by)|professional\s+registration|designation\s+(?:as|with|required)|registration\b[^\n]{0,30}\b(?:required|must|valid|eligible))\b/i.test(line.text);
-    if (!explicitLicense && !explicitRegistration) continue;
-    if (explicitRegistration && !/\b(?:college|university|association|board|professional|regulatory|ontario|nurse|engineer|architect|inspector|MMAH|PEO|CPA|CET|designation)\b/i.test(line.text)) continue;
-    if (!LICENSE_REQUIRED_CUE.test(line.text) && !/\b(?:valid|current|class\s+[a-z0-9]+|professional\s+engineer|p\.?\s*eng\.?|certificate\s+of\s+qualification)\b/i.test(line.text)) continue;
-    const value = cleanLicenseRequirement(line.text);
-    if (value && LICENSE_TERM.test(value) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(value)) values.add(value);
+    if (line.heading) continue;
+    for (const chunk of licenseLineCandidates(line.text)) {
+      const value = tryExtractLicenseFromText(chunk, line.section);
+      if (value) values.add(value);
+    }
   }
   return [...values];
+}
+
+function licenseCoreKey(value: string): string {
+  return normalizedRequirement(value)
+    .replace(/\b(?:valid|current|must|have|hold|possess|maintain|obtain|provide|a|an|the|and|or|with|in|good|standing|clean|clear|abstract|no more than \d+ demerit points?)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function licenseKeysOverlap(left: string, right: string): boolean {
+  const a = licenseCoreKey(left);
+  const b = licenseCoreKey(right);
+  if (!a || !b) return false;
+  if (a === b || a.includes(b) || b.includes(a)) return true;
+  // Both are driver-licence requirements of some class.
+  const aDriver = /\bdriver/.test(a) || /\bclass\b/.test(a);
+  const bDriver = /\bdriver/.test(b) || /\bclass\b/.test(b);
+  if (aDriver && bDriver) {
+    const classOf = (value: string) => value.match(/\bclass\s*([a-z0-9]+)/)?.[1] ?? '';
+    const ca = classOf(a);
+    const cb = classOf(b);
+    return !ca || !cb || ca === cb;
+  }
+  return false;
+}
+
+/**
+ * Drop Qualifications (and similar) bullets that only restate a licence already
+ * captured in license_requirements — QUALITY.md rule 1.
+ */
+export function stripLicenseBulletsFromDescription(description: string, licenses: string[]): string {
+  if (!description.trim() || licenses.length === 0) return description;
+
+  const lines = description.split('\n');
+  let inQuals = false;
+  const kept: string[] = [];
+  let removed = 0;
+
+  for (const line of lines) {
+    const heading = line.match(/^##\s+(.+?)\s*$/)?.[1]?.trim().toLowerCase() ?? '';
+    if (heading) {
+      inQuals = /\b(?:qualifications?|requirements?|conditions?(?:\s+of\s+employment)?|minimum|essential|what you (?:need|should)|knowledge and skills)\b/i.test(heading)
+        && !/\bnice to have|preferred|asset|benefit|compensation\b/i.test(heading);
+      kept.push(line);
+      continue;
+    }
+
+    const bullet = line.match(/^\s*[-•*]\s+(.+)$/);
+    if (inQuals && bullet) {
+      const text = bullet[1].trim();
+      if (LICENSE_TERM.test(text) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(text)) {
+        const restates = licenses.some(license => licenseKeysOverlap(license, text));
+        // Short pure licence bullets that duplicate any structured driver licence.
+        const pureDriver = DRIVER_LICENSE_PHRASE.test(text) && text.length < 220
+          && licenses.some(license => /\bdriver|class\b/i.test(license));
+        if (restates || pureDriver) {
+          removed += 1;
+          continue;
+        }
+      }
+    }
+    kept.push(line);
+  }
+
+  if (removed === 0) return description;
+  return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+export function licensesImplyVehicle(licenses: string[]): boolean {
+  return licenses.some(license =>
+    /\bdriver/.test(license.toLowerCase()) || new RegExp(LICENSE_CLASS, 'i').test(license),
+  );
 }
 
 export function extractExperienceRequirements(description: string): string[] {
