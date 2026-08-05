@@ -1,4 +1,4 @@
-import { discardRawJob, initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
+import { deactivateExpiredJobs, discardRawJob, initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 import { normalizeDuration } from './duration';
@@ -32,6 +32,8 @@ const CONCURRENCY = 5;
 
 async function main() {
   const db = await initDb();
+  const expiredBeforeParse = await deactivateExpiredJobs(db);
+  if (expiredBeforeParse > 0) console.log(`[Expiry] Deactivated ${expiredBeforeParse} job(s) past their closing date.`);
   const rawJobs = await getUnparsedJobs(db);
 
   if (rawJobs.length === 0) {
@@ -163,14 +165,12 @@ async function main() {
     }));
   }
 
-  // Do NOT deactivate jobs here. Expiry is scrape-owned (per source, after each
-  // successful portal pass). Parser cleanup previously wiped the whole feed
-  // whenever a partial scrape had run in the prior 12 hours.
-
   console.log('[Parser] Done.');
 
   const failed = rawJobs.length - done;
   const stalled = await countStalledParseFailures(db);
+  const expiredAfterParse = await deactivateExpiredJobs(db);
+  if (expiredAfterParse > 0) console.log(`[Expiry] Deactivated ${expiredAfterParse} job(s) past their closing date after parsing.`);
   // Most per-run misses are transient (a page didn't render, one AI call came back
   // empty) — the job stays unparsed and just gets retried next run. Only jobs that
   // keep failing past MAX_PARSE_ATTEMPTS are a real, persistent problem worth a red run.

@@ -582,3 +582,28 @@ export async function cleanupExpiredJobs(client: Client, runStartedAt: string) {
   void runStartedAt;
   console.warn('[cleanupExpiredJobs] no-op: use cleanupExpiredJobsForSource per source instead');
 }
+
+/** Deactivate active listings whose stored application deadline has passed. */
+export async function deactivateExpiredJobs(
+  client: Client,
+  today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Toronto',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date()),
+): Promise<number> {
+  const result = await client.execute({
+    sql: `UPDATE jobs
+          SET is_active = 0, scraped_at = CURRENT_TIMESTAMP
+          WHERE is_active = 1
+            AND id IN (
+              SELECT id FROM job_details
+              WHERE closing_date IS NOT NULL
+                AND TRIM(closing_date) <> ''
+                AND SUBSTR(closing_date, 1, 10) < ?
+            )`,
+    args: [today],
+  });
+  return Number(result.rowsAffected ?? 0);
+}

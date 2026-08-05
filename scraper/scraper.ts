@@ -1,6 +1,6 @@
 import { chromium, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { cleanupExpiredJobsForSource, initDb } from './db';
+import { cleanupExpiredJobsForSource, deactivateExpiredJobs, initDb } from './db';
 import { BASE_CONFIG, githubRunUrl, notifyDiscord } from './utils';
 
 import { scrapeSuccessFactors } from './engines/successfactors';
@@ -223,6 +223,8 @@ async function main() {
   }
 
   console.log('All scraping tasks complete.');
+  const expiredCount = await deactivateExpiredJobs(db);
+  if (expiredCount > 0) console.log(`[Expiry] Deactivated ${expiredCount} job(s) past their closing date.`);
   await browser.close();
 
   if (process.env.DISCORD_WEBHOOK_URL) {

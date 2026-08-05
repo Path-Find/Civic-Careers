@@ -1,6 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { saveJobDetails } from '../db';
+import { deactivateExpiredJobs, saveJobDetails } from '../db';
+
+test('deactivateExpiredJobs updates active jobs before the supplied date', async () => {
+  const statements: Array<{ sql: string; args?: unknown[] }> = [];
+  const client = {
+    execute: async (query: { sql: string; args?: unknown[] }) => {
+      statements.push(query);
+      return { rowsAffected: 3, rows: [] };
+    },
+  };
+
+  const updated = await deactivateExpiredJobs(client as never, '2026-08-05');
+
+  assert.equal(updated, 3);
+  assert.match(statements[0].sql, /SET is_active = 0/i);
+  assert.match(statements[0].sql, /closing_date/i);
+  assert.deepEqual(statements[0].args, ['2026-08-05']);
+});
 
 test('saveJobDetails refreshes every parsed field on conflict', async () => {
   const statements: string[] = [];
