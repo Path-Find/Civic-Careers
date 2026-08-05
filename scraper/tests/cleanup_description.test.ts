@@ -174,6 +174,16 @@ Benefits package includes pension and reimbursement of eligible relocation expen
   );
 });
 
+test('repairs grammar left by removing a structured benefit name', () => {
+  assert.equal(
+    stripStructuredBenefitRestatements(
+      '## Compensation & Benefits\n- Pay in lieu of per Employment Standards Act, 2000.\n- Benefits include paid days, with OMERS (100% employer matching), life/additional, and comprehensive and paid-leave plans.\n- Public-service',
+      ['vacation', 'pension', 'insurance'],
+    ),
+    '## Compensation & Benefits\n- Pay in lieu under Employment Standards Act, 2000.\n- Benefits include paid leave days, and OMERS (100% employer matching), life and additional coverage, and comprehensive paid-leave plans.',
+  );
+});
+
 test('placeholder-only cleanup does not trim legitimate overview text', () => {
   const result = removePlaceholderSections(`## Overview
 The department supports a growing community.

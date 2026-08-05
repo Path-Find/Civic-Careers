@@ -391,6 +391,18 @@ export function stripStructuredBenefitRestatements(description: string, benefits
     return bullet ? `${bullet[1]}${stripBenefitNames(bullet[2])}` : stripBenefitNames(line);
   };
 
+  const repairBenefitGrammar = (line: string): string => line
+    .replace(/\bin lieu of per\b/gi, 'in lieu under')
+    .replace(/\bpaid days\b/gi, 'paid leave days')
+    .replace(/\blife and disability,\b/gi, 'life and disability coverage,')
+    .replace(/\blife\/additional(?=\s*(?:,|$))/gi, 'life and additional coverage')
+    .replace(/\blife, accidental-death, short-term disability,\b/gi, 'life, accidental-death, and short-term disability coverage,')
+    .replace(/\bpublic-service(?=\s*,)/gi, match => /^[A-Z]/.test(match) ? 'Public-service retirement plan' : 'public-service retirement plan')
+    .replace(/\bcomprehensive\s+and\s+paid[- ]leave\b/gi, match => /^[A-Z]/.test(match) ? 'Comprehensive paid-leave' : 'comprehensive paid-leave')
+    .replace(/,\s+with OMERS including\b/gi, ', and OMERS with')
+    .replace(/,\s+with OMERS(?=\s*(?:\(|,|$))/gi, ', and OMERS')
+    .replace(/\s{2,}/g, ' ');
+
   const lines = description.split('\n');
   let inCompensation = false;
   const kept: string[] = [];
@@ -402,9 +414,10 @@ export function stripStructuredBenefitRestatements(description: string, benefits
       kept.push(line);
       continue;
     }
+    if (inCompensation && /^\s*(?:[-•*]\s+)?public-service\s*$/i.test(line)) continue;
     if (!inCompensation || !patterns.some(pattern => pattern.test(line))) {
       patterns.forEach(pattern => pattern.lastIndex = 0);
-      kept.push(line);
+      kept.push(inCompensation ? repairBenefitGrammar(line) : line);
       continue;
     }
     patterns.forEach(pattern => pattern.lastIndex = 0);
@@ -412,7 +425,7 @@ export function stripStructuredBenefitRestatements(description: string, benefits
     // A quantified incentive is additional compensation, not a duplicate
     // package label, so leave the complete line intact.
     if (/\$\s*[\d,]+|\b\d+(?:\.\d+)?\s*%|\b\d+(?:\.\d+)?\s*percent\b/i.test(line)) {
-      kept.push(stripBenefitLine(line));
+      kept.push(repairBenefitGrammar(stripBenefitLine(line)));
       continue;
     }
 
@@ -427,12 +440,13 @@ export function stripStructuredBenefitRestatements(description: string, benefits
 
     // Drop pure restatements. If a short line has a named plan or other
     // useful detail, keep that detail while removing the repeated benefit.
+    if (/^public-service$/i.test(remainder)) continue;
     if (isGenericRemainder(remainder)) continue;
     if (bullet && remainder.length < text.length) {
-      kept.push(`${bullet[1]}${stripBenefitNames(remainder)}`);
+      kept.push(repairBenefitGrammar(`${bullet[1]}${stripBenefitNames(remainder)}`));
       continue;
     }
-    kept.push(stripBenefitNames(line));
+    kept.push(repairBenefitGrammar(stripBenefitNames(line)));
   }
 
   return kept.join('\n')
