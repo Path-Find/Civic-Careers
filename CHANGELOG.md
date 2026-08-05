@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Work mode is locked to three tokens** — stored `work_model` is only `On-site`, `Hybrid`, or `Remote`. Parse-time normalize maps synonyms (WFH, virtual, online, blended, in-person, …); UI still shows On-site as “In-person”. Corpus already clean; write path hardened under #161.
 - **Language requirements store names only** — `English`, `French`, `Bilingual`, or other named languages; leftover federal jargon (`French Essential`, `Bilingual (BBB/BBB)`) cleared. New parses already normalize; final corpus sweep under #161.
 - **Location field is now consistent** — every stored location is `City, XX` (e.g. `Guelph, ON`) or multi-site `City, XX; City, XX`. Bare cities get a province from a curated map; junk like `Canada` / `Multiple Locations` is cleared. New parses normalize automatically; existing rows backfilled.
 - **“Closing within 14 days” (and Newly added) showed ~20 matches** because the filter only ran on the first loaded page of jobs. Those sorts now query the API with a real total and paginate the full matching set.

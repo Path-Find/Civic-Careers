@@ -82,14 +82,54 @@ function normalizeSalaryPeriod(v: unknown): 'yearly' | 'hourly' | 'monthly' | 'f
   return 'yearly';
 }
 
-// titleHint is a safety net: the AI sometimes misses delivery-format words
-// (e.g. "Course Name (Online)") that only appear in the title, not the body,
-// and falls back to the wrong default of On-site.
-function normalizeWorkModel(v: unknown, titleHint = ''): 'Hybrid' | 'Remote' | 'On-site' {
-  const s = coerceString(v).toLowerCase().replace(/[\s_-]/g, '');
-  if (s.includes('hybrid')) return 'Hybrid';
-  if (s.includes('remote')) return 'Remote';
-  if (/\b(online|virtual|remote|distance|e-?learning|asynchronous)\b/i.test(titleHint)) return 'Remote';
+/**
+ * Canonical work_model tokens: On-site | Hybrid | Remote.
+ * Display may map On-site → "In-person"; storage always uses On-site.
+ * titleHint is a safety net when AI misses delivery-format words in the title.
+ * Unknown/empty defaults to On-site (existing product policy on parse).
+ */
+export function normalizeWorkModel(v: unknown, titleHint = ''): 'Hybrid' | 'Remote' | 'On-site' {
+  const raw = coerceString(v);
+  const compact = raw.toLowerCase().replace(/[\s_-]+/g, '');
+  const lower = raw.toLowerCase();
+
+  // Hybrid first (blended / flexible / hybrid+remote often still hybrid)
+  if (
+    compact.includes('hybrid')
+    || compact.includes('blended')
+    || /\bflex(?:ible)?\s*work\b/i.test(lower)
+    || /\bpartial(?:ly)?\s*remote\b/i.test(lower)
+  ) {
+    return 'Hybrid';
+  }
+
+  // Remote / WFH / virtual / online (field wins when it clearly says remote)
+  if (
+    compact.includes('remote')
+    || compact.includes('wfh')
+    || compact.includes('workfromhome')
+    || compact.includes('workathome')
+    || compact.includes('telework')
+    || compact.includes('telecommute')
+    || compact.includes('virtual')
+    || compact.includes('online')
+    || compact.includes('distance')
+    || compact.includes('elearning')
+    || compact.includes('asynchronous')
+  ) {
+    return 'Remote';
+  }
+
+  // Title delivery format overrides weak/missing/On-site AI defaults
+  // (e.g. title "… (Online)" when work_model was wrongly "On-site")
+  if (/\b(online|virtual|remote|distance|e-?learning|asynchronous|wfh|work\s+from\s+home)\b/i.test(titleHint)) {
+    return 'Remote';
+  }
+  if (/\b(hybrid|blended)\b/i.test(titleHint)) {
+    return 'Hybrid';
+  }
+
+  // Explicit on-site / in-person / office, or default
   return 'On-site';
 }
 

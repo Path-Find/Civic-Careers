@@ -2,6 +2,7 @@ import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanu
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 import { normalizeLocation } from './location';
+import { normalizeWorkModel } from './validate';
 import {
   dedupeSkillsAgainstSoftware,
   extractCertificationRequirements,
@@ -93,7 +94,7 @@ async function main() {
           salary_min: aiResult.salary_min,
           salary_max: aiResult.salary_max,
           salary_period: aiResult.salary_period,
-          work_model: aiResult.work_model,
+          work_model: normalizeWorkModel(aiResult.work_model, aiResult.job_title),
           employment_type: aiResult.employment_type,
           duration: aiResult.duration || extractWorkYearDuration(description) || '',
           experience_requirements: JSON.stringify(structuredRequirements.experience_requirements),

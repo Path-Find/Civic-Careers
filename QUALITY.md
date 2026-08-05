@@ -21,6 +21,13 @@ When a structured field has a canonical form, every listing uses that form — s
 - No extra words: not `French needed`, `English Essential`, `Bilingual (BBB/BBB)`, PSC levels, or proficiency fluff
 - Implemented by `normalizeLanguageRequirements()` in `scraper/requirements.ts` (parse/validate path + backfill)
 
+**Work mode** (always):
+
+- Stored tokens only: `On-site` | `Hybrid` | `Remote` (never free text)
+- Synonyms map on parse: in-person/on-site/office → `On-site`; WFH/virtual/online/telework → `Remote`; blended/partial remote → `Hybrid`
+- UI may display `On-site` as “In-person”; storage stays `On-site`
+- Implemented by `normalizeWorkModel()` in `scraper/validate.ts` (validate + parser write path)
+
 Other fields get the same treatment as their vocabulary lands (see GitHub issue on canonical field vocabulary).
 
 ## 1. No fact appears in two places

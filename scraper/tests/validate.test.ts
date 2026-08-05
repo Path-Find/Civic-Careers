@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateParsedJob } from '../validate';
+import { normalizeWorkModel, validateParsedJob } from '../validate';
 
 const BASE = {
   job_title: 'Planner I',
@@ -146,6 +146,23 @@ describe('validateParsedJob', () => {
       assert.equal(validateParsedJob({ ...BASE, work_model: 'In Office' })?.work_model, 'On-site');
     });
 
+    it('maps remote and hybrid synonyms via normalizeWorkModel', () => {
+      assert.equal(normalizeWorkModel('Work from home'), 'Remote');
+      assert.equal(normalizeWorkModel('WFH'), 'Remote');
+      assert.equal(normalizeWorkModel('Virtual'), 'Remote');
+      assert.equal(normalizeWorkModel('Online'), 'Remote');
+      assert.equal(normalizeWorkModel('Telework'), 'Remote');
+      assert.equal(normalizeWorkModel('Blended'), 'Hybrid');
+      assert.equal(normalizeWorkModel('Partially remote'), 'Hybrid');
+      assert.equal(normalizeWorkModel('Flexible work'), 'Hybrid');
+      assert.equal(normalizeWorkModel('In-person'), 'On-site');
+      assert.equal(normalizeWorkModel('Office-based'), 'On-site');
+      // Clean tokens pass through
+      assert.equal(normalizeWorkModel('Hybrid'), 'Hybrid');
+      assert.equal(normalizeWorkModel('Remote'), 'Remote');
+      assert.equal(normalizeWorkModel('On-site'), 'On-site');
+    });
+
     it('defaults unknown values to On-site', () => {
       assert.equal(validateParsedJob({ ...BASE, work_model: 'unknown' })?.work_model, 'On-site');
       assert.equal(validateParsedJob({ ...BASE, work_model: null })?.work_model, 'On-site');
@@ -159,6 +176,10 @@ describe('validateParsedJob', () => {
       assert.equal(
         validateParsedJob({ ...BASE, job_title: 'Course XYZ (Virtual)', work_model: null })?.work_model,
         'Remote'
+      );
+      assert.equal(
+        validateParsedJob({ ...BASE, job_title: 'Hybrid Coordinator', work_model: null })?.work_model,
+        'Hybrid'
       );
       assert.equal(
         validateParsedJob({ ...BASE, job_title: 'Planner I', work_model: 'On-site' })?.work_model,
