@@ -4,6 +4,7 @@
  *
  *   npx tsx backfill-strip-structured-restatements.ts           # dry-run
  *   npx tsx backfill-strip-structured-restatements.ts --apply
+ *   npx tsx backfill-strip-structured-restatements.ts --experience-language-only --apply
  */
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
@@ -17,6 +18,7 @@ import {
 dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
+const EXPERIENCE_LANGUAGE_ONLY = process.argv.includes('--experience-language-only');
 
 function parseList(value: unknown): string[] {
   if (!value) return [];
@@ -54,8 +56,12 @@ async function main() {
     const licenses = normalizeProfessionalLicenseRequirements(parseList(row.license_requirements));
     const languages = parseList(row.language_requirements);
 
-    let after = cleanJobDescription(before, String(row.job_title ?? ''), String(row.source ?? ''));
-    after = stripStructuredQualBullets(after, { licenses, education, experience, languages });
+    let after = EXPERIENCE_LANGUAGE_ONLY
+      ? before
+      : cleanJobDescription(before, String(row.job_title ?? ''), String(row.source ?? ''));
+    after = stripStructuredQualBullets(after, EXPERIENCE_LANGUAGE_ONLY
+      ? { experience, languages }
+      : { licenses, education, experience, languages });
 
     if (after === before) continue;
 

@@ -64,7 +64,7 @@ async function main() {
           license_requirements: aiResult.license_requirements,
           benefits: aiResult.benefits,
           required_skills: aiResult.required_skills,
-        });
+        }, raw.raw_text);
         const certificationRequirements = (() => {
           const fromBody = extractCertificationRequirements(description);
           if (fromBody.length) return fromBody;

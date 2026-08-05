@@ -4,6 +4,9 @@ import {
   extractCertificationRequirements,
   extractEducationRequirements,
   extractExperienceRequirements,
+  extractExperienceRequirementsFromSources,
+  normalizeExperienceRequirement,
+  isTruncatedExperienceRequirement,
   extractLanguageRequirements,
   normalizeEducationRequirements,
   extractLanguageVehicleRequirements,
@@ -394,8 +397,8 @@ test('extracts required years of experience and ignores optional experience', ()
 ## Nice to Have
 - Two years of municipal experience is an asset.
 `), [
-    'Minimum of 3 years of experience in case management, social services, or community support',
-    "Five years' experience leading teams",
+    '3+ years — Case management, social services, or community support',
+    '5 years — Leading teams',
   ]);
 });
 
@@ -407,9 +410,9 @@ test('compacts federal Experience: walls and definition-of-experience meta lines
 - Experience is defined as experience acquired over a period of approximately two (2) years or more performing the duties on a regular basis
 `), [
     '2+ years',
-    'Analyzing complex information to present recommendations or render a decision or conclusion',
-    'Drafting formal reports, briefing notes, or decisions',
-    'Interpretation, application or development of legislation or regulations',
+    'Experience with analyzing complex information to present recommendations or render a decision or conclusion',
+    'Experience with drafting formal reports, briefing notes, or decisions',
+    'Experience with interpretation, application or development of legislation or regulations',
   ]);
 });
 
@@ -423,8 +426,36 @@ test('extracts month-based experience and high-school education without splittin
     'High school diploma plus program in Law and Security, Police Foundations',
   ]);
   assert.deepEqual(extractExperienceRequirements(description), [
-    'Over two months and up to 6 months of related experience',
+    '2–6 months — Related experience',
   ]);
+});
+
+test('normalizes parenthetical numbers and identifies truncated values', () => {
+  assert.equal(
+    normalizeExperienceRequirement('A minimum of five (5) years of progressive HR experience'),
+    '5+ years — Progressive HR experience',
+  );
+  assert.equal(isTruncatedExperienceRequirement('15+ years of experience (e'), true);
+  assert.equal(isTruncatedExperienceRequirement('15+ years of experience (e.g., energy)'), false);
+});
+
+test('recovers duration-led Experience clauses from concatenated raw source text', () => {
+  assert.deepEqual(
+    extractExperienceRequirementsFromSources('', '## QualificationsMinimum of 5 years of progressive HR experience.'),
+    ['5 years — Progressive HR experience'],
+  );
+});
+
+test('strips Experience and bilingual language restatements from Qualifications', () => {
+  const result = stripStructuredQualBullets(`## Qualifications
+- Minimum of 1-year experience in administrative support roles in a high-volume environment
+- Proficiency in both French and English (reading, writing, speaking)
+- Effective interpersonal and communication skills`, {
+    experience: ['Minimum of 1-year experience in administrative support roles in a high-volume environment'],
+    languages: ['Bilingual'],
+  });
+  assert.equal(result, `## Qualifications
+- Effective interpersonal and communication skills`);
 });
 
 test('drops obvious stale overview and software-licence values during reconciliation', () => {
@@ -527,6 +558,7 @@ test('classifies a source-labelled recruitment pool as ongoing recruitment', () 
 
 test('classifies applicant pools as candidate inventory', () => {
   assert.equal(extractListingType('Carleton University is building a pool of candidates for temporary casual assignments.', 'Applicant Pool'), 'inventory');
+  assert.equal(extractListingType('Vacancy Type: This is for all current and future permanent part-time vacancies.', 'Recreation Assistant - RE-POST (Periodic Posting)'), 'inventory');
 });
 
 test('classifies an explicit future-vacancy inventory separately', () => {

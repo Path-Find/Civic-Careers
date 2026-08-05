@@ -3,6 +3,7 @@ import { extractListingType, type ListingType } from './requirements';
 import { EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 
 const apply = process.argv.includes('--apply');
+const inventoryOnly = process.argv.includes('--inventory-only');
 const limitArg = process.argv.find(value => value.startsWith('--limit='));
 const limit = Math.max(1, Number(limitArg?.split('=')[1] || 10000));
 
@@ -72,14 +73,15 @@ async function main() {
     security_check_required_next: GOVERNMENT_OF_CANADA_FIXES[row.id]?.securityCheckRequired ?? row.security_check_required,
     is_active_next: EXCLUDED_GOVERNMENT_OF_CANADA_IDS.has(row.id) ? 0 : row.is_active,
   }));
-  const candidates = work.filter(row => row.listing_type !== row.listing_type_next
+  const candidates = work.filter(row => (!inventoryOnly || row.listing_type_next === 'inventory')
+    && (row.listing_type !== row.listing_type_next
     || row.is_inventory !== row.is_inventory_next
     || row.url !== row.url_next
     || row.description !== row.description_next
     || row.is_student !== row.is_student_next
     || row.education_requirements !== row.education_requirements_next
     || row.security_check_required !== row.security_check_required_next
-    || row.is_active !== row.is_active_next);
+    || row.is_active !== row.is_active_next));
   const typeCounts = candidates.reduce<Record<string, number>>((counts, row) => {
     if (row.listing_type !== row.listing_type_next) counts[row.listing_type_next] = (counts[row.listing_type_next] ?? 0) + 1;
     return counts;
@@ -92,7 +94,12 @@ async function main() {
   }
   if (!apply || candidates.length === 0) return;
 
-  await db.batch(candidates.flatMap(row => [
+  await db.batch(candidates.flatMap(row => inventoryOnly
+    ? [{
+      sql: 'UPDATE job_details SET listing_type = ?, is_inventory = ? WHERE id = ?',
+      args: [row.listing_type_next, row.is_inventory_next, row.id],
+    }]
+    : [
     {
       sql: `UPDATE job_details SET listing_type = ?, is_inventory = ?, description = ?, is_student = ?,
         education_requirements = ?, security_check_required = ? WHERE id = ?`,
@@ -104,7 +111,7 @@ async function main() {
       { sql: 'UPDATE jobs SET url = ? WHERE id = ?', args: [row.url_next, row.id] },
       { sql: 'UPDATE raw_jobs SET application_url = ? WHERE id = ?', args: [row.url_next, row.id] },
     ] : []),
-  ]), 'write');
+    ]), 'write');
   console.log(`[Listing type backfill] Updated ${candidates.length} job(s).`);
 }
 

@@ -85,6 +85,7 @@ describe('normalizeJobTitle', () => {
       'CJIIC Administrative Assistant',
     );
     assert.equal(normalizeJobTitle('Part Time - Food Services Worker'), 'Food Services Worker');
+    assert.equal(normalizeJobTitle('Recreation Assistant - RE-POST (Periodic Posting)'), 'Recreation Assistant');
   });
 
   it('does not strip bare Temporary proper-name prefixes', () => {

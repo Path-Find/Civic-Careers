@@ -2,6 +2,7 @@ import { initDb } from './db';
 import { reconcileStructuredRequirements } from './requirements';
 
 const apply = process.argv.includes('--apply');
+const educationLicenceOnly = process.argv.includes('--education-licence-only');
 const sample = process.argv.includes('--sample');
 const limitArg = process.argv.find(value => value.startsWith('--limit='));
 const perSourceArg = process.argv.find(value => value.startsWith('--per-source='));
@@ -79,12 +80,13 @@ async function main() {
     };
   });
 
-  const candidates = work.filter(row =>
-    !sameList(parseList(row.education_requirements), row.education_requirements_next)
-    || !sameList(parseList(row.license_requirements), row.license_requirements_next)
-    || !sameList(parseList(row.benefits), row.benefits_next)
-    || !sameList(parseList(row.required_skills), row.required_skills_next)
-  );
+  const candidates = work.filter(row => educationLicenceOnly
+    ? !sameList(parseList(row.education_requirements), row.education_requirements_next)
+      || !sameList(parseList(row.license_requirements), row.license_requirements_next)
+    : !sameList(parseList(row.education_requirements), row.education_requirements_next)
+      || !sameList(parseList(row.license_requirements), row.license_requirements_next)
+      || !sameList(parseList(row.benefits), row.benefits_next)
+      || !sameList(parseList(row.required_skills), row.required_skills_next));
 
   const sourceCounts = new Map<string, number>();
   const selected = sample
@@ -117,18 +119,23 @@ async function main() {
   }
 
   if (!apply || sample || selected.length === 0) return;
-  await db.batch(selected.map(row => ({
-    sql: `UPDATE job_details
-          SET education_requirements = ?, license_requirements = ?, benefits = ?, required_skills = ?
-          WHERE id = ?`,
-    args: [
-      JSON.stringify(row.education_requirements_next),
-      JSON.stringify(row.license_requirements_next),
-      JSON.stringify(row.benefits_next),
-      JSON.stringify(row.required_skills_next),
-      row.id,
-    ],
-  })), 'write');
+  await db.batch(selected.map(row => educationLicenceOnly
+    ? {
+      sql: 'UPDATE job_details SET education_requirements = ?, license_requirements = ? WHERE id = ?',
+      args: [JSON.stringify(row.education_requirements_next), JSON.stringify(row.license_requirements_next), row.id],
+    }
+    : {
+      sql: `UPDATE job_details
+            SET education_requirements = ?, license_requirements = ?, benefits = ?, required_skills = ?
+            WHERE id = ?`,
+      args: [
+        JSON.stringify(row.education_requirements_next),
+        JSON.stringify(row.license_requirements_next),
+        JSON.stringify(row.benefits_next),
+        JSON.stringify(row.required_skills_next),
+        row.id,
+      ],
+    }), 'write');
   console.log(`[Education/licence backfill] Updated ${selected.length} row(s).`);
 }
 

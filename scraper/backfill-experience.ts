@@ -1,6 +1,10 @@
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
-import { extractExperienceRequirements, normalizeExperienceRequirements } from './requirements';
+import {
+  extractExperienceRequirementsFromSources,
+  isTruncatedExperienceRequirement,
+  normalizeExperienceRequirements,
+} from './requirements';
 
 // Default: normalize populated fields only. Add --fill-missing to also extract
 // experience from descriptions where the field is empty.
@@ -38,9 +42,13 @@ async function main() {
   let scanned = 0;
   while (scanned < limit) {
     const result = await db.execute({
-      sql: `SELECT jd.id, j.source, jd.job_title, jd.description, jd.experience_requirements
-            FROM job_details jd JOIN jobs j ON j.id = jd.id
-            WHERE jd.description IS NOT NULL AND jd.description != ''
+      sql: `SELECT jd.id, j.source, jd.job_title, jd.description, jd.experience_requirements,
+                   COALESCE(raw.raw_text, '') AS raw_text
+            FROM job_details jd
+            JOIN jobs j ON j.id = jd.id
+            LEFT JOIN raw_jobs raw ON raw.id = jd.id
+            WHERE (jd.description IS NOT NULL AND jd.description != '')
+               OR (raw.raw_text IS NOT NULL AND raw.raw_text != '')
             ORDER BY jd.id LIMIT ? OFFSET ?`,
       args: [Math.min(PAGE_SIZE, limit - scanned), offset],
     });
@@ -48,9 +56,18 @@ async function main() {
     for (const row of result.rows) {
       const current = parseList(row.experience_requirements);
       if (current.length === 0 && !fillMissing) continue;
+      const description = String(row.description ?? '');
+      const rawText = String(row.raw_text ?? '');
+      const recovered = extractExperienceRequirementsFromSources(description, rawText)
+        .filter(value => !isTruncatedExperienceRequirement(value));
+      const safeCurrent = current.filter(value => !isTruncatedExperienceRequirement(value));
       const values = current.length > 0
-        ? normalizeExperienceRequirements(current)
-        : extractExperienceRequirements(String(row.description ?? ''));
+        ? normalizeExperienceRequirements(
+          safeCurrent.length === current.length || recovered.length === 0
+            ? safeCurrent
+            : [...safeCurrent, ...recovered],
+        )
+        : extractExperienceRequirementsFromSources(description, rawText);
       if (JSON.stringify(values) !== JSON.stringify(current)) {
         changes.push({
           id: String(row.id),

@@ -133,6 +133,10 @@ export function compactLicenseLabel(value: string): string {
 export function compactExperienceLabel(value: string): string {
   let s = value.replace(/\s+/g, ' ').trim();
   if (!s) return s;
+  if (/^(?:\d+(?:\+|[–-]\d+)?\s*(?:years?|months?)|Recent(?:\s+\(within past \d+ years\))?|Several years)\s+—\s+.+$/i.test(s)
+    || /^Experience with\b/i.test(s)) {
+    return s;
+  }
 
   if (/\bis defined as\b/i.test(s) || /^experience is defined\b/i.test(s)) {
     const within = s.match(/within the past\s+(?:\w+\s*)?\(?(\d+)\)?\s*years?/i);
@@ -284,14 +288,14 @@ export function parseJobDetails(job: Job): JobDetails {
           const isDef = /\bis defined as\b/i.test(raw);
           const c = compactExperienceLabel(raw);
           if (!c) continue;
-          if (isDef || /^(?:\d+\+\s*years|Recent\b)/i.test(c)) {
+          if (isDef || /^(?:\d+(?:\+|[–-]\d+)?\s*(?:years?|months?)|Recent\b|Several years\b)(?:\s+—|$)/i.test(c)) {
             if (!years) years = c;
             continue;
           }
           items.push(c);
         }
         const ordered = years ? [years, ...items] : items;
-        return ordered.length ? ordered.join(', ') : null;
+        return ordered.length ? ordered.join('; ') : null;
       } catch {
         return joinJsonArray(job.experience_requirements, compactExperienceLabel);
       }

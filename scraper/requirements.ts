@@ -281,14 +281,19 @@ const DRIVER_LICENSE_PHRASE = new RegExp(
 );
 const EXPERIENCE_NUMBER = '(?:\\d+(?:\\.\\d+)?\\+?|one|two|three|four|five|six|seven|eight|nine|ten|several)';
 const EXPERIENCE_UNIT = '(?:years?|yrs?|months?)';
+const EXPERIENCE_WORD_NUMBERS: Record<string, string> = {
+  one: '1', two: '2', three: '3', four: '4', five: '5',
+  six: '6', seven: '7', eight: '8', nine: '9', ten: '10',
+};
 const EXPERIENCE_SUFFIX = `(?:[’\\']?\\s+(?:of\\s+)?(?:[a-z-]+\\s+){0,5}experience)`;
 // "2 years of experience", "Over two months and up to 6 months of related experience"
 // (unit may appear on both ends of a range: "two months and up to 6 months").
-const EXPERIENCE_AMOUNT = `${EXPERIENCE_NUMBER}(?:\\s*${EXPERIENCE_UNIT})?(?:\\s*(?:-|–|—|to|and\\s+up\\s+to)\\s*${EXPERIENCE_NUMBER})?\\s*${EXPERIENCE_UNIT}`;
+const EXPERIENCE_AMOUNT = `${EXPERIENCE_NUMBER}(?:\\s*[-–—]?\\s*${EXPERIENCE_UNIT})?(?:\\s*(?:-|–|—|to|and\\s+up\\s+to)\\s*${EXPERIENCE_NUMBER})?\\s*${EXPERIENCE_UNIT}`;
 const EXPERIENCE_YEARS_PATTERN = new RegExp(
   `\\b(?:(?:over|more\\s+than|at\\s+least|minimum(?:\\s+of)?)\\s+)?${EXPERIENCE_AMOUNT}${EXPERIENCE_SUFFIX}\\b`,
   'i',
 );
+const EXPERIENCE_TIME_SIGNAL = /\b(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)\s*[-–—]?\s*(?:years?|months?|yrs?)\b/i;
 const EXPERIENCE_CLAUSE_PATTERN = new RegExp(
   `(?:(?:a\\s+)?minimum\\s+of|minimum|at\\s+least|over|more\\s+than)?\\s*${EXPERIENCE_AMOUNT}${EXPERIENCE_SUFFIX}\\b[^.;\\n]{0,180}`,
   'i',
@@ -327,8 +332,10 @@ const INVENTORY_TEXT_SIGNALS: RegExp[] = [
   /\b(?:a\s+)?pool\s+of\s+(?:qualified\s+)?candidates?\s+will\s+be\s+established\b/i,
   /\bthis\s+pool\s+may\s+be\s+used\s+to\s+staff\b/i,
   /\b(?:build(?:ing)?|creat(?:e|ing)|establish(?:ed|ing)?|maintain(?:ed|ing)?)\s+(?:a\s+)?pool\s+of\s+candidates?\b/i,
+  /\b(?:all|both)\s+current\s+and\s+future\s+(?:permanent\s+)?(?:part[- ]time\s+)?vacancies?\b/i,
+  /\bvacancy\s+type\s*:\s*this\s+is\s+for\s+all\s+current\s+and\s+future\b/i,
 ];
-const INVENTORY_TITLE_SIGNAL = /\b(?:applicant\s+pool|inventory|talent\s+pool)\b/i;
+const INVENTORY_TITLE_SIGNAL = /\b(?:applicant\s+pool|inventory|talent\s+pool|periodic(?:\s+posting|\s+post)?)\b/i;
 const ONGOING_TEXT_SIGNALS: RegExp[] = [
   /\b(?:candidate|talent)\s+pool\b/i,
   /\bopen\s+(?:till|until)\s+filled\b/i,
@@ -1301,6 +1308,7 @@ function educationCoreKey(value: string): string {
 
 function experienceCoreKey(value: string): string {
   return normalizedRequirement(value)
+    .replace(/\b\d+(?:\.\d+)?\s*\+?\s*[-–—]?\s*(?:years?|months?|yrs?)\b/g, ' ')
     .replace(/\b(?:must|have|possess|minimum|required|of|in|related|relevant|experience|years?|months?|yrs?)\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -1314,6 +1322,9 @@ function experienceCoreKey(value: string): string {
 export function normalizeExperienceRequirement(value: string): string | null {
   let s = value.replace(/\s+/g, ' ').trim();
   if (!s) return null;
+  s = s.replace(/^Experience with\s+(?=(?:\d+(?:\+|–\d+)?\s*(?:years?|months?)|Recent|Several years)(?:\s+—|$))/i, '');
+  if (/^(?:\d+(?:\+|–\d+)?\s*(?:years?|months?)|Recent|Several years)\s+—\s+.+$/i.test(s)) return s;
+  if (/^Several years$/i.test(s)) return 'Several years';
 
   // Definition / glossary lines (federal "Experience is defined as…", BC "Recent… is defined as…")
   if (/\bis defined as\b/i.test(s) || /^experience is defined\b/i.test(s)) {
@@ -1327,25 +1338,87 @@ export function normalizeExperienceRequirement(value: string): string | null {
     if (approx?.[1]) return `${approx[1]}+ years`;
     const word = s.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+years?\s+or\s+more/i);
     if (word) {
-      const map: Record<string, string> = {
-        one: '1', two: '2', three: '3', four: '4', five: '5',
-        six: '6', seven: '7', eight: '8', nine: '9', ten: '10',
-      };
-      return `${map[word[1].toLowerCase()]}+ years`;
+      return `${EXPERIENCE_WORD_NUMBERS[word[1].toLowerCase()]}+ years`;
     }
     return null; // pure glossary noise
   }
 
   s = s
-    .replace(/^experience\s*:\s*(?:in\s+(?:the\s+)?)?/i, '')
-    .replace(/^experience\s+in\s+(?:the\s+)?/i, '')
-    .replace(/^experience\s+(?:with|of|using)\s+/i, '')
+    .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s*\(\s*(\d+)\s*\)(?=\s*(?:years?|months?)\b)/gi, '$2')
+    .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten)(?=\s*(?:years?|months?)\b)/gi, raw => EXPERIENCE_WORD_NUMBERS[raw.toLowerCase()]);
+
+  // Keep alternatives readable. Rewriting each side can change the meaning
+  // of part-time/full-time, equivalent, and other source conditions.
+  const hasDurationAlternative = /\b(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)\s*[-–—]?\s*(?:years?|months?)\b[^.;]{0,100}\bor\b[^.;]{0,100}\b(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)\s*[-–—]?\s*(?:years?|months?)\b/i.test(s);
+  if (hasDurationAlternative) {
+    s = s.replace(/^experience\s*:\s*/i, '').replace(/[.;\s]+$/g, '').trim();
+    if (!s || s.length < 3) return null;
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  const number = (raw: string): string => EXPERIENCE_WORD_NUMBERS[raw.toLowerCase()] ?? raw;
+  const range = s.match(/^(?:(?:a\s+)?minimum(?:\s+of)?|at\s+least|over|more\s+than)?\s*(\d+(?:\.\d+)?\+?|one|two|three|four|five|six|seven|eight|nine|ten)\s*(years?|yrs?|months?)?\s*(?:-|–|—|to|and\s+up\s+to)\s*(\d+(?:\.\d+)?\+?|one|two|three|four|five|six|seven|eight|nine|ten)\s*(years?|yrs?|months?)\b/i);
+  const single = s.match(/^(?:(?:a\s+)?minimum(?:\s+of)?|at\s+least|over|more\s+than)?\s*(\d+(?:\.\d+)?\+?|one|two|three|four|five|six|seven|eight|nine|ten)\s*[-–—]?\s*(years?|yrs?|months?)\b/i);
+  const duration = range || single;
+
+  if (duration) {
+    const minimum = number(duration[1]);
+    const maximum = range ? number(duration[3]) : null;
+    const rawUnit = range ? duration[4] || duration[2] : duration[2];
+    const unit = rawUnit.toLowerCase().startsWith('month') ? 'month' : 'year';
+    const hasThreshold = /^(?:a\s+)?(?:minimum|at\s+least|over|more\s+than)\b/i.test(s);
+    const minimumLabel = minimum.endsWith('+') ? minimum : hasThreshold ? `${minimum}+` : minimum;
+    const plural = maximum || minimumLabel.endsWith('+') || minimum !== '1' ? 's' : '';
+    const label = maximum
+      ? `${minimum.replace(/\+$/, '')}–${maximum.replace(/\+$/, '')} ${unit}s`
+      : `${minimumLabel} ${unit}${plural}`;
+    let domain = s.slice(duration[0].length).replace(/[.;\s]+$/g, '').trim();
+    const experiencePhrase = domain.match(/^[’']?\s*(?:of\s+)?((?:[a-z-]+\s+){0,4}experience)\b(.*)$/i);
+    if (experiencePhrase) {
+      const afterExperience = experiencePhrase[2].replace(/^[,;:–—-]\s*/, '').trim();
+      domain = /^(?:in|with|using)\b/i.test(afterExperience)
+        ? afterExperience.replace(/^(?:in|with|using)\s+(?:the\s+)?/i, '').trim()
+        : afterExperience
+          ? experiencePhrase[1].trim().toLowerCase() === 'experience'
+            ? afterExperience
+            : experiencePhrase[1].trim() + ', ' + afterExperience
+          : experiencePhrase[1].trim().toLowerCase() === 'experience' ? '' : experiencePhrase[1].trim();
+    }
+    domain = domain.replace(/^[,;:–—-]\s*/, '').replace(/[.;\s]+$/g, '').trim();
+    return domain ? `${label} — ${domain.charAt(0).toUpperCase()}${domain.slice(1)}` : label;
+  }
+
+  const recent = s.match(/^recent(?:\s+experience)?\s*(?:in|with|of|:)?\s*(.*)$/i);
+  if (recent) {
+    const domain = recent[1].replace(/^the\s+/i, '').replace(/[.;\s]+$/g, '').trim();
+    return domain ? `Recent — ${domain.charAt(0).toUpperCase()}${domain.slice(1)}` : 'Recent';
+  }
+
+  const several = s.match(/^several\s+years?\s*(?:of\s+)?(?:[a-z-]+\s+){0,4}experience\b\s*(.*)$/i);
+  if (several) {
+    const domain = several[1].replace(/^in\s+(?:the\s+)?/i, '').replace(/[.;\s]+$/g, '').trim();
+    return domain ? `Several years — ${domain.charAt(0).toUpperCase()}${domain.slice(1)}` : 'Several years';
+  }
+
+  s = s
+    .replace(/^experience\s*:\s*/i, '')
+    .replace(/^experience\s+(?:in|with|of|using)\s+/i, '')
     .replace(/^experience\s+/i, '')
     .replace(/^in\s+(?:the\s+)?/i, '')
     .replace(/[.;\s]+$/g, '')
     .trim();
   if (!s || s.length < 3) return null;
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  return `Experience with ${s.charAt(0).toLowerCase()}${s.slice(1)}`;
+}
+
+/** True when a stored value ends inside an opening parenthesized clause. */
+export function isTruncatedExperienceRequirement(value: string): boolean {
+  let depth = 0;
+  for (const char of value) {
+    if (char === '(') depth++;
+    if (char === ')' && depth > 0) depth--;
+  }
+  return depth > 0;
 }
 
 /** Normalize a list: compact items, pull definition years to front, drop empties. */
@@ -1357,11 +1430,15 @@ export function normalizeExperienceRequirements(values: string[]): string[] {
     const isDef = /\bis defined as\b/i.test(raw) || /^experience is defined\b/i.test(raw);
     const compact = normalizeExperienceRequirement(raw);
     if (!compact) continue;
-    if (isDef || /^(?:\d+\+\s*years|Recent\b)/i.test(compact)) {
+    const standaloneDuration = /^(?:\d+(?:\+|–\d+)?\s*(?:years?|months?)|Recent|Several years)$/i.test(compact);
+    if (isDef || standaloneDuration) {
       if (!yearsLabel) yearsLabel = compact;
       continue;
     }
-    const key = compact.toLowerCase();
+    // A source recovery pass can see the same requirement once as a
+    // threshold and once as a bare duration. Treat those as one item when
+    // their canonical duration/domain are otherwise identical.
+    const key = compact.toLowerCase().replace(/^(\d+)\+(\s+(?:years?|months?)\s+—)/, '$1$2');
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(compact);
@@ -1423,6 +1500,8 @@ export function stripStructuredQualBullets(
   const eduKeys = education.map(educationCoreKey).filter(Boolean);
   const expKeys = experience.map(experienceCoreKey).filter(Boolean);
   const hasLanguage = languages.some(l => l.trim().length > 0);
+  const hasBilingualLanguage = languages.some(l => /\bbilingual\b/i.test(l));
+  const namedLanguages = languages.filter(l => !/\bbilingual\b/i.test(l)).join(' ');
   const hasHighSchoolEdu = education.some(e =>
     /\b(?:high\s+school|secondary\s+school|grade\s*12|years of high school)\b/i.test(e)
     || /^high school diploma\b/i.test(e),
@@ -1453,6 +1532,8 @@ export function stripStructuredQualBullets(
         /^(?:language\s+requirements?|languages?)\s*:/i.test(focus)
         || /^(?:various\s+)?language\s+requirements?\b/i.test(focus)
         || (/^bilingual\b/i.test(focus) && languages.some(l => /bilingual/i.test(l)) && focus.length < 140)
+        || (hasBilingualLanguage && /\b(?:french|français)\b/i.test(focus) && /\b(?:english|anglais)\b/i.test(focus) && focus.length < 220)
+        || (namedLanguages && namedLanguages.split(/\s+/).filter(Boolean).every(language => new RegExp(`\\b${language}\\b`, 'i').test(focus)) && /\b(?:proficien|fluen|speak|read|writ|language)\w*/i.test(focus) && focus.length < 220)
       )) {
         removed += 1;
         continue;
@@ -1512,7 +1593,7 @@ export function stripStructuredQualBullets(
         const experienceColonBullet = /^experience\s*:/i.test(focus) || /^experience\s+(?:analyzing|drafting|in\b|with\b|using\b)/i.test(focus);
         const definitionLine = /\bis defined as\b/i.test(focus);
         if ((restatesExp || bothHaveTime || (experienceColonBullet && restatesExp) || definitionLine)
-          && (EXPERIENCE_YEARS_PATTERN.test(focus) || experienceColonBullet || definitionLine)
+          && (EXPERIENCE_YEARS_PATTERN.test(focus) || EXPERIENCE_TIME_SIGNAL.test(focus) || experienceColonBullet || definitionLine)
           && !/\b(?:and\s+)?(?:excellent|strong|proven)\s+(?:communication|organizational|leadership)\b/i.test(focus.slice(0, 40))) {
           removed += 1;
           continue;
@@ -1560,6 +1641,18 @@ export function licensesImplyVehicle(licenses: string[]): boolean {
   );
 }
 
+export function prepareExperienceSourceText(rawText: string): string {
+  return rawText
+    // Raw portals often concatenate blocks without line breaks. Recreate
+    // boundaries before duration-led qualification clauses and sentences.
+    .replace(/(?=(?:(?:a\s+)?minimum|at\s+least|over|more\s+than)\s+(?:\w+|\d+)|(?<!\d)(?:\d+(?:\.\d+)?\+?|one|two|three|four|five|six|seven|eight|nine|ten)\s*[-–—]?\s*(?:years?|months?))/gi, '\n')
+    .replace(/(?<=[.)])(?=[A-Z])/g, '\n');
+}
+
+export function extractExperienceRequirementsFromSources(description: string, rawText = ''): string[] {
+  return extractExperienceRequirements(description + '\n' + prepareExperienceSourceText(rawText));
+}
+
 export function extractExperienceRequirements(description: string): string[] {
   const values = new Set<string>();
   for (const line of descriptionLines(description)) {
@@ -1567,19 +1660,20 @@ export function extractExperienceRequirements(description: string): string[] {
     // Federal "Experience: drafting…" / "Experience analyzing…" bullets (no years on the line).
     if (/^experience(?:\s*:|\s+in\s+|\s+)/i.test(line.text) && !/\bis defined as\b/i.test(line.text)) {
       const value = compactText(line.text).replace(/^[,;:–—-]\s*/, '').trim();
-      if (value && value.length <= 240) values.add(value);
+      if (value) values.add(value);
       continue;
     }
     // "Experience is defined as… two (2) years…" meta line → capture for normalization.
     if (/\bexperience is defined as\b/i.test(line.text) || /\bexperience\b.{0,40}\bis defined as\b/i.test(line.text)) {
       const value = compactText(line.text).replace(/^[,;:–—-]\s*/, '').trim();
-      if (value && value.length <= 240) values.add(value);
+      if (value) values.add(value);
       continue;
     }
     if (!EXPERIENCE_YEARS_PATTERN.test(line.text)) continue;
-    const match = line.text.match(EXPERIENCE_CLAUSE_PATTERN);
+    const startsAsExperience = /^(?:(?:a\s+)?minimum|at\s+least|over|more\s+than|\d|one\b|two\b|three\b|four\b|five\b|six\b|seven\b|eight\b|nine\b|ten\b|several\b|recent\b)/i.test(line.text);
+    const match = startsAsExperience ? null : line.text.match(EXPERIENCE_CLAUSE_PATTERN);
     const value = compactText(match?.[0] || line.text).replace(/^[,;:–—-]\s*/, '').trim();
-    if (value && value.length <= 240) values.add(value);
+    if (value) values.add(value);
   }
   return normalizeExperienceRequirements([...values]);
 }
@@ -1603,8 +1697,8 @@ export interface StructuredRequirementValues {
   required_skills: string[];
 }
 
-export function reconcileStructuredRequirements(description: string, current: Partial<StructuredRequirementValues>): StructuredRequirementValues {
-  const experienceRequirements = extractExperienceRequirements(description);
+export function reconcileStructuredRequirements(description: string, current: Partial<StructuredRequirementValues>, rawText = ''): StructuredRequirementValues {
+  const experienceRequirements = extractExperienceRequirementsFromSources(description, rawText);
   const educationRequirements = extractEducationRequirements(description);
   const licenseRequirements = extractProfessionalLicenseRequirements(description);
   const namedBenefits = extractNamedBenefits(description);

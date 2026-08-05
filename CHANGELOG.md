@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Structured requirements are consistent across the corpus** — Education, Experience, and professional licences now use the same canonical extraction and normalization rules, including recovery of complete source clauses.
+- **Qualifications no longer repeat structured Experience or Language requirements** — duplicate bullets are removed across existing postings, while periodic/current-future vacancy postings become Candidate inventory and repost metadata is removed from titles.
 - **Applicant pools are marked as Candidate inventory** — pool postings like Carleton’s `Applicant Pool` no longer appear as ordinary jobs.
 - **Experience labels use one threshold style** — common `minimum`, `at least`, and numeric-range wording now displays as `N+ years` or `N–M years` while preserving alternatives and role detail.
 - **Direct job links load their posting again** — single-job API responses are now handled as a job instead of an empty paginated list, and the browser title uses Civic Careers.

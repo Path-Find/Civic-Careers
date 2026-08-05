@@ -17,7 +17,7 @@ export function isEmploymentOrDurationParen(inner: string): boolean {
   const s = inner.replace(/\s+/g, ' ').trim();
   if (!s) return false;
 
-  if (/^(?:part[-\s]?time|full[-\s]?time|temporary|temp|casual|seasonal|permanent|term|contract|inventory)$/i.test(s)) {
+  if (/^(?:part[-\s]?time|full[-\s]?time|temporary|temp|casual|seasonal|permanent|term|contract|inventory|re[-\s]?post|periodic(?:\s+posting)?)$/i.test(s)) {
     return true;
   }
 
@@ -58,6 +58,7 @@ export function normalizeJobTitle(title: string | null | undefined): string {
 
   // Trailing dash inventory / employment
   t = t.replace(/\s*[-–—]\s*inventory\s*$/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*(?:re[-\s]?post(?:ing)?|periodic(?:\s+posting|\s+post)?)\s*$/i, '').trim();
   t = t.replace(
     /\s*[-–—]\s*(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent)\s*$/i,
     '',
