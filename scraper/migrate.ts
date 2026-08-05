@@ -33,12 +33,13 @@ async function migrate() {
       source TEXT,
       is_active INTEGER DEFAULT 1,
       is_saved INTEGER DEFAULT 0,
+      public_id INTEGER,
       scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
   await db.execute(`
-    INSERT INTO jobs_new (id, url, source, is_active, is_saved, scraped_at)
-    SELECT id, url, source, is_active, is_saved, scraped_at FROM jobs
+    INSERT INTO jobs_new (id, url, source, is_active, is_saved, public_id, scraped_at)
+    SELECT id, url, source, is_active, is_saved, rowid, scraped_at FROM jobs
   `);
   const jobCount = await db.execute(`SELECT COUNT(*) as n FROM jobs_new`);
   console.log(`  Copied ${jobCount.rows[0]!['n']} rows.`);

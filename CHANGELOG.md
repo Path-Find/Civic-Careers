@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Job URLs no longer expose scraper source names** — direct links now use stable numeric public IDs while existing source-based and numeric links continue to resolve.
 - **Qualifications no longer repeat structured requirements** — active job descriptions now remove duplicate education, experience, language, licence, certification, skill, software, vehicle, security, and duplicate-qualification bullets while preserving additional context.
 - **Open jobs no longer disappear from company counts after cleanup** — stored postings with a future closing date were restored to active status.
 - **Experience is now duration-only** — numeric durations stay in Experience while domain, recent, qualitative, and alternative detail is preserved in Qualifications across the corpus.

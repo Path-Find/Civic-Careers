@@ -203,7 +203,11 @@ function App() {
         const job = jobId
           ? jobs.find(candidate => candidate.id === jobId || (legacyRid !== null && candidate.rid === legacyRid))
           : undefined;
-        if (job) setSelectedJob(job);
+        if (job) {
+          const publicPath = jobRoute(String(job.rid));
+          if (path !== publicPath) window.history.replaceState({ jobId: job.rid }, '', publicPath);
+          setSelectedJob(job);
+        }
       } else if (path === '/saved') {
         setCurrentView('saved');
         setSelectedJob(null);
@@ -259,7 +263,7 @@ function App() {
     if (!job.is_active) return;
     setSelectedJob(job);
     window.scrollTo(0, 0);
-    window.history.pushState({ jobId: job.id }, '', jobRoute(job.id));
+    window.history.pushState({ jobId: job.rid }, '', jobRoute(String(job.rid)));
   };
 
   const toggleSaveJob = async (job: Job, e: React.MouseEvent) => {

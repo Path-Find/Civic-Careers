@@ -109,6 +109,25 @@ async function initializeDbOnce(): Promise<Client> {
     WHERE first_seen_at IS NULL
   `);
 
+  // Public URLs use an explicit numeric ID rather than SQLite's internal
+  // rowid or a source-specific job key. Seed existing rows from rowid once;
+  // subsequent writes preserve the assigned value.
+  try {
+    await client.execute(`ALTER TABLE jobs ADD COLUMN public_id INTEGER`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  await client.execute(`UPDATE jobs SET public_id = rowid WHERE public_id IS NULL`);
+  await client.execute(`CREATE UNIQUE INDEX IF NOT EXISTS jobs_public_id_idx ON jobs(public_id)`);
+  await client.execute(`
+    CREATE TRIGGER IF NOT EXISTS jobs_assign_public_id
+    AFTER INSERT ON jobs
+    WHEN NEW.public_id IS NULL
+    BEGIN
+      UPDATE jobs SET public_id = NEW.rowid WHERE rowid = NEW.rowid;
+    END
+  `);
+
   // AI-owned fields — never touched by the scraper
   await client.execute(`
     CREATE TABLE IF NOT EXISTS job_details (

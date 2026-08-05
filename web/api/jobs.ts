@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createDb } from './_db.js';
 
 const jobColumns = `
-  j.rowid AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
+  COALESCE(j.public_id, j.rowid) AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
   jd.job_title, jd.department, jd.location, jd.salary_range,
   jd.closing_date, jd.posted_at, jd.start_date, jd.is_inventory, jd.listing_type, jd.is_student,
@@ -87,11 +87,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
         args: [jobId]
       });
-      // Keep old numeric /job/{rowid} links working while new links use jobs.id.
+      // Keep both old numeric and source-key URLs working during the URL migration.
       if (result.rows.length === 0 && /^\d+$/.test(jobId)) {
         result = await db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.rowid = ?`,
-          args: [jobId]
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? OR j.rowid = ?`,
+          args: [jobId, jobId]
         });
       }
       if (result.rows.length === 0) {
@@ -103,12 +103,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
 
-    // Legacy API clients still send rid; keep this until all deployed clients
-    // have moved to the stable jobs.id route.
+    // Legacy API clients still send rid.
     if (rid) {
       const result = await db.execute({
-        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.rowid = ?`,
-        args: [rid]
+        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? OR j.rowid = ?`,
+        args: [rid, rid]
       });
       if (result.rows.length === 0) {
         res.writeHead(404);
