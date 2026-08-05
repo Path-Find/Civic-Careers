@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Grade 12 / First Aid no longer stuck only in Qualifications body** — `Grade 12` fills Education as `High school diploma`, First Aid/CPR fills Certifications (e.g. `Standard First Aid with CPR-C`), and those restatement bullets are stripped from the body. New parses do this automatically; existing rows backfilled.
 - **Vehicle and security flags stay clean tri-state values** — DB only stores 1 / 0 / null (required / not required / not stated); parse coerces yes/no/unknown and falls back to deterministic extract when AI is silent. Corpus already consistent under #161.
 - **Listing type is locked to three tokens** — `regular` | `ongoing_recruitment` | `inventory` only (`is_inventory` stays in sync with inventory). Short-label normalize + extract-from-text on parse; corpus already clean under #161.
 - **Salary period is locked to four tokens** — `yearly` | `hourly` | `monthly` | `flat` only. Parse-time normalize maps annual/hr/per course/stipend synonyms; unknown defaults to yearly. Corpus already clean; write path hardened under #161.
