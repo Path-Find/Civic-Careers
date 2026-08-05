@@ -3,17 +3,98 @@ export interface SoftwareBackfillResult {
   skippedOptionalLines: number;
 }
 
-const CERTIFICATION_PATTERN = /\b(?:(?:basic|standard|intermediate|advanced|emergency)\s+)?first\s+aid(?:\s*(?:\/|and)\s*|\s+)cpr(?:\s+[a-c])?\b|\b(?:WHMIS|Smart\s+Serve|Food\s+Handler|Nonviolent\s+Crisis\s+Intervention)\b/i;
+/** High-school family (Grade 12, GED, OSSD, secondary/high school) — education field. */
+const HIGH_SCHOOL_EDUCATION_TERM = /\b(?:grade\s*12|g\.?e\.?d\.?|o\.?s\.?s\.?d\.?|high\s+school|secondary\s+school|mature\s+high\s+school|c\.?a\.?e\.?c\.?)\b/i;
+
+const OTHER_CERTIFICATION_PATTERN = /\b(?:WHMIS|Smart\s+Serve|Food\s+Handler|Nonviolent\s+Crisis\s+Intervention)\b/i;
+
+/**
+ * Compact First Aid / CPR / AED requirement lines into a short label.
+ * e.g. "Current Standard First Aid with CPR-C Certification." → "Standard First Aid with CPR-C"
+ */
+export function normalizeFirstAidCertification(text: string): string | null {
+  if (!text || !/\bfirst[-\s]?aid\b|\bcpr\b|\baed\b|defibrillator/i.test(text)) return null;
+  if (STRUCTURED_OPTIONAL_REQUIREMENT.test(text)) return null;
+
+  // Pure soft-skill "ability to provide first aid" with no cert level/CPR — skip.
+  if (/\bability to (?:provide|perform|administer)\s+first[-\s]?aid\b/i.test(text)
+    && !/\b(?:standard|emergency|basic|intermediate|advanced)\s+first[-\s]?aid\b/i.test(text)
+    && !/\bcpr\b/i.test(text)
+    && !/\bcertif/i.test(text)) {
+    return null;
+  }
+
+  let level = 'First Aid';
+  if (/\bstandard\s+first[-\s]?aid\b/i.test(text)) level = 'Standard First Aid';
+  else if (/\bemergency\s+first[-\s]?aid\b/i.test(text)) level = 'Emergency First Aid';
+  else if (/\bintermediate\s+first[-\s]?aid\b/i.test(text)) level = 'Intermediate First Aid';
+  else if (/\bbasic\s+first[-\s]?aid\b/i.test(text)) level = 'Basic First Aid';
+  else if (/\badvanced\s+first[-\s]?aid\b/i.test(text)) level = 'Advanced First Aid';
+  else if (!/\bfirst[-\s]?aid\b/i.test(text) && /\bcpr\b/i.test(text)) level = 'CPR';
+
+  let cpr = '';
+  if (/\bcpr(?:\s*[-–—]?\s*|\s+level\s+)c\b/i.test(text) || /\bcpr-c\b/i.test(text)) cpr = 'CPR-C';
+  else if (/\bcpr(?:\s*[-–—]?\s*|\s+level\s+)b\b/i.test(text) || /\bcpr-b\b/i.test(text)) cpr = 'CPR-B';
+  else if (/\bcpr(?:\s*[-–—]?\s*|\s+level\s+)a\b/i.test(text) || /\bcpr-a\b/i.test(text)) cpr = 'CPR-A';
+  else if (/\bcpr\b/i.test(text) && level !== 'CPR') cpr = 'CPR';
+
+  const aed = /\baed\b|defibrillator/i.test(text);
+
+  if (level === 'CPR') {
+    if (cpr && cpr !== 'CPR') return aed ? `${cpr}/AED` : cpr;
+    return aed ? 'CPR/AED' : 'CPR';
+  }
+  if (cpr && aed) return `${level} with ${cpr}/AED`;
+  if (cpr) return `${level} with ${cpr}`;
+  if (aed) return `${level} with AED`;
+  if (level === 'First Aid' && !/\bfirst[-\s]?aid\b/i.test(text)) return null;
+  return level;
+}
 
 export function extractCertificationRequirements(description: string): string[] {
   const values = new Set<string>();
   for (const line of descriptionLines(description)) {
-    if (line.heading || line.section === 'optional' || line.section === 'benefits' || !CERTIFICATION_PATTERN.test(line.text)) continue;
-    const match = line.text.match(CERTIFICATION_PATTERN);
-    if (!match) continue;
-    values.add(compactText(match[0]).replace(/\s*\/\s*/g, ' / '));
+    if (line.heading || line.section === 'optional' || line.section === 'benefits') continue;
+    if (STRUCTURED_OPTIONAL_REQUIREMENT.test(line.text)) continue;
+
+    const firstAid = normalizeFirstAidCertification(line.text);
+    if (firstAid) {
+      // Skip multi-role walls that only mention First Aid among many aquatic certs —
+      // still capture First Aid, but don't invent extra labels from the same line.
+      values.add(firstAid);
+    }
+
+    const other = line.text.match(OTHER_CERTIFICATION_PATTERN);
+    if (other) values.add(compactText(other[0]).replace(/\s*\/\s*/g, ' / '));
   }
   return [...values];
+}
+
+/** True when a Qualifications bullet is mostly a Grade 12 / high-school education line. */
+export function isMostlyGrade12EducationBullet(text: string): boolean {
+  if (!HIGH_SCHOOL_EDUCATION_TERM.test(text)) return false;
+  if (/\b(?:bachelor|master|ph\.?d|university degree|college diploma|post[- ]secondary)\b/i.test(text)
+    && !/\bgrade\s*12\b/i.test(text)) {
+    return false;
+  }
+  // Long multi-requirement walls that mention Grade 12 in passing — leave body alone.
+  if (text.length > 280 && !/^\s*(?:proof of\s+)?grade\s*12\b/i.test(text)
+    && !/^\s*(?:completion|completed|must|minimum|education)\b/i.test(text)) {
+    return false;
+  }
+  return text.length < 320;
+}
+
+/** True when a Qualifications bullet is mostly a First Aid / CPR certification line. */
+export function isMostlyFirstAidCertificationBullet(text: string): boolean {
+  if (!/\bfirst[-\s]?aid\b|\bcpr\b/i.test(text)) return false;
+  // Multi-role aquatic cert lists — keep in body (other certs are unique).
+  if (/\b(?:national lifeguard|swim instructor|lifesaving instructor|bronze cross|NLS)\b/i.test(text)
+    && text.length > 100) {
+    return false;
+  }
+  if (text.length > 240) return false;
+  return true;
 }
 
 const SOFTWARE_PATTERNS: Array<[string, RegExp]> = [
@@ -1060,21 +1141,27 @@ export function extractEducationRequirements(description: string): string[] {
     if (line.heading || line.section === 'optional' || line.section === 'benefits') continue;
     const text = stripEducationLabelPrefix(line.text);
     if (!EDUCATION_TERM.test(text) && !STUDENT_EDUCATION_TERM.test(text)
-      && !/\b(?:secondary\s+school|high\s+school)\b/i.test(text)) {
+      && !HIGH_SCHOOL_EDUCATION_TERM.test(text)) {
       continue;
     }
     if (/\b(?:leading|post[- ]secondary institution offering|supports? students|position is|campus events)\b/i.test(text)) continue;
     if (line.section !== 'required' && text.length > 300) continue;
-    if (EDUCATION_CONTEXT_ONLY.test(text) && !FORMAL_EDUCATION_CUE.test(text)) continue;
-    if (line.section !== 'required' && !/^\s*(?:a|an|minimum|completion|completed|successful|degree|diploma|post[- ]secondary|undergraduate|graduate|secondary\s+school|your\s+educational|candidates?\s+must|must|currently\s+enrolled|we\s+are\s+seeking|graduation)\b/i.test(text)) continue;
+    if (EDUCATION_CONTEXT_ONLY.test(text) && !FORMAL_EDUCATION_CUE.test(text) && !HIGH_SCHOOL_EDUCATION_TERM.test(text)) continue;
+    if (line.section !== 'required' && !HIGH_SCHOOL_EDUCATION_TERM.test(text)
+      && !/^\s*(?:a|an|minimum|completion|completed|successful|degree|diploma|post[- ]secondary|undergraduate|graduate|secondary\s+school|your\s+educational|candidates?\s+must|must|currently\s+enrolled|we\s+are\s+seeking|graduation)\b/i.test(text)) {
+      continue;
+    }
     const educationIndex = text.search(EDUCATION_TERM);
-    const educationContext = text.slice(Math.max(0, educationIndex - 80), educationIndex + 40);
-    if (line.section !== 'required' && !STUDENT_EDUCATION_TERM.test(text) && !EDUCATION_REQUIRED_CUE.test(educationContext)
+    const educationContext = educationIndex >= 0
+      ? text.slice(Math.max(0, educationIndex - 80), educationIndex + 40)
+      : text;
+    if (line.section !== 'required' && !STUDENT_EDUCATION_TERM.test(text) && !HIGH_SCHOOL_EDUCATION_TERM.test(text)
+      && !EDUCATION_REQUIRED_CUE.test(educationContext)
       && !/\b(?:secondary\s+school|successful\s+completion)\b/i.test(text)) {
       continue;
     }
     const value = cleanEducationRequirement(text);
-    if (value && (EDUCATION_TERM.test(value) || STUDENT_EDUCATION_TERM.test(value) || /\b(?:secondary\s+school|high\s+school)\b/i.test(value))
+    if (value && (EDUCATION_TERM.test(value) || STUDENT_EDUCATION_TERM.test(value) || HIGH_SCHOOL_EDUCATION_TERM.test(value))
       && !STRUCTURED_OPTIONAL_REQUIREMENT.test(value)) {
       values.add(value);
     }
@@ -1287,6 +1374,7 @@ export function stripStructuredQualBullets(
     education?: string[];
     experience?: string[];
     languages?: string[];
+    certifications?: string[];
   },
 ): string {
   if (!description.trim()) return description;
@@ -1294,11 +1382,19 @@ export function stripStructuredQualBullets(
   const education = fields.education ?? [];
   const experience = fields.experience ?? [];
   const languages = fields.languages ?? [];
-  if (!licenses.length && !education.length && !experience.length && !languages.length) return description;
+  const certifications = fields.certifications ?? [];
+  if (!licenses.length && !education.length && !experience.length && !languages.length && !certifications.length) {
+    return description;
+  }
 
   const eduKeys = education.map(educationCoreKey).filter(Boolean);
   const expKeys = experience.map(experienceCoreKey).filter(Boolean);
   const hasLanguage = languages.some(l => l.trim().length > 0);
+  const hasHighSchoolEdu = education.some(e =>
+    /\b(?:high\s+school|secondary\s+school|grade\s*12|years of high school)\b/i.test(e)
+    || /^high school diploma\b/i.test(e),
+  );
+  const hasFirstAidCert = certifications.some(c => /\bfirst\s+aid\b|\bcpr\b/i.test(c));
 
   const lines = description.split('\n');
   let inQuals = false;
@@ -1340,15 +1436,25 @@ export function stripStructuredQualBullets(
         }
       }
 
+      // Certification restatement (First Aid / CPR already structured)
+      if (hasFirstAidCert && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+        && isMostlyFirstAidCertificationBullet(focus)) {
+        removed += 1;
+        continue;
+      }
+
       // Education restatement (high school / degree / diploma already structured)
       const eduFocus = focus.replace(/^education\s*:\s*/i, '');
       if (eduKeys.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
-        && /\b(?:high\s+school|secondary\s+school|grade\s*12|bachelor|master|ph\.?d|diploma|degree|post[- ]secondary|college|university|ossd|certificate\s+in)\b/i.test(eduFocus)) {
+        && /\b(?:high\s+school|secondary\s+school|grade\s*12|bachelor|master|ph\.?d|diploma|degree|post[- ]secondary|college|university|ossd|g\.?e\.?d\.?|certificate\s+in)\b/i.test(eduFocus)) {
         const bulletKey = educationCoreKey(eduFocus);
-        const restatesEdu = eduKeys.some(key => keysOverlapLoose(key, bulletKey));
+        const restatesEdu = eduKeys.some(key => keysOverlapLoose(key, bulletKey))
+          // Grade 12 / GED bullets restate "High school diploma" even when token keys differ
+          || (hasHighSchoolEdu && isMostlyGrade12EducationBullet(eduFocus));
         const mostlyEdu = eduFocus.length < 280
-          || /^(?:must\s+(?:have|hold|possess|complete)|completion|completed|successful|minimum|a|an|education)\b/i.test(focus)
-          || /^education\s*:/i.test(focus);
+          || /^(?:must\s+(?:have|hold|possess|complete)|completion|completed|successful|minimum|a|an|education|proof of|grade\s*12)\b/i.test(focus)
+          || /^education\s*:/i.test(focus)
+          || isMostlyGrade12EducationBullet(eduFocus);
         if (restatesEdu && mostlyEdu) {
           removed += 1;
           continue;
@@ -1771,11 +1877,33 @@ export function normalizeLanguageRequirements(value: unknown): string[] {
   return dedupeLanguageTokens(expanded);
 }
 
+/** Coerce stored/AI vehicle flag to tri-state boolean. */
 export function normalizeVehicleRequired(value: unknown): boolean | null {
-  if (value == null || value === '' || value === 'null' || value === 'unknown') return null;
+  if (value == null || value === '' || value === 'null' || value === 'unknown' || value === 'undefined') return null;
   if (typeof value === 'boolean') return value;
-  if (value === 1 || value === '1' || value === 'true') return true;
-  if (value === 0 || value === '0' || value === 'false') return false;
+  if (value === 1 || value === '1') return true;
+  if (value === 0 || value === '0') return false;
+  if (typeof value === 'number' && !Number.isNaN(value)) {
+    if (value === 1) return true;
+    if (value === 0) return false;
+    return null;
+  }
+  const s = String(value).toLowerCase().replace(/[\s_-]+/g, ' ').trim();
+  if (!s) return null;
+  if (/^(true|yes|y|required)$/.test(s)) return true;
+  if (/^(false|no|n|not required|none|n\/a)$/.test(s)) return false;
+  return null;
+}
+
+/** Coerce stored/AI security flag to tri-state boolean (same rules as vehicle). */
+export function normalizeSecurityCheckRequired(value: unknown): boolean | null {
+  return normalizeVehicleRequired(value);
+}
+
+/** DB integer 1 | 0 | null for flag columns. */
+export function requirementFlagToDb(value: boolean | null): number | null {
+  if (value === true) return 1;
+  if (value === false) return 0;
   return null;
 }
 

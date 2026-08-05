@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   normalizeEmploymentType,
+  normalizeRequirementFlag,
   normalizeSalaryPeriod,
   normalizeWorkModel,
   validateParsedJob,
@@ -352,6 +353,20 @@ describe('validateParsedJob', () => {
       const result = validateParsedJob({ ...BASE, vehicle_required: 'true', security_check_required: 0 });
       assert.equal(result?.vehicle_required, true);
       assert.equal(result?.security_check_required, false);
+    });
+
+    it('maps requirement flag synonyms via normalizeRequirementFlag', () => {
+      assert.equal(normalizeRequirementFlag(true), true);
+      assert.equal(normalizeRequirementFlag(false), false);
+      assert.equal(normalizeRequirementFlag(1), true);
+      assert.equal(normalizeRequirementFlag(0), false);
+      assert.equal(normalizeRequirementFlag('yes'), true);
+      assert.equal(normalizeRequirementFlag('no'), false);
+      assert.equal(normalizeRequirementFlag('required'), true);
+      assert.equal(normalizeRequirementFlag('not required'), false);
+      assert.equal(normalizeRequirementFlag(null), null);
+      assert.equal(normalizeRequirementFlag('unknown'), null);
+      assert.equal(normalizeRequirementFlag('maybe'), null);
     });
   });
 

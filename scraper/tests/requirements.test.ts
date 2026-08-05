@@ -19,6 +19,8 @@ import {
   hasLanguageVehicleCandidate,
   normalizeLanguageRequirements,
   normalizeVehicleRequired,
+  normalizeSecurityCheckRequired,
+  requirementFlagToDb,
   reconcileStructuredRequirements,
   isLanguageProficiencySkill,
   splitLanguageOutOfSkills,
@@ -30,7 +32,7 @@ test('extracts required first aid and CPR certification without optional assets'
 
 ## Nice to Have
 - WHMIS is an asset
-`), ['Intermediate First Aid CPR C']);
+`), ['Intermediate First Aid with CPR-C']);
 });
 
 test('extracts named software and ignores ambiguous categories', () => {
@@ -651,6 +653,14 @@ test('normalizes stored field values without changing unknown to false', () => {
   assert.equal(normalizeVehicleRequired('false'), false);
   assert.equal(normalizeVehicleRequired('unknown'), null);
   assert.equal(normalizeVehicleRequired(undefined), null);
+  assert.equal(normalizeVehicleRequired('yes'), true);
+  assert.equal(normalizeVehicleRequired('not required'), false);
+  assert.equal(normalizeSecurityCheckRequired(1), true);
+  assert.equal(normalizeSecurityCheckRequired(0), false);
+  assert.equal(normalizeSecurityCheckRequired('required'), true);
+  assert.equal(requirementFlagToDb(true), 1);
+  assert.equal(requirementFlagToDb(false), 0);
+  assert.equal(requirementFlagToDb(null), null);
 });
 
 test('collapses languages to plain English / French / Bilingual / named languages', () => {

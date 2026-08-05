@@ -68,12 +68,30 @@ function coerceBool(v: unknown): boolean {
   return false;
 }
 
-function normalizeOptionalBool(v: unknown): boolean | null {
-  if (v == null || v === '' || v === 'null' || v === 'unknown') return null;
+/**
+ * Tri-state requirement flags for vehicle_required / security_check_required.
+ * Stored in DB as INTEGER: 1 | 0 | NULL. Never invent true from silence.
+ */
+export function normalizeRequirementFlag(v: unknown): boolean | null {
+  if (v == null || v === '' || v === 'null' || v === 'unknown' || v === 'undefined') return null;
   if (typeof v === 'boolean') return v;
-  if (v === 1 || v === '1' || v === 'true') return true;
-  if (v === 0 || v === '0' || v === 'false') return false;
+  if (v === 1 || v === '1') return true;
+  if (v === 0 || v === '0') return false;
+  if (typeof v === 'number' && !Number.isNaN(v)) {
+    if (v === 1) return true;
+    if (v === 0) return false;
+    return null;
+  }
+  const s = coerceString(v).toLowerCase().replace(/[\s_-]+/g, ' ').trim();
+  if (!s) return null;
+  if (/^(true|yes|y|required|required yes)$/.test(s)) return true;
+  if (/^(false|no|n|not required|none|n\/a)$/.test(s)) return false;
   return null;
+}
+
+/** @deprecated Prefer normalizeRequirementFlag — same tri-state rules. */
+function normalizeOptionalBool(v: unknown): boolean | null {
+  return normalizeRequirementFlag(v);
 }
 
 /**
@@ -329,9 +347,9 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     experience_requirements: normalizeStringList(o['experience_requirements']),
     education_requirements: normalizeEducationRequirements(o['education_requirements']),
     license_requirements: normalizeLicenseRequirements(o['license_requirements']),
-    vehicle_required: normalizeOptionalBool(o['vehicle_required']),
+    vehicle_required: normalizeRequirementFlag(o['vehicle_required']),
     language_requirements: normalizeLanguageRequirements(o['language_requirements']),
-    security_check_required: normalizeOptionalBool(o['security_check_required']),
+    security_check_required: normalizeRequirementFlag(o['security_check_required']),
     certification_requirements: normalizeStringList(o['certification_requirements']),
     software_requirements: normalizeSoftwareList(o['software_requirements']),
     responsibility_tags: normalizeTags(o['responsibility_tags']),

@@ -69,6 +69,14 @@ When a structured field has a canonical form, every listing uses that form — s
 - Detection from posting text: `extractListingType()`; short-label coerce: `normalizeListingType()`
 - Implemented in `scraper/requirements.ts` (parser write path)
 
+**Vehicle / security flags** (always — tri-state):
+
+- Stored as INTEGER: `1` = required, `0` = explicitly not required, `NULL` = not stated (never invent true from silence)
+- Coerce yes/true/1/required → 1; no/false/0/not required → 0; unknown/empty → NULL
+- Vehicle: driver licence that implies travel can set required; optional vehicle wording stays null/false via extract rules
+- Security: labeled “Security Requirement: …” (CMHC/GC) via `extractSecurityRequirementLabel`
+- Implemented by `normalizeRequirementFlag` / `normalizeVehicleRequired` / `requirementFlagToDb` (validate + parser)
+
 Other fields get the same treatment as their vocabulary lands (see GitHub issue on canonical field vocabulary).
 
 ## 1. No fact appears in two places

@@ -9,13 +9,17 @@ import {
   dedupeSkillsAgainstSoftware,
   extractCertificationRequirements,
   extractListingType,
-  normalizeListingType,
   extractSecurityRequirementLabel,
   extractSoftwareRequirements,
+  extractVehicleRequired,
   extractWorkYearDuration,
   licensesImplyVehicle,
   normalizeLanguageRequirements,
+  normalizeListingType,
+  normalizeSecurityCheckRequired,
+  normalizeVehicleRequired,
   reconcileStructuredRequirements,
+  requirementFlagToDb,
   splitLanguageOutOfSkills,
   stripStructuredQualBullets,
 } from './requirements';
@@ -62,7 +66,11 @@ async function main() {
           benefits: aiResult.benefits,
           required_skills: aiResult.required_skills,
         });
-        const certificationRequirements = extractCertificationRequirements(description);
+        const certificationRequirements = (() => {
+          const fromBody = extractCertificationRequirements(description);
+          if (fromBody.length) return fromBody;
+          return aiResult.certification_requirements ?? [];
+        })();
         const softwareRequirements = extractSoftwareRequirements(description).values;
         const finalSoftwareRequirements = softwareRequirements.length ? softwareRequirements : aiResult.software_requirements;
         const skillsWithoutSoftware = dedupeSkillsAgainstSoftware(structuredRequirements.required_skills, finalSoftwareRequirements ?? []);
@@ -76,8 +84,16 @@ async function main() {
           education: structuredRequirements.education_requirements,
           experience: structuredRequirements.experience_requirements,
           languages: finalLanguages,
+          certifications: certificationRequirements,
         });
         const vehicleFromLicense = licensesImplyVehicle(structuredRequirements.license_requirements);
+        const vehicleRequired = vehicleFromLicense
+          ? true
+          : (normalizeVehicleRequired(aiResult.vehicle_required) ?? extractVehicleRequired(description));
+        const securityFromLabel = extractSecurityRequirementLabel(description);
+        const securityCheckRequired = sourceFix?.securityCheckRequired
+          ?? normalizeSecurityCheckRequired(aiResult.security_check_required)
+          ?? securityFromLabel;
         const listingType = normalizeListingType(
           extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory),
           aiResult.is_inventory,
@@ -110,13 +126,9 @@ async function main() {
           required_skills: JSON.stringify(finalSkills),
           education_requirements: JSON.stringify(sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
           license_requirements: JSON.stringify(structuredRequirements.license_requirements),
-          vehicle_required: vehicleFromLicense
-            ? 1
-            : (aiResult.vehicle_required === null ? null : (aiResult.vehicle_required ? 1 : 0)),
+          vehicle_required: requirementFlagToDb(vehicleRequired),
           language_requirements: JSON.stringify(finalLanguages),
-          security_check_required: sourceFix?.securityCheckRequired
-            ?? (aiResult.security_check_required === null ? null : (aiResult.security_check_required ? 1 : 0))
-            ?? (extractSecurityRequirementLabel(description) === null ? null : (extractSecurityRequirementLabel(description) ? 1 : 0)),
+          security_check_required: requirementFlagToDb(securityCheckRequired),
           certification_requirements: JSON.stringify(certificationRequirements.length ? certificationRequirements : aiResult.certification_requirements),
           software_requirements: JSON.stringify(finalSoftwareRequirements),
           medical_requirements: JSON.stringify(sourceFix?.medicalRequirements ?? aiResult.medical_requirements),
