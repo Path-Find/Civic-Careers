@@ -49,6 +49,7 @@ test('canonicalizes compound insurance, incentive, and work-arrangement labels',
     'Dental Care',
     'Health & Dental Benefits',
     'Flexible Work Program',
+    'Flexible Workplace Options',
     'Advancement Opportunities',
   ]), ['Performance Bonuses', 'Employee Assistance Program', 'Health Insurance', 'Dental Insurance']);
 });

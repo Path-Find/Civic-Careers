@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Scraped postings no longer remain in the parse queue** — the live raw-jobs audit found zero unparsed rows and zero recorded parse failures after manual review.
 - **Second benefits QA pass corrected 50 additional listings** — restored source-backed vacation, health-spending, assistance, fitness, travel, and pension details while removing flexible-work and advancement labels from benefits and standardizing incentive and insurance names.
+- **Four more benefits QA batches corrected 200 additional listings** — restored source-backed assistance, vacation, tuition, fitness, and health-spending benefits while removing vague development and flexible-work labels.
 - **Jobs closing 14 or more days from today no longer repeat structured properties in their body requirements** — the current 881 active live postings were manually reviewed and de-duplicated locally without a deploy.
 - **Benefits QA corrections are now applied to active listings** — missing vacation, insurance, assistance, pension-plan, allowance, and leave benefits were restored from the captured postings while training, mentorship, remote-work, and duplicate generic pension labels were removed.
 - **Benefits now use short, consistent labels** — active listings normalize entries such as accrued vacation, performance bonuses, and group insurance, while vague training, mentorship, development, and workplace-culture claims are removed.
