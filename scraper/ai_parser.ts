@@ -15,7 +15,7 @@ const AI_MODEL = process.env.AI_MODEL || "deepseek-v4-flash";
 // old parses may no longer match what the current prompt would produce. Stamped
 // onto every job_details row so stale-version jobs can be found and selectively
 // reparsed via reparse-stale.ts instead of reparsing (and re-billing) everything.
-export const PARSER_VERSION = 5;
+export const PARSER_VERSION = 6;
 
 export interface ParsedJob {
     job_title: string;

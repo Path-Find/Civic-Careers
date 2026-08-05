@@ -25,6 +25,7 @@ import {
 } from './requirements';
 import { cleanJobDescription, removePlaceholderSections, stripStructuredBenefitRestatements } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
+import { BENEFIT_OVERRIDES } from './benefit-fixes';
 import { extractStartDate } from './start-date';
 
 const CONCURRENCY = 5;
@@ -66,7 +67,8 @@ async function main() {
           benefits: aiResult.benefits,
           required_skills: aiResult.required_skills,
         }, raw.raw_text);
-        description = stripStructuredBenefitRestatements(description, structuredRequirements.benefits);
+        const finalBenefits = BENEFIT_OVERRIDES[raw.id] ?? structuredRequirements.benefits;
+        description = stripStructuredBenefitRestatements(description, finalBenefits);
         description = appendExperienceQualificationBullets(description, aiResult.experience_requirements ?? []);
         const certificationRequirements = (() => {
           const fromBody = extractCertificationRequirements(description);
@@ -134,7 +136,7 @@ async function main() {
             const u = normalizeUnionFields(aiResult.union_name, aiResult.is_unionized);
             return { is_unionized: u.is_unionized ? 1 : 0, union_name: u.union_name };
           })(),
-          benefits: JSON.stringify(structuredRequirements.benefits),
+          benefits: JSON.stringify(finalBenefits),
           required_skills: JSON.stringify(finalSkills),
           education_requirements: JSON.stringify(sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
           license_requirements: JSON.stringify(structuredRequirements.license_requirements),

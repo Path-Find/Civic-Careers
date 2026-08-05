@@ -1,6 +1,7 @@
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import { normalizeBenefits } from './requirements';
+import { BENEFIT_OVERRIDES } from './benefit-fixes';
 
 dotenv.config({ quiet: true });
 
@@ -36,7 +37,7 @@ async function main() {
 
   const changes = result.rows.map(row => {
     const before = parseList(row.benefits);
-    const after = normalizeBenefits(before);
+    const after = BENEFIT_OVERRIDES[String(row.id)] ?? normalizeBenefits(before);
     return {
       id: String(row.id),
       source: String(row.source ?? ''),
