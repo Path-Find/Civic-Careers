@@ -1,7 +1,6 @@
 /**
- * Normalize language_requirements across job_details using
- * normalizeLanguageRequirements() (canonical bilingual/essential forms,
- * PSC level casing, redundant-token collapse).
+ * Normalize language_requirements across job_details to plain names only
+ * (English | French | Bilingual | named other) via normalizeLanguageRequirements().
  *
  * Usage:
  *   npx tsx backfill-normalize-languages.ts           # dry-run

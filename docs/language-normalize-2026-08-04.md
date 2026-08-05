@@ -1,32 +1,29 @@
 # Language field normalization — 2026-08-04
 
-Canonical form for `job_details.language_requirements` is deliberately simple:
+Ran `scraper/backfill-normalize-languages.ts --apply` against Turso `job_details.language_requirements`.
 
-- `English`
-- `French`
-- `Bilingual` (when both / bilingual is required)
-- Other named languages as needed (`Mandarin`, `Arabic`, …)
+Scanned: 2020 filled fields (all jobs).
+Updated: 1.
+Cleared to empty: 0.
 
-No PSC profiles (`CBC/CBC`), no `Essential` suffix, no `Bilingual (English/French, …)` parentheticals.
+## Rules applied
 
-## Tools
+- Canonical tokens via `normalizeLanguageRequirements()` in `requirements.ts`
+- Collapse bare `Bilingual` under more specific bilingual forms
+- Drop standalone English/French when `Bilingual (English/French)` is present
+- Essential supersedes plain language name
+- PSC levels uppercased (`bbb/bbb` → `BBB/BBB`); `CBC level` → `CBC/CBC`
+- Multi-level imperative phrases expand to one token per level
+- Stable sort: Essential → plain EN/FR → other languages → Bilingual…
 
-- Normalizer: `normalizeLanguageRequirements()` in `scraper/requirements.ts`
-- Backfill: `scraper/backfill-normalize-languages.ts` (`--apply` to write)
+## Updated job IDs
 
-## Corpus after final pass
+| ID | Source | Title | From | To |
+|---|---|---|---|---|
+| `2435876` | Government of Canada | Veterinarian – Animal Health | `["French Essential","Bilingual (BBB/BBB)"]` | `["French","Bilingual"]` |
 
-| Count | Value |
-|---:|---|
-| 551 | English |
-| 408 | Bilingual |
-| 113 | French |
-| 45 | English, French |
-| 45 | English, French, Bilingual |
-| 20 | English, Bilingual |
-| 4 | French, Bilingual |
-| rest | named languages / small combos |
+## IDs only
 
-Zero legacy leftovers matching Essential / CBC / BBB / English/French parentheticals.
-
-Inventory-style posts that list English only, French only, *or* bilingual keep all three tokens.
+```
+2435876
+```

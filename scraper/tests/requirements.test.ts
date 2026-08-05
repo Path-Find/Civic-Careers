@@ -667,6 +667,18 @@ test('collapses languages to plain English / French / Bilingual / named language
     normalizeLanguageRequirements(['English Essential', 'French Essential', 'Bilingual (BBB/BBB)', 'Bilingual (CBC/CBC)']),
     ['English', 'French', 'Bilingual'],
   );
+  // Leftover federal pair still in corpus as of 2026-08
+  assert.deepEqual(
+    normalizeLanguageRequirements(['French Essential', 'Bilingual (BBB/BBB)']),
+    ['French', 'Bilingual'],
+  );
+  // Extra words beyond the language name must drop
+  assert.deepEqual(normalizeLanguageRequirements(['French needed']), ['French']);
+  assert.deepEqual(normalizeLanguageRequirements(['English required']), ['English']);
+  assert.deepEqual(normalizeLanguageRequirements(['French language proficiency']), ['French']);
+  assert.deepEqual(normalizeLanguageRequirements(['Must be fluent in French']), ['French']);
+  assert.deepEqual(normalizeLanguageRequirements(['English only']), ['English']);
+  assert.deepEqual(normalizeLanguageRequirements(['Spanish']), ['Spanish']);
   assert.deepEqual(
     normalizeLanguageRequirements(['English (language of instruction)', 'Active competence in second language']),
     ['English'],

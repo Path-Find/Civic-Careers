@@ -15,6 +15,12 @@ When a structured field has a canonical form, every listing uses that form — s
 - Prefer empty over inventing a city or guessing a wrong province
 - Implemented by `normalizeLocation()` in `scraper/location.ts` (parse path + corpus backfill)
 
+**Languages** (always):
+
+- Plain names only: `English`, `French`, `Bilingual`, `Spanish`, `American Sign Language`, etc.
+- No extra words: not `French needed`, `English Essential`, `Bilingual (BBB/BBB)`, PSC levels, or proficiency fluff
+- Implemented by `normalizeLanguageRequirements()` in `scraper/requirements.ts` (parse/validate path + backfill)
+
 Other fields get the same treatment as their vocabulary lands (see GitHub issue on canonical field vocabulary).
 
 ## 1. No fact appears in two places

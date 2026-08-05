@@ -1668,13 +1668,18 @@ function expandLanguageItem(item: string): string[] {
     return ['Bilingual'];
   }
 
-  // "English Essential" / "French Essential" → plain language name.
-  if (/^English(?:\s+Essential)?$/i.test(compact)) return ['English'];
-  if (/^French(?:\s+Essential)?$/i.test(compact)) return ['French'];
-  if (/^Français(?:\s+Essential)?$/i.test(compact)) return ['French'];
+  // "English Essential" / "French needed" / "English required" → plain name only.
+  if (/^(?:English|Anglais)(?:\s+(?:Essential|Only|Needed|Required|Proficiency|Fluency|Fluent))?$/i.test(compact)) {
+    return ['English'];
+  }
+  if (/^(?:French|Fran[cç]ais)(?:\s+(?:Essential|Only|Needed|Required|Proficiency|Fluency|Fluent))?$/i.test(compact)) {
+    return ['French'];
+  }
 
   // Pure PSC profile leftovers (BBB/BBB) — not a language.
   if (/^[A-C]{2,3}\s*\/\s*[A-C]{2,3}$/i.test(compact)) return [];
+  // Bare "Bilingual (BBB/BBB)"-style with only levels after bilingual already handled above.
+  if (/^[A-C]{2,3}\s*\/\s*[A-C]{2,3}\s*(?:,\s*[A-C]{2,3}\s*\/\s*[A-C]{2,3})*$/i.test(compact)) return [];
 
   // Language of instruction on teaching posts.
   if (/\blanguage\s+of\s+instruction\b/i.test(compact) && !/\bbilingual/i.test(compact)) {
