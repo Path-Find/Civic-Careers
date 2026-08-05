@@ -4,7 +4,7 @@ import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
 import { normalizeJobTitle } from './title';
-import { normalizeEmploymentType, normalizeWorkModel } from './validate';
+import { normalizeEmploymentType, normalizeSalaryPeriod, normalizeWorkModel } from './validate';
 import {
   dedupeSkillsAgainstSoftware,
   extractCertificationRequirements,
@@ -95,7 +95,7 @@ async function main() {
           is_student: sourceFix?.isStudent ?? (aiResult.is_student ? 1 : 0),
           salary_min: aiResult.salary_min,
           salary_max: aiResult.salary_max,
-          salary_period: aiResult.salary_period,
+          salary_period: normalizeSalaryPeriod(aiResult.salary_period),
           work_model: normalizeWorkModel(aiResult.work_model, aiResult.job_title),
           employment_type: normalizeEmploymentType(aiResult.employment_type),
           duration: normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || ''),

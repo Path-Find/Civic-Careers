@@ -1,6 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeEmploymentType, normalizeWorkModel, validateParsedJob } from '../validate';
+import {
+  normalizeEmploymentType,
+  normalizeSalaryPeriod,
+  normalizeWorkModel,
+  validateParsedJob,
+} from '../validate';
 
 const BASE = {
   job_title: 'Planner I',
@@ -114,12 +119,14 @@ describe('validateParsedJob', () => {
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'annual' })?.salary_period, 'yearly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'Yearly' })?.salary_period, 'yearly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'per year' })?.salary_period, 'yearly');
+      assert.equal(validateParsedJob({ ...BASE, salary_period: 'per annum' })?.salary_period, 'yearly');
     });
 
     it('normalizes salary_period: hourly variants', () => {
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'hourly' })?.salary_period, 'hourly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'Hourly' })?.salary_period, 'hourly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'hr' })?.salary_period, 'hourly');
+      assert.equal(validateParsedJob({ ...BASE, salary_period: 'hrs' })?.salary_period, 'hourly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'per hour' })?.salary_period, 'hourly');
     });
 
@@ -127,6 +134,26 @@ describe('validateParsedJob', () => {
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'monthly' })?.salary_period, 'monthly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'Monthly' })?.salary_period, 'monthly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'per month' })?.salary_period, 'monthly');
+    });
+
+    it('normalizes salary_period: flat variants', () => {
+      assert.equal(validateParsedJob({ ...BASE, salary_period: 'flat' })?.salary_period, 'flat');
+      assert.equal(validateParsedJob({ ...BASE, salary_period: 'lump sum' })?.salary_period, 'flat');
+      assert.equal(validateParsedJob({ ...BASE, salary_period: 'per course' })?.salary_period, 'flat');
+      assert.equal(validateParsedJob({ ...BASE, salary_period: 'stipend' })?.salary_period, 'flat');
+      assert.equal(validateParsedJob({ ...BASE, salary_period: 'honorarium' })?.salary_period, 'flat');
+    });
+
+    it('maps salary_period synonyms via normalizeSalaryPeriod', () => {
+      assert.equal(normalizeSalaryPeriod('yearly'), 'yearly');
+      assert.equal(normalizeSalaryPeriod('hourly'), 'hourly');
+      assert.equal(normalizeSalaryPeriod('monthly'), 'monthly');
+      assert.equal(normalizeSalaryPeriod('flat'), 'flat');
+      assert.equal(normalizeSalaryPeriod('Annual salary'), 'yearly');
+      assert.equal(normalizeSalaryPeriod('per half course'), 'flat');
+      assert.equal(normalizeSalaryPeriod(null), 'yearly');
+      assert.equal(normalizeSalaryPeriod(''), 'yearly');
+      assert.equal(normalizeSalaryPeriod('unknown'), 'yearly');
     });
   });
 

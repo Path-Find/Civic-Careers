@@ -54,6 +54,13 @@ When a structured field has a canonical form, every listing uses that form — s
 - Prefer empty over inventing; do not put FTE/employment fluff in availability
 - Implemented by `normalizeHours` / `normalizeAvailability` / `splitHoursAndAvailability` in `scraper/hours-availability.ts`
 
+**Salary period** (always):
+
+- Stored tokens only: `yearly` | `hourly` | `monthly` | `flat` (lowercase)
+- Synonyms: annual/per year/annum → `yearly`; hr/hrs/per hour → `hourly`; per month → `monthly`; lump sum/per course/stipend/honorarium/one-time → `flat`
+- Unknown defaults to `yearly` (existing parse policy)
+- Implemented by `normalizeSalaryPeriod()` in `scraper/validate.ts` (validate + parser write path)
+
 Other fields get the same treatment as their vocabulary lands (see GitHub issue on canonical field vocabulary).
 
 ## 1. No fact appears in two places

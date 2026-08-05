@@ -76,11 +76,31 @@ function normalizeOptionalBool(v: unknown): boolean | null {
   return null;
 }
 
-function normalizeSalaryPeriod(v: unknown): 'yearly' | 'hourly' | 'monthly' | 'flat' {
-  const s = coerceString(v).toLowerCase();
-  if (s.includes('hour') || s === 'hr') return 'hourly';
-  if (s.includes('month')) return 'monthly';
-  if (/flat|lump.?sum|per course|one.?time|stipend|per assignment|per project|honorarium/.test(s)) return 'flat';
+/**
+ * Canonical salary_period tokens: yearly | hourly | monthly | flat.
+ * Unknown/empty defaults to yearly (existing product policy).
+ */
+export type SalaryPeriod = 'yearly' | 'hourly' | 'monthly' | 'flat';
+
+export function normalizeSalaryPeriod(v: unknown): SalaryPeriod {
+  const s = coerceString(v).toLowerCase().replace(/[\s_-]+/g, ' ').trim();
+  if (!s) return 'yearly';
+
+  // Flat first — "per course" must not fall through to yearly
+  if (
+    /\bflat\b/.test(s)
+    || /lump\s*sum/.test(s)
+    || /per\s+course|half\s+course|per\s+assignment|per\s+project|per\s+session/.test(s)
+    || /\bone[\s-]?time\b/.test(s)
+    || /\bstipend\b|\bhonorarium\b/.test(s)
+  ) {
+    return 'flat';
+  }
+
+  if (/\bhour|\bhrs?\b|\/\s*hr|per\s*hour/.test(s) || s === 'hr' || s === 'hrs') return 'hourly';
+  if (/\bmonth|\/\s*mo|per\s*month/.test(s)) return 'monthly';
+  if (/\byear|annual|annum|\/\s*yr|per\s*year/.test(s)) return 'yearly';
+
   return 'yearly';
 }
 
