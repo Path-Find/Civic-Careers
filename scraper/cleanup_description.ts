@@ -219,6 +219,13 @@ export function isRedundantCompensationSection(heading: string, body: string): b
   let text = body.replace(/\s+/g, ' ').trim();
   if (!text) return true;
 
+  // Salary plus schedule, term, or work-location detail is not a pure
+  // property restatement; keep the unique employment conditions visible.
+  if (/\$[\d,]+/.test(text)
+    && /\b(?:hours?|full[- ]time|part[- ]time|temporary|contract|work\s+from\s+home|remote|flexible\s+work|days?\s+per\s+week|months?)\b/i.test(text)) {
+    return false;
+  }
+
   // Unique pay beyond base salary — keep. Bare "performance bonus" as a package
   // name is NOT unique (CMHC lists it in structured benefits too); require $/%.
   if (/\b(?:bilingual(?:ism)?\s+bonus|northern\s+allowance|shift\s+premium|market\s+(?:modifier|premium|adjustment)|overtime\s+rate|standby|isolation\s+pay)\b/i.test(text)) {
@@ -329,9 +336,16 @@ export function stripStructuredBenefitRestatements(description: string, benefits
   const patterns: RegExp[] = [];
   if (/\bpension\b/i.test(benefitText)) {
     patterns.push(/\b(?:(?:defined\s+benefit|public-service|university\s+of\s+ottawa)\s+)?pension(?:\s+plans?)?\b/gi);
+    patterns.push(/\b(?:defined\s+(?:benefit|contribution)|public\s+service|management\s+employees?|CAAT|OMERS)\s+retirement\s+plan\b/gi);
+    patterns.push(/\bretirement\s+plan\b/gi);
+    patterns.push(/\b(?:PSPP|MEPP)\b/gi);
   }
   if (/\binsurance\b/i.test(benefitText)) {
     patterns.push(/\binsurance(?:\s+(?:coverage|plan))?\b/gi);
+    patterns.push(/\b(?:health|dental|vision|medical|life|accident|disability)(?:\s+(?:and|&)\s+(?:health|dental|vision|medical|life|accident|disability))*\s+coverage\b/gi);
+  }
+  if (/\b(?:health|dental|vision|medical)\b/i.test(benefitText)) {
+    patterns.push(/\b(?:health|dental|vision|medical)(?:\s+(?:and|&)\s+(?:health|dental|vision|medical))*\s+(?:plans?|benefits?|coverage)\b/gi);
   }
   if (/\bvacation\b/i.test(benefitText)) {
     patterns.push(/\b(?:(?:annual\s+)?paid|accrued|annual\s+individual)?\s*vacation(?:\s+(?:pay|leave|entitlement))?\b/gi);
@@ -347,6 +361,10 @@ export function stripStructuredBenefitRestatements(description: string, benefits
     'individual', 'includes', 'including', 'insurance', 'life', 'long', 'mentorship',
     'one', 'or', 'package', 'paid', 'plan', 'professional', 'support', 'the', 'to',
     'training', 'vacation', 'well', 'with', 'workplace',
+    'coverage', 'dental', 'health', 'life', 'medical', 'pension', 'premium', 'retirement', 'vision',
+    'plan', 'plans', 'leave', 'development', 'learning', 'tuition', 'waiver', 'wellness', 'flexible',
+    'work', 'arrangements', 'days', 'holidays', 'time', 'off', 'assistance', 'account', 'accounts',
+    'eligible', 'if', 'pspp', 'mepp', 'include', 'available',
   ]);
 
   const cleanRemainder = (text: string): string => text
@@ -364,14 +382,34 @@ export function stripStructuredBenefitRestatements(description: string, benefits
     return words.length === 0 || words.every(word => genericWords.has(word));
   };
 
+  // Preserve a readable named-plan reference when removing the structured
+  // benefit label. Removing only "pension" from "CAAT Pension Plan" leaves
+  // fragments such as "CAAT Plan"; a generic retirement-plan label keeps the
+  // extra plan context without repeating the sidebar value verbatim.
+  const normalizeBenefitPhrases = (text: string): string => text
+    .replace(/\b(CAAT|OMERS|Public Service|Management Employees?|Defined Benefit|Defined Contribution)\s+Pension\s+Plan\b/gi, '$1 retirement plan')
+    .replace(/\bdefined\s+benefit\s+pension\b/gi, 'defined benefit retirement plan')
+    .replace(/\bdefined\s+contribution\s+pension\b/gi, 'defined contribution retirement plan')
+    .replace(/\b(?:Public Service|Management Employees?|CAAT|OMERS)\s+retirement plan\s*\((?:PSPP|MEPP)\)\b/gi, 'retirement plan')
+    .replace(/\b(?:CAAT|OMERS)\s+retirement plan\s+for\s+([^,.]+),\s+a\s+defined benefit retirement plan providing\b/gi, 'Retirement benefits for $1 provide')
+    .replace(/\bpension\s+plan\b/gi, 'retirement plan')
+    .replace(/\bvacation\s+policy\b/gi, 'leave policy')
+    .replace(/\bvacation\b/gi, 'leave')
+    .replace(/\binsurance\b/gi, 'coverage')
+    .replace(/\bhealth\s+and\s+dental\s+(?:plans?|benefits?)\b/gi, 'health and dental coverage');
+
   const stripBenefitNames = (line: string): string => {
     const terminalPunctuation = line.match(/[.!?]\s*$/)?.[0].trim() ?? '';
-    let cleaned = line;
+    let cleaned = normalizeBenefitPhrases(line);
     for (const pattern of patterns) {
       pattern.lastIndex = 0;
       cleaned = cleaned.replace(pattern, match => /\bpaid\s+vacation\b/i.test(match) ? 'paid' : '');
     }
     const result = cleanRemainder(cleaned)
+      .replace(/\b(includes?|including|offers?|provides?)\s+(?:a|an|the)?\s*,/gi, '$1 ')
+      .replace(/\bsuch\s+as\s*,/gi, 'such as ')
+      .replace(/\bparticipation\s+in\s+the,\s*a\.?/gi, '')
+      .replace(/\bthrough\s+the\.?/gi, '')
       .replace(/\b(includes?|including|offers?|provides?)\s+and\b/gi, '$1')
       .replace(/\b(?:and|or)\s*(?=[,.;:]|$)/gi, '')
       .replace(/,\s*(?:and|or)\b/gi, ',')
@@ -392,6 +430,12 @@ export function stripStructuredBenefitRestatements(description: string, benefits
   };
 
   const repairBenefitGrammar = (line: string): string => line
+    .replace(/^(\s*[-•*]\s*)with\s+employer\s+contribution\s+up\s+to\s+(\d+(?:\.\d+)?%)/i, '$1Employer contribution up to $2')
+    .replace(/^(\s*[-•*]\s*)employer\s+contribution\b/i, '$1Employer contribution')
+    .replace(/(\d+(?:\.\d+)?%)\)\s*(\(\s*if\s+eligible\s*\)?)/i, '$1 $2')
+    .replace(/\bemployer\s+paid;\b/gi, 'employer-paid benefits;')
+    .replace(/\bcomprehensive\s+from\s+day\s+one,\s+including\s+medical\b/gi, 'Comprehensive coverage from day one')
+    .replace(/\bemployer\s+paid\.?$/gi, 'Employer-paid benefits.')
     .replace(/\bin lieu of per\b/gi, 'in lieu under')
     .replace(/\bpaid days\b/gi, 'paid leave days')
     .replace(/\blife and disability,\b/gi, 'life and disability coverage,')
@@ -443,7 +487,8 @@ export function stripStructuredBenefitRestatements(description: string, benefits
     if (/^public-service$/i.test(remainder)) continue;
     if (isGenericRemainder(remainder)) continue;
     if (bullet && remainder.length < text.length) {
-      kept.push(repairBenefitGrammar(`${bullet[1]}${stripBenefitNames(remainder)}`));
+      const detail = stripBenefitNames(text);
+      if (detail && !isGenericRemainder(detail)) kept.push(repairBenefitGrammar(`${bullet[1]}${detail}`));
       continue;
     }
     kept.push(repairBenefitGrammar(stripBenefitNames(line)));

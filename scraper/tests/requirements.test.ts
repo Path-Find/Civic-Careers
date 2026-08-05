@@ -123,7 +123,7 @@ test('strips pure skill restatements but preserves mixed qualification bullets',
     requiredSkills: ['Excel', 'GIS'],
   });
   assert.doesNotMatch(result, /Proficiency with Excel and GIS/);
-  assert.match(result, /Experience with Excel and GIS in municipal reporting/);
+  assert.match(result, /Experience with office software and GIS software in municipal reporting/);
   assert.match(result, /Strong communication skills/);
 });
 
@@ -141,7 +141,7 @@ test('removes structured tools from qualification restatements and keeps context
   assert.match(result, /- IT support/);
   assert.doesNotMatch(result, /Windows|Microsoft 365|ENVI|Pix4D|ArcGIS|QGIS|ServiceNow/);
   assert.match(result, /Experience with ITSM processes and tools\./);
-  assert.match(result, /Experience with SQL and statistical tools\./);
+  assert.match(result, /Experience with database software and statistical tools\./);
   assert.match(result, /Experience using software for analysis\./);
 });
 
@@ -154,6 +154,23 @@ test('removes shorter duplicate qualification bullets after preserving richer co
   assert.match(result, /demonstrated impact on business strategy/);
   assert.doesNotMatch(result, /- advanced analytics, market research, or customer insights\n/);
   assert.doesNotMatch(result, /- Strong experience with SQL and statistical tools\./);
+});
+
+test('strips pure structured restatements from every body section when requested', () => {
+  const result = stripStructuredQualBullets(`## Responsibilities
+- Use software (e.g., Windows and Microsoft 365 applications).
+
+## Qualifications
+- Bilingual communication skills.
+
+## Nice to Have
+- Experience with ServiceNow.`, {
+    languages: ['Bilingual'],
+    requiredSkills: ['ServiceNow'],
+    software: ['Windows', 'Microsoft 365'],
+    allSections: true,
+  });
+  assert.doesNotMatch(result, /Windows|Microsoft 365|Bilingual|ServiceNow/);
 });
 
 test('extracts Grade 12 as high school diploma and strips first-aid / grade-12 restatements', () => {
@@ -671,7 +688,7 @@ test('matches word-number Experience bullets to canonical duration values', () =
     experience: ['3+ years'],
   });
   assert.equal(result, `## Qualifications
-- Minimum three (3) years of recent and relevant social work practice experience
+- Recent and relevant social work practice experience
 - Ability to work independently`);
 });
 
@@ -755,7 +772,7 @@ test('moves named benefits out of skills only when the source puts them in benef
   });
   assert.deepEqual(result.education_requirements, ["Bachelor's degree in communications"]);
   assert.deepEqual(result.license_requirements, []);
-  assert.deepEqual(result.benefits, ['pension', 'OMERS']);
+  assert.deepEqual(result.benefits, ['Pension', 'OMERS']);
   assert.deepEqual(result.required_skills, ['Microsoft Office']);
   assert.deepEqual(extractNamedBenefits('## Qualifications\n- Administer OMERS pension plans\n'), []);
 });

@@ -436,6 +436,67 @@ const NAMED_BENEFITS: Array<[string, RegExp]> = [
   ['Public Service Pension Plan', /\bPublic\s+Service\s+Pension\s+Plan\b/i],
 ];
 
+const NON_BENEFIT_LABEL = /^(?:benefit(?:s)?(?:\s+package)?|career\s+(?:advancement|development|growth)(?:\s+opportunities?)?|competitive benefits?|comprehensive benefits? package|continuous\s+learning|education(?:\/training(?:\/staff\s+development)?)?|employee\s+(?:benefits|learning|training)\s+and\s+development|inclusive(?:\s+workplace)?\s+culture|learning(?:\s+and\s+development)?(?:\s+opportunities?|\s+programs?)?|mentorship(?:\s+program)?|mentorship\s+and\s+training|positive\s+workplace\s+culture(?:\s+and\s+work[- ]life\s+balance)?|professional\s+(?:development|learning)(?:\s+(?:days?|funds?|funding))?|recognition\s+programs?|staff\s+development|training(?:\s*(?:,|and|&)\s*(?:mentorship|development))?(?:\s+and\s+more)?|work[- ]life\s+balance)$/i;
+
+/**
+ * Benefits are displayed as quick facts, so keep concrete categories short and
+ * consistent. Vague employer-pitch items belong in the description, if at all,
+ * not in the structured benefits field.
+ */
+export function normalizeBenefits(values: string[]): string[] {
+  const normalized: string[] = [];
+  for (const value of values) {
+    let label = value
+      .replace(/\s+/g, ' ')
+      .replace(/[.;,:]+$/, '')
+      .trim();
+    if (!label || NON_BENEFIT_LABEL.test(label) || /\b(?:training|mentorship)\b/i.test(label)) continue;
+
+    // Preserve quantified or conditional details instead of collapsing them.
+    const hasSpecificDetail = /\d|\bin lieu\b|\bdepending on\b|\bup to\b/i.test(label);
+    if (!hasSpecificDetail && /^(?:accrued|annual|annual paid|paid)?\s*(?:vacation|vacation pay|annual leave|paid leave|paid time off|PTO|leave policy)$/i.test(label)) {
+      label = 'Vacation';
+    } else if (!hasSpecificDetail && /^(?:annual individual\s+)?performance\s+(?:bonus|bonuses|incentive|incentives)|performance pay|variable pay|bonus$/i.test(label)) {
+      label = 'Performance Bonuses';
+    } else if (!hasSpecificDetail && /^group\s+insurance(?:\s+(?:coverage|plan))?$/i.test(label)) {
+      label = 'Group Insurance';
+    } else if (!hasSpecificDetail && /^(?:health|healthcare|health\s+insurance|extended health)$/i.test(label)) {
+      label = 'Health Insurance';
+    } else if (!hasSpecificDetail && /^(?:health\s*care|healthcare|health)\s+spending\s+account$/i.test(label)) {
+      label = 'Health Spending Account';
+    } else if (!hasSpecificDetail && /^dental(?:\s+insurance)?$/i.test(label)) {
+      label = 'Dental Insurance';
+    } else if (!hasSpecificDetail && /^(?:vision|vision care)$/i.test(label)) {
+      label = 'Vision Care';
+    } else if (!hasSpecificDetail && /^(?:group\s+)?(?:basic\s+)?life insurance$/i.test(label)) {
+      label = 'Life Insurance';
+    } else if (!hasSpecificDetail && /^(?:short[- ]term|long[- ]term)?\s*disability(?: insurance)?$/i.test(label)) {
+      label = 'Disability Insurance';
+    } else if (!hasSpecificDetail && /^(?:medical|medical insurance)$/i.test(label)) {
+      label = 'Health Insurance';
+    } else if (!hasSpecificDetail && /^(?:employee(?:\s+and\s+family)?|family) assistance program(?:s)?$/i.test(label)) {
+      label = 'Employee Assistance Program';
+    } else if (!hasSpecificDetail && /^tuition\s+(?:waiver|remission)$/i.test(label)) {
+      label = 'Tuition Waiver';
+    } else if (!hasSpecificDetail && /^tuition\s+(?:aid|assistance|reimbursement)$/i.test(label)) {
+      label = 'Tuition Assistance';
+    } else if (!hasSpecificDetail && /^(?:pension|pension plan|retirement|retirement plan|retirement plans|defined (?:benefit|contribution) pension plan)$/i.test(label)) {
+      label = 'Pension';
+    } else {
+      // Fix source casing for labels that are otherwise already useful.
+      label = label.split(/(\s+|\/|&)/).map(part => {
+        if (!part || /^\s+$/.test(part) || part === '/' || part === '&') return part;
+        const word = part.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '');
+        if (/^[A-Z0-9]{2,}$/.test(word)) return part;
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+      }).join('');
+    }
+
+    if (!normalized.includes(label)) normalized.push(label);
+  }
+  return normalized;
+}
+
 const ONGOING_TITLE_SIGNAL = /\b(?:ongoing recruitment|recruitment program|student employment program|talent pool|candidate pool|future opportunities|expression of interest|co-?op students?\s*[-–—:]\s*(?:various|multiple))\b/i;
 // Federal "inventory" / talent-pool postings — flexible wording; do not require
 // the exact phrase "inventory for future vacancies" (many say "but to an inventory;").
@@ -1695,6 +1756,209 @@ function removeStructuredParentheticalMentions(text: string, values: string[]): 
   return changed && cleaned !== text ? cleaned : null;
 }
 
+function replaceStructuredSoftwareMentions(text: string, software: string[]): string | null {
+  const values = software
+    .filter(value => normalizedRequirement(value).length >= 2 || /^r$/i.test(normalizedRequirement(value)))
+    .sort((left, right) => right.length - left.length);
+  if (!values.length) return null;
+
+  const categoryFor = (value: string): string => {
+    if (/\b(?:microsoft|office|word|excel|powerpoint|outlook|sharepoint|teams|access|project|visio)\b/i.test(value)) return 'office software';
+    if (/\b(?:arcgis|qgis|gis|envi|pix4d|hec[- ]?ras)\b/i.test(value)) return 'GIS software';
+    if (/\b(?:mysql|postgres(?:ql)?|oracle|mongodb|redis|sql|database|peoplesoft)\b/i.test(value)) return 'database software';
+    if (/\bsap\b/i.test(value)) return 'enterprise software';
+    if (/\b(?:python|matlab|javascript|java|r|ruby|c\+\+|programming)\b/i.test(value)) return 'programming tools';
+    return 'software';
+  };
+
+  let cleaned = text;
+  let changed = false;
+  const markers = new Map<string, string>();
+  for (const value of values) {
+    const normalized = normalizedRequirement(value);
+    const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    let pattern = new RegExp(`(?<![A-Za-z0-9])${escaped}(?![A-Za-z0-9])`, 'gi');
+    if (/^(?:access|(?:microsoft|ms)\s+access)$/i.test(normalized)) pattern = /(?:Microsoft|MS)\s+Access\b|\bAccess\b/gi;
+    if (/^project$/i.test(normalized)) pattern = /(?:Microsoft|MS)\s+Project\b/gi;
+    if (/^word$/i.test(normalized)) pattern = /(?:Microsoft|MS)\s+Word\b|\bWord\b(?!\s+processing)/gi;
+    if (/^excel$/i.test(normalized)) pattern = /(?:Microsoft|MS)\s+Excel\b|\bExcel\b(?!\s+in\b)/gi;
+    if (/^microsoft\s+(?:word|excel|powerpoint|outlook|sharepoint|teams?|access|project|visio)$/i.test(normalized)) {
+      const product = normalized.replace(/^microsoft\s+/i, '');
+      const productPattern = product === 'word' ? '\\bWord\\b(?!\\s+processing)' : `\\b${product}s?\\b`;
+      pattern = new RegExp(`(?:Microsoft|MS)\\s+${productPattern}|${productPattern}`, 'gi');
+    }
+    if (/^r$/i.test(normalized)) pattern = /\bR\b(?=\s*(?:,|and|or|programming|language|statistical))/gi;
+    if (/^teams?$/i.test(normalized)) pattern = /Microsoft\s+Teams\b/gi;
+    if (/^sap$/i.test(normalized)) {
+      // A stored SAP value also covers named SAP products in source prose.
+      // Consume the product name so no fragment such as "software SuccessFactors" remains.
+      pattern = /\bSAP(?:\s+(?:SuccessFactors|Payroll|S\/4\s+HANA(?:\s+Payroll)?))?\b/gi;
+    }
+    if (/^rosi$/i.test(normalized)) pattern = /\bROSI(?:\s+Express)?\b/gi;
+    if (/(?:system|application|program|tool)s?$/i.test(normalized)) {
+      pattern = new RegExp(`(?<![A-Za-z0-9])${escaped}s?(?![A-Za-z0-9])`, 'gi');
+    }
+    const marker = `\uE000${markers.size}\uE001`;
+    markers.set(marker, categoryFor(value));
+    const next = cleaned.replace(pattern, (match, offset: number, full: string) => {
+      if (/^\s+(?:software|tools?|applications?)\b/i.test(full.slice(offset + match.length))) return match;
+      if (/^(?:access|(?:microsoft|ms)\s+access)$/i.test(normalized)
+        && /\b(?:corridor|flagging|facility|building|site|road|physical|remote)\s+access\b|\baccess\s+(?:and\s+)?flagging\b/i.test(full.slice(Math.max(0, offset - 70), offset + match.length + 70))) {
+        return match;
+      }
+      return marker;
+    });
+    if (next !== cleaned) changed = true;
+    cleaned = next;
+  }
+
+  for (const [marker, category] of markers) cleaned = cleaned.replaceAll(marker, category);
+
+  const category = '(?:office software|GIS software|database software|programming tools|enterprise software|software)';
+  cleaned = cleaned
+    .replace(new RegExp(`(${category})\\s*(?:,\\s*|\\s+and(?:\\/or)?\\s+|\\s+or\\s+)+\\1(?=\\s*(?:applications?|tools?|software)?(?:\\s|,|\\.|$))`, 'gi'), '$1')
+    .replace(new RegExp(`(${category})\\s+and\\s+\\1\\s+(?=applications?|tools?|software)`, 'gi'), '$1 ')
+    .replace(/\boffice software\s+(?:suite|processing)\b/gi, 'office software')
+    .replace(/\bsoftware\s+(?:suite|processing)\b/gi, 'software')
+    .replace(/\boffice software\s*(?:,|and|or)\s+software\b/gi, 'office software')
+    .replace(/\bsoftware\s*(?:,|and|or)\s+office software\b/gi, 'office software')
+    .replace(/\b(?:office software|software)(?:\s*,\s*(?:office software|software))+\b/gi, match => /office software/i.test(match) ? 'office software' : 'software')
+    .replace(/\b(office|GIS|database|programming|enterprise)\s+\1\s+software\b/gi, '$1 software')
+    .replace(/\b(office|GIS|database|programming|enterprise)\s+software(?:\s*,\s*\1\s+software)+\b/gi, '$1 software')
+    .replace(/\bprogramming tools(?:\s*,\s*programming tools)+/gi, 'programming tools')
+    .replace(/\bGIS software(?:\s*,\s*GIS software)+/gi, 'GIS software')
+    .replace(/\bdatabase software(?:\s*,\s*database software)+/gi, 'database software')
+    .replace(/\benterprise software(?:\s*,\s*enterprise software)+/gi, 'enterprise software')
+    .replace(/\bservice management application\s*[-–—:]\s*software\b/gi, 'service management software')
+    .replace(/\bapplications?\s*[-–—:]\s*software\b/gi, 'software')
+    .replace(/,\s*(?=(?:and|or)\b)/gi, ' ')
+    .replace(/\s+([,.;:])/g, '$1')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+  return changed && cleaned !== text ? cleaned : null;
+}
+
+function removeStructuredSkillMentions(text: string, skills: string[]): string | null {
+  const values = skills
+    .filter(value => normalizedRequirement(value).length >= 4)
+    .sort((left, right) => right.length - left.length);
+  if (!values.length) return null;
+
+  let cleaned = text;
+  let changed = false;
+  for (const value of values) {
+    const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Portals sometimes join alternatives with a slash, e.g. "mechanical/chemical
+    // engineering". Consume the preceding alternative when removing the
+    // structured phrase so it cannot leave a dangling fragment.
+    const next = cleaned.replace(new RegExp(`(?<![A-Za-z0-9])(?:[A-Za-z][A-Za-z-]*\\/)?${escaped}s?(?![A-Za-z0-9])`, 'gi'), (match, offset: number, full: string) => {
+      if (/^\s+software\b/i.test(full.slice(offset + match.length))) return match;
+      if (/^cash\s+register$/i.test(normalizedRequirement(value))
+        && /(?:^|\s)computerized\s*$/i.test(full.slice(Math.max(0, offset - 20), offset))) return match;
+      return '';
+    });
+    if (next !== cleaned) changed = true;
+    cleaned = next;
+  }
+  if (!changed) return null;
+
+  cleaned = cleaned
+    .replace(/\bprovide\s+(?:a\s+)?technical\s+peer\s+reviews?\s+for\b/gi, 'Review')
+    .replace(/\bprovide\s+for\b/gi, 'Review')
+    .replace(/\b(such as|including|of|with|using)\s*,/gi, '$1 ')
+    .replace(/\b(?:such as)\s*(?=[.!?]|$)/gi, '')
+    .replace(/,\s*(?:and|or)\s*(?=[.!?]|$)/gi, '')
+    .replace(/\b(?:and|or)\s*(?=[.!?]|$)/gi, '')
+    .replace(/(software|coverage|retirement|leave)(and|or)\b/gi, '$1 $2')
+    .replace(/\s+([,.;:])/g, '$1')
+    .replace(/,\s*(?=(?:and|or)\b)/gi, ' ')
+    .replace(/\b(?:and|or)\s*(?=[,.;:]|$)/gi, '')
+    .replace(/:\s*(?=[,.;]|$)/g, '')
+    .replace(/,\s*,+/g, ',')
+    .replace(/\b(?:of|with|using|including|in|and|or)\s*[.!?]?$/i, '')
+    .replace(/\(\s*[,.;:]*\s*\)/g, '')
+    .replace(/\b(of|with)\s+and\b/gi, '$1')
+    .replace(/\band\s+(?=\()/gi, '')
+    .replace(/\(\s*level\s+/gi, 'level ')
+    .replace(/(\blevel\s+\d+(?:\s+on\s+a\s+\d+[-–]\d+\s+scale)?)\s*\)/gi, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[\s,;:.-]+|[\s,;:.-]+$/g, '')
+    .trim();
+  return cleaned;
+}
+
+function removeStructuredEducationMentions(text: string, education: string[]): string | null {
+  const values = education
+    .filter(value => /\b(?:degree|diploma|certificate)\b/i.test(value))
+    .sort((left, right) => right.length - left.length);
+  if (!values.length) return null;
+
+  let cleaned = text;
+  let changed = false;
+  for (const value of values) {
+    const coreValue = value.replace(/^\s*(?:completed\s+)?(?:\d+[- ]year\s+)?/i, '');
+    const escaped = coreValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/,\s+(and|or)\s+/gi, ',?\\s+$1\\s+')
+      .replace(/(\d+)\s+year\b/gi, '$1[- ]year');
+    const pattern = new RegExp(`(?<!related\\s)(?:a\\s+|an\\s+|the\\s+)?${escaped}`, 'gi');
+    const next = cleaned.replace(pattern, match => {
+      const article = /^an\s/i.test(match) ? 'An' : /^the\s/i.test(match) ? 'The' : 'A';
+      return /\bdiploma\b/i.test(match) ? `${article} related diploma` : `${article} related degree`;
+    });
+    if (next !== cleaned) changed = true;
+    cleaned = next;
+  }
+  if (!changed) return null;
+  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : cleaned;
+}
+
+function removeStructuredExperienceDurations(text: string, experience: string[]): string | null {
+  const durationWords: Record<string, string> = {
+    one: '1', two: '2', three: '3', four: '4', five: '5', six: '6',
+    seven: '7', eight: '8', nine: '9', ten: '10',
+  };
+  const structuredDurationKeys = new Set(experience.flatMap(value => {
+    const match = value.match(/^(\d+(?:\.\d+)?)(?:\+|[–-]\d+)?\s*(years?|months?)/i);
+    return match ? [`${match[1]}:${match[2].toLowerCase().startsWith('month') ? 'month' : 'year'}`] : [];
+  }));
+  if (!structuredDurationKeys.size) return null;
+
+  const durationMention = /\b(?:(?:a\s+)?(?:minimum(?:\s+of)?|at\s+least|over|more\s+than)\s+)?(?:\d+(?:\.\d+)?(?:\s*\+|\s*[–-]\s*\d+(?:\.\d+)?)?|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*\(\s*\d+\s*\))?\s*(?:years?|months?)\b/gi;
+  let changed = false;
+  const cleaned = text.replace(durationMention, match => {
+    const duration = match.match(/\b(\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*\(\s*\d+\s*\))?(?:\s*\+|\s*[–-]\s*\d+(?:\.\d+)?)?\s*(years?|months?)/i);
+    if (!duration) return match;
+    const number = durationWords[duration[1].toLowerCase()] ?? duration[1];
+    const key = `${number}:${duration[2].toLowerCase().startsWith('month') ? 'month' : 'year'}`;
+    if (!structuredDurationKeys.has(key)) return match;
+    changed = true;
+    return ' ';
+  })
+    .replace(/^\s*[-–—,:]\s*/, '')
+    .replace(/^\s*(?:in|of)\s+/i, '')
+    .replace(/[.;]+$/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  if (!changed) return null;
+  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : cleaned;
+}
+
+function isMalformedStructuredFragment(text: string): boolean {
+  return /^(?:and|or|with|of|in)\b/i.test(text)
+    || (/^(?:must\s+have\s+)?(?:completed|graduate|graduated|major)\b/i.test(text) && /\b(?:with|in|or|and|grade|average)\b/i.test(text))
+    || /(?:^|\s)(?:completed|graduate|graduated|major|excellent|familiar|skills?|knowledge|proficiency|experience|ability)\s+(?:of|in|with|at|for|to|or|and)\s*(?:and|or|with|in|at)?\s*$/i.test(text)
+    || /^(?:completed|graduate|graduated|major|excellent|familiar|skills?|knowledge|proficiency|experience|ability)\s*$/i.test(text);
+}
+
+function isStructuredValueFragment(text: string, values: string[]): boolean {
+  const candidate = normalizedRequirement(text);
+  if (candidate.length < 4) return false;
+  return values.some(value => {
+    const normalized = normalizedRequirement(value);
+    return normalized === candidate || normalized.startsWith(`${candidate} `);
+  });
+}
+
 function qualificationBulletTokens(value: string): string[] {
   return normalizedRequirement(value)
     .replace(/\bartificial intelligence\b/g, 'ai')
@@ -1744,8 +2008,62 @@ function deduplicateQualificationBullets(description: string): string {
 
 function repairStructuredCleanupArtifacts(description: string): string {
   return description
+    .replace(/\bsuch\s+as\s+and\b/gi, 'such as')
+    .replace(/\bprogramming\s+languages\s+such\s+as\s*\.?/gi, 'programming languages')
+    .replace(/\bknowledge\s+of\s+level\s+(\d+)\b/gi, 'Knowledge of language at level $1')
+    .replace(/\bknowledge\s+of\s+language\s+at\s+level\s+(\d+)\b/gi, 'Language proficiency at level $1')
+    .replace(/(^|\n)(\s*[-•*]\s*)level\s+(\d+)\b/gi, '$1$2Language proficiency at level $3')
+    .replace(/^\s*level\s+(\d+)\b/gi, 'Language proficiency at level $1')
+    .replace(/\bexcellent\s+in\s+programming\s+languages\b/gi, 'Excellent with programming tools')
+    .replace(/\bGIS\s+software\s+(?:Pro|Desktop|Online)\b/gi, 'GIS software')
+    .replace(/\bGIS\s+software(?:\s+software)+\b/gi, 'GIS software')
+    .replace(/\b(?:a\s+)?completed\s+\d+[- ]year\s+a\s+related\s+diploma\b/gi, 'A related diploma')
+    .replace(/\benterprise\s+software\/Linux\b/gi, 'enterprise Linux')
+    .replace(/\bexperience\s+with\s+or\s+equivalent\s+rail\s+network\s+simulation\s+software\b/gi, 'Experience with rail network simulation software')
+    .replace(/\bproficiency\s+in\s+Microsoft;\s*basic\s+proficiency\s+in\s*\.?/gi, 'Proficiency in office software')
+    .replace(/\b(?:expertise|experience|proficiency|knowledge|skills|ability)\s+(in|with|of),\s+/gi, '$1 ')
+    .replace(/\b(incorporating|including|using|applying|supporting|leveraging),\s+/gi, '$1 ')
     .replace(/\bexperience\s+with\s+with\s+and\s+aptitude\b/gi, 'Experience with aptitude')
     .replace(/\bexperience\s+with\s+or\s+similar\s+student\s+systems\b/gi, 'Experience with student information systems')
+    .replace(/\bUBC['’]s\s+software\b/gi, "UBC's information systems")
+    .replace(/\bAll staff must complete a to work with children\b/gi, 'All staff must complete screening to work with children')
+    .replace(/\bstrong\s+and\s+consultation\s+skills\b/gi, 'Strong consultation skills')
+    .replace(/\bDemonstrated in mental health assessment\b/gi, 'Demonstrated expertise in mental health assessment')
+    .replace(/\bHonours Baccalaureate in or equivalent\b/gi, 'Honours Baccalaureate or equivalent')
+    .replace(/\binterdisciplinary office software\b/gi, 'interdisciplinary teams')
+    .replace(/\bExperience using or similar systems\b/gi, 'Experience using similar systems')
+    .replace(/\bWorking of or similar systems\b/gi, 'Working knowledge of similar systems')
+    .replace(/\bMember in good standing of the\s*$/gim, 'Member in good standing with the relevant professional body')
+    .replace(/\bdesignation and\/or certified\b/gi, 'relevant designations and/or certifications')
+    .replace(/\bStrong knowledge of software system and operating procedures\b/gi, 'Strong knowledge of operating procedures')
+    .replace(/\bStrong knowledge of software and operating procedures\b/gi, 'Strong knowledge of operating procedures')
+    .replace(/\bAbility to operate a computerized cash register\b/gi, 'Ability to operate computerized equipment')
+    .replace(/\bProficient in case management software\b/gi, 'Proficient in relevant software')
+    .replace(/\bdesignation and\/or Lean Six Sigma certified\b/gi, 'relevant designations and/or certifications')
+    .replace(/\bcomputerized software system\/cash register\b/gi, 'computerized cash register')
+    .replace(/\bcomputerized software\/cash register\b/gi, 'computerized cash register')
+    .replace(/\bcomputerized software\b/gi, 'computerized cash register')
+    .replace(/\bwith\s+and\s+data acquisition\s+and\s+is\s+an\s+asset\b/gi, 'with data acquisition tools')
+    .replace(/\bmust complete and pass associated\b/gi, 'Must complete and pass the associated training program')
+    .replace(/\bcomprehensive from day one, including medical\b/gi, 'Comprehensive coverage from day one')
+    .replace(/\bExperience with and advanced skills with a variety of computer applications i\.e\. office software, data management, software and social media\b/gi, 'Experience with a variety of computer applications and advanced skills in office software, data management and social media')
+    .replace(/\bother tools such as software Pro\b/gi, 'other tools such as software')
+    .replace(/\bsmall and and performing preventative equipment maintenance\b/gi, 'small equipment and performing preventative equipment maintenance')
+    .replace(/\bsmall and and performing\b/gi, 'small equipment and performing')
+    .replace(/\bsmall(?:\s+and){2,}\s+performing\b/gi, 'small equipment and performing')
+    .replace(/\bStrong skills and strong City of Winnipeg layout awareness\b/gi, 'Strong City of Winnipeg layout awareness')
+    .replace(/\bskills including the ability to comprehend\b/gi, 'Ability to comprehend')
+    .replace(/\bskills with the ability to handle\b/gi, 'Ability to handle')
+    .replace(/\bexperience with considered an asset\b/gi, 'experience with relevant software considered an asset')
+    .replace(/\bOMERS\)\s+eligibility\b/gi, 'OMERS eligibility')
+    .replace(/\bProficiency with applications and software; with data acquisition tools\b/gi, 'Proficiency with applications and data acquisition tools')
+    .replace(/\bOR\s+or\s+/gi, 'OR ')
+    .replace(/\bOR\s+['’]\s*diversified\b/gi, 'OR diversified')
+    .replace(/\bExcellent working knowledge of software Administration\b/gi, 'Excellent working knowledge of system administration')
+    .replace(/\boffice software including ([^\n]*?),\s*office software\b/gi, 'office software including $1')
+    .replace(/\bsoftwareand\b/gi, 'software and')
+    .replace(/\boffice software and\.?$/gim, 'office software.')
+    .replace(/\bMicrosoft office software\b/gi, 'office software')
     .replace(/\bcomputer\s+experience\s+with\s+and\s+applications\b/gi, 'Computer experience with software applications')
     .replace(/\b(?:proficiency|proficient)\s+in\s+suite,\s+especially\s+and\s+and\s+other\s+division-specific\s+software\b/gi, 'Proficiency in office software and other division-specific software')
     .replace(/\b(?:proficiency|proficient)\s+in\s+suite,\s+especially\s+and\s+other\s+division-specific\s+software\b/gi, 'Proficiency in office software and other division-specific software')
@@ -1767,11 +2085,17 @@ function repairStructuredCleanupArtifacts(description: string): string {
     .replace(/\b(?:supporting|administering|working\s+with)\s+-based\b/gi, '$1')
     .replace(/\b(or|and)(?=(?:experience|recent|related|relevant)\b)/gi, '$1 ')
     .replace(/\bwith\s+with\b/gi, 'with')
+    .replace(/\bproficient\s+in\s+and\s+software\b/gi, 'Proficient in case management software')
+    .replace(/\bapply,\s+/gi, 'apply ')
     .replace(/\b(in|with|of|for|on),\s+(?=(?:including|research|finance|Microsoft|MS|word|database|and|or)\b)/gi, '$1 ')
     .replace(/,\s*,+/g, ',')
     .replace(/,\s*(?=(?:or|and)\b)/gi, ' ')
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/\n +(?=[-•*])/g, '\n')
+    .replace(/(^|\n)(\s*[-•*]\s*)['’]+\s*/g, '$1$2')
+    .replace(/(^|\n)(\s*[-•*]\s*)Providing\s*$/gim, '$1')
+    .replace(/(^|\n)(\s*[-•*]\s+)(?:of|in|with|and|or)\b[^\n]*/gim, '$1')
+    .replace(/(^|\n)(\s*[-•*]\s+.*?)\s+(?:and|or)\s*$/gim, '$1$2')
     .trim();
 }
 
@@ -1871,6 +2195,7 @@ export function stripStructuredQualBullets(
     certifications?: string[];
     vehicleRequired?: boolean | null;
     securityRequired?: boolean;
+    allSections?: boolean;
   },
 ): string {
   if (!description.trim()) return description;
@@ -1883,6 +2208,7 @@ export function stripStructuredQualBullets(
   const studentRequired = fields.studentRequired === true;
   const certifications = fields.certifications ?? [];
   const securityRequired = fields.securityRequired === true;
+  const allSections = fields.allSections === true;
   if (!licenses.length && !education.length && !experience.length && !languages.length && !certifications.length
     && !requiredSkills.length && !software.length && !studentRequired
     && fields.vehicleRequired !== true && !securityRequired) {
@@ -1902,9 +2228,14 @@ export function stripStructuredQualBullets(
   const hasFirstAidCert = certifications.some(c => /\bfirst\s+aid\b|\bcpr\b/i.test(c));
   const concreteSkillKeys = new Set(requiredSkills.map(concreteQualificationSkillKey));
   const structuredSkills = [...new Set([...requiredSkills, ...software])];
+  const softwareLikeSkills = requiredSkills.filter(value =>
+    /\b(?:software|system|application|program|database|tool|SAP|ERP|HRIS|GIS|CADD|Excel|Word|Outlook|Power\s*BI|Teams?)\b/i.test(value),
+  );
+  const softwareToStrip = [...new Set([...software, ...softwareLikeSkills])];
 
   const lines = description.split('\n');
   let inQuals = false;
+  let requirementSection = false;
   const kept: string[] = [];
   let removed = 0;
 
@@ -1916,7 +2247,12 @@ export function stripStructuredQualBullets(
       continue;
     }
     if (/^#{1,6}\s+/.test(line) || /^\*{1,2}[^*]+\*{1,2}:?\s*$/.test(line.trim()) || /^[A-Z][A-Za-z0-9 /&'’-]{2,60}:\s*$/.test(line.trim())) {
-      inQuals = isQualificationsHeading(line.trim());
+      const heading = line.trim();
+      inQuals = allSections ? Boolean(heading) : isQualificationsHeading(heading);
+    requirementSection = (allSections && (isQualificationsHeading(heading)
+        || /nice\s+to\s+have|requirement|eligib|condition|education|licen[cs]e|certif|language|experience|skill/i.test(heading)))
+      || isQualificationsHeading(heading)
+      || /nice\s+to\s+have|requirement|eligib|condition|education|licen[cs]e|certif|language|experience|skill/i.test(heading);
       kept.push(line);
       continue;
     }
@@ -1931,7 +2267,7 @@ export function stripStructuredQualBullets(
       // Language already shown in the Languages property. Remove pure
       // language bullets, or only the trailing language clause from a mixed
       // bullet when another requirement remains.
-      if (languages.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)) {
+      if (requirementSection && languages.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)) {
         const languageLabelOnly = /^(?:language\s+requirements?|official\s+language\s+proficiency|various)\s*:/i.test(focus);
         const languageClauses = focus.split(/[;,]/).map(clause => clause.trim()).filter(Boolean);
         const compoundLanguageOnly = languageClauses.length > 1
@@ -1955,7 +2291,7 @@ export function stripStructuredQualBullets(
       }
 
       // Language already in Languages property (federal "Language requirements: Bilingual…")
-      if (hasLanguage
+      if (requirementSection && hasLanguage
         && !/\b(?:other|different)\s+than\s+(?:english|anglais|french|fran[cç]ais)\b/i.test(focus)
         && (
         /^(?:language\s+requirements?|languages?)\s*:/i.test(focus)
@@ -1969,7 +2305,7 @@ export function stripStructuredQualBullets(
       }
 
       // Licence restatement
-      if (fields.vehicleRequired === true && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+      if (requirementSection && fields.vehicleRequired === true && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
         && isDriverLicenseRequirement(focus)
         && !detectLicenseRole(focus)
         && !detectLicenseBody(focus)) {
@@ -1977,7 +2313,7 @@ export function stripStructuredQualBullets(
         continue;
       }
 
-      if (licenses.length && LICENSE_TERM.test(focus) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)) {
+      if (requirementSection && licenses.length && LICENSE_TERM.test(focus) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)) {
         const restates = licenses.some(license => licenseKeysOverlap(license, focus));
         const pureDriver = DRIVER_LICENSE_PHRASE.test(focus) && focus.length < 220
           && licenses.some(license => /\bdriver|class\b/i.test(license));
@@ -1988,13 +2324,13 @@ export function stripStructuredQualBullets(
       }
 
       // Vehicle and security requirements already shown as structured flags.
-      if (fields.vehicleRequired === true && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+      if (requirementSection && fields.vehicleRequired === true && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
         && VEHICLE_SPECIFIC_REQUIREMENT.test(focus) && focus.length < 220
         && !/\b(?:travel|transport|commut|delivery|fieldwork)\b/i.test(focus)) {
         removed += 1;
         continue;
       }
-      if (securityRequired && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+      if (requirementSection && securityRequired && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
         && /\b(?:security|reliability)\s+(?:status\s+)?(?:clearance|check)\b/i.test(focus)
         && focus.length < 220) {
         removed += 1;
@@ -2003,7 +2339,7 @@ export function stripStructuredQualBullets(
 
       // Any other certification/training restatement. Keep mixed bullets when
       // they contain an additional fact that is not in the structured field.
-      if (certifications.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+      if (requirementSection && certifications.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
         && isCertificationRestatementBullet(focus, certifications)) {
         removed += 1;
         continue;
@@ -2011,7 +2347,7 @@ export function stripStructuredQualBullets(
 
       // First Aid / CPR variants that are equivalent to the structured value,
       // while preserving bullets that add another named credential.
-      if (hasFirstAidCert && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+      if (requirementSection && hasFirstAidCert && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
         && isMostlyFirstAidCertificationBullet(focus)
         && !/\b(?:high\s+five|smart\s+serve|whmis|food\s+handler|nonviolent\s+crisis)\b/i.test(focus)) {
         removed += 1;
@@ -2019,54 +2355,121 @@ export function stripStructuredQualBullets(
       }
 
       // Skills already shown in the structured Skills property.
-      if (structuredSkills.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+      if (requirementSection && structuredSkills.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
         && isRequiredSkillRestatementBullet(focus, structuredSkills)) {
         removed += 1;
         continue;
       }
 
-      // Remove named tools from parenthetical examples. Direct mentions in
-      // prose stay intact unless the whole bullet is a pure restatement; this
-      // prevents fragments such as "supporting -based environments".
+      // Remove named tools from parenthetical examples and direct structured
+      // mentions while preserving any surrounding duty or qualification.
       const withoutStructuredExamples = removeStructuredParentheticalMentions(focus, structuredSkills);
-      const withoutStructuredMentions = withoutStructuredExamples;
-      if (withoutStructuredMentions) {
-        if (isRequiredSkillRestatementBullet(withoutStructuredMentions, structuredSkills)) {
+      let structuredCandidate = withoutStructuredExamples ?? focus;
+      let structuredMentionsChanged = Boolean(withoutStructuredExamples);
+      if (requirementSection) {
+        const withoutExperienceDuration = removeStructuredExperienceDurations(structuredCandidate, experience);
+        if (withoutExperienceDuration !== null) {
+          structuredCandidate = withoutExperienceDuration;
+          structuredMentionsChanged = true;
+        }
+        const withoutSoftware = replaceStructuredSoftwareMentions(structuredCandidate, softwareToStrip);
+        if (withoutSoftware !== null) {
+          structuredCandidate = withoutSoftware;
+          structuredMentionsChanged = true;
+        }
+        const withoutSkills = removeStructuredSkillMentions(structuredCandidate, requiredSkills.filter(value => !softwareLikeSkills.includes(value)));
+        if (withoutSkills !== null) {
+          structuredCandidate = withoutSkills;
+          structuredMentionsChanged = true;
+        }
+        const withoutOtherStructuredValues = removeStructuredSkillMentions(
+          structuredCandidate,
+          [...licenses, ...education, ...certifications],
+        );
+        if (withoutOtherStructuredValues !== null) {
+          structuredCandidate = withoutOtherStructuredValues;
+          structuredMentionsChanged = true;
+        }
+        const withoutEducation = removeStructuredEducationMentions(structuredCandidate, education);
+        if (withoutEducation !== null) {
+          structuredCandidate = withoutEducation;
+          structuredMentionsChanged = true;
+        }
+        const languageValues = languages.flatMap(value => /\bbilingual\b/i.test(value)
+          ? ['English', 'French', 'Bilingual']
+          : [value]);
+        if (hasLanguage
+          && /\b(?:language|bilingual|proficien|fluen|knowledge|speak|read|writ|level)\w*/i.test(focus)
+          && !/\b(?:other|different)\s+than\s+(?:english|anglais|french|fran[cç]ais)\b/i.test(focus)
+          && !/\b(?:studies|course|literature)\b/i.test(focus)) {
+          const withoutLanguages = removeStructuredSkillMentions(structuredCandidate, languageValues);
+          if (withoutLanguages !== null) {
+            structuredCandidate = withoutLanguages;
+            structuredMentionsChanged = true;
+          }
+        }
+      }
+      if (structuredMentionsChanged) {
+        if (!structuredCandidate
+          || isMalformedStructuredFragment(structuredCandidate)
+          || isStructuredValueFragment(structuredCandidate, structuredSkills)
+          || (requirementSection && isRequiredSkillRestatementBullet(structuredCandidate, structuredSkills))) {
           removed += 1;
           continue;
         }
         const prefix = line.match(/^\s*[-•*]\s+/)?.[0] ?? '- ';
-        kept.push(`${prefix}${withoutStructuredMentions}`);
+        kept.push(`${prefix}${structuredCandidate}`);
         removed += 1;
         continue;
       }
 
       // Remove duration text from Experience bullets while retaining the
       // domain/context that does not belong in the structured field.
-      if (experience.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)) {
-        const durationPattern = /\b(?:\d+(?:\.\d+)?(?:\s*\+|\s*[–-]\s*\d+(?:\.\d+)?)?|one|two|three|four|five|six|seven|eight|nine|ten)\s*(?:years?|months?)\b/i;
+      if (requirementSection && experience.length) {
+        const durationPattern = /\b(?:\d+(?:\.\d+)?(?:\s*\+|\s*[–-]\s*\d+(?:\.\d+)?)?|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*\(\s*\d+\s*\))?\s*(?:years?|months?)\b/i;
         const hasStructuredDuration = experience.some(value => {
           const match = value.match(/^(\d+(?:\.\d+)?)(?:\+|–\d+)?\s*(years?|months?)/i);
-          return Boolean(match && durationPattern.test(focus)
-            && new RegExp(`\\b${match[1]}\\s*(?:\\+|[-–]\\s*\\d+)?\\s*(?:years?|months?)\\b`, 'i').test(focus));
+          if (!match || !durationPattern.test(focus)) return false;
+          const number = match[1];
+          const word = ({ '1': 'one', '2': 'two', '3': 'three', '4': 'four', '5': 'five', '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine', '10': 'ten' } as Record<string, string>)[number];
+          const numberPattern = word ? `(?:${number}|${word})(?:\\s*\\(\\s*${number}\\s*\\))?` : number;
+          return new RegExp(`\\b${numberPattern}\\s*(?:\\+|[-–]\\s*\\d+)?\\s*(?:years?|months?)\\b`, 'i').test(focus);
         });
         if (hasStructuredDuration && /\b(?:experience|years?|months?)\b/i.test(focus)) {
+          const durationWords: Record<string, string> = {
+            one: '1', two: '2', three: '3', four: '4', five: '5', six: '6',
+            seven: '7', eight: '8', nine: '9', ten: '10',
+          };
+          const structuredDurationKeys = new Set(experience.flatMap(value => {
+            const match = value.match(/^(\d+(?:\.\d+)?)(?:\+|[–-]\d+)?\s*(years?|months?)/i);
+            return match ? [`${match[1]}:${match[2].toLowerCase().startsWith('month') ? 'month' : 'year'}`] : [];
+          }));
+          const durationMention = /\b(?:(?:a\s+)?(?:minimum(?:\s+of)?|at\s+least|over|more\s+than)\s+)?(?:\d+(?:\.\d+)?(?:\s*\+|\s*[–-]\s*\d+(?:\.\d+)?)?|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*\(\s*\d+\s*\))?\s*(?:years?|months?)\b/gi;
           const withoutDuration = focus
-            .replace(/\b(?:a\s+)?(?:minimum(?:\s+of)?|at\s+least|over|more\s+than)?\s*(?:\d+(?:\.\d+)?(?:\s*\+|\s*[–-]\s*\d+(?:\.\d+)?)?|one|two|three|four|five|six|seven|eight|nine|ten)\s*(?:years?|months?)\s*(?:of\s+)?/i, ' ')
+            .replace(durationMention, match => {
+              const duration = match.match(/\b(\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*\(\s*\d+\s*\))?(?:\s*\+|\s*[–-]\s*\d+(?:\.\d+)?)?\s*(years?|months?)/i);
+              if (!duration) return match;
+              const number = durationWords[duration[1].toLowerCase()] ?? duration[1];
+              const key = `${number}:${duration[2].toLowerCase().startsWith('month') ? 'month' : 'year'}`;
+              return structuredDurationKeys.has(key) ? ' ' : match;
+            })
             .replace(/^\s*[-–—,:]\s*/, '')
             .replace(/^\s*(?:in|of)\s+/i, '')
             .replace(/[.;]+$/, '')
             .trim();
-          if (!withoutDuration || /^(?:experience|related|relevant|progressive)\s*$/i.test(withoutDuration)) {
+          const normalizedRemainder = withoutDuration
+            ? withoutDuration.charAt(0).toUpperCase() + withoutDuration.slice(1)
+            : withoutDuration;
+          if (!normalizedRemainder || /^(?:experience|related|relevant|progressive)\s*$/i.test(normalizedRemainder)) {
             removed += 1;
             continue;
           }
-          if (structuredSkills.length && isRequiredSkillRestatementBullet(withoutDuration, structuredSkills)) {
+          if (structuredSkills.length && isRequiredSkillRestatementBullet(normalizedRemainder, structuredSkills)) {
             removed += 1;
             continue;
           }
           const prefix = line.match(/^\s*[-•*]\s+/)?.[0] ?? '- ';
-          kept.push(`${prefix}${withoutDuration}`);
+          kept.push(`${prefix}${normalizedRemainder}`);
           removed += 1;
           continue;
         }
@@ -2074,8 +2477,8 @@ export function stripStructuredQualBullets(
 
       // Education restatement (high school / degree / diploma already structured)
       const eduFocus = focus.replace(/^education\s*:\s*/i, '');
-      if (eduKeys.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
-        && /\b(?:high\s+school|secondary\s+school|grade\s*12|bachelor|master|ph\.?d|diploma|degree|post[- ]secondary|college|university|ossd|g\.?e\.?d\.?|certificate\s+in)\b/i.test(eduFocus)) {
+      if (requirementSection && eduKeys.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+        && /\b(?:high\s+school|secondary\s+school|grade\s*12|bachelor|master|ph\.?d|phd|m\.?sc|m\.?a\.?|b\.?sc|b\.?a\.?|diploma|degree|post[- ]secondary|college|university|ossd|g\.?e\.?d\.?|certificate\s+in)\b/i.test(eduFocus)) {
         const bulletKey = educationCoreKey(eduFocus);
         const restatesEdu = eduKeys.some(key => keysOverlapLoose(key, bulletKey))
           // Grade 12 / GED bullets restate "High school diploma" even when token keys differ
@@ -2095,20 +2498,20 @@ export function stripStructuredQualBullets(
       }
 
       // Measurable typing/keyboarding requirements already shown in Skills.
-      if (concreteSkillKeys.size > 0
+      if (requirementSection && concreteSkillKeys.size > 0
         && extractConcreteQualificationSkills(focus).some(skill => concreteSkillKeys.has(concreteQualificationSkillKey(skill)))) {
         removed += 1;
         continue;
       }
 
       // Student status already shown in the Student field.
-      if (studentRequired && /^(?:currently\s+)?(?:attending|enrolled|registered)\s+(?:a\s+)?(?:full[- ]time|part[- ]time)\s+(?:program|course|school|college|university)\b/i.test(focus)) {
+      if (requirementSection && studentRequired && /^(?:currently\s+)?(?:attending|enrolled|registered)\s+(?:a\s+)?(?:full[- ]time|part[- ]time)\s+(?:program|course|school|college|university)\b/i.test(focus)) {
         removed += 1;
         continue;
       }
 
       // Experience restatement (years lines OR "Experience: analyzing…" already structured)
-      if (expKeys.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus) && /\bexperience\b/i.test(focus)) {
+      if (requirementSection && expKeys.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus) && /\bexperience\b/i.test(focus)) {
         const bulletKey = experienceCoreKey(focus);
         const restatesExp = expKeys.some(key => keysOverlapLoose(key, bulletKey));
         const bothHaveTime = focus.length < 180
@@ -2126,7 +2529,7 @@ export function stripStructuredQualBullets(
 
       // Abilities/competencies: drop clauses that only restate Experience domains
       // (e.g. "analyze complex information…" when Experience already has that).
-      if (expKeys.length && /^(?:abilities?|competencies?)\s*:/i.test(focus)) {
+      if (requirementSection && expKeys.length && /^(?:abilities?|competencies?)\s*:/i.test(focus)) {
         const labelMatch = focus.match(/^(abilities?|competencies?)\s*:?\s*/i);
         const label = labelMatch?.[0] ?? '';
         const body = focus.slice(label.length);
@@ -2154,7 +2557,7 @@ export function stripStructuredQualBullets(
   let cleaned = kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   cleaned = repairStructuredCleanupArtifacts(deduplicateQualificationBullets(cleaned));
   cleaned = cleaned.replace(
-    /(?:^|\n)(#{1,6}\s+Qualifications[^\n]*\n)(?:\s*\n)*(?=(?:#{1,6}\s+|\s*$))/gi,
+    /(?:^|\n)(#{1,6}\s+[^\n]+\n)(?:\s*\n)*(?=(?:#{1,6}\s+|\s*$))/gi,
     '\n',
   ).replace(/\n{3,}/g, '\n\n').trim();
   return cleaned;
@@ -2258,7 +2661,7 @@ export function reconcileStructuredRequirements(description: string, current: Pa
   const currentLicenses = normalizeProfessionalLicenseRequirements(
     toStringList(current.license_requirements).filter(retainExistingLicense),
   );
-  const currentBenefits = toStringList(current.benefits);
+  const currentBenefits = normalizeBenefits(toStringList(current.benefits));
   const experienceSkills = extractExperienceSkills(currentExperienceValues);
   const currentSkills = mergeConcreteQualificationSkills(
     [...toStringList(current.required_skills), ...experienceSkills],

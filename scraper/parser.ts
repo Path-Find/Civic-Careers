@@ -23,7 +23,7 @@ import {
   splitLanguageOutOfSkills,
   stripStructuredQualBullets,
 } from './requirements';
-import { cleanJobDescription, stripStructuredBenefitRestatements } from './cleanup_description';
+import { cleanJobDescription, removePlaceholderSections, stripStructuredBenefitRestatements } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 import { extractStartDate } from './start-date';
 
@@ -97,7 +97,9 @@ async function main() {
           certifications: certificationRequirements,
           studentRequired: isStudent === 1,
           vehicleRequired,
+          allSections: true,
         });
+        description = removePlaceholderSections(description);
         const securityFromLabel = extractSecurityRequirementLabel(description);
         const securityCheckRequired = sourceFix?.securityCheckRequired
           ?? normalizeSecurityCheckRequired(aiResult.security_check_required)

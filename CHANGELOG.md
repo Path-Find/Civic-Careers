@@ -8,10 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Job counts stay current without parser-credit waste** — daily scrapes now include UBC, promote only readable scraped postings, and discard broken source shells before they reach the feed.
 - **York University job board** — Technomedia portal (~400 postings) now scrapes on the regular schedule (was engine-only, never on the production task list). First full pull uses list detail links + rate limiting so mid-run “resource not available” dead-ends don’t fill the DB.
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Jobs closing today no longer repeat structured properties in body requirements** — the 245 active postings expiring today were manually reviewed and de-duplicated without redeploying the site.
 - **Job URLs no longer expose scraper source names** — direct links now use stable numeric public IDs while existing source-based and numeric links continue to resolve.
 - **Qualifications no longer repeat structured requirements** — active job descriptions now remove duplicate education, experience, language, licence, certification, skill, software, vehicle, security, and duplicate-qualification bullets while preserving additional context.
 - **Open jobs no longer disappear from company counts after cleanup** — stored postings with a future closing date were restored to active status.
