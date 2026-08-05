@@ -2,46 +2,41 @@
 
 ## Current audit
 
-The live `job_details` corpus contains 9,048 jobs, 4,229 jobs with Experience data, and 6,099 stored entries.
+The live `job_details` corpus contains 9,048 jobs, 3,269 jobs with Experience data, and 3,471 stored entries after the duration-only migration.
 
-The current field is valid JSON, but the wording is inconsistent:
+The migrated field remains valid JSON with one duration format:
 
-- 1,706 entries begin with `Minimum`.
-- 199 begin with `At least`.
-- 163 use numeric ranges.
-- 68 use months instead of years.
-- 2,304 have no explicit duration and are domain-only experience statements.
-- 612 are longer than 160 characters; 60 are longer than 240.
-- 39 end with an unmatched opening parenthesis, showing that the stored text was cut off.
+- All populated Experience values are numeric duration labels (`N years`, `N+ years`, `N–M years`, or month equivalents).
+- Domain-only, recent, qualitative, and alternative detail is preserved in Qualifications bullets.
+- 4,163 rows were rewritten; the repeat dry run reports zero changes.
 
 The existing formatter improves some prefixes, but it does not define one complete format and it cannot repair source text that was already truncated.
 
 ## Canonical format
 
-Keep `experience_requirements` as a JSON array of strings. Each item must represent one requirement and must preserve the source meaning.
+Keep `experience_requirements` as a JSON array of strings. Each item stores only a numeric duration; domain detail and non-numeric experience requirements belong in Qualifications.
 
 Use these forms:
 
 | Source meaning | Stored/display form |
 | --- | --- |
-| Minimum or at-least threshold | `N+ years — domain` |
-| Bounded range | `N–M years — domain` |
-| Month threshold | `N+ months — domain` |
-| Recent experience | `Recent — domain` or `Recent (within past N years) — domain` |
-| Qualitative duration | `Several years — domain` |
-| Domain-only requirement | `Experience with domain` |
-| Alternatives | Keep one item with `or`; do not collapse alternatives into one threshold |
+| Minimum or at-least threshold | `N+ years` |
+| Bounded range | `N–M years` |
+| Month threshold | `N+ months` |
+| Exact duration | `N years` or `N months` |
+| Recent / qualitative / domain-only requirement | Preserve the requirement in Qualifications; do not store it in Experience |
+| Alternatives | Keep the complete source bullet in Qualifications; store the leading numeric duration when one exists |
 
 Normalization rules:
 
 1. Convert number words to numerals.
 2. Convert `minimum`, `a minimum of`, and `at least` to `+` only when the requirement is a threshold.
 3. Use an en dash for ranges.
-4. Put the duration or recency first, followed by ` — ` and the domain.
-5. Remove shells such as `experience in`, `experience with`, and repeated `experience` wording without removing the domain.
+4. Store the duration alone; keep domain and condition detail in Qualifications.
+5. Remove shells such as `experience in`, `experience with`, and repeated `experience` wording from the structured duration value; preserve the full requirement in Qualifications.
 6. Remove trailing punctuation and collapse whitespace.
 7. Preserve named systems, locations, credentials, alternatives, and qualifying conditions.
-8. Never invent a duration. Domain-only entries remain domain-only.
+8. Never invent a duration. Domain-only, recent, and qualitative entries remain in Qualifications only.
 
 Multiple independent requirements remain separate array items. The UI should join them with `; `, not a comma, so separate requirements remain visually distinct.
 
@@ -55,7 +50,7 @@ The 39 unmatched-parenthesis entries must not be normalized as if they were comp
 4. If neither source contains a complete clause, remove the damaged fragment rather than inventing its ending.
 5. Add regression fixtures for the recovered and removed cases.
 
-Long entries are not truncated to meet an arbitrary character limit. Instead, split clearly independent clauses into separate items. Keep a long single requirement intact when splitting would lose meaning.
+Long entries are not truncated to meet an arbitrary character limit. Instead, store the numeric duration only and preserve the complete source requirement in Qualifications. Keep alternatives intact when splitting would lose meaning.
 
 ## Implementation sequence
 

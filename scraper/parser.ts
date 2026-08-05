@@ -13,6 +13,7 @@ import {
   extractSoftwareRequirements,
   extractVehicleRequired,
   extractWorkYearDuration,
+  appendExperienceQualificationBullets,
   normalizeLanguageRequirements,
   normalizeListingType,
   normalizeSecurityCheckRequired,
@@ -66,6 +67,7 @@ async function main() {
           required_skills: aiResult.required_skills,
         }, raw.raw_text);
         description = stripStructuredBenefitRestatements(description, structuredRequirements.benefits);
+        description = appendExperienceQualificationBullets(description, aiResult.experience_requirements ?? []);
         const certificationRequirements = (() => {
           const fromBody = extractCertificationRequirements(description);
           if (fromBody.length) return fromBody;

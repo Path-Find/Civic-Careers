@@ -1439,9 +1439,8 @@ function experienceCoreKey(value: string): string {
 }
 
 /**
- * Compact wordy experience strings for storage + display.
- * - Drop "Experience is defined as… N years" meta lines → "N+ years"
- * - Strip leading "Experience:" / "Experience in" shells
+ * Normalize Experience to a duration-only value for storage + display.
+ * Domain detail stays in Qualifications, where it can be read in context.
  */
 export function normalizeExperienceRequirement(value: string): string | null {
   let s = value.replace(/\s+/g, ' ').trim();
@@ -1449,18 +1448,11 @@ export function normalizeExperienceRequirement(value: string): string | null {
   s = s.replace(/^Experience with\s+(?=(?:\d+(?:\+|–\d+)?\s*(?:years?|months?)|Recent|Several years)(?:\s+—|$))/i, '');
   const durationOnly = s.match(/^(\d+(?:\+|–\d+)?\s*(?:years?|months?))\s+—\s+(.+)$/i);
   if (durationOnly) {
-    if (/^(?:cash\s+handling|handling\s+cash)$/i.test(durationOnly[2].replace(/[.;]+$/, '').trim())) {
-      return durationOnly[1];
-    }
-    return s;
+    return durationOnly[1].replace(/\s+/g, ' ');
   }
-  const qualitative = s.match(/^(Recent|Several years)\s+—\s+(.+)$/i);
-  if (qualitative) {
-    const domain = qualitative[2].replace(/^[-–—:]\s*/, '').trim();
-    return domain ? qualitative[1] + ' — ' + domain : qualitative[1];
-  }
-  // A bare vague duration is not useful enough for the structured sidebar.
-  if (/^Several years$/i.test(s)) return null;
+  // Non-numeric requirements remain in Qualifications rather than the
+  // duration-only Experience property.
+  if (/^(?:Recent|Several years)(?:\s+—\s+.*)?$/i.test(s)) return null;
 
   if (EXPERIENCE_SKILL_PATTERNS.some(([, pattern]) => pattern.test(s))
     && /^experience\b/i.test(s)) {
@@ -1470,7 +1462,7 @@ export function normalizeExperienceRequirement(value: string): string | null {
   // Definition / glossary lines (federal "Experience is defined as…", BC "Recent… is defined as…")
   if (/\bis defined as\b/i.test(s) || /^experience is defined\b/i.test(s)) {
     const within = s.match(/within the past\s+(?:\w+\s*)?\(?(\d+)\)?\s*years?/i);
-    if (within) return `Recent (within past ${within[1]} years)`;
+    if (within) return null;
     const approx = s.match(/approximately\s+(?:\w+\s*)?\((\d+)\)\s*years?/i)
       || s.match(/(?:period of\s+)?(?:approximately\s+)?(\d+)\s*\+?\s*years?\s+or\s+more/i)
       || s.match(/\((\d+)\)\s*years?\s+or\s+more/i)
@@ -1517,30 +1509,51 @@ export function normalizeExperienceRequirement(value: string): string | null {
           : experiencePhrase[1].trim().toLowerCase() === 'experience' ? '' : experiencePhrase[1].trim();
     }
     domain = domain.replace(/^[,;:–—-]\s*/, '').replace(/[.;\s]+$/g, '').trim();
-    return domain ? `${label} — ${domain.charAt(0).toUpperCase()}${domain.slice(1)}` : label;
+    return label;
+  }
+  return null;
+}
+
+function experienceDetailBullet(value: string): string | null {
+  const compact = value.replace(/\s+/g, ' ').trim().replace(/[.;]+$/, '');
+  if (!compact || normalizeExperienceRequirement(compact) === null) {
+    return compact || null;
   }
 
-  const recent = s.match(/^recent(?:\s+experience)?\s*(?:in|with|of|:)?\s*(.*)$/i);
-  if (recent) {
-    const domain = recent[1].replace(/^[-–—:]\s*/, '').replace(/^the\s+/i, '').replace(/[.;\s]+$/g, '').trim();
-    return domain ? `Recent — ${domain.charAt(0).toUpperCase()}${domain.slice(1)}` : 'Recent';
-  }
-
-  const several = s.match(/^several\s+years?\s*(?:of\s+)?(?:[a-z-]+\s+){0,4}experience\b\s*(.*)$/i);
-  if (several) {
-    const domain = several[1].replace(/^in\s+(?:the\s+)?/i, '').replace(/[.;\s]+$/g, '').trim();
-    return domain ? `Several years — ${domain.charAt(0).toUpperCase()}${domain.slice(1)}` : 'Several years';
-  }
-
-  s = s
-    .replace(/^experience\s*:\s*/i, '')
-    .replace(/^experience\s+(?:in|with|of|using)\s+/i, '')
-    .replace(/^experience\s+/i, '')
-    .replace(/^in\s+(?:the\s+)?/i, '')
-    .replace(/[.;\s]+$/g, '')
+  const duration = compact.match(/^(?:(?:a\s+)?minimum(?:\s+of)?|at\s+least|over|more\s+than)?\s*(?:\d+(?:\.\d+)?\+?|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*\(\s*\d+\s*\))?\s*[-–—]?\s*(?:years?|yrs?|months?)\b/i);
+  if (!duration) return null;
+  const remainder = compact.slice(duration[0].length)
+    .replace(/^\s*(?:of\s+)?experience\b\s*/i, '')
+    .replace(/^[,;:–—-]\s*/, '')
     .trim();
-  if (!s || s.length < 3) return null;
-  return `Experience with ${s.charAt(0).toLowerCase()}${s.slice(1)}`;
+  if (!remainder || /^(?:related|relevant|progressive)\s+experience$/i.test(remainder)) return null;
+
+  // Keep the full source wording for alternatives and conditions. This avoids
+  // changing the relationship between education, credentials, and durations.
+  return compact;
+}
+
+/** Return source requirements that belong in the Qualifications narrative. */
+export function experienceQualificationBullets(values: string[]): string[] {
+  return [...new Set(values
+    .map(experienceDetailBullet)
+    .filter((value): value is string => Boolean(value)))];
+}
+
+/** Add moved Experience detail to Qualifications without duplicating exact bullets. */
+export function appendExperienceQualificationBullets(description: string, values: string[]): string {
+  const bullets = experienceQualificationBullets(values)
+    .filter(bullet => !description.toLowerCase().includes(bullet.toLowerCase()));
+  if (bullets.length === 0) return description;
+
+  const lines = description.trim() ? description.trim().split('\n') : [];
+  const qualificationIndex = lines.findIndex(line => /^#{1,6}\s+/.test(line) && isQualificationsHeading(line.trim()));
+  if (qualificationIndex >= 0) {
+    lines.splice(qualificationIndex + 1, 0, ...bullets.map(bullet => `- ${bullet}`));
+    return lines.join('\n');
+  }
+  const suffix = `## Qualifications\n${bullets.map(bullet => `- ${bullet}`).join('\n')}`;
+  return lines.length > 0 ? `${lines.join('\n')}\n\n${suffix}` : suffix;
 }
 
 /** Extract concrete skills that are also stated as experience domains. */
@@ -1560,30 +1573,17 @@ export function isTruncatedExperienceRequirement(value: string): boolean {
   return depth > 0;
 }
 
-/** Normalize a list: compact items, pull definition years to front, drop empties. */
+/** Normalize a list to unique duration-only items and drop non-duration text. */
 export function normalizeExperienceRequirements(values: string[]): string[] {
-  let yearsLabel: string | null = null;
   const out: string[] = [];
   const seen = new Set<string>();
   for (const raw of values) {
-    const isDef = /\bis defined as\b/i.test(raw) || /^experience is defined\b/i.test(raw);
     const compact = normalizeExperienceRequirement(raw);
     if (!compact) continue;
-    const standaloneDuration = /^(?:\d+(?:\+|–\d+)?\s*(?:years?|months?)|Recent|Several years)$/i.test(compact);
-    if (isDef || standaloneDuration) {
-      if (!yearsLabel) yearsLabel = compact;
-      continue;
-    }
-    // A source recovery pass can see the same requirement once as a
-    // threshold and once as a bare duration. Treat those as one item when
-    // their canonical duration/domain are otherwise identical.
-    const key = compact.toLowerCase().replace(/^(\d+)\+(\s+(?:years?|months?)\s+—)/, '$1$2');
+    const key = compact.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(compact);
-  }
-  if (yearsLabel && !seen.has(yearsLabel.toLowerCase())) {
-    return [yearsLabel, ...out];
   }
   return out;
 }

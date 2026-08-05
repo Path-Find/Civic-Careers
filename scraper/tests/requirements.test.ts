@@ -5,6 +5,7 @@ import {
   extractEducationRequirements,
   extractExperienceRequirements,
   extractExperienceRequirementsFromSources,
+  appendExperienceQualificationBullets,
   extractConcreteQualificationSkills,
   mergeConcreteQualificationSkills,
   normalizeExperienceRequirement,
@@ -525,8 +526,8 @@ test('extracts required years of experience and ignores optional experience', ()
 ## Nice to Have
 - Two years of municipal experience is an asset.
 `), [
-    '3+ years — Case management, social services, or community support',
-    '5 years — Leading teams',
+    '3+ years',
+    '5 years',
   ]);
 });
 
@@ -538,9 +539,6 @@ test('compacts federal Experience: walls and definition-of-experience meta lines
 - Experience is defined as experience acquired over a period of approximately two (2) years or more performing the duties on a regular basis
 `), [
     '2+ years',
-    'Experience with analyzing complex information to present recommendations or render a decision or conclusion',
-    'Experience with drafting formal reports, briefing notes, or decisions',
-    'Experience with interpretation, application or development of legislation or regulations',
   ]);
 });
 
@@ -554,14 +552,14 @@ test('extracts month-based experience and high-school education without splittin
     'High school diploma plus program in Law and Security, Police Foundations',
   ]);
   assert.deepEqual(extractExperienceRequirements(description), [
-    '2–6 months — Related experience',
+    '2–6 months',
   ]);
 });
 
 test('normalizes parenthetical numbers and identifies truncated values', () => {
   assert.equal(
     normalizeExperienceRequirement('A minimum of five (5) years of progressive HR experience'),
-    '5+ years — Progressive HR experience',
+    '5+ years',
   );
   assert.equal(isTruncatedExperienceRequirement('15+ years of experience (e'), true);
   assert.equal(isTruncatedExperienceRequirement('15+ years of experience (e.g., energy)'), false);
@@ -570,22 +568,34 @@ test('normalizes parenthetical numbers and identifies truncated values', () => {
 test('normalizes long duration-led Experience values without dropping alternatives', () => {
   assert.equal(
     normalizeExperienceRequirement('Minimum 7 years of experience in platform engineering with minimum 3 years leading a team'),
-    '7+ years — Platform engineering with minimum 3 years leading a team',
+    '7+ years',
   );
   assert.equal(
     normalizeExperienceRequirement('3 years experience, OR college diploma and 5 years experience, OR high school diploma and 7 years experience'),
-    '3 years — OR college diploma and 5 years experience, OR high school diploma and 7 years experience',
+    '3 years',
+  );
+});
+
+test('moves non-duration Experience detail into Qualifications', () => {
+  assert.equal(
+    appendExperienceQualificationBullets('## Overview\nRole summary', [
+      '5+ years — Platform engineering',
+      'Experience with leading complex regulatory proceedings',
+      'Several years — Public administration',
+    ]),
+    '## Overview\nRole summary\n\n## Qualifications\n- 5+ years — Platform engineering\n- Experience with leading complex regulatory proceedings\n- Several years — Public administration',
   );
 });
 
 test('drops a bare Several years Experience value', () => {
   assert.equal(normalizeExperienceRequirement('Several years'), null);
+  assert.equal(normalizeExperienceRequirement('Recent (within past 5 years) — municipal policy'), null);
 });
 
 test('recovers duration-led Experience clauses from concatenated raw source text', () => {
   assert.deepEqual(
     extractExperienceRequirementsFromSources('', '## QualificationsMinimum of 5 years of progressive HR experience.'),
-    ['5 years — Progressive HR experience'],
+    ['5 years'],
   );
 });
 
@@ -594,10 +604,11 @@ test('strips Experience and bilingual language restatements from Qualifications'
 - Minimum of 1-year experience in administrative support roles in a high-volume environment
 - Proficiency in both French and English (reading, writing, speaking)
 - Effective interpersonal and communication skills`, {
-    experience: ['Minimum of 1-year experience in administrative support roles in a high-volume environment'],
+    experience: ['1+ years'],
     languages: ['Bilingual'],
   });
   assert.equal(result, `## Qualifications
+- Minimum of 1-year experience in administrative support roles in a high-volume environment
 - Effective interpersonal and communication skills`);
 });
 
@@ -605,9 +616,10 @@ test('matches word-number Experience bullets to canonical duration values', () =
   const result = stripStructuredQualBullets(`## Qualifications
 - Minimum three (3) years of recent and relevant social work practice experience
 - Ability to work independently`, {
-    experience: ['3+ years — Of recent and relevant social work practice experience'],
+    experience: ['3+ years'],
   });
   assert.equal(result, `## Qualifications
+- Minimum three (3) years of recent and relevant social work practice experience
 - Ability to work independently`);
 });
 

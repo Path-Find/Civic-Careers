@@ -345,7 +345,7 @@ describe('validateParsedJob', () => {
       const result = validateParsedJob({ ...BASE, license_requirements: 'P.Eng., Class G', software_requirements: ['Excel', 'Adobe Acrobat'] });
       assert.deepEqual(result?.license_requirements, ['P.Eng.']);
       assert.deepEqual(result?.software_requirements, ['Excel', 'Adobe Acrobat']);
-      assert.deepEqual(validateParsedJob({ ...BASE, experience_requirements: ['Experience: analyzing complex information', 'Experience is defined as approximately two (2) years or more'] })?.experience_requirements, ['2+ years', 'Experience with analyzing complex information']);
+      assert.deepEqual(validateParsedJob({ ...BASE, experience_requirements: ['Experience: analyzing complex information', 'Experience is defined as approximately two (2) years or more'] })?.experience_requirements, ['2+ years']);
     });
 
     it('canonicalizes Microsoft Office aliases', () => {
