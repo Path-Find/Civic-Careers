@@ -1,5 +1,18 @@
 import DOMPurify from 'dompurify';
 
+export const jobRoute = (id: string): string => `/job/${encodeURIComponent(id)}`;
+
+export const jobIdFromPath = (path: string): string | null => {
+  if (!path.startsWith('/job/')) return null;
+  const encodedId = path.slice('/job/'.length).split('/')[0];
+  if (!encodedId) return null;
+  try {
+    return decodeURIComponent(encodedId);
+  } catch {
+    return null;
+  }
+};
+
 export interface MarkdownSection {
   heading: string;
   body: string;

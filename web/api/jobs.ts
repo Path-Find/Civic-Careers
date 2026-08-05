@@ -40,6 +40,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   const parsed = new URL(req.url!, `http://${req.headers.host}`);
   const id = parsed.searchParams.get('id');
   const ids = parsed.searchParams.get('ids');
+  const jobId = parsed.searchParams.get('jobId');
   const rid = parsed.searchParams.get('rid');
   const view = parsed.searchParams.get('view');
   const sourceParam = parsed.searchParams.get('source');
@@ -81,6 +82,29 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
 
+    if (jobId) {
+      let result = await db.execute({
+        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
+        args: [jobId]
+      });
+      // Keep old numeric /job/{rowid} links working while new links use jobs.id.
+      if (result.rows.length === 0 && /^\d+$/.test(jobId)) {
+        result = await db.execute({
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.rowid = ?`,
+          args: [jobId]
+        });
+      }
+      if (result.rows.length === 0) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Job not found' }));
+        return;
+      }
+      res.end(JSON.stringify(result.rows[0]));
+      return;
+    }
+
+    // Legacy API clients still send rid; keep this until all deployed clients
+    // have moved to the stable jobs.id route.
     if (rid) {
       const result = await db.execute({
         sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.rowid = ?`,

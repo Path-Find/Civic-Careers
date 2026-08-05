@@ -32,7 +32,6 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
       '',
       `Job title: ${job.job_title}`,
       `Company: ${job.source}`,
-      `Internal row ID: ${job.rid}`,
       `Source job ID: ${job.id}`,
       `URL: ${job.url}`,
     ].filter(Boolean).join('\n');
@@ -78,7 +77,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   const API = import.meta.env.VITE_API_URL ?? '';
   const [showReportDialog, setShowReportDialog] = useState(false);
   const recordApplyClick = () => {
-    void fetch(`${API}/api/jobs/${job.id}/apply-click`, { method: 'POST', keepalive: true }).catch(() => {});
+    void fetch(`${API}/api/jobs/${encodeURIComponent(job.id)}/apply-click`, { method: 'POST', keepalive: true }).catch(() => {});
   };
   const descriptionSections = reclassifyMandatoryNiceToHave(parseMarkdownSections(job.description ?? null));
   const overviewRaw = descriptionSections.find(section => section.heading.toLowerCase() === 'overview');

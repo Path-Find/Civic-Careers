@@ -10,7 +10,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   const parsed = new URL(req.url!, `http://${req.headers.host}`);
   const pathMatch = parsed.pathname.match(/\/api\/jobs\/([^/]+)\/apply-click/);
-  const id = pathMatch?.[1] ?? parsed.searchParams.get('id');
+  const rawId = pathMatch?.[1] ?? parsed.searchParams.get('id');
+  const id = rawId ? decodeURIComponent(rawId) : rawId;
   if (!id) {
     res.writeHead(400);
     res.end('Missing id');

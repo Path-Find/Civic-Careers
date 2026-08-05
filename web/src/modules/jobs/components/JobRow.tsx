@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import type { MouseEvent } from 'react';
-import { daysUntilClose, formatDate } from '../../../utils';
+import { daysUntilClose, formatDate, jobRoute } from '../../../utils';
 import type { Job } from '../../../types/jobs';
 
 export function JobRow({ job, onClick }: { job: Job; onClick: () => void }) {
@@ -35,5 +35,5 @@ export function JobRow({ job, onClick }: { job: Job; onClick: () => void }) {
   </>;
 
   if (!job.is_active) return <div className="job-row" style={{ cursor: 'default', opacity: 0.6 }}>{content}</div>;
-  return <a className="job-row" href={`/job/${job.rid}`} onClick={handleClick} style={{ cursor: 'pointer' }}>{content}</a>;
+  return <a className="job-row" href={jobRoute(job.id)} onClick={handleClick} style={{ cursor: 'pointer' }}>{content}</a>;
 }

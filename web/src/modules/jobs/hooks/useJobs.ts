@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CompanySummary, HomeData, Job } from '../../../types/jobs';
 import { normalizeJob } from '../jobUtils';
+import { jobIdFromPath } from '../../../utils';
 
 const API = import.meta.env.VITE_API_URL ?? '';
 const pendingRequests = new Map<string, Promise<unknown>>();
@@ -71,7 +72,7 @@ export function useJobs() {
     serverFiltersRef.current = next;
   }, []);
 
-  const refresh = useCallback((singleRid?: number) => {
+  const refresh = useCallback((singleJobId?: string) => {
     setLoading(true);
     const path = window.location.pathname;
     const companySlug = companySlugFromPath(path);
@@ -86,8 +87,8 @@ export function useJobs() {
             : null;
 
     let endpoint: string;
-    if (singleRid !== undefined) {
-      endpoint = `${API}/api/jobs?rid=${singleRid}`;
+    if (singleJobId !== undefined) {
+      endpoint = `${API}/api/jobs?jobId=${encodeURIComponent(singleJobId)}`;
     } else if (companySlug) {
       // Company deep link: only that employer's jobs (not the full corpus).
       const params = new URLSearchParams({
@@ -133,8 +134,8 @@ export function useJobs() {
           return;
         }
 
-        if (singleRid !== undefined) {
-          const job = data && !Array.isArray(data) && data.rid != null
+        if (singleJobId !== undefined) {
+          const job = data && !Array.isArray(data) && data.id != null
             ? normalizeJob(data)
             : null;
           setJobs(job ? [job] : []);
@@ -180,8 +181,8 @@ export function useJobs() {
   }, [jobs.length, jobsTotal]);
 
   useEffect(() => {
-    const match = window.location.pathname.match(/^\/job\/(\d+)$/);
-    void Promise.resolve().then(() => refresh(match ? Number(match[1]) : undefined));
+    const jobId = jobIdFromPath(window.location.pathname);
+    void Promise.resolve().then(() => refresh(jobId ?? undefined));
   }, [refresh]);
 
   const updateJob = useCallback((id: string, changes: Partial<Job>) => {
@@ -202,7 +203,7 @@ export function useJobs() {
   }, [updateJob]);
 
   const toggleSaved = useCallback(async (job: Job) => {
-    const response = await fetch(`${API}/api/jobs/${job.id}/toggle-save`, { method: 'POST' });
+    const response = await fetch(`${API}/api/jobs/${encodeURIComponent(job.id)}/toggle-save`, { method: 'POST' });
     if (!response.ok) return null;
     const { is_saved } = await response.json();
     updateJob(job.id, { is_saved });

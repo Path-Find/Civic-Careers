@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { inject } from '@vercel/analytics';
-import { slugify } from './utils';
+import { jobIdFromPath, jobRoute, slugify } from './utils';
 import type { Job, View } from './types/jobs';
 import { parseJobDetails } from './modules/jobs/jobUtils';
 import { useJobs } from './modules/jobs/hooks/useJobs';
@@ -198,8 +198,11 @@ function App() {
     const handlePopState = () => {
       const path = window.location.pathname;
       if (path.startsWith('/job/')) {
-        const rid = Number(path.replace('/job/', ''));
-        const job = jobs.find(j => j.rid === rid);
+        const jobId = jobIdFromPath(path);
+        const legacyRid = jobId && /^\d+$/.test(jobId) ? Number(jobId) : null;
+        const job = jobId
+          ? jobs.find(candidate => candidate.id === jobId || (legacyRid !== null && candidate.rid === legacyRid))
+          : undefined;
         if (job) setSelectedJob(job);
       } else if (path === '/saved') {
         setCurrentView('saved');
@@ -256,7 +259,7 @@ function App() {
     if (!job.is_active) return;
     setSelectedJob(job);
     window.scrollTo(0, 0);
-    window.history.pushState({ jobId: job.rid }, '', `/job/${job.rid}`);
+    window.history.pushState({ jobId: job.id }, '', jobRoute(job.id));
   };
 
   const toggleSaveJob = async (job: Job, e: React.MouseEvent) => {
