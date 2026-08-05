@@ -37,7 +37,8 @@ async function main() {
 
   const result = await db.execute(`
     SELECT d.id, d.job_title, d.description, j.source,
-           d.education_requirements, d.experience_requirements, d.license_requirements
+           d.education_requirements, d.experience_requirements, d.license_requirements,
+           d.language_requirements
     FROM job_details d
     JOIN jobs j ON j.id = d.id
     WHERE d.description IS NOT NULL AND d.description != ''
@@ -51,9 +52,10 @@ async function main() {
     const education = normalizeEducationRequirements(parseList(row.education_requirements));
     const experience = parseList(row.experience_requirements);
     const licenses = normalizeLicenseRequirements(parseList(row.license_requirements));
+    const languages = parseList(row.language_requirements);
 
     let after = cleanJobDescription(before, String(row.job_title ?? ''), String(row.source ?? ''));
-    after = stripStructuredQualBullets(after, { licenses, education, experience });
+    after = stripStructuredQualBullets(after, { licenses, education, experience, languages });
 
     if (after === before) continue;
 

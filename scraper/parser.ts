@@ -57,11 +57,6 @@ async function main() {
           benefits: aiResult.benefits,
           required_skills: aiResult.required_skills,
         });
-        description = stripStructuredQualBullets(description, {
-          licenses: structuredRequirements.license_requirements,
-          education: structuredRequirements.education_requirements,
-          experience: structuredRequirements.experience_requirements,
-        });
         const certificationRequirements = extractCertificationRequirements(description);
         const softwareRequirements = extractSoftwareRequirements(description).values;
         const finalSoftwareRequirements = softwareRequirements.length ? softwareRequirements : aiResult.software_requirements;
@@ -71,6 +66,12 @@ async function main() {
           ...(aiResult.language_requirements ?? []),
           ...languagesFromSkills,
         ]);
+        description = stripStructuredQualBullets(description, {
+          licenses: structuredRequirements.license_requirements,
+          education: structuredRequirements.education_requirements,
+          experience: structuredRequirements.experience_requirements,
+          languages: finalLanguages,
+        });
         const vehicleFromLicense = licensesImplyVehicle(structuredRequirements.license_requirements);
         const listingType = extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory);
         const isInventory = listingType === 'inventory' || aiResult.is_inventory;

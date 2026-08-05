@@ -1233,8 +1233,8 @@ export function stripLicenseBulletsFromDescription(description: string, licenses
 }
 
 /**
- * Drop Qualifications bullets that restate structured education / experience / licence
- * fields (QUALITY.md rule 1: no fact in two places).
+ * Drop Qualifications bullets that restate structured education / experience /
+ * licence / language fields (QUALITY.md rule 1: no fact in two places).
  */
 export function stripStructuredQualBullets(
   description: string,
@@ -1242,16 +1242,19 @@ export function stripStructuredQualBullets(
     licenses?: string[];
     education?: string[];
     experience?: string[];
+    languages?: string[];
   },
 ): string {
   if (!description.trim()) return description;
   const licenses = fields.licenses ?? [];
   const education = fields.education ?? [];
   const experience = fields.experience ?? [];
-  if (!licenses.length && !education.length && !experience.length) return description;
+  const languages = fields.languages ?? [];
+  if (!licenses.length && !education.length && !experience.length && !languages.length) return description;
 
   const eduKeys = education.map(educationCoreKey).filter(Boolean);
   const expKeys = experience.map(experienceCoreKey).filter(Boolean);
+  const hasLanguage = languages.some(l => l.trim().length > 0);
 
   const lines = description.split('\n');
   let inQuals = false;
@@ -1272,6 +1275,16 @@ export function stripStructuredQualBullets(
         .replace(/\.\s+(?=[A-Z])[^.]*\b(?:asset|preferred|nice\s+to\s+have|desirable)\b[^.]*\.?\s*$/i, '')
         .trim();
 
+      // Language already in Languages property (federal "Language requirements: Bilingual…")
+      if (hasLanguage && (
+        /^(?:language\s+requirements?|languages?)\s*:/i.test(focus)
+        || /^(?:various\s+)?language\s+requirements?\b/i.test(focus)
+        || (/^bilingual\b/i.test(focus) && languages.some(l => /bilingual/i.test(l)) && focus.length < 140)
+      )) {
+        removed += 1;
+        continue;
+      }
+
       // Licence restatement
       if (licenses.length && LICENSE_TERM.test(focus) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)) {
         const restates = licenses.some(license => licenseKeysOverlap(license, focus));
@@ -1284,13 +1297,14 @@ export function stripStructuredQualBullets(
       }
 
       // Education restatement (high school / degree / diploma already structured)
+      const eduFocus = focus.replace(/^education\s*:\s*/i, '');
       if (eduKeys.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
-        && /\b(?:high\s+school|secondary\s+school|grade\s*12|bachelor|master|ph\.?d|diploma|degree|post[- ]secondary|college|university|ossd|certificate\s+in)\b/i.test(focus)) {
-        const bulletKey = educationCoreKey(focus);
+        && /\b(?:high\s+school|secondary\s+school|grade\s*12|bachelor|master|ph\.?d|diploma|degree|post[- ]secondary|college|university|ossd|certificate\s+in)\b/i.test(eduFocus)) {
+        const bulletKey = educationCoreKey(eduFocus);
         const restatesEdu = eduKeys.some(key => keysOverlapLoose(key, bulletKey));
-        // Pure education credential bullet (not skills + education mashup over 200 chars of unique content)
-        const mostlyEdu = focus.length < 220
-          || /^(?:must\s+(?:have|hold|possess|complete)|completion|completed|successful|minimum|a|an)\b/i.test(focus);
+        const mostlyEdu = eduFocus.length < 280
+          || /^(?:must\s+(?:have|hold|possess|complete)|completion|completed|successful|minimum|a|an|education)\b/i.test(focus)
+          || /^education\s*:/i.test(focus);
         if (restatesEdu && mostlyEdu) {
           removed += 1;
           continue;
@@ -1313,12 +1327,40 @@ export function stripStructuredQualBullets(
           continue;
         }
       }
+
+      // Abilities/competencies: drop clauses that only restate Experience domains
+      // (e.g. "analyze complex information…" when Experience already has that).
+      if (expKeys.length && /^(?:abilities?|competencies?)\s*:/i.test(focus)) {
+        const labelMatch = focus.match(/^(abilities?|competencies?)\s*:?\s*/i);
+        const label = labelMatch?.[0] ?? '';
+        const body = focus.slice(label.length);
+        const clauses = body.split(/;\s*/).map(c => c.trim()).filter(Boolean);
+        if (clauses.length > 0) {
+          const keptClauses = clauses.filter(c => !expKeys.some(key => keysOverlapLoose(key, experienceCoreKey(c))));
+          if (keptClauses.length === 0) {
+            removed += 1;
+            continue;
+          }
+          if (keptClauses.length < clauses.length) {
+            const prefix = line.match(/^\s*[-•*]\s+/)?.[0] ?? '- ';
+            kept.push(`${prefix}${label}${keptClauses.join('; ')}`);
+            removed += 1;
+            continue;
+          }
+        }
+      }
     }
     kept.push(line);
   }
 
   if (removed === 0) return description;
-  return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  // Drop a Qualifications heading that has no remaining bullets before the next heading.
+  let cleaned = kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  cleaned = cleaned.replace(
+    /(?:^|\n)(#{1,6}\s+Qualifications[^\n]*\n)(?:\s*\n)*(?=(?:#{1,6}\s+|\s*$))/gi,
+    '\n',
+  ).replace(/\n{3,}/g, '\n\n').trim();
+  return cleaned;
 }
 
 export function licensesImplyVehicle(licenses: string[]): boolean {

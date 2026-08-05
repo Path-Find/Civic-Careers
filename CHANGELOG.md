@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Wordy federal Experience walls collapsed** — e.g. “Experience analyzing… / Experience is defined as… two (2) years…” → `2+ years` + short domain labels; definition meta lines dropped; body bullets that only restated Experience stripped.
+- **Qualifications no longer restate Languages (or Experience clauses already in the sidebar)** — e.g. “Language requirements: Bilingual Imperative CCC/CCC” and Abilities lines that only repeat Experience domains are stripped from the body.
 - **CMHC Compensation & Benefits sections that only restated sidebar salary + package benefits are gone** (e.g. “Salary range $X–$Y” + “accrued vacation, performance bonus, group insurance…”). Detector no longer treated bare “performance bonus” as unique pay just because a $ salary was also in the section.
 - **CMHC “About CMHC” employer pitch stripped** (“The work you do… well-functioning housing system” + generic “What’s in it for you” benefits package) so postings open on the role, not the mission statement. Existing CMHC/GC rows cleaned.
 - **Company pages took 30+ seconds** (e.g. `/companies/university-of-ottawa`) because they loaded the entire job corpus (~5k rows / 7MB). They now fetch only that employer’s jobs.

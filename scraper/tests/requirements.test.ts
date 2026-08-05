@@ -298,6 +298,36 @@ test('strips qualification bullets that restate structured licences', () => {
 - Enforce by-laws`,
   );
 
+  // Language / Experience / Education already in structured fields (federal CRO-style).
+  assert.equal(
+    stripStructuredQualBullets(
+      `## Qualifications
+- Willingness and ability to work overtime, as required
+- Competencies: effective interpersonal relationships; judgment
+- Abilities: analyze complex information and develop clear recommendations; communicate orally
+- Language requirements: Various language requirements - Bilingual Imperative CCC/CCC; English Essential
+
+## Nice to Have
+- Education: A professional law degree (LL.B., J.D., B.C.L.) or equivalent
+`,
+      {
+        education: ['Degree from a post-secondary institution with an acceptable specialization in a field related to the duties of the position'],
+        experience: [
+          '2+ years',
+          'Analyzing complex information to present recommendations or render a decision or conclusion',
+        ],
+        languages: ['Bilingual'],
+      },
+    ),
+    `## Qualifications
+- Willingness and ability to work overtime, as required
+- Competencies: effective interpersonal relationships; judgment
+- Abilities: communicate orally
+
+## Nice to Have
+- Education: A professional law degree (LL.B., J.D., B.C.L.) or equivalent`,
+  );
+
   // Bold/non-markdown headings used by some municipal parsers.
   assert.equal(
     stripLicenseBulletsFromDescription(
