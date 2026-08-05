@@ -1,4 +1,4 @@
-import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
+import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 import { normalizeDuration } from './duration';
