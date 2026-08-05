@@ -133,7 +133,8 @@ function App() {
     return !latest || job.last_checked_at > latest ? job.last_checked_at : latest;
   }, null);
   const lastCheckedAt = homeData?.lastCheckedAt ?? latestJobCheckedAt;
-  const isCompanyPage = currentView === 'jobs' && Boolean(jobsSource) && searchTerm === jobsSource;
+  // jobsSource is set by the scoped company-page API fetch — no need to mirror it into searchTerm.
+  const isCompanyPage = currentView === 'jobs' && Boolean(jobsSource);
   const hasJobFilters = Boolean(
     (!isCompanyPage && searchTerm)
     || locationTerm
@@ -198,9 +199,6 @@ function App() {
         setSelectedJob(null);
       } else if (path.startsWith('/companies/')) {
         setCurrentView('jobs');
-        // Exact employer name comes from the scoped jobs API (jobsSource); until
-        // that resolves, keep whatever is already set (e.g. from a click).
-        if (jobsSource) setSearchTerm(jobsSource);
         setSelectedJob(null);
       } else if (path === '/companies') {
         setCurrentView('companies');
@@ -223,14 +221,7 @@ function App() {
     handlePopState();
     window.scrollTo(0, 0);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [jobs, jobsSource, refresh]);
-
-  // Company deep links resolve the real source name from the API after fetch.
-  useEffect(() => {
-    if (jobsSource && window.location.pathname.startsWith('/companies/')) {
-      setSearchTerm(jobsSource);
-    }
-  }, [jobsSource]);
+  }, [jobs, refresh]);
 
   useEffect(() => {
     if (!selectedJob) return;
