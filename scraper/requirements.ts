@@ -1632,6 +1632,41 @@ function isCertificationRestatementBullet(text: string, certifications: string[]
   return bulletTokens.every(token => certificationTokens.has(token));
 }
 
+const SKILL_RESTATEMENT_NOISE = new Set([
+  'a', 'an', 'and', 'be', 'by', 'can', 'demonstrated', 'excellent', 'experience', 'familiar',
+  'familiarity', 'good', 'have', 'in', 'including', 'knowledge', 'of', 'proficiency', 'proficient',
+  'required', 'skill', 'skills', 'skilled', 'strong', 'the', 'to', 'use', 'using', 'with', 'working',
+]);
+const MISCLASSIFIED_SKILL_PATTERN = /\b(?:criminal\s+record|vulnerable\s+sector|security\s+clearance|certification|certificate)\b/i;
+
+function skillRestatementTokens(value: string): string[] {
+  return normalizedRequirement(value)
+    .split(' ')
+    .filter(token => token.length > 1 && !SKILL_RESTATEMENT_NOISE.has(token));
+}
+
+function isRequiredSkillRestatementBullet(text: string, skills: string[]): boolean {
+  if (!skills.length || text.length > 320 || MISCLASSIFIED_SKILL_PATTERN.test(text)) return false;
+  if (!/\b(?:skill|proficien|knowledge|experience|familiar|ability|competenc|expert|adept|literacy|command|using|use)\w*\b/i.test(text)) return false;
+
+  let remaining = skillRestatementTokens(text);
+  const phrases = skills
+    .filter(skill => typeof skill === 'string' && !MISCLASSIFIED_SKILL_PATTERN.test(skill))
+    .map(skillRestatementTokens)
+    .filter(tokens => tokens.length > 0)
+    .sort((left, right) => right.length - left.length);
+
+  for (const phrase of phrases) {
+    for (let index = 0; index <= remaining.length - phrase.length; index++) {
+      if (!phrase.every((token, offset) => remaining[index + offset] === token)) continue;
+      remaining.splice(index, phrase.length);
+      break;
+    }
+  }
+
+  return remaining.length === 0;
+}
+
 /**
  * Drop Qualifications (and similar) bullets that only restate a licence already
  * captured in license_requirements — QUALITY.md rule 1.
@@ -1750,6 +1785,13 @@ export function stripStructuredQualBullets(
       if (hasFirstAidCert && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
         && isMostlyFirstAidCertificationBullet(focus)
         && !/\b(?:high\s+five|smart\s+serve|whmis|food\s+handler|nonviolent\s+crisis)\b/i.test(focus)) {
+        removed += 1;
+        continue;
+      }
+
+      // Skills already shown in the structured Skills property.
+      if (requiredSkills.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+        && isRequiredSkillRestatementBullet(focus, requiredSkills)) {
         removed += 1;
         continue;
       }

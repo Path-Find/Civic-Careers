@@ -112,6 +112,20 @@ test('strips certification restatements but preserves extra facts in mixed bulle
   assert.doesNotMatch(result, /WHMIS certification/);
 });
 
+test('strips pure skill restatements but preserves mixed qualification bullets', () => {
+  const description = `## Qualifications
+- Proficiency with Excel and GIS
+- Experience with Excel and GIS in municipal reporting
+- Strong communication skills
+`;
+  const result = stripStructuredQualBullets(description, {
+    requiredSkills: ['Excel', 'GIS'],
+  });
+  assert.doesNotMatch(result, /Proficiency with Excel and GIS/);
+  assert.match(result, /Experience with Excel and GIS in municipal reporting/);
+  assert.match(result, /Strong communication skills/);
+});
+
 test('extracts Grade 12 as high school diploma and strips first-aid / grade-12 restatements', () => {
   const desc = `## Qualifications
 - Grade 12 or equivalent
