@@ -1,8 +1,9 @@
 import { initDb } from './db';
-import { reconcileStructuredRequirements } from './requirements';
+import { mergeConcreteQualificationSkills, normalizeEducationRequirements, reconcileStructuredRequirements } from './requirements';
 
 const apply = process.argv.includes('--apply');
 const educationLicenceOnly = process.argv.includes('--education-licence-only');
+const skillsOnly = process.argv.includes('--skills-only');
 const sample = process.argv.includes('--sample');
 const limitArg = process.argv.find(value => value.startsWith('--limit='));
 const perSourceArg = process.argv.find(value => value.startsWith('--per-source='));
@@ -49,7 +50,7 @@ async function main() {
            jd.benefits, jd.required_skills
     FROM jobs j
     JOIN job_details jd ON jd.id = j.id
-    WHERE jd.description IS NOT NULL AND jd.description != ''
+    WHERE j.is_active = 1 AND jd.description IS NOT NULL AND jd.description != ''
     ORDER BY j.source, j.id
   `);
 
@@ -65,22 +66,33 @@ async function main() {
   }));
 
   const work: Work[] = rows.map(row => {
+    const currentEducation = parseList(row.education_requirements);
+    const currentSkills = parseList(row.required_skills);
     const result = reconcileStructuredRequirements(row.description, {
-      education_requirements: parseList(row.education_requirements),
+      education_requirements: currentEducation,
       license_requirements: parseList(row.license_requirements),
       benefits: parseList(row.benefits),
       required_skills: parseList(row.required_skills),
     });
+    // Never let a deterministic parse replace an existing valid alternative
+    // with a shorter subset (for example an OR-qualified teaching condition).
+    const educationRequirementsNext = result.education_requirements.length < currentEducation.length
+      ? normalizeEducationRequirements(currentEducation)
+      : result.education_requirements;
     return {
       ...row,
-      education_requirements_next: result.education_requirements,
+      education_requirements_next: educationRequirementsNext,
       license_requirements_next: result.license_requirements,
       benefits_next: result.benefits,
-      required_skills_next: result.required_skills,
+      required_skills_next: skillsOnly
+        ? mergeConcreteQualificationSkills(currentSkills, row.description)
+        : result.required_skills,
     };
   });
 
-  const candidates = work.filter(row => educationLicenceOnly
+  const candidates = work.filter(row => skillsOnly
+    ? !sameList(parseList(row.required_skills), row.required_skills_next)
+    : educationLicenceOnly
     ? !sameList(parseList(row.education_requirements), row.education_requirements_next)
       || !sameList(parseList(row.license_requirements), row.license_requirements_next)
     : !sameList(parseList(row.education_requirements), row.education_requirements_next)
@@ -119,7 +131,12 @@ async function main() {
   }
 
   if (!apply || sample || selected.length === 0) return;
-  await db.batch(selected.map(row => educationLicenceOnly
+  await db.batch(selected.map(row => skillsOnly
+    ? {
+      sql: 'UPDATE job_details SET required_skills = ? WHERE id = ?',
+      args: [JSON.stringify(row.required_skills_next), row.id],
+    }
+    : educationLicenceOnly
     ? {
       sql: 'UPDATE job_details SET education_requirements = ?, license_requirements = ? WHERE id = ?',
       args: [JSON.stringify(row.education_requirements_next), JSON.stringify(row.license_requirements_next), row.id],

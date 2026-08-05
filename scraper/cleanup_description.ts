@@ -325,7 +325,9 @@ export function isRedundantCompensationSection(heading: string, body: string): b
 export function cleanJobDescription(description: string, jobTitle: string, source = ''): string {
   if (!description.trim()) return description.trim();
 
-  const sourceCleaned = cleanSourceDescriptionBoilerplate(source, description);
+  const sourceCleaned = cleanSourceDescriptionBoilerplate(source, description)
+    // Canonical product name: WordPress is one word.
+    .replace(/\bWord\s+Press\b/gi, 'WordPress');
   const sections = sourceCleaned
     .split(/(?=^##\s+)/m)
     .map(chunk => {

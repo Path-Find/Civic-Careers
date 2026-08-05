@@ -5,6 +5,8 @@ import {
   extractEducationRequirements,
   extractExperienceRequirements,
   extractExperienceRequirementsFromSources,
+  extractConcreteQualificationSkills,
+  mergeConcreteQualificationSkills,
   normalizeExperienceRequirement,
   isTruncatedExperienceRequirement,
   extractLanguageRequirements,
@@ -14,6 +16,7 @@ import {
   extractProfessionalLicenseRequirements,
   normalizeLicenseRequirements,
   normalizeProfessionalLicenseRequirements,
+  licensesImplyVehicle,
   extractNamedBenefits,
   stripLicenseBulletsFromDescription,
   stripStructuredQualBullets,
@@ -57,6 +60,25 @@ test('extracts Grade 12 as high school diploma and strips first-aid / grade-12 r
   assert.doesNotMatch(stripped, /First Aid/);
 });
 
+test('extracts degree verification as an Education condition', () => {
+  const description = `## Qualifications
+- Bachelor of Social Work degree
+- Must produce verification of degree(s), credentials(s), or equivalencies from accredited institutions at interview
+`;
+  assert.deepEqual(extractEducationRequirements(description), ['Bachelor of Social Work degree', 'Education verification']);
+  assert.doesNotMatch(stripStructuredQualBullets(description, {
+    education: ['Bachelor of Social Work degree', 'Education verification'],
+  }), /verification of degree/i);
+});
+
+test('keeps existing education when only verification is newly detected', () => {
+  const result = reconcileStructuredRequirements(
+    '## Qualifications\n- Provide proof of education at screening',
+    { education_requirements: ['Bachelor\'s degree in Education'] },
+  );
+  assert.deepEqual(result.education_requirements, ["Bachelor's degree in Education", 'Education verification']);
+});
+
 test('extracts named software and ignores ambiguous categories', () => {
   const result = extractSoftwareRequirements(`## Qualifications
 - Proficient in Microsoft Office Suite, Adobe Acrobat, and HEC-RAS
@@ -83,6 +105,29 @@ test('recognizes individual Microsoft programs', () => {
 - Microsoft Word, Microsoft Excel, MS PowerPoint, Outlook, and Access
 `);
   assert.deepEqual(result.values, ['Word', 'Excel', 'PowerPoint', 'Outlook', 'Access']);
+});
+
+test('canonicalizes named web and campus tools as software', () => {
+  const result = extractSoftwareRequirements(`## Qualifications
+- Intermediate MS Word, MS Excel, MS Access, Lotus Notes, Student Information System (SIS)
+- Use software to update websites (e.g., Word Press/Contribute)
+`);
+  assert.deepEqual(result.values, ['Lotus Notes', 'SIS', 'Word', 'Excel', 'Access', 'WordPress', 'Contribute']);
+});
+
+test('extracts measurable typing requirements into Skills', () => {
+  const description = `## Qualifications
+- Typing 40-50 w.p.m. with accuracy
+- Typing speed of 50 words per minute
+
+## Nice to Have
+- Typing 70 wpm is an asset
+`;
+  assert.deepEqual(extractConcreteQualificationSkills(description), ['Typing 40–50 w.p.m.', 'Typing 50 w.p.m.']);
+  assert.deepEqual(
+    mergeConcreteQualificationSkills(['typing 40 wpm', 'CritiCall'], '## Qualifications\n- Typing 40 w.p.m.'),
+    ['CritiCall', 'Typing 40 w.p.m.'],
+  );
 });
 
 test('recognizes a program name at the end of a sentence', () => {
@@ -458,6 +503,26 @@ test('strips Experience and bilingual language restatements from Qualifications'
 - Effective interpersonal and communication skills`);
 });
 
+test('matches word-number Experience bullets to canonical duration values', () => {
+  const result = stripStructuredQualBullets(`## Qualifications
+- Minimum three (3) years of recent and relevant social work practice experience
+- Ability to work independently`, {
+    experience: ['3+ years — Of recent and relevant social work practice experience'],
+  });
+  assert.equal(result, `## Qualifications
+- Ability to work independently`);
+});
+
+test('strips measurable typing bullets already represented in Skills', () => {
+  const result = stripStructuredQualBullets(`## Qualifications
+- Typing 40-50 w.p.m. with accuracy
+- Ability to work independently`, {
+    requiredSkills: ['Typing 40–50 w.p.m.'],
+  });
+  assert.equal(result, `## Qualifications
+- Ability to work independently`);
+});
+
 test('drops obvious stale overview and software-licence values during reconciliation', () => {
   const result = reconcileStructuredRequirements('## Overview\nA college is a post-secondary institution offering programs.\n\n## Qualifications\n- Must possess a valid Class G driver\'s licence', {
     education_requirements: ['A college is a leading post-secondary institution offering programs.'],
@@ -691,6 +756,12 @@ test('returns false only for an explicit vehicle negative', () => {
 - Valid Class G driver's licence required
 - Some duties do not require operating a vehicle
 `), true);
+});
+
+test('does not infer a vehicle requirement from non-driver licence classes', () => {
+  assert.equal(licensesImplyVehicle(['Class 1 or 2 ACV Engineering licence']), false);
+  assert.equal(licensesImplyVehicle(['Third Class Operating Engineer Certification']), false);
+  assert.equal(licensesImplyVehicle(['Ontario Class G']), true);
 });
 
 test('strips language proficiency items out of skills into languages', () => {

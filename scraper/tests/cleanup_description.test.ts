@@ -85,6 +85,13 @@ test('deduplicates repeated bullets inside a section', () => {
   assert.equal(result, '## Qualifications\n- Valid Class G licence.\n- Three years of experience.');
 });
 
+test('canonicalizes WordPress as one word', () => {
+  assert.equal(
+    cleanJobDescription('## Qualifications\n- Experience with Word Press and Drupal.', 'Web Coordinator'),
+    '## Qualifications\n- Experience with WordPress and Drupal.',
+  );
+});
+
 test('removes sections whose only content is a placeholder', () => {
   const result = cleanJobDescription(`## Overview
 ## Responsibilities

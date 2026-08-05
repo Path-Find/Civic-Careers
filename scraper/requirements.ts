@@ -111,6 +111,10 @@ export function isMostlyFirstAidCertificationBullet(text: string): boolean {
 const SOFTWARE_PATTERNS: Array<[string, RegExp]> = [
   ['Microsoft Office', /(?:Microsoft Office(?: Suite)?|Microsoft Suite|MS Office(?: Suite)?|Office 365)/i],
   ['Microsoft 365', /(?:Microsoft 365|M365)/i],
+  ['WordPress', /\bWord\s*Press\b/i],
+  ['Lotus Notes', /\bLotus\s+Notes\b/i],
+  ['SIS', /\b(?:Student Information System|SIS)\b/i],
+  ['Contribute', /\b(?:Adobe\s+)?Contribute\b(?=\s*(?:[,;/.)]|$))/i],
   ['Word', /(?:Microsoft|MS) Word\b|\bWord\b(?!\s+(?:embeddings?|processing|processor|processors)\b)(?=\s*(?:[,.;:)]|and\b|mail\s+merge\b|$))/i],
   ['Excel', /(?:Microsoft|MS) Excel\b|\bExcel\b/i],
   ['PowerPoint', /(?:Microsoft|MS) PowerPoint\b|\bPowerPoint\b/i],
@@ -264,6 +268,7 @@ export function normalizeListingType(value: unknown, isInventory = false): Listi
 
 const EDUCATION_TERM = /\b(?:bachelor(?:['’]s)?(?:\s+degree)?|master(?:['’]s)?(?!\s+electrician)(?:\s+degree)?|ph\.?d\.?|doctor(?:ate|al)|diploma|degree\s+(?:in|from|required|or|program)|post[- ]secondary\s+(?:education|program|institution)|associate(?:['’]s)?|bscn|bsn|b\.?a\.?|m\.?a\.?|undergraduate\s+degree|graduate\s+degree)\b/i;
 const STUDENT_EDUCATION_TERM = /\b(?:current(?:ly)?\s+enrol(?:l(?:ed|ment)?|ment)?|registration\s+in\s+(?:a\s+)?co-?op\s+program|student\s+(?:status|enrolment|enrollment))\b/i;
+const EDUCATION_VERIFICATION = /\b(?:verification|proof)\s+of\s+(?:degree|education|educational|diploma|transcript|equivalenc(?:y|ies))\b/i;
 const EDUCATION_REQUIRED_CUE = /\b(?:required|minimum|must|completion|completed|successful|degree\s+in|diploma\s+in|equivalent|eligible|graduate|undergraduate|post[- ]secondary\s+(?:program|institution|education\s+in)|education\s+in)\b|\b(?:a|an|minimum|completion\s+of|completed|required)\s+post[- ]secondary\s+education\b/i;
 const EDUCATION_CONTEXT_ONLY = /^\s*(?:familiarity|knowledge|experience|proficiency|understanding|working knowledge|demonstrated|strong|excellent)\b/i;
 const FORMAL_EDUCATION_CUE = /\b(?:bachelor|master|ph\.?d|doctor(?:ate|al)|diploma|degree|bscn|bsn|b\.?a\.?|m\.?a\.?|undergraduate|graduate|enrol(?:l|led|ment)|completion of)\b/i;
@@ -293,7 +298,7 @@ const EXPERIENCE_YEARS_PATTERN = new RegExp(
   `\\b(?:(?:over|more\\s+than|at\\s+least|minimum(?:\\s+of)?)\\s+)?${EXPERIENCE_AMOUNT}${EXPERIENCE_SUFFIX}\\b`,
   'i',
 );
-const EXPERIENCE_TIME_SIGNAL = /\b(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)\s*[-–—]?\s*(?:years?|months?|yrs?)\b/i;
+const EXPERIENCE_TIME_SIGNAL = /\b(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*\(\s*\d+\s*\))?\s*[-–—]?\s*(?:years?|months?|yrs?)\b/i;
 const EXPERIENCE_CLAUSE_PATTERN = new RegExp(
   `(?:(?:a\\s+)?minimum\\s+of|minimum|at\\s+least|over|more\\s+than)?\\s*${EXPERIENCE_AMOUNT}${EXPERIENCE_SUFFIX}\\b[^.;\\n]{0,180}`,
   'i',
@@ -636,7 +641,7 @@ export function normalizeEducationRequirements(value: unknown): string[] {
     const cleaned = compactEducationRequirement(item);
     if (!cleaned) continue;
     if (!EDUCATION_TERM.test(cleaned) && !STUDENT_EDUCATION_TERM.test(cleaned)
-      && !/\b(?:secondary\s+school|high\s+school|post[- ]secondary|diploma|degree|certificate|enrol(?:l(?:ed|ment)?)?|grade\s*12|years of high school|BScN|BA\b|BSc\b|MBA|PhD|LL\.?B|J\.?D)\b/i.test(cleaned)) {
+      && !/\b(?:secondary\s+school|high\s+school|post[- ]secondary|diploma|degree|certificate|education\s+verification|enrol(?:l(?:ed|ment)?)?|grade\s*12|years of high school|BScN|BA\b|BSc\b|MBA|PhD|LL\.?B|J\.?D)\b/i.test(cleaned)) {
       continue;
     }
     const key = normalizedRequirement(cleaned);
@@ -786,7 +791,7 @@ function formatProfessionalLicense(role: string | null, body: string | null, eli
 
 /** True when the text is primarily a driver's / vehicle licence requirement. */
 function looksLikeDriverLicense(text: string): boolean {
-  if (/\b(?:aircraft maintenance|ame\b|professional engineer|p\.?\s*eng|nurse|wastewater|pesticide|software\s+licen|certificate of qualification|college of nurses|truck and coach|stationary engineer|security guard|gas fitter|exterminator|backflow|arborist|pilot licen|dental licen|veterinary)\b/i.test(text)
+  if (/\b(?:aircraft maintenance|ame\b|professional engineer|p\.?\s*eng|nurse|wastewater|pesticide|software\s+licen|certificate of qualification|college of nurses|truck and coach|(?:marine|acv|operating|stationary) engineer(?:ing)?|security guard|gas fitter|exterminator|backflow|arborist|pilot licen|dental licen|veterinary)\b/i.test(text)
     && !/\bdriver/i.test(text)) {
     return false;
   }
@@ -1148,11 +1153,11 @@ function normalizedRequirement(value: string): string {
 function retainExistingEducation(value: string): boolean {
   const cleaned = cleanEducationRequirement(value);
   if (cleaned.length > 300 || (!EDUCATION_TERM.test(cleaned) && !STUDENT_EDUCATION_TERM.test(cleaned)
-    && !/\b(?:secondary\s+school|high\s+school|post[- ]secondary)\b/i.test(cleaned))) {
+    && !/\b(?:secondary\s+school|high\s+school|post[- ]secondary|education\s+verification)\b/i.test(cleaned))) {
     return false;
   }
   if (/\b(?:leading|supports? students|position is|this role|post[- ]secondary institution offering|navigate|campus events)\b/i.test(cleaned)) return false;
-  return /^\s*(?:a|an|minimum|completion|completed|successful|degree|diploma|post[- ]secondary|undergraduate|graduate|secondary\s+school|high\s+school|your\s+educational|candidates?\s+must|must|current(?:ly)?\s+enrol(?:l(?:ed|ment)?|ment)?|registration\s+in\s+(?:a\s+)?co-?op|we\s+are\s+seeking|\d+[- ]year|university|college|bachelor|master|ph\.?d|graduation)/i.test(cleaned)
+  return /^\s*(?:a|an|minimum|completion|completed|successful|degree|diploma|education\s+verification|post[- ]secondary|undergraduate|graduate|secondary\s+school|high\s+school|your\s+educational|candidates?\s+must|must|current(?:ly)?\s+enrol(?:l(?:ed|ment)?|ment)?|registration\s+in\s+(?:a\s+)?co-?op|we\s+are\s+seeking|\d+[- ]year|university|college|bachelor|master|ph\.?d|graduation)/i.test(cleaned)
     || /\b(?:completion\s+of|degree\s+in|diploma\s+in|equivalent\s+combination|secondary\s+school\s+diploma)\b/i.test(cleaned);
 }
 
@@ -1169,6 +1174,10 @@ export function extractEducationRequirements(description: string): string[] {
   for (const line of descriptionLines(description)) {
     if (line.heading || line.section === 'optional' || line.section === 'benefits') continue;
     const text = stripEducationLabelPrefix(line.text);
+    if (EDUCATION_VERIFICATION.test(text)) {
+      values.add('Education verification');
+      continue;
+    }
     if (!EDUCATION_TERM.test(text) && !STUDENT_EDUCATION_TERM.test(text)
       && !HIGH_SCHOOL_EDUCATION_TERM.test(text)) {
       continue;
@@ -1309,6 +1318,8 @@ function educationCoreKey(value: string): string {
 function experienceCoreKey(value: string): string {
   return normalizedRequirement(value)
     .replace(/\b\d+(?:\.\d+)?\s*\+?\s*[-–—]?\s*(?:years?|months?|yrs?)\b/g, ' ')
+    .replace(/\b(?:one|two|three|four|five|six|seven|eight|nine|ten|several)\b/g, ' ')
+    .replace(/\b\d+\b/g, ' ')
     .replace(/\b(?:must|have|possess|minimum|required|of|in|related|relevant|experience|years?|months?|yrs?)\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -1482,6 +1493,7 @@ export function stripStructuredQualBullets(
     education?: string[];
     experience?: string[];
     languages?: string[];
+    requiredSkills?: string[];
     certifications?: string[];
     vehicleRequired?: boolean | null;
   },
@@ -1491,9 +1503,10 @@ export function stripStructuredQualBullets(
   const education = fields.education ?? [];
   const experience = fields.experience ?? [];
   const languages = fields.languages ?? [];
+  const requiredSkills = fields.requiredSkills ?? [];
   const certifications = fields.certifications ?? [];
   if (!licenses.length && !education.length && !experience.length && !languages.length && !certifications.length
-    && fields.vehicleRequired !== true) {
+    && !requiredSkills.length && fields.vehicleRequired !== true) {
     return description;
   }
 
@@ -1506,7 +1519,9 @@ export function stripStructuredQualBullets(
     /\b(?:high\s+school|secondary\s+school|grade\s*12|years of high school)\b/i.test(e)
     || /^high school diploma\b/i.test(e),
   );
+  const hasEducationVerification = education.some(e => /\beducation\s+verification\b/i.test(e));
   const hasFirstAidCert = certifications.some(c => /\bfirst\s+aid\b|\bcpr\b/i.test(c));
+  const concreteSkillKeys = new Set(requiredSkills.map(concreteQualificationSkillKey));
 
   const lines = description.split('\n');
   let inQuals = false;
@@ -1577,10 +1592,21 @@ export function stripStructuredQualBullets(
           || /^(?:must\s+(?:have|hold|possess|complete)|completion|completed|successful|minimum|a|an|education|proof of|grade\s*12)\b/i.test(focus)
           || /^education\s*:/i.test(focus)
           || isMostlyGrade12EducationBullet(eduFocus);
-        if (restatesEdu && mostlyEdu) {
-          removed += 1;
-          continue;
-        }
+      if (restatesEdu && mostlyEdu) {
+        removed += 1;
+        continue;
+      }
+      if (hasEducationVerification && EDUCATION_VERIFICATION.test(focus)) {
+        removed += 1;
+        continue;
+      }
+      }
+
+      // Measurable typing/keyboarding requirements already shown in Skills.
+      if (concreteSkillKeys.size > 0
+        && extractConcreteQualificationSkills(focus).some(skill => concreteSkillKeys.has(concreteQualificationSkillKey(skill)))) {
+        removed += 1;
+        continue;
       }
 
       // Experience restatement (years lines OR "Experience: analyzing…" already structured)
@@ -1636,9 +1662,7 @@ export function stripStructuredQualBullets(
 }
 
 export function licensesImplyVehicle(licenses: string[]): boolean {
-  return licenses.some(license =>
-    /\bdriver/.test(license.toLowerCase()) || new RegExp(LICENSE_CLASS, 'i').test(license),
-  );
+  return licenses.some(license => looksLikeDriverLicense(license));
 }
 
 export function prepareExperienceSourceText(rawText: string): string {
@@ -1678,6 +1702,33 @@ export function extractExperienceRequirements(description: string): string[] {
   return normalizeExperienceRequirements([...values]);
 }
 
+/** Extract concrete measurable skills that belong in the Skills property. */
+export function extractConcreteQualificationSkills(description: string): string[] {
+  const values = new Set<string>();
+  for (const line of descriptionLines(description)) {
+    if (line.heading || line.section === 'optional' || line.section === 'benefits') continue;
+    const match = line.text.match(/\b(?:typing|keyboarding|type(?:s|ing)?)\s*(?:speed\s*)?(?:of\s*)?(\d+(?:\s*[-–—]\s*\d+)?)\s*(?:w\.?\s*p\.?\s*m\.?|words?\s+per\s+minute)\b/i);
+    if (!match) continue;
+    const range = match[1].replace(/\s*[-–—]\s*/g, '–');
+    values.add(`Typing ${range} w.p.m.`);
+  }
+  return [...values];
+}
+
+function concreteQualificationSkillKey(value: string): string {
+  return value.toLowerCase()
+    .replace(/\bw\.?\s*p\.?\s*m\.?\b/g, 'wpm')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+export function mergeConcreteQualificationSkills(current: string[], description: string): string[] {
+  const extracted = extractConcreteQualificationSkills(description);
+  const extractedKeys = new Set(extracted.map(concreteQualificationSkillKey));
+  const preserved = current.filter(value => !extractedKeys.has(concreteQualificationSkillKey(value)));
+  return [...new Set([...preserved, ...extracted])];
+}
+
 export function extractNamedBenefits(description: string): string[] {
   const values = new Set<string>();
   for (const line of descriptionLines(description)) {
@@ -1708,9 +1759,9 @@ export function reconcileStructuredRequirements(description: string, current: Pa
     toStringList(current.license_requirements).filter(retainExistingLicense),
   );
   const currentBenefits = toStringList(current.benefits);
-  const currentSkills = toStringList(current.required_skills);
+  const currentSkills = mergeConcreteQualificationSkills(toStringList(current.required_skills), description);
   const requiredLines = descriptionLines(description).filter(line => !line.heading && line.section === 'required').map(line => normalizedRequirement(line.text));
-  const skills = currentSkills.filter(skill => {
+  const skills = [...new Set(currentSkills)].filter(skill => {
     if (isLanguageProficiencySkill(skill)) return false;
     if (isDriverLicenseRequirement(skill)) return false;
     if (licenseRequirements.length > 0 && LICENSE_TERM.test(skill)) return false;
@@ -1734,9 +1785,12 @@ export function reconcileStructuredRequirements(description: string, current: Pa
       }
     }
   }
+  const normalizedCurrentEducation = normalizeEducationRequirements(currentEducation);
   const education = educationRequirements.length
-    ? educationRequirements
-    : normalizeEducationRequirements(currentEducation);
+    ? educationRequirements.some(value => !/^Education verification$/i.test(value))
+      ? educationRequirements
+      : [...new Set([...normalizedCurrentEducation, ...educationRequirements])]
+    : normalizedCurrentEducation;
   return {
     experience_requirements: experienceRequirements.length
       ? experienceRequirements
