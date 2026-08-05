@@ -1598,6 +1598,40 @@ function keysOverlapLoose(left: string, right: string): boolean {
   return shared.length >= 2 || (shared.length === 1 && shared[0].length >= 6);
 }
 
+const CERTIFICATION_RESTATEMENT_NOISE = new Set([
+  'a', 'an', 'and', 'be', 'by', 'certificate', 'certificates', 'certification', 'certifications',
+  'certified', 'complete', 'completed', 'completion', 'course', 'courses', 'current', 'from',
+  'have', 'hold', 'in', 'maintain', 'may', 'must', 'obtain', 'of', 'offer', 'on', 'or', 'prior',
+  'ontario', 'required', 'successfully', 'the', 'to', 'training', 'valid', 'within', 'willing', 'willingness',
+]);
+
+function certificationRestatementTokens(value: string): string[] {
+  return normalizedRequirement(value)
+    .split(' ')
+    .map(token => token === 'handlers' ? 'handler' : token)
+    .filter(token => token.length > 2 && !CERTIFICATION_RESTATEMENT_NOISE.has(token));
+}
+
+function isCertificationRestatementBullet(text: string, certifications: string[]): boolean {
+  if (!certifications.length) return false;
+  const focus = text
+    .replace(/^\s*(?:required\s+)?certifications?\s*:\s*/i, '')
+    .replace(/^\s*(?:current|valid|required)\s+certifications?\s+(?:include|are|:)?\s*/i, '')
+    .trim();
+  if (!focus || focus.length > 320) return false;
+
+  const hasCertificationCue = /\b(?:certificat(?:e|ion)|credential|qualification|training|first[-\s]?aid|\bcpr\b|\baed\b|\bwhmis\b|smart\s+serve|food\s+handler|high\s+five)\b/i.test(focus);
+  if (!hasCertificationCue) return false;
+
+  const certificationTokens = new Set(certifications.flatMap(certificationRestatementTokens));
+  const bulletTokens = certificationRestatementTokens(focus);
+  if (!bulletTokens.length) return false;
+
+  // Keep a mixed bullet when it contains a distinct qualification that is not
+  // represented by the Certifications field (for example HIGH FIVE plus First Aid).
+  return bulletTokens.every(token => certificationTokens.has(token));
+}
+
 /**
  * Drop Qualifications (and similar) bullets that only restate a licence already
  * captured in license_requirements — QUALITY.md rule 1.
@@ -1703,9 +1737,19 @@ export function stripStructuredQualBullets(
         }
       }
 
-      // Certification restatement (First Aid / CPR already structured)
+      // Any other certification/training restatement. Keep mixed bullets when
+      // they contain an additional fact that is not in the structured field.
+      if (certifications.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+        && isCertificationRestatementBullet(focus, certifications)) {
+        removed += 1;
+        continue;
+      }
+
+      // First Aid / CPR variants that are equivalent to the structured value,
+      // while preserving bullets that add another named credential.
       if (hasFirstAidCert && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
-        && isMostlyFirstAidCertificationBullet(focus)) {
+        && isMostlyFirstAidCertificationBullet(focus)
+        && !/\b(?:high\s+five|smart\s+serve|whmis|food\s+handler|nonviolent\s+crisis)\b/i.test(focus)) {
         removed += 1;
         continue;
       }

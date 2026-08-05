@@ -96,6 +96,22 @@ test('does not reduce branded or alternative credentials to generic First Aid', 
   ]);
 });
 
+test('strips certification restatements but preserves extra facts in mixed bullets', () => {
+  const description = `## Qualifications
+- Current Ontario Smart Serve certification
+- Current Standard First Aid with CPR-C and HIGH FIVE Certificate
+- Monitor guests and follow Smart Serve guidelines
+- WHMIS certification
+`;
+  const result = stripStructuredQualBullets(description, {
+    certifications: ['Smart Serve', 'Standard First Aid with CPR-C', 'WHMIS'],
+  });
+  assert.match(result, /HIGH FIVE Certificate/);
+  assert.match(result, /Monitor guests/);
+  assert.doesNotMatch(result, /Current Ontario Smart Serve certification/);
+  assert.doesNotMatch(result, /WHMIS certification/);
+});
+
 test('extracts Grade 12 as high school diploma and strips first-aid / grade-12 restatements', () => {
   const desc = `## Qualifications
 - Grade 12 or equivalent

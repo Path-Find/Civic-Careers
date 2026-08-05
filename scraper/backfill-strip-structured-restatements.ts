@@ -7,6 +7,7 @@
  *   npx tsx backfill-strip-structured-restatements.ts --experience-language-only --apply
  *   npx tsx backfill-strip-structured-restatements.ts --skills-only --apply
  *   npx tsx backfill-strip-structured-restatements.ts --student-only --apply
+ *   npx tsx backfill-strip-structured-restatements.ts --certifications-only --apply
  */
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
@@ -24,6 +25,7 @@ const EXPERIENCE_LANGUAGE_ONLY = process.argv.includes('--experience-language-on
 const EDUCATION_ONLY = process.argv.includes('--education-only');
 const SKILLS_ONLY = process.argv.includes('--skills-only');
 const STUDENT_ONLY = process.argv.includes('--student-only');
+const CERTIFICATIONS_ONLY = process.argv.includes('--certifications-only');
 
 function parseList(value: unknown): string[] {
   if (!value) return [];
@@ -45,7 +47,8 @@ async function main() {
   const result = await db.execute(`
     SELECT d.id, d.job_title, d.description, j.source,
            d.education_requirements, d.experience_requirements, d.license_requirements,
-           d.language_requirements, d.required_skills, d.is_student
+           d.language_requirements, d.required_skills, d.is_student,
+           d.certification_requirements
     FROM job_details d
     JOIN jobs j ON j.id = d.id
     WHERE j.is_active = 1 AND d.description IS NOT NULL AND d.description != ''
@@ -61,9 +64,10 @@ async function main() {
     const licenses = normalizeProfessionalLicenseRequirements(parseList(row.license_requirements));
     const languages = parseList(row.language_requirements);
     const requiredSkills = parseList(row.required_skills);
+    const certifications = parseList(row.certification_requirements);
     const studentRequired = Number(row.is_student) === 1;
 
-    let after = EXPERIENCE_LANGUAGE_ONLY || EDUCATION_ONLY || SKILLS_ONLY || STUDENT_ONLY
+    let after = EXPERIENCE_LANGUAGE_ONLY || EDUCATION_ONLY || SKILLS_ONLY || STUDENT_ONLY || CERTIFICATIONS_ONLY
       ? before
       : cleanJobDescription(before, String(row.job_title ?? ''), String(row.source ?? ''));
     after = stripStructuredQualBullets(after, EXPERIENCE_LANGUAGE_ONLY
@@ -74,7 +78,9 @@ async function main() {
         ? { requiredSkills }
       : STUDENT_ONLY
         ? { studentRequired }
-      : { licenses, education, experience, languages, studentRequired });
+      : CERTIFICATIONS_ONLY
+        ? { certifications }
+      : { licenses, education, experience, languages, certifications, studentRequired });
 
     if (after === before) continue;
 
