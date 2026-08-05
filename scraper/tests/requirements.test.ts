@@ -173,6 +173,31 @@ test('strips pure structured restatements from every body section when requested
   assert.doesNotMatch(result, /Windows|Microsoft 365|Bilingual|ServiceNow/);
 });
 
+test('structured restatement cleanup is idempotent after headings are exposed', () => {
+  const description = `## Qualifications
+- A doctoral degree (PhD) within the last three years in a field of natural sciences
+- In instances where the PhD was not in natural sciences, an acceptable combination of a Bachelor's or Master's degree in a scientific field, coupled with acceptable research, training and experience.
+- If currently enrolled in a doctoral program, you may apply but must complete the degree to be appointed.
+
+**Experience:**
+- Experience in planning and conducting research
+- Experience in working with a team of researchers and support staff
+
+**Ability:**
+- Productivity/Recognition: recognized achievement in authorship, editorship, patents, etc.`;
+  const fields = {
+    education: [
+      'Doctoral degree (PhD) within the last three years in a field of natural sciences',
+      'In instances where the PhD was not in natural sciences',
+      'If currently enrolled in a doctoral program, you may apply but must complete the degree to be appointed',
+    ],
+    languages: ['Bilingual'],
+    allSections: true,
+  };
+  const once = stripStructuredQualBullets(description, fields);
+  assert.equal(stripStructuredQualBullets(once, fields), once);
+});
+
 test('extracts Grade 12 as high school diploma and strips first-aid / grade-12 restatements', () => {
   const desc = `## Qualifications
 - Grade 12 or equivalent

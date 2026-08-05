@@ -2237,7 +2237,7 @@ export function stripLicenseBulletsFromDescription(
  * Drop Qualifications bullets that restate structured education / experience /
  * licence / language fields (QUALITY.md rule 1: no fact in two places).
  */
-export function stripStructuredQualBullets(
+function stripStructuredQualBulletsOnce(
   description: string,
   fields: {
     licenses?: string[];
@@ -2616,6 +2616,37 @@ export function stripStructuredQualBullets(
     '\n',
   ).replace(/\n{3,}/g, '\n\n').trim();
   return cleaned;
+}
+
+/**
+ * Strip structured restatements until the cleanup reaches a fixed point.
+ *
+ * A first pass can expose a later heading or bullet to the section-aware
+ * rules, so one pass was not always idempotent on legacy descriptions.
+ */
+export function stripStructuredQualBullets(
+  description: string,
+  fields: {
+    licenses?: string[];
+    education?: string[];
+    experience?: string[];
+    languages?: string[];
+    requiredSkills?: string[];
+    software?: string[];
+    studentRequired?: boolean;
+    certifications?: string[];
+    vehicleRequired?: boolean | null;
+    securityRequired?: boolean;
+    allSections?: boolean;
+  },
+): string {
+  let current = description;
+  for (let pass = 0; pass < 5; pass += 1) {
+    const next = stripStructuredQualBulletsOnce(current, fields);
+    if (next === current) return current;
+    current = next;
+  }
+  return current;
 }
 
 export function licensesImplyVehicle(licenses: string[]): boolean {
