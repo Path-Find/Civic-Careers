@@ -133,6 +133,17 @@ export function useJobs() {
           return;
         }
 
+        if (singleRid !== undefined) {
+          const job = data && !Array.isArray(data) && data.rid != null
+            ? normalizeJob(data)
+            : null;
+          setJobs(job ? [job] : []);
+          setJobsTotal(job ? 1 : 0);
+          setJobsAvailableTotal(job?.is_active ? 1 : 0);
+          clearSourceScope();
+          return;
+        }
+
         // Paginated jobs list (all employers or one company via sourceSlug)
         const list = Array.isArray(data.jobs) ? data.jobs.map(normalizeJob) : [];
         setJobs(list);
