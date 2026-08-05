@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Open jobs no longer disappear from company counts after cleanup** — stored postings with a future closing date were restored to active status.
 - **Experience is now duration-only** — numeric durations stay in Experience while domain, recent, qualitative, and alternative detail is preserved in Qualifications across the corpus.
 - **Detailed Compensation & Benefits sections no longer repeat structured benefit names** — the remaining 39 active overlaps were rewritten while preserving extra plan and compensation details.
 - **Compensation & Benefits cleanup no longer leaves broken phrases** — punctuation, capitalization, and wording artifacts were repaired after duplicate benefit names were removed.
