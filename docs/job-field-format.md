@@ -61,7 +61,7 @@ not invent a taxonomy or turn a generic duty into a requirement:
 | `salary_range` | Normalized human-readable fallback matching the numeric fields | Keep consistent with min/max/period; do not use it instead of the numeric fields |
 | `work_model` | One of `On-site`, `Hybrid`, or `Remote` | Choose an existing value; do not infer remote status from a location |
 | `employment_type` | One of `Full-time`, `Part-time`, `Contract`, `Permanent`, `Occasional`, or `Seasonal` | Choose an existing value; temporary/term/casual source wording maps to `Contract` |
-| `duration` | Canonical value: `Permanent`, `Ongoing`, `Seasonal`, `Term`, `N months`, `N years`, `Up to N months`, `N-month work year`, an academic term, or `YYYY-MM-DD to YYYY-MM-DD` | Contract/assignment term or date range; the UI displays this as `Term`; do not use for application closing dates |
+| `duration` | Canonical value: `Permanent`, `Ongoing`, `Seasonal`, `Term`, `Term ending YYYY-MM-DD`, `N months`, `N years`, `Up to N months`, `N-month work year`, an academic term, or `YYYY-MM-DD to YYYY-MM-DD` | Contract/assignment term or date range; the UI displays this as `Term`; do not use for application closing dates |
 | `start_date` | `YYYY-MM-DD` when exact; otherwise short source-backed text such as `Fall 2026` or `Immediate` | Expected start date only |
 | `closing_date` | `YYYY-MM-DD` | Application deadline (`Apply By`); never confuse with the job's end date |
 | `posted_at` | `YYYY-MM-DD` | Original publication date when known; not the scrape date |
@@ -98,8 +98,9 @@ confusing its end date with the `Apply By` deadline.
 The current schema has `start_date` but no dedicated `end_date` property. A
 known job end date must not be silently dropped or repeated in the body. For a
 full start/end range, use the canonical `duration` range. When a source gives
-only an end date, flag the schema gap for an `end_date` field rather than
-inventing a start date or treating the end date as the application deadline.
+only an end date, use `Term ending YYYY-MM-DD` in `duration` until a dedicated
+`end_date` field exists; never invent a start date or treat the end date as the
+application deadline.
 
 ## Compensation rule
 

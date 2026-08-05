@@ -5,6 +5,7 @@
  *   Permanent | Ongoing | Seasonal | Term
  *   N months | N years | Up to N months | N-month work year
  *   YYYY-MM-DD to YYYY-MM-DD
+ *   Term ending YYYY-MM-DD (when only the end date is known)
  *   Fall|Winter|Spring|Summer YYYY  (academic term labels)
  *
  * Prefer empty over inventing. Employment-type words alone (Contract, Temporary)
@@ -179,6 +180,14 @@ function extractLength(text: string): string | null {
   return null;
 }
 
+function extractEndDate(text: string): string | null {
+  const date = text.match(
+    /\b(?:job\s+)?end\s+date\s*:?\s*((?:\d{4}[-/]\d{1,2}[-/]\d{1,2})|(?:\d{1,2}[-/]\d{1,2}[-/]\d{4})|(?:[A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}))/i,
+  );
+  const parsed = date ? parseOneDate(date[1]) : null;
+  return parsed ? `Term ending ${parsed}` : null;
+}
+
 function extractAcademicTerm(text: string): string | null {
   const s = text.replace(/\s+/g, ' ').trim();
 
@@ -254,10 +263,16 @@ export function normalizeDuration(raw: string | null | undefined): string {
   if (/^Up to \d+ months$/i.test(s)) return s.replace(/^up to/i, 'Up to');
   if (/^\d{1,2}-month work year$/i.test(s)) return s.toLowerCase().replace(/^(\d+)/, (_, n) => n).replace('month', 'month');
   if (/^\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if (/^Term ending \d{4}-\d{2}-\d{2}$/i.test(s)) return `Term ending ${s.slice(-10)}`;
 
   // Date range wins when present (most informative for term posts)
   const range = extractDateRange(s);
   if (range) return range;
+
+  // A source may provide only the job's end date. Preserve it without
+  // confusing it with the application closing date.
+  const endDate = extractEndDate(s);
+  if (endDate) return endDate;
 
   // Explicit length
   const length = extractLength(s);
