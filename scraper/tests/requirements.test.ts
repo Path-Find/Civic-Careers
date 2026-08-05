@@ -612,6 +612,29 @@ test('strips Experience and bilingual language restatements from Qualifications'
 - Effective interpersonal and communication skills`);
 });
 
+test('strips language restatements while preserving non-language qualification facts', () => {
+  const result = stripStructuredQualBullets(`## Qualifications
+- English essential
+- Experience using technology to facilitate learning, English essential
+- Excellent communication skills in French
+- BA in English Literature required
+- Ability to communicate in a language other than English or French
+- Active bilingualism is an advantage
+
+## Qualifications
+Applicants must have the ability to:
+- Speak English fluently.
+`, { languages: ['English', 'French', 'Bilingual'] });
+  assert.equal(result, `## Qualifications
+- Experience using technology to facilitate learning
+- BA in English Literature required
+- Ability to communicate in a language other than English or French
+- Active bilingualism is an advantage
+
+## Qualifications
+Applicants must have the ability to:`);
+});
+
 test('matches word-number Experience bullets to canonical duration values', () => {
   const result = stripStructuredQualBullets(`## Qualifications
 - Minimum three (3) years of recent and relevant social work practice experience

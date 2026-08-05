@@ -1667,6 +1667,73 @@ function isRequiredSkillRestatementBullet(text: string, skills: string[]): boole
   return remaining.length === 0;
 }
 
+const LANGUAGE_RESTATEMENT_NOISE = new Set([
+  'a', 'an', 'and', 'are', 'at', 'be', 'both', 'by', 'can', 'communicate', 'communication',
+  'able', 'ability', 'competence', 'competency', 'documentation', 'effectively', 'either', 'excellent', 'essential', 'fluent',
+  'fluency', 'fluently', 'have', 'in', 'imperative', 'is', 'language', 'languages', 'level', 'meet', 'minimum',
+  'must', 'native', 'near', 'of', 'official', 'or', 'oral', 'passive', 'proficiency', 'profile', 'publish',
+  'publishing', 'read', 'reading', 'required', 'skills', 'solid', 'speak', 'spoken', 'strong',
+  'teach', 'teaching', 'the', 'to', 'various', 'written', 'writing', 'for', 'tenure', 'requirements', 'second', 'specialist', 'manager', 'knowledge', 'with',
+]);
+
+function structuredLanguageAliases(languages: string[]): string[] {
+  const aliases = new Set<string>();
+  for (const language of languages) {
+    if (/\bbilingual\b/i.test(language)) {
+      aliases.add('english');
+      aliases.add('anglais');
+      aliases.add('french');
+      aliases.add('français');
+      aliases.add('bilingual');
+      aliases.add('bilingue');
+    } else if (/american\s+sign\s+language/i.test(language)) {
+      aliases.add('american sign language');
+      aliases.add('sign language');
+      aliases.add('asl');
+    } else {
+      aliases.add(language.toLowerCase());
+    }
+  }
+  return [...aliases].sort((left, right) => right.length - left.length);
+}
+
+function hasStructuredLanguageMention(text: string, languages: string[]): boolean {
+  return structuredLanguageAliases(languages).some(alias => {
+    const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(text);
+  });
+}
+
+function isLanguageRestatementOnly(text: string, languages: string[]): boolean {
+  if (!hasStructuredLanguageMention(text, languages)) return false;
+  if (LANGUAGE_NON_REQUIREMENT.test(text)
+    || /\b(?:other|different)\s+than\s+(?:english|anglais|french|fran[cç]ais)\b/i.test(text)
+    || /\b(?:ba|bachelor|degree|diploma|course|program|major|minor|literature)\b[^.\n]{0,60}\b(?:english|anglais|french|fran[cç]ais)\b/i.test(text)) {
+    return false;
+  }
+  if (!LANGUAGE_REQUIREMENT_CUE.test(text) && !/\b(?:english|french|bilingual|bilingue|asl)\s+(?:essential|required|only)\b/i.test(text)) return false;
+
+  let remaining = normalizedRequirement(text);
+  for (const alias of structuredLanguageAliases(languages)) {
+    const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+    remaining = remaining.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), ' ');
+  }
+  remaining = remaining
+    .replace(/\b[a-c]{1,3}\b(?:\s+[a-c]{1,3})?\b/gi, ' ')
+    .split(' ')
+    .filter(token => token && !/^[abc]{1,3}$/i.test(token) && !LANGUAGE_RESTATEMENT_NOISE.has(token))
+    .join(' ');
+  return remaining.length === 0;
+}
+
+function stripTrailingLanguageRestatement(text: string, languages: string[]): string | null {
+  if (/^language\s+requirements?\s*:/i.test(text)) return null;
+  const separator = text.match(/^(.*?)[,;]\s*(.+)$/);
+  if (!separator || !isLanguageRestatementOnly(separator[2], languages)) return null;
+  const kept = separator[1].replace(/[,:;\s]+$/, '').trim();
+  return kept || null;
+}
+
 /**
  * Drop Qualifications (and similar) bullets that only restate a licence already
  * captured in license_requirements — QUALITY.md rule 1.
@@ -1728,6 +1795,12 @@ export function stripStructuredQualBullets(
   let removed = 0;
 
   for (const line of lines) {
+    // Some postings put a sentence-style label inside Qualifications before
+    // the bullets. Keep the section active for those nested labels.
+    if (inQuals && /^(?:applicants?|candidates?)\b[^.\n]{0,100}:\s*$/i.test(line.trim())) {
+      kept.push(line);
+      continue;
+    }
     if (/^#{1,6}\s+/.test(line) || /^\*{1,2}[^*]+\*{1,2}:?\s*$/.test(line.trim()) || /^[A-Z][A-Za-z0-9 /&'’-]{2,60}:\s*$/.test(line.trim())) {
       inQuals = isQualificationsHeading(line.trim());
       kept.push(line);
@@ -1741,8 +1814,36 @@ export function stripStructuredQualBullets(
         .replace(/\.\s+(?=[A-Z])[^.]*\b(?:asset|preferred|nice\s+to\s+have|desirable)\b[^.]*\.?\s*$/i, '')
         .trim();
 
+      // Language already shown in the Languages property. Remove pure
+      // language bullets, or only the trailing language clause from a mixed
+      // bullet when another requirement remains.
+      if (languages.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)) {
+        const languageLabelOnly = /^(?:language\s+requirements?|official\s+language\s+proficiency|various)\s*:/i.test(focus);
+        const languageClauses = focus.split(/[;,]/).map(clause => clause.trim()).filter(Boolean);
+        const compoundLanguageOnly = languageClauses.length > 1
+          && languageClauses.every(clause => isLanguageRestatementOnly(clause, languages));
+        const languageOnly = languageLabelOnly || compoundLanguageOnly || isLanguageRestatementOnly(focus, languages);
+        const withoutTrailingLanguage = stripTrailingLanguageRestatement(focus, languages);
+        if (withoutTrailingLanguage) {
+          if (hasStructuredLanguageMention(withoutTrailingLanguage, languages)) {
+            removed += 1;
+            continue;
+          }
+          const prefix = line.match(/^\s*[-•*]\s+/)?.[0] ?? '- ';
+          kept.push(`${prefix}${withoutTrailingLanguage}`);
+          removed += 1;
+          continue;
+        }
+        if (languageOnly) {
+          removed += 1;
+          continue;
+        }
+      }
+
       // Language already in Languages property (federal "Language requirements: Bilingual…")
-      if (hasLanguage && (
+      if (hasLanguage
+        && !/\b(?:other|different)\s+than\s+(?:english|anglais|french|fran[cç]ais)\b/i.test(focus)
+        && (
         /^(?:language\s+requirements?|languages?)\s*:/i.test(focus)
         || /^(?:various\s+)?language\s+requirements?\b/i.test(focus)
         || (/^bilingual\b/i.test(focus) && languages.some(l => /bilingual/i.test(l)) && focus.length < 140)

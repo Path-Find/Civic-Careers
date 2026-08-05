@@ -8,6 +8,7 @@
  *   npx tsx backfill-strip-structured-restatements.ts --skills-only --apply
  *   npx tsx backfill-strip-structured-restatements.ts --student-only --apply
  *   npx tsx backfill-strip-structured-restatements.ts --certifications-only --apply
+ *   npx tsx backfill-strip-structured-restatements.ts --languages-only --apply
  */
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
@@ -26,6 +27,7 @@ const EDUCATION_ONLY = process.argv.includes('--education-only');
 const SKILLS_ONLY = process.argv.includes('--skills-only');
 const STUDENT_ONLY = process.argv.includes('--student-only');
 const CERTIFICATIONS_ONLY = process.argv.includes('--certifications-only');
+const LANGUAGES_ONLY = process.argv.includes('--languages-only');
 
 function parseList(value: unknown): string[] {
   if (!value) return [];
@@ -67,10 +69,12 @@ async function main() {
     const certifications = parseList(row.certification_requirements);
     const studentRequired = Number(row.is_student) === 1;
 
-    let after = EXPERIENCE_LANGUAGE_ONLY || EDUCATION_ONLY || SKILLS_ONLY || STUDENT_ONLY || CERTIFICATIONS_ONLY
+    let after = EXPERIENCE_LANGUAGE_ONLY || EDUCATION_ONLY || SKILLS_ONLY || STUDENT_ONLY || CERTIFICATIONS_ONLY || LANGUAGES_ONLY
       ? before
       : cleanJobDescription(before, String(row.job_title ?? ''), String(row.source ?? ''));
-    after = stripStructuredQualBullets(after, EXPERIENCE_LANGUAGE_ONLY
+    after = stripStructuredQualBullets(after, LANGUAGES_ONLY
+      ? { languages }
+      : EXPERIENCE_LANGUAGE_ONLY
       ? { experience, languages }
       : EDUCATION_ONLY
         ? { education }
