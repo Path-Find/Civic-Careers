@@ -160,16 +160,59 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         }
       }
 
-      const sourceClause = sourceFilter ? ' AND j.source = ?' : '';
+      // Server-side list filters (must match web/src/modules/jobs/hooks/useJobFilters.ts).
+      // Without these, the UI only counted matches in the first loaded page(s).
+      const deadlineRaw = parsed.searchParams.get('deadlineDays');
+      const deadlineDays = deadlineRaw === null || deadlineRaw === ''
+        ? null
+        : Number(deadlineRaw);
+      const newlyAdded = parsed.searchParams.get('newlyAdded') === '1'
+        || parsed.searchParams.get('newlyAdded') === 'true';
+
+      const filterArgs: Array<string | number> = [];
+      let filterClause = '';
+
+      if (sourceFilter) {
+        filterClause += ' AND j.source = ?';
+        filterArgs.push(sourceFilter);
+      }
+
+      if (deadlineDays !== null && Number.isFinite(deadlineDays)) {
+        if (deadlineDays === -1) {
+          // "No closing date"
+          filterClause += ` AND (jd.closing_date IS NULL OR jd.closing_date = '')`;
+        } else if (deadlineDays === 0) {
+          filterClause += ` AND jd.closing_date IS NOT NULL AND jd.closing_date != ''
+            AND substr(jd.closing_date, 1, 10) = date('now')`;
+        } else if (deadlineDays > 0) {
+          // Inclusive: today through N days out (client: days >= 0 && days <= N).
+          // Integer is floor-validated — safe to inline into SQLite date modifier.
+          const days = Math.min(Math.floor(deadlineDays), 365);
+          filterClause += ` AND jd.closing_date IS NOT NULL AND jd.closing_date != ''
+            AND substr(jd.closing_date, 1, 10) >= date('now')
+            AND substr(jd.closing_date, 1, 10) <= date('now', '+${days} days')`;
+        }
+      }
+
+      if (newlyAdded) {
+        filterClause += ` AND ${freshnessDate} >= date('now', '-7 days')`;
+      }
+
       const activeJobWhere = `
         WHERE j.is_active = 1
           AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))
-          ${sourceClause}`;
-      const listArgs = sourceFilter ? [sourceFilter, limit, offset] : [limit, offset];
-      const countArgs = sourceFilter ? [sourceFilter] : [];
+          ${filterClause}`;
+
+      // Closing-soon: earliest deadline first. Otherwise freshest first.
+      const orderBy = deadlineDays !== null && Number.isFinite(deadlineDays) && deadlineDays >= 0
+        ? `substr(jd.closing_date, 1, 10) ASC, ${freshnessDate} DESC, j.first_seen_at DESC`
+        : `${freshnessDate} DESC, j.first_seen_at DESC`;
+
+      const listArgs = [...filterArgs, limit, offset];
+      const countArgs = [...filterArgs];
       const [result, count] = await Promise.all([
         db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} ${activeJobWhere} ORDER BY ${freshnessDate} DESC, j.first_seen_at DESC LIMIT ? OFFSET ?`,
+          sql: `SELECT ${jobColumns} ${jobJoins} ${activeJobWhere} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
           args: listArgs,
         }),
         db.execute({

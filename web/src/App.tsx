@@ -110,7 +110,7 @@ function LoadingState({ view }: { view: View }) {
 }
 
 function App() {
-  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
+  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -135,22 +135,29 @@ function App() {
   const lastCheckedAt = homeData?.lastCheckedAt ?? latestJobCheckedAt;
   // jobsSource is set by the scoped company-page API fetch — no need to mirror it into searchTerm.
   const isCompanyPage = currentView === 'jobs' && Boolean(jobsSource);
-  const hasJobFilters = Boolean(
+  // deadlineDays + newlyAdded are applied server-side (full corpus + accurate total).
+  // Other filters still run client-side on loaded pages only.
+  const hasClientOnlyFilters = Boolean(
     (!isCompanyPage && searchTerm)
     || locationTerm
     || selectedModes.length > 0
     || selectedLanguages.length > 0
     || vehicleRequired
     || minSalary
-    || deadlineDays !== null
     || showStudentJobs
     || listingTypeFilter
-    || newlyAdded
   );
-  // Company pages are source-scoped server-side; show API total, not just loaded rows.
-  const displayedJobCount = currentView === 'jobs' && (isCompanyPage || !hasJobFilters)
+  const hasJobFilters = hasClientOnlyFilters || deadlineDays !== null || newlyAdded;
+  // Prefer API totals whenever no client-only filters are active (includes deadline / newly-added / company scope).
+  const displayedJobCount = currentView === 'jobs' && !hasClientOnlyFilters
     ? jobsAvailableTotal
     : filteredJobs.length;
+
+  /** Keep useJobs server filter ref in sync, then optionally re-fetch the list. */
+  const applyServerListFilters = (next: { deadlineDays: number | null; newlyAdded: boolean }, shouldRefresh: boolean) => {
+    setServerFilters(next);
+    if (shouldRefresh) refresh();
+  };
   const isListingView = currentView === 'jobs' || currentView === 'saved' || currentView === 'companies';
   const filteredCompanySummaries = companySummaries.filter(company => selectedCompanyTypes.length === 0 || selectedCompanyTypes.some(type => companyTypes(company.name).includes(type)));
   const visibleCompanySummaries = companyStatus === 'hiring'
@@ -271,8 +278,41 @@ function App() {
   const reset = () => {
     setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setSelectedLanguages([]); setVehicleRequired(false); setMinSalary(null); setDeadlineDays(null); setListingTypeFilter(null); setSortNewest(false); setNewlyAdded(false);
     setLocationTerm(''); setShowStudentJobs(false); setSelectedCompanyTypes([]);
+    setServerFilters({ deadlineDays: null, newlyAdded: false });
     window.history.pushState(null, '', '/');
     refresh();
+  };
+
+  const applyMostRecentSort = (navigateToJobs: boolean) => {
+    setSortNewest(true);
+    setDeadlineDays(null);
+    setNewlyAdded(false);
+    setServerFilters({ deadlineDays: null, newlyAdded: false });
+    if (navigateToJobs) handleNavigate('jobs');
+    else refresh();
+  };
+  const applyClosingSoonSort = (navigateToJobs: boolean) => {
+    setSortNewest(false);
+    setDeadlineDays(14);
+    setNewlyAdded(false);
+    setServerFilters({ deadlineDays: 14, newlyAdded: false });
+    if (navigateToJobs) handleNavigate('jobs');
+    else refresh();
+  };
+  const applyNewlyAddedSort = (navigateToJobs: boolean) => {
+    setSortNewest(false);
+    setDeadlineDays(null);
+    setNewlyAdded(true);
+    setServerFilters({ deadlineDays: null, newlyAdded: true });
+    if (navigateToJobs) handleNavigate('jobs');
+    else refresh();
+  };
+  const handleDeadlineChange = (days: number | null) => {
+    setDeadlineDays(days);
+    // Mutual exclusivity with "newly added" chip when picking a deadline from the sidebar
+    if (days !== null && newlyAdded) setNewlyAdded(false);
+    const nextNewly = days !== null ? false : newlyAdded;
+    applyServerListFilters({ deadlineDays: days, newlyAdded: nextNewly }, currentView === 'jobs');
   };
 
   return (
@@ -286,7 +326,13 @@ function App() {
             <div className="app-nav-wrap">
               <nav className="app-nav">
                 <span
-                  onClick={() => { setSortNewest(false); setDeadlineDays(null); handleNavigate('jobs'); }}
+                  onClick={() => {
+                    setSortNewest(false);
+                    setDeadlineDays(null);
+                    setNewlyAdded(false);
+                    setServerFilters({ deadlineDays: null, newlyAdded: false });
+                    handleNavigate('jobs');
+                  }}
                   className={`app-nav-link ${(currentView === 'jobs' && !selectedJob) ? 'active' : ''}`}
                 >
                   Jobs
@@ -362,7 +408,7 @@ function App() {
           ) : currentView === 'home' ? (
             <section className="home-preview">
               <div className="home-preview-heading">
-                <ListSortControls className="list-sort-options" sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setNewlyAdded(false); setDeadlineDays(null); handleNavigate('jobs'); }} onClosingSoon={() => { setSortNewest(false); setNewlyAdded(false); setDeadlineDays(14); handleNavigate('jobs'); }} onNewlyAdded={() => { setSortNewest(false); setNewlyAdded(true); setDeadlineDays(null); handleNavigate('jobs'); }} />
+                <ListSortControls className="list-sort-options" sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => applyMostRecentSort(true)} onClosingSoon={() => applyClosingSoonSort(true)} onNewlyAdded={() => applyNewlyAddedSort(true)} />
                 <div className="home-stats" aria-label="Job totals">
                   <div className="home-stat-primary"><strong>{displayAvailableJobCount.toLocaleString()}</strong> jobs available</div>
                   <div><strong>+{displayRecentlyAddedCount.toLocaleString()}</strong> last 7 days</div>
@@ -398,7 +444,7 @@ function App() {
                   onModesChange={mode => setSelectedModes(prev => prev.includes(mode) ? prev.filter(value => value !== mode) : [...prev, mode])}
                   onLanguageChange={language => setSelectedLanguages(previous => previous.includes(language) ? previous.filter(value => value !== language) : [...previous, language])}
                   onVehicleRequiredChange={() => setVehicleRequired(previous => !previous)}
-                  onDeadlineChange={setDeadlineDays}
+                  onDeadlineChange={handleDeadlineChange}
                   onListingTypeChange={setListingTypeFilter}
                   onStudentJobsChange={() => setShowStudentJobs(!showStudentJobs)}
                   onReset={reset}
@@ -408,10 +454,10 @@ function App() {
               <div style={{ minWidth: 0 }}>
                 <div className="list-heading-row" style={{ top: `${headerHeight}px` }}>
                   <div className="list-count-label">
-                  {currentView === 'companies' ? `${visibleCompanySummaries.length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${filteredJobs.length.toLocaleString()} saved jobs` : isCompanyPage ? `${filteredJobs.length.toLocaleString()} matches found` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
+                  {currentView === 'companies' ? `${visibleCompanySummaries.length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${filteredJobs.length.toLocaleString()} saved jobs` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
                   </div>
                   {currentView === 'companies' && <div className="company-sort-options"><button className={companySort === 'alphabetical' ? 'active' : ''} onClick={() => setCompanySort('alphabetical')}>A–Z</button><button className={companySort === 'mostJobs' ? 'active' : ''} onClick={() => setCompanySort('mostJobs')}>Most jobs</button><button className={companySort === 'recent' ? 'active' : ''} onClick={() => setCompanySort('recent')}>Recently added</button></div>}
-                  {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => { setSortNewest(true); setDeadlineDays(null); setNewlyAdded(false); }} onClosingSoon={() => { setSortNewest(false); setDeadlineDays(14); setNewlyAdded(false); }} onNewlyAdded={() => { setSortNewest(false); setDeadlineDays(null); setNewlyAdded(true); }} />}
+                  {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => applyMostRecentSort(false)} onClosingSoon={() => applyClosingSoonSort(false)} onNewlyAdded={() => applyNewlyAddedSort(false)} />}
                 </div>
                 {isCompanyPage && (
                   <div style={{ marginBottom: '1.5rem', padding: '1.25rem 1.5rem', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -450,7 +496,14 @@ function App() {
                       companies={filteredCompanySummaries}
                       sort={companySort}
                       showArchived={companyStatus === 'all'}
-                      onSelectCompany={name => { setMinSalary(null); setSelectedModes([]); setDeadlineDays(null); handleNavigate('jobs', name); }}
+                      onSelectCompany={name => {
+                        setMinSalary(null);
+                        setSelectedModes([]);
+                        setDeadlineDays(null);
+                        setNewlyAdded(false);
+                        setServerFilters({ deadlineDays: null, newlyAdded: false });
+                        handleNavigate('jobs', name);
+                      }}
                     />
                   </>}
                 </div>

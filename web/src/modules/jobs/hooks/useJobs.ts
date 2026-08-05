@@ -5,6 +5,16 @@ import { normalizeJob } from '../jobUtils';
 const API = import.meta.env.VITE_API_URL ?? '';
 const pendingRequests = new Map<string, Promise<unknown>>();
 
+export type JobsListServerFilters = {
+  deadlineDays: number | null;
+  newlyAdded: boolean;
+};
+
+const EMPTY_SERVER_FILTERS: JobsListServerFilters = {
+  deadlineDays: null,
+  newlyAdded: false,
+};
+
 function fetchJson(endpoint: string) {
   const pending = pendingRequests.get(endpoint);
   if (pending) return pending;
@@ -22,6 +32,15 @@ function companySlugFromPath(path: string): string | null {
   return slug || null;
 }
 
+function appendServerFilters(params: URLSearchParams, filters: JobsListServerFilters) {
+  if (filters.deadlineDays !== null) {
+    params.set('deadlineDays', String(filters.deadlineDays));
+  }
+  if (filters.newlyAdded) {
+    params.set('newlyAdded', '1');
+  }
+}
+
 export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [homeData, setHomeData] = useState<HomeData | null>(null);
@@ -34,6 +53,8 @@ export function useJobs() {
   const [jobsSource, setJobsSource] = useState<string | null>(null);
   const loadingMoreRef = useRef(false);
   const jobsSourceRef = useRef<string | null>(null);
+  /** Read by refresh/loadMore — update via setServerFilters before calling refresh. */
+  const serverFiltersRef = useRef<JobsListServerFilters>(EMPTY_SERVER_FILTERS);
 
   const clearSourceScope = () => {
     setJobsSource(null);
@@ -44,6 +65,11 @@ export function useJobs() {
     setJobsSource(source);
     jobsSourceRef.current = source;
   };
+
+  /** Sync server-backed list filters (deadline / newly added). Call before refresh(). */
+  const setServerFilters = useCallback((next: JobsListServerFilters) => {
+    serverFiltersRef.current = next;
+  }, []);
 
   const refresh = useCallback((singleRid?: number) => {
     setLoading(true);
@@ -64,13 +90,23 @@ export function useJobs() {
       endpoint = `${API}/api/jobs?rid=${singleRid}`;
     } else if (companySlug) {
       // Company deep link: only that employer's jobs (not the full corpus).
-      endpoint = `${API}/api/jobs?view=jobs&sourceSlug=${encodeURIComponent(companySlug)}&limit=50`;
+      const params = new URLSearchParams({
+        view: 'jobs',
+        sourceSlug: companySlug,
+        limit: '50',
+      });
+      appendServerFilters(params, serverFiltersRef.current);
+      endpoint = `${API}/api/jobs?${params}`;
     } else if (view === 'jobs') {
-      endpoint = `${API}/api/jobs?view=jobs&limit=50`;
+      const params = new URLSearchParams({ view: 'jobs', limit: '50' });
+      appendServerFilters(params, serverFiltersRef.current);
+      endpoint = `${API}/api/jobs?${params}`;
     } else if (view) {
       endpoint = `${API}/api/jobs?view=${view}`;
     } else {
-      endpoint = `${API}/api/jobs?view=jobs&limit=50`;
+      const params = new URLSearchParams({ view: 'jobs', limit: '50' });
+      appendServerFilters(params, serverFiltersRef.current);
+      endpoint = `${API}/api/jobs?${params}`;
     }
 
     fetchJson(endpoint)
@@ -120,6 +156,7 @@ export function useJobs() {
         offset: String(jobs.length),
       });
       if (source) params.set('source', source);
+      appendServerFilters(params, serverFiltersRef.current);
       const response = await fetch(`${API}/api/jobs?${params}`);
       const data = await response.json();
       setJobs(previous => [...previous, ...(data.jobs ?? []).map(normalizeJob)]);
@@ -170,6 +207,7 @@ export function useJobs() {
     jobsTotal,
     jobsAvailableTotal,
     jobsSource,
+    setServerFilters,
     loadMore,
     refresh,
     updateJob,
