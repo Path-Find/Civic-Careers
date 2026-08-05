@@ -153,6 +153,29 @@ export function compactExperienceLabel(value: string): string {
     return '';
   }
 
+  // Use one threshold style for the common minimum/at-least forms while
+  // preserving alternative requirements such as "2 years part-time or 1 year
+  // full-time" exactly as written.
+  const numbers: Record<string, string> = {
+    one: '1', two: '2', three: '3', four: '4', five: '5',
+    six: '6', seven: '7', eight: '8', nine: '9', ten: '10',
+  };
+  s = s.replace(/^(one|two|three|four|five|six|seven|eight|nine|ten)(?=\s+years?\b)/i, raw => numbers[raw.toLowerCase()]);
+
+  if (!/\bor\b/i.test(s)) {
+    const number = (raw: string) => numbers[raw.toLowerCase()] ?? raw;
+    const threshold = s.match(/^(?:(?:a\s+)?minimum(?:\s+of)?|at\s+least)\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*(?:-|–|—|to)\s*(\d+|one|two|three|four|five|six|seven|eight|nine|ten))?\s+years?[’']?/i);
+    const range = s.match(/^(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s*(?:-|–|—|to)\s*(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+years?[’']?/i);
+    const bare = s.match(/^(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+years?[’']?/i);
+    const lead = threshold ?? range ?? bare;
+    if (lead) {
+      const minimum = number(lead[1]);
+      const maximum = lead[2] ? number(lead[2]) : null;
+      const label = `${minimum}${maximum ? `–${maximum}` : '+'} years`;
+      s = label + s.slice(lead[0].length);
+    }
+  }
+
   s = s
     .replace(/^experience\s*:\s*(?:in\s+(?:the\s+)?)?/i, '')
     .replace(/^experience\s+in\s+(?:the\s+)?/i, '')

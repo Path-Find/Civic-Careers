@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Applicant pools are marked as Candidate inventory** — pool postings like Carleton’s `Applicant Pool` no longer appear as ordinary jobs.
+- **Experience labels use one threshold style** — common `minimum`, `at least`, and numeric-range wording now displays as `N+ years` or `N–M years` while preserving alternatives and role detail.
 - **Direct job links load their posting again** — single-job API responses are now handled as a job instead of an empty paginated list, and the browser title uses Civic Careers.
 - **Driver licences no longer appear under Licences** — Class G/DZ and similar driving requirements now populate Vehicle instead; 1,383 existing rows were corrected while professional licences such as P.Eng. remain visible.
 - **Education and experience fields stay compact and lossless** — experience normalization now runs at validation time, 682 existing experience lists were normalized, and partial high-school education is no longer upgraded to a diploma.

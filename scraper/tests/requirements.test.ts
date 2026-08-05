@@ -525,6 +525,10 @@ test('classifies a source-labelled recruitment pool as ongoing recruitment', () 
   assert.equal(extractListingType('Pool to be created\nYes\nTemporary: Term', 'Clerical and Administrative Positions'), 'ongoing_recruitment');
 });
 
+test('classifies applicant pools as candidate inventory', () => {
+  assert.equal(extractListingType('Carleton University is building a pool of candidates for temporary casual assignments.', 'Applicant Pool'), 'inventory');
+});
+
 test('classifies an explicit future-vacancy inventory separately', () => {
   assert.equal(extractListingType('When you apply to this selection process, you are not applying for a specific job, but to an inventory for future vacancies.', 'Casual Stable Worker'), 'inventory');
   // Common GC wording without "for future vacancies" glued to inventory.
