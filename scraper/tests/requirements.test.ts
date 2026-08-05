@@ -35,6 +35,23 @@ test('extracts required first aid and CPR certification without optional assets'
 `), ['Intermediate First Aid with CPR-C']);
 });
 
+test('extracts Grade 12 as high school diploma and strips first-aid / grade-12 restatements', () => {
+  const desc = `## Qualifications
+- Grade 12 or equivalent
+- Current Standard First Aid with CPR-C Certification.
+- Customer service experience
+`;
+  assert.deepEqual(extractEducationRequirements(desc), ['High school diploma']);
+  assert.deepEqual(extractCertificationRequirements(desc), ['Standard First Aid with CPR-C']);
+  const stripped = stripStructuredQualBullets(desc, {
+    education: ['High school diploma'],
+    certifications: ['Standard First Aid with CPR-C'],
+  });
+  assert.match(stripped, /Customer service experience/);
+  assert.doesNotMatch(stripped, /Grade 12/);
+  assert.doesNotMatch(stripped, /First Aid/);
+});
+
 test('extracts named software and ignores ambiguous categories', () => {
   const result = extractSoftwareRequirements(`## Qualifications
 - Proficient in Microsoft Office Suite, Adobe Acrobat, and HEC-RAS

@@ -4,7 +4,7 @@ import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
 import { normalizeJobTitle } from './title';
-import { normalizeEmploymentType, normalizeSalaryPeriod, normalizeWorkModel } from './validate';
+import { normalizeEmploymentType, normalizeSalaryPeriod, normalizeUnionFields, normalizeWorkModel } from './validate';
 import {
   dedupeSkillsAgainstSoftware,
   extractCertificationRequirements,
@@ -120,8 +120,10 @@ async function main() {
           employment_type: normalizeEmploymentType(aiResult.employment_type),
           duration: normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || ''),
           experience_requirements: JSON.stringify(structuredRequirements.experience_requirements),
-          is_unionized: aiResult.is_unionized ? 1 : 0,
-          union_name: aiResult.union_name,
+          ...(() => {
+            const u = normalizeUnionFields(aiResult.union_name, aiResult.is_unionized);
+            return { is_unionized: u.is_unionized ? 1 : 0, union_name: u.union_name };
+          })(),
           benefits: JSON.stringify(structuredRequirements.benefits),
           required_skills: JSON.stringify(finalSkills),
           education_requirements: JSON.stringify(sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),

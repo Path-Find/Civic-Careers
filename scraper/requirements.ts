@@ -58,16 +58,27 @@ export function extractCertificationRequirements(description: string): string[] 
     if (STRUCTURED_OPTIONAL_REQUIREMENT.test(line.text)) continue;
 
     const firstAid = normalizeFirstAidCertification(line.text);
-    if (firstAid) {
-      // Skip multi-role walls that only mention First Aid among many aquatic certs —
-      // still capture First Aid, but don't invent extra labels from the same line.
-      values.add(firstAid);
-    }
+    if (firstAid) values.add(firstAid);
 
     const other = line.text.match(OTHER_CERTIFICATION_PATTERN);
     if (other) values.add(compactText(other[0]).replace(/\s*\/\s*/g, ' / '));
   }
-  return [...values];
+  return dedupeCertificationRequirements([...values]);
+}
+
+/** Prefer specific First Aid labels over bare "First Aid" / overlapping variants. */
+export function dedupeCertificationRequirements(values: string[]): string[] {
+  const out: string[] = [];
+  const firstAid: string[] = [];
+  for (const v of values) {
+    if (/\bfirst\s+aid\b|\bcpr\b/i.test(v)) firstAid.push(v);
+    else out.push(v);
+  }
+  if (firstAid.length <= 1) return [...out, ...firstAid];
+
+  // One First Aid/CPR family label is enough — keep the most specific (longest).
+  firstAid.sort((a, b) => b.length - a.length);
+  return [...out, firstAid[0]];
 }
 
 /** True when a Qualifications bullet is mostly a Grade 12 / high-school education line. */
