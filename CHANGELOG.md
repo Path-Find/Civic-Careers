@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Detailed Compensation & Benefits sections no longer repeat structured benefit names** — the remaining 39 active overlaps were rewritten while preserving extra plan and compensation details.
 - **Compensation & Benefits cleanup no longer leaves broken phrases** — punctuation, capitalization, and wording artifacts were repaired after duplicate benefit names were removed.
 - **Structured benefits no longer appear as generic repeats in Compensation & Benefits** — 192 active listings were cleaned, and future parses remove duplicate pension, insurance, vacation, and performance-incentive lines while preserving extra compensation detail.
-- **Job links use stable source IDs** — direct links no longer depend on SQLite row numbers, while old numeric links remain compatible.
 - **Certification field no longer mixes in unrelated requirements** — security checks and named medical requirements now use their proper fields, while generic training, PPE, memberships, and optional credentials are removed from Certifications.
 - **Certification labels are standardized** — First Aid levels, CPR levels, AED, and recurring labels such as WHMIS, Food Handler, and Worker Health and Safety Awareness now use consistent wording while preserving meaningful alternatives.
 - **Qualifications no longer repeat Certifications** — 20 active postings were cleaned, and future parses keep mixed qualification bullets while removing certification-only restatements.
