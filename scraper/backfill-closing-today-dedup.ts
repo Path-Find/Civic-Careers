@@ -1,10 +1,12 @@
 /**
  * Remove structured-property restatements from the body of jobs closing on a
- * given date. The default is the current Toronto calendar date.
+ * given date or on/after a given date. The default is the current Toronto
+ * calendar date.
  *
  *   npx tsx backfill-closing-today-dedup.ts                 # dry-run
  *   npx tsx backfill-closing-today-dedup.ts --apply         # write changes
  *   npx tsx backfill-closing-today-dedup.ts --date=2026-08-05 --apply
+ *   npx tsx backfill-closing-today-dedup.ts --from-date=2026-08-19 --apply
  */
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
@@ -19,12 +21,14 @@ dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
 const dateArgument = process.argv.find(argument => argument.startsWith('--date='))?.slice('--date='.length);
-const TARGET_DATE = dateArgument || new Intl.DateTimeFormat('en-CA', {
+const fromDateArgument = process.argv.find(argument => argument.startsWith('--from-date='))?.slice('--from-date='.length);
+const TARGET_DATE = dateArgument || fromDateArgument || new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Toronto',
   year: 'numeric',
   month: '2-digit',
   day: '2-digit',
 }).format(new Date());
+const RANGE_FROM_DATE = fromDateArgument && !dateArgument ? fromDateArgument : null;
 
 function parseList(value: unknown): string[] {
   if (!value) return [];
@@ -65,9 +69,7 @@ async function main() {
     FROM jobs j
     JOIN job_details d ON d.id = j.id
     WHERE j.is_active = 1
-      AND d.description IS NOT NULL
-      AND d.description != ''
-      AND substr(d.closing_date, 1, 10) = ?
+      AND substr(d.closing_date, 1, 10) ${RANGE_FROM_DATE ? '>= ?' : '= ?'}
     ORDER BY j.source, d.job_title
   `, [TARGET_DATE]);
 
@@ -77,21 +79,25 @@ async function main() {
     const before = String(row.description ?? '');
     const benefits = parseList(row.benefits);
     let after = removeRedundantCompensationSections(before);
-    after = stripStructuredBenefitRestatements(after, benefits);
-    after = stripStructuredQualBullets(after, {
-      licenses: normalizeProfessionalLicenseRequirements(parseList(row.license_requirements)),
-      education: normalizeEducationRequirements(parseList(row.education_requirements)),
-      experience: parseList(row.experience_requirements),
-      languages: parseList(row.language_requirements),
-      requiredSkills: parseList(row.required_skills),
-      software: parseList(row.software_requirements),
-      certifications: parseList(row.certification_requirements),
-      studentRequired: Number(row.is_student) === 1,
-      vehicleRequired: Number(row.vehicle_required) === 1,
-      securityRequired: Number(row.security_check_required) === 1,
-      allSections: true,
-    });
-    after = removePlaceholderSections(after);
+    for (let iteration = 0; iteration < 5; iteration += 1) {
+      const previous = after;
+      after = stripStructuredBenefitRestatements(after, benefits);
+      after = stripStructuredQualBullets(after, {
+        licenses: normalizeProfessionalLicenseRequirements(parseList(row.license_requirements)),
+        education: normalizeEducationRequirements(parseList(row.education_requirements)),
+        experience: parseList(row.experience_requirements),
+        languages: parseList(row.language_requirements),
+        requiredSkills: parseList(row.required_skills),
+        software: parseList(row.software_requirements),
+        certifications: parseList(row.certification_requirements),
+        studentRequired: Number(row.is_student) === 1,
+        vehicleRequired: Number(row.vehicle_required) === 1,
+        securityRequired: Number(row.security_check_required) === 1,
+        allSections: true,
+      });
+      after = removePlaceholderSections(after);
+      if (after === previous) break;
+    }
 
     if (after !== before) changes.push({
       id: String(row.id),
@@ -102,7 +108,7 @@ async function main() {
     });
   }
 
-  console.log(`Closing date ${TARGET_DATE}: scanned ${result.rows.length}; would update ${changes.length}`);
+  console.log(`${RANGE_FROM_DATE ? 'Closing date on/after' : 'Closing date'} ${TARGET_DATE}: scanned ${result.rows.length}; would update ${changes.length}`);
   for (const change of changes.slice(0, 30)) {
     const delta = change.after.length - change.before.length;
     console.log(`- ${change.source} | ${change.title} [${delta >= 0 ? '+' : ''}${delta}ch]`);

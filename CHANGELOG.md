@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Jobs closing 14 or more days from today no longer repeat structured properties in their body requirements** — the current 881 active live postings were manually reviewed and de-duplicated locally without a deploy.
 - **Benefits QA corrections are now applied to active listings** — missing vacation, insurance, assistance, pension-plan, allowance, and leave benefits were restored from the captured postings while training, mentorship, remote-work, and duplicate generic pension labels were removed.
 - **Benefits now use short, consistent labels** — active listings normalize entries such as accrued vacation, performance bonuses, and group insurance, while vague training, mentorship, development, and workplace-culture claims are removed.
 - **Jobs closing today no longer repeat structured properties in body requirements** — the 245 active postings expiring today were manually reviewed and de-duplicated without redeploying the site.
