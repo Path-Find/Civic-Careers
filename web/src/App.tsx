@@ -123,8 +123,7 @@ function App() {
     minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
     listingTypeFilter, setListingTypeFilter, showStudentJobs, setShowStudentJobs, selectedLanguages, setSelectedLanguages, vehicleRequired, setVehicleRequired,
     sortNewest, setSortNewest, newlyAdded, setNewlyAdded, filteredJobs,
-    recentJobs, availableJobCount, recentlyAddedCount, activeCompanies,
-    inactiveCompanies,
+    recentJobs, availableJobCount, recentlyAddedCount,
   } = filters;
   const homeRecentJobs = homeData?.recentJobs ?? recentJobs;
   const displayAvailableJobCount = homeData?.availableJobCount ?? availableJobCount;
