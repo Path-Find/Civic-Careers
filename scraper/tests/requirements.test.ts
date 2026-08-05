@@ -55,6 +55,8 @@ test('normalizes certification wording without collapsing meaningful distinction
     'Food Handlers certification',
     'WHMIS training',
     'HIGH FIVE Certificate.',
+    'Food Safety Certification course (Food Handlers Training) or willingness to complete within 30 days of hire',
+    'Supervisor Health and Safety Awareness Training Certificate from the Ministry of Labour (may be obtained post offer)',
   ]), [
     'First Aid',
     'First Aid with CPR-C',
@@ -65,7 +67,21 @@ test('normalizes certification wording without collapsing meaningful distinction
     'Food Handler',
     'WHMIS',
     'HIGH FIVE Certificate',
+    'Supervisor Health and Safety Awareness training',
   ]);
+});
+
+test('removes clearly misclassified certification values', () => {
+  assert.deepEqual(normalizeCertificationRequirements([
+    'Vulnerable Sector Police Check',
+    'CSA approved safety footwear',
+    'Mandatory legislated training',
+    'Active member of a professional governing body',
+    'PMP certification is considered an asset',
+    'Certification in Asset Management is required',
+    'Proof of immunity for Hepatitis B',
+    'WHMIS',
+  ]), ['Certification in Asset Management is required', 'WHMIS']);
 });
 
 test('does not reduce branded or alternative credentials to generic First Aid', () => {

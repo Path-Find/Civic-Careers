@@ -96,6 +96,20 @@ export function normalizeCertificationRequirements(value: unknown): string[] {
       .replace(/[.]$/, '')
       .trim();
     if (!compact) continue;
+    if (/\b(?:preferred|preferable|preference|nice\s+to\s+have|desirable|optional)\b/i.test(compact)
+      || /\b(?:would|is|are)\s+(?:be\s+)?considered\s+an?\s+asset\b/i.test(compact)
+      || /\(\s*asset\s*\)/i.test(compact)) continue;
+
+    // These belong in another field or nowhere in structured requirements;
+    // keeping them as certifications makes the field misleading.
+    if (/\b(?:criminal records?|vulnerable sector|police|background)\s+(?:check|clearance)|\bsecurity clearance\b/i.test(compact)
+      || /\b(?:safety footwear|green patch)\b/i.test(compact)
+      || /\b(?:mandatory legislated training|environmental,? safety and any other training required by corporate policy|occupational health and safety workshops)\b/i.test(compact)
+      || /\bability to (?:obtain a city of brampton \(cob\) permit|complete re-qualification training and testing)\b/i.test(compact)
+      || /\b(?:anti-rabies vaccination|rabies titer|proof of immunity for hepatitis b)\b/i.test(compact)
+      || /^(?:active member|current membership in professional governing body)/i.test(compact)) {
+      continue;
+    }
 
     const firstAid = normalizeFirstAidCertification(compact);
     if (firstAid) {
@@ -103,7 +117,7 @@ export function normalizeCertificationRequirements(value: unknown): string[] {
       continue;
     }
 
-    if (/^whmis(?:\s+(?:training|certification|certificate))?$/i.test(compact)) {
+    if (/^wh(?:i)?mis(?:\s+(?:training|certification|certificate))?$/i.test(compact)) {
       normalized.push('WHMIS');
       continue;
     }
@@ -115,12 +129,20 @@ export function normalizeCertificationRequirements(value: unknown): string[] {
       normalized.push('Food Handler');
       continue;
     }
+    if (/^food\s+safety\s+certification\s+course\s*\(food\s+handlers?\s+training\)/i.test(compact)) {
+      normalized.push('Food Handler');
+      continue;
+    }
     if (/^high\s+five\s+certificate$/i.test(compact)) {
       normalized.push('HIGH FIVE Certificate');
       continue;
     }
     if (/worker\s+health\s+and\s+safety\s+awareness/i.test(compact)) {
       normalized.push('Worker Health and Safety Awareness training');
+      continue;
+    }
+    if (/supervisor\s+health\s+and\s+safety\s+awareness/i.test(compact)) {
+      normalized.push('Supervisor Health and Safety Awareness training');
       continue;
     }
     if (/^certified\s+in\s+nccp\s+level\s+2\s+theory\s+and\s+practical$/i.test(compact)) {

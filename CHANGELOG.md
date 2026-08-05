@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Job links use stable source IDs** — direct links no longer depend on SQLite row numbers, while old numeric links remain compatible.
+- **Certification field no longer mixes in unrelated requirements** — security checks and named medical requirements now use their proper fields, while generic training, PPE, memberships, and optional credentials are removed from Certifications.
 - **Certification labels are standardized** — First Aid levels, CPR levels, AED, and recurring labels such as WHMIS, Food Handler, and Worker Health and Safety Awareness now use consistent wording while preserving meaningful alternatives.
 - **Long Experience values now follow the canonical format** — duration thresholds, ranges, recent requirements, and qualitative requirements are normalized without dropping source alternatives.
 - **Experience separates duration from concrete skills** — e.g. `1+ years — Handling cash` now stores `1+ years` in Experience and `Cash handling` in Skills; bare `Several years` values are omitted, and duplicate Student attendance bullets are removed.
