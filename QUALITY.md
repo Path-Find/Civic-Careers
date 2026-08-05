@@ -4,6 +4,19 @@ What makes a job listing correct in this database. Use this to review any listin
 
 A listing fails review if it violates any of these. "Looks basically right" is not a pass — check every rule.
 
+## 0. One fact, one spelling
+
+When a structured field has a canonical form, every listing uses that form — same token, same casing. Do not leave free-text variants that mean the same thing (`Toronto` vs `Toronto, ON` vs `Toronto, Ontario, Canada`; `English Essential` vs `English`).
+
+**Location** (always):
+
+- Single site: `City, XX` with a two-letter province/territory code — e.g. `Guelph, ON`
+- Multiple sites: `Guelph, ON; Toronto, ON; Hamilton, ON` (semicolon + space)
+- Prefer empty over inventing a city or guessing a wrong province
+- Implemented by `normalizeLocation()` in `scraper/location.ts` (parse path + corpus backfill)
+
+Other fields get the same treatment as their vocabulary lands (see GitHub issue on canonical field vocabulary).
+
 ## 1. No fact appears in two places
 
 If a structured field holds a fact (`salary_min`/`salary_max`, `work_model`, `duration`, `location`, `hours`, `availability`, `security_check_required`, `is_unionized`/`union_name`, `medical_requirements`, etc.), that fact must not *also* sit as prose in `description`. This applies even when the structured field and the prose use different wording — "Hybrid work eligible" duplicates `work_model: "Hybrid"` just as much as a verbatim repeat.

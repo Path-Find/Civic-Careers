@@ -3,10 +3,10 @@ import test from 'node:test';
 import { saveJobDetails } from '../db';
 
 test('saveJobDetails refreshes every parsed field on conflict', async () => {
-  let statement = '';
+  const statements: string[] = [];
   const client = {
     execute: async (query: { sql: string }) => {
-      statement = query.sql;
+      statements.push(query.sql);
       return { rows: [] };
     },
   };
@@ -42,6 +42,7 @@ test('saveJobDetails refreshes every parsed field on conflict', async () => {
     software_requirements: '["Excel"]',
   });
 
+  const upsert = statements.find((s) => /INSERT INTO job_details/i.test(s)) ?? '';
   for (const field of [
     'job_title', 'department', 'location', 'salary_range', 'description',
     'closing_date', 'is_inventory', 'listing_type', 'is_student', 'salary_min', 'salary_max',
@@ -52,6 +53,8 @@ test('saveJobDetails refreshes every parsed field on conflict', async () => {
     'language_requirements', 'security_check_required', 'certification_requirements',
     'software_requirements',
   ]) {
-    assert.match(statement, new RegExp(`${field} = excluded\\.${field}`));
+    assert.match(upsert, new RegExp(`${field} = excluded\\.${field}`));
   }
+  // Full details rewrite clears human verification.
+  assert.ok(statements.some((s) => /verified_at\s*=\s*NULL/i.test(s)));
 });

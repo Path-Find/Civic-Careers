@@ -5,7 +5,7 @@ import { validateParsedJob } from '../validate';
 const BASE = {
   job_title: 'Planner I',
   department: 'Planning',
-  location: 'Toronto',
+  location: 'Toronto, ON',
   salary_min: 80000,
   salary_max: 100000,
   salary_period: 'yearly',

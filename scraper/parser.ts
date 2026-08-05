@@ -1,6 +1,7 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
+import { normalizeLocation } from './location';
 import {
   dedupeSkillsAgainstSoftware,
   extractCertificationRequirements,
@@ -80,7 +81,7 @@ async function main() {
           id: raw.id,
           job_title: aiResult.job_title,
           department: aiResult.department,
-          location: aiResult.location,
+          location: normalizeLocation(aiResult.location),
           salary_range: (aiResult.salary_min || aiResult.salary_max)
             ? `${aiResult.salary_min ?? ''} - ${aiResult.salary_max ?? ''} (${aiResult.salary_period})`
             : '',
@@ -130,17 +131,9 @@ async function main() {
     }));
   }
 
-  // Only expire within sources that were re-scraped recently (per-source scope).
-  // Using a global "any raw row in last 12h" window wiped every other employer
-  // after partial scrapes (e.g. York-only) + parse — homepage available count collapsed.
-  const runMetaResult = await db.execute(
-    `SELECT MIN(scraped_at) as started_at FROM raw_jobs WHERE scraped_at > datetime('now', '-12 hours')`
-  );
-  const startedAt = runMetaResult.rows[0]?.started_at as string | null;
-  if (startedAt) {
-    await cleanupExpiredJobs(db, startedAt);
-    console.log(`\n[Parser] Expired stale jobs for sources scraped since ${startedAt}.`);
-  }
+  // Do NOT deactivate jobs here. Expiry is scrape-owned (per source, after each
+  // successful portal pass). Parser cleanup previously wiped the whole feed
+  // whenever a partial scrape had run in the prior 12 hours.
 
   console.log('[Parser] Done.');
 

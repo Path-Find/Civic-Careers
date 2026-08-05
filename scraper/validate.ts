@@ -1,6 +1,7 @@
 import type { ParsedJob } from './ai_parser';
 import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
 import { cleanJobDescription } from './cleanup_description';
+import { normalizeLocation } from './location';
 import { normalizeEducationRequirements, normalizeLanguageRequirements, normalizeLicenseRequirements } from './requirements';
 
 function coerceString(v: unknown): string {
@@ -203,7 +204,7 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
   return {
     job_title,
     department: normalizeDepartment(coerceString(o['department'])),
-    location: coerceString(o['location']),
+    location: normalizeLocation(coerceString(o['location'])),
     salary_min: coerceNumber(o['salary_min']),
     salary_max: coerceNumber(o['salary_max']),
     salary_period: normalizeSalaryPeriod(o['salary_period']),

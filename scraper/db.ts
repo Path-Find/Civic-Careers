@@ -195,6 +195,13 @@ async function initializeDbOnce(): Promise<Client> {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
 
+  // Human whole-job review flag — set via mark-verified CLI; cleared on full AI reparse.
+  try {
+    await client.execute(`ALTER TABLE jobs ADD COLUMN verified_at DATETIME`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+
   // Records why a raw job failed to parse, so a batch failure count is
   // diagnosable after the fact instead of only existing in transient stdout.
   await client.execute(`
@@ -339,6 +346,11 @@ export async function saveJobDetails(client: Client, job: {
       job.responsibility_tags ?? null, job.qualification_tags ?? null,
       job.parser_version ?? null, job.posted_at ?? null, job.start_date ?? null,
     ],
+  });
+  // Full AI (or full-details) rewrite invalidates prior human verification.
+  await client.execute({
+    sql: `UPDATE jobs SET verified_at = NULL WHERE id = ? AND verified_at IS NOT NULL`,
+    args: [job.id],
   });
 }
 
@@ -501,36 +513,44 @@ export async function toggleSaveJob(client: Client, id: string) {
 }
 
 /**
- * Deactivate jobs that were missing from a scrape of *their own source*.
+ * After a successful scrape of one source: deactivate that source's jobs that
+ * were not re-touched in this run (delisted from the portal).
  *
- * Only sources that have at least one raw_jobs row with scraped_at >= runStartedAt
- * are considered "scraped this run." Jobs for other sources are left alone — so a
- * York-only technomedia scrape + parse cannot wipe UOttawa/CMHC/etc.
- *
- * Within a scraped source, any job id not re-touched in that window is marked inactive
- * (delisted from the portal).
+ * NEVER call this from the parser with a global time window — that wiped the
+ * whole feed after a York-only scrape + parse (2026-08-05).
  */
-export async function cleanupExpiredJobs(client: Client, runStartedAt: string) {
+export async function cleanupExpiredJobsForSource(
+  client: Client,
+  source: string,
+  runStartedAt: string,
+): Promise<void> {
   await client.execute({
     sql: `UPDATE jobs SET is_active = 0
-          WHERE source IN (
-            SELECT DISTINCT source FROM raw_jobs WHERE scraped_at >= ?
-          )
-          AND id NOT IN (
-            SELECT id FROM raw_jobs WHERE scraped_at >= ?
-          )`,
-    args: [runStartedAt, runStartedAt],
+          WHERE source = ?
+            AND id NOT IN (
+              SELECT id FROM raw_jobs WHERE source = ? AND scraped_at >= ?
+            )`,
+    args: [source, source, runStartedAt],
   });
 
-  // Failure records for ids delisted from a source we actually scraped this run.
   await client.execute({
     sql: `DELETE FROM parse_failures
           WHERE id IN (
             SELECT j.id FROM jobs j
-            WHERE j.is_active = 0
-              AND j.source IN (SELECT DISTINCT source FROM raw_jobs WHERE scraped_at >= ?)
-              AND j.id NOT IN (SELECT id FROM raw_jobs WHERE scraped_at >= ?)
+            WHERE j.source = ?
+              AND j.is_active = 0
+              AND j.id NOT IN (
+                SELECT id FROM raw_jobs WHERE source = ? AND scraped_at >= ?
+              )
           )`,
-    args: [runStartedAt, runStartedAt],
+    args: [source, source, runStartedAt],
   });
+}
+
+/** @deprecated Use cleanupExpiredJobsForSource after each source scrape. */
+export async function cleanupExpiredJobs(client: Client, runStartedAt: string) {
+  // Kept for tests/callers: no-op global path. Prefer per-source cleanup.
+  void client;
+  void runStartedAt;
+  console.warn('[cleanupExpiredJobs] no-op: use cleanupExpiredJobsForSource per source instead');
 }

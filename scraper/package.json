@@ -15,6 +15,8 @@
     "backfill-education-license": "npx tsx backfill-education-license.ts",
     "backfill-listing-types": "npx tsx backfill-listing-types.ts",
     "backfill-description-cleanup": "npx tsx backfill-description-cleanup.ts",
+    "backfill-locations": "npx tsx backfill-normalize-locations.ts",
+    "mark-verified": "npx tsx mark-verified.ts",
     "reparse-stale": "npx tsx reparse-stale.ts",
     "sample-parser": "npx tsx sample-parser.ts",
     "test": "node --require tsx/cjs --test tests/*.test.ts"

@@ -9,8 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **York University job board** — Technomedia portal (~400 postings) now scrapes on the regular schedule (was engine-only, never on the production task list). First full pull uses list detail links + rate limiting so mid-run “resource not available” dead-ends don’t fill the DB.
+- **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Location field is now consistent** — every stored location is `City, XX` (e.g. `Guelph, ON`) or multi-site `City, XX; City, XX`. Bare cities get a province from a curated map; junk like `Canada` / `Multiple Locations` is cleared. New parses normalize automatically; existing rows backfilled.
 - **“Closing within 14 days” (and Newly added) showed ~20 matches** because the filter only ran on the first loaded page of jobs. Those sorts now query the API with a real total and paginate the full matching set.
 - **Homepage available-job count collapsed after a partial scrape + parse** — cleanup treated “not scraped in the last 12h window” as delisted for *every* employer, so a York-only scrape then parse deactivated thousands of still-live postings. Cleanup is now scoped to sources actually re-scraped; wrongly deactivated rows restored.
 - **Wordy federal Experience walls collapsed** — e.g. “Experience analyzing… / Experience is defined as… two (2) years…” → `2+ years` + short domain labels; definition meta lines dropped; body bullets that only restated Experience stripped.
