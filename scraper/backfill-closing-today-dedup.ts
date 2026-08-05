@@ -7,6 +7,7 @@
  *   npx tsx backfill-closing-today-dedup.ts --apply         # write changes
  *   npx tsx backfill-closing-today-dedup.ts --date=2026-08-05 --apply
  *   npx tsx backfill-closing-today-dedup.ts --from-date=2026-08-19 --apply
+ *   npx tsx backfill-closing-today-dedup.ts --from-date=2026-08-06 --to-date=2026-08-18 --apply
  */
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
@@ -22,6 +23,7 @@ dotenv.config({ quiet: true });
 const APPLY = process.argv.includes('--apply');
 const dateArgument = process.argv.find(argument => argument.startsWith('--date='))?.slice('--date='.length);
 const fromDateArgument = process.argv.find(argument => argument.startsWith('--from-date='))?.slice('--from-date='.length);
+const toDateArgument = process.argv.find(argument => argument.startsWith('--to-date='))?.slice('--to-date='.length);
 const TARGET_DATE = dateArgument || fromDateArgument || new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Toronto',
   year: 'numeric',
@@ -29,6 +31,17 @@ const TARGET_DATE = dateArgument || fromDateArgument || new Intl.DateTimeFormat(
   day: '2-digit',
 }).format(new Date());
 const RANGE_FROM_DATE = fromDateArgument && !dateArgument ? fromDateArgument : null;
+const RANGE_TO_DATE = toDateArgument && !dateArgument ? toDateArgument : null;
+const DATE_PREDICATE = RANGE_FROM_DATE && RANGE_TO_DATE
+  ? 'BETWEEN ? AND ?'
+  : RANGE_FROM_DATE
+    ? '>= ?'
+    : RANGE_TO_DATE
+      ? '<= ?'
+      : '= ?';
+const DATE_ARGUMENTS = RANGE_FROM_DATE && RANGE_TO_DATE
+  ? [RANGE_FROM_DATE, RANGE_TO_DATE]
+  : [TARGET_DATE];
 
 function parseList(value: unknown): string[] {
   if (!value) return [];
@@ -69,9 +82,9 @@ async function main() {
     FROM jobs j
     JOIN job_details d ON d.id = j.id
     WHERE j.is_active = 1
-      AND substr(d.closing_date, 1, 10) ${RANGE_FROM_DATE ? '>= ?' : '= ?'}
+      AND substr(d.closing_date, 1, 10) ${DATE_PREDICATE}
     ORDER BY j.source, d.job_title
-  `, [TARGET_DATE]);
+  `, DATE_ARGUMENTS);
 
   const changes: Array<{ id: string; source: string; title: string; before: string; after: string }> = [];
 
@@ -108,7 +121,14 @@ async function main() {
     });
   }
 
-  console.log(`${RANGE_FROM_DATE ? 'Closing date on/after' : 'Closing date'} ${TARGET_DATE}: scanned ${result.rows.length}; would update ${changes.length}`);
+  const scopeLabel = RANGE_FROM_DATE && RANGE_TO_DATE
+    ? `Closing date ${RANGE_FROM_DATE} through ${RANGE_TO_DATE}`
+    : RANGE_FROM_DATE
+      ? `Closing date on/after ${TARGET_DATE}`
+      : RANGE_TO_DATE
+        ? `Closing date on/before ${TARGET_DATE}`
+        : `Closing date ${TARGET_DATE}`;
+  console.log(`${scopeLabel}: scanned ${result.rows.length}; would update ${changes.length}`);
   for (const change of changes.slice(0, 30)) {
     const delta = change.after.length - change.before.length;
     console.log(`- ${change.source} | ${change.title} [${delta >= 0 ? '+' : ''}${delta}ch]`);

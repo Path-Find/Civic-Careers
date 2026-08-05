@@ -327,6 +327,7 @@ const VEHICLE_NOT_REQUIRED = /\bno\s+(?:driver.?s?\s+(?:licen[cs]e|permit|abstra
 const VEHICLE_CONDITIONAL = /\b(?:for|if|where)\s+(?:positions?|roles?|jobs?)?\s*(?:requiring|that require|requiring the use of|driving)\b|\b(?:when|if)\s+driving\s+is\s+required\b/i;
 const VEHICLE_REQUIRED_CUE = /\b(?:valid|current|must|possess|hold|maintain|obtain|provide|access\s+to|own|personal|reliable|required|mandatory|license|licence|permit|abstract|ability\s+to\s+drive|must\s+drive)\b/i;
 const VEHICLE_SPECIFIC_REQUIREMENT = /\b(?:driver.?s?\s+(?:licen[cs]e|permit|abstract)|class\s+[a-z0-9]+\s+(?:driver.?s?\s+)?licen[cs]e|(?:access|own|personal|reliable)\s+(?:to\s+)?(?:a\s+)?vehicle|reliable\s+transportation|vehicle\s+(?:is\s+)?(?:required|necessary)|ability\s+to\s+drive|must\s+drive)\b/i;
+const SECURITY_SPECIFIC_REQUIREMENT = /\b(?:criminal|police|vulnerable\s+sector|background)\s+(?:record\s+)?(?:check|screening|clearance)|\benhanced\s+security\s+screening|\bsecurity\s+(?:status\s+)?(?:check|clearance)|\breliability\s+status\b/i;
 const VEHICLE_OPTIONAL_REQUIREMENT = /\b(?:asset|preferred|preferable|nice\s+to\s+have|desirable|advantage|optional)\b/i;
 
 type RequirementSection = 'required' | 'optional' | 'benefits' | 'other';
@@ -2386,7 +2387,7 @@ function stripStructuredQualBulletsOnce(
         continue;
       }
       if (requirementSection && securityRequired && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
-        && /\b(?:security|reliability)\s+(?:status\s+)?(?:clearance|check)\b/i.test(focus)
+        && SECURITY_SPECIFIC_REQUIREMENT.test(focus)
         && focus.length < 220) {
         removed += 1;
         continue;

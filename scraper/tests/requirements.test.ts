@@ -173,6 +173,17 @@ test('strips pure structured restatements from every body section when requested
   assert.doesNotMatch(result, /Windows|Microsoft 365|Bilingual|ServiceNow/);
 });
 
+test('strips common security-screening restatements when the security flag is set', () => {
+  const result = stripStructuredQualBullets(`## Qualifications
+- Enhanced Security Screening required
+- Criminal Record Check (CRC) required
+- Experience supporting court operations`, {
+    securityRequired: true,
+  });
+  assert.match(result, /Experience supporting court operations/);
+  assert.doesNotMatch(result, /Security Screening|Criminal Record Check/);
+});
+
 test('structured restatement cleanup is idempotent after headings are exposed', () => {
   const description = `## Qualifications
 - A doctoral degree (PhD) within the last three years in a field of natural sciences
