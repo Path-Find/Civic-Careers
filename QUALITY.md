@@ -46,6 +46,14 @@ When a structured field has a canonical form, every listing uses that form — s
 - Prefer empty over unparseable long prose
 - Implemented by `normalizeDuration()` in `scraper/duration.ts` (validate + parser write path + backfill)
 
+**Hours / availability** (always — two fields; not full enums yet):
+
+- **Hours** = workload amount only: `35 hours per week`, `Up to 24 hours per week`, `39 hours` (not schedule prose)
+- **Availability** = when you work: tags like `Daytime`, `Evenings`, `Weekends`, `Shift work`, `Variable`, `On-call`, `Mon-Fri` (multi with `; `)
+- Fused strings split: `"35 hours per week; Monday to Friday…"` → hours + availability
+- Prefer empty over inventing; do not put FTE/employment fluff in availability
+- Implemented by `normalizeHours` / `normalizeAvailability` / `splitHoursAndAvailability` in `scraper/hours-availability.ts`
+
 Other fields get the same treatment as their vocabulary lands (see GitHub issue on canonical field vocabulary).
 
 ## 1. No fact appears in two places
