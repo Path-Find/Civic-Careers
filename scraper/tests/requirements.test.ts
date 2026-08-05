@@ -13,6 +13,7 @@ import {
   stripLicenseBulletsFromDescription,
   stripStructuredQualBullets,
   extractListingType,
+  normalizeListingType,
   extractSoftwareRequirements,
   extractVehicleRequired,
   hasLanguageVehicleCandidate,
@@ -501,6 +502,20 @@ test('classifies an explicit future-vacancy inventory separately', () => {
     ),
     'inventory',
   );
+});
+
+test('normalizeListingType maps short labels to the three tokens', () => {
+  assert.equal(normalizeListingType('regular'), 'regular');
+  assert.equal(normalizeListingType('inventory'), 'inventory');
+  assert.equal(normalizeListingType('ongoing_recruitment'), 'ongoing_recruitment');
+  assert.equal(normalizeListingType('Ongoing recruitment'), 'ongoing_recruitment');
+  assert.equal(normalizeListingType('candidate inventory'), 'inventory');
+  assert.equal(normalizeListingType('candidate pool'), 'ongoing_recruitment');
+  assert.equal(normalizeListingType('open until filled'), 'ongoing_recruitment');
+  assert.equal(normalizeListingType('standard'), 'regular');
+  assert.equal(normalizeListingType(null), 'regular');
+  assert.equal(normalizeListingType('anything else'), 'regular');
+  assert.equal(normalizeListingType('regular', true), 'inventory');
 });
 
 test('does not treat generic lowercase teams as Microsoft Teams', () => {

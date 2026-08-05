@@ -9,6 +9,7 @@ import {
   dedupeSkillsAgainstSoftware,
   extractCertificationRequirements,
   extractListingType,
+  normalizeListingType,
   extractSecurityRequirementLabel,
   extractSoftwareRequirements,
   extractWorkYearDuration,
@@ -77,8 +78,11 @@ async function main() {
           languages: finalLanguages,
         });
         const vehicleFromLicense = licensesImplyVehicle(structuredRequirements.license_requirements);
-        const listingType = extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory);
-        const isInventory = listingType === 'inventory' || aiResult.is_inventory;
+        const listingType = normalizeListingType(
+          extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory),
+          aiResult.is_inventory,
+        );
+        const isInventory = listingType === 'inventory';
         await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
         await saveJobDetails(db, {
           id: raw.id,

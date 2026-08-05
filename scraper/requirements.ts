@@ -127,6 +127,49 @@ type RequirementSection = 'required' | 'optional' | 'benefits' | 'other';
 type DescriptionLine = { text: string; section: RequirementSection; heading: boolean };
 export type ListingType = 'regular' | 'ongoing_recruitment' | 'inventory';
 
+/**
+ * Canonical listing_type tokens only.
+ * - regular: ordinary single-role posting
+ * - inventory: federal-style candidate inventory (not a specific job; often hidden from default catalogue)
+ * - ongoing_recruitment: standing programs / open pools / open-till-filled hiring
+ */
+export function normalizeListingType(value: unknown, isInventory = false): ListingType {
+  if (isInventory === true) return 'inventory';
+  const s = String(value ?? '')
+    .toLowerCase()
+    .replace(/[\s_-]+/g, ' ')
+    .trim();
+  if (!s) return 'regular';
+
+  // Stored-field / short-label synonyms only (not free prose — use extractListingType for that).
+  if (
+    s === 'inventory'
+    || s === 'candidate inventory'
+    || s === 'talent inventory'
+    || s === 'inventory process'
+  ) {
+    return 'inventory';
+  }
+
+  if (
+    s === 'ongoing_recruitment'
+    || s === 'ongoing recruitment'
+    || s === 'ongoing'
+    || s === 'standing'
+    || s === 'standing posting'
+    || s === 'open till filled'
+    || s === 'open until filled'
+    || s === 'candidate pool'
+    || s === 'talent pool'
+    || s === 'recruitment program'
+  ) {
+    return 'ongoing_recruitment';
+  }
+
+  if (s === 'regular' || s === 'standard' || s === 'normal') return 'regular';
+  return 'regular';
+}
+
 const EDUCATION_TERM = /\b(?:bachelor(?:['’]s)?(?:\s+degree)?|master(?:['’]s)?(?!\s+electrician)(?:\s+degree)?|ph\.?d\.?|doctor(?:ate|al)|diploma|degree\s+(?:in|from|required|or|program)|post[- ]secondary\s+(?:education|program|institution)|associate(?:['’]s)?|bscn|bsn|b\.?a\.?|m\.?a\.?|undergraduate\s+degree|graduate\s+degree)\b/i;
 const STUDENT_EDUCATION_TERM = /\b(?:current(?:ly)?\s+enrol(?:l(?:ed|ment)?|ment)?|registration\s+in\s+(?:a\s+)?co-?op\s+program|student\s+(?:status|enrolment|enrollment))\b/i;
 const EDUCATION_REQUIRED_CUE = /\b(?:required|minimum|must|completion|completed|successful|degree\s+in|diploma\s+in|equivalent|eligible|graduate|undergraduate|post[- ]secondary\s+(?:program|institution|education\s+in)|education\s+in)\b|\b(?:a|an|minimum|completion\s+of|completed|required)\s+post[- ]secondary\s+education\b/i;
@@ -218,7 +261,8 @@ export function extractListingType(description: string, title = '', isInventory 
     return 'inventory';
   }
   if (ONGOING_TITLE_SIGNAL.test(title)) return 'ongoing_recruitment';
-  return ONGOING_TEXT_SIGNALS.some(signal => signal.test(text)) ? 'ongoing_recruitment' : 'regular';
+  const detected = ONGOING_TEXT_SIGNALS.some(signal => signal.test(text)) ? 'ongoing_recruitment' : 'regular';
+  return normalizeListingType(detected, false);
 }
 
 function compactText(value: string): string {

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Listing type is locked to three tokens** — `regular` | `ongoing_recruitment` | `inventory` only (`is_inventory` stays in sync with inventory). Short-label normalize + extract-from-text on parse; corpus already clean under #161.
 - **Salary period is locked to four tokens** — `yearly` | `hourly` | `monthly` | `flat` only. Parse-time normalize maps annual/hr/per course/stipend synonyms; unknown defaults to yearly. Corpus already clean; write path hardened under #161.
 - **Hours and availability are cleaned and split** — hours store workload only (`35 hours per week`, `Up to 24 hours per week`); availability stores schedule tags (`Evenings; Weekends`, `Mon-Fri`, `On-call`). Fused strings like “35 hours/week; Tuesday to Saturday…” are separated. Sparse corpus backfilled under #161.
 - **Job titles no longer repeat employment type or duration** already in the sidebar — e.g. `Change Management Lead (Approximately 2-year contract)` → `Change Management Lead`, `Custodian (Part-Time)` → `Custodian`, `… - Inventory` stripped when it’s a talent-pool label. New parses normalize automatically; existing rows backfilled.

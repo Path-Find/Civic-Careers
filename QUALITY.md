@@ -61,6 +61,14 @@ When a structured field has a canonical form, every listing uses that form — s
 - Unknown defaults to `yearly` (existing parse policy)
 - Implemented by `normalizeSalaryPeriod()` in `scraper/validate.ts` (validate + parser write path)
 
+**Listing type** (always):
+
+- Stored tokens only: `regular` | `ongoing_recruitment` | `inventory`
+- `inventory` = federal-style candidate inventory (not a specific job; default catalogue hides these; `is_inventory = 1` must match)
+- `ongoing_recruitment` = standing programs / open pools / open-till-filled
+- Detection from posting text: `extractListingType()`; short-label coerce: `normalizeListingType()`
+- Implemented in `scraper/requirements.ts` (parser write path)
+
 Other fields get the same treatment as their vocabulary lands (see GitHub issue on canonical field vocabulary).
 
 ## 1. No fact appears in two places
