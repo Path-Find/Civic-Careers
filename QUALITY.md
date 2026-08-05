@@ -77,6 +77,21 @@ When a structured field has a canonical form, every listing uses that form — s
 - Security: labeled “Security Requirement: …” (CMHC/GC) via `extractSecurityRequirementLabel`
 - Implemented by `normalizeRequirementFlag` / `normalizeVehicleRequired` / `requirementFlagToDb` (validate + parser)
 
+**Licences** (professional only):
+
+- Keep professional licences, registrations, designations, and trade credentials in `license_requirements`
+- Driver licences (`Ontario Class G`, `Class DZ`, etc.) belong under `vehicle_required`, not Licences
+- Implemented by `normalizeProfessionalLicenseRequirements()` and `extractProfessionalLicenseRequirements()`; driver requirements are stripped from duplicate Qualifications bullets
+
+**Union name** (always — free text OK, light normalize only):
+
+- Real bargaining-unit names kept (CUPE Local 5167, APTPUO, NASA, …) — no full taxonomy
+- `C.U.P.E.` → `CUPE`; dotted OPSEU/USW/ONA cleaned the same way
+- Non-membership labels empty the field and set not unionized: Non-Union, Non-Affiliated, Non-Bargaining, Union/Non-Union
+- Bare “Union” → unionized with empty name; generic “Collective Agreement” alone is not a unit name
+- Real name implies `is_unionized = 1`
+- Implemented by `normalizeUnionName` / `normalizeUnionFields` in `scraper/validate.ts`
+
 Other fields get the same treatment as their vocabulary lands (see GitHub issue on canonical field vocabulary).
 
 ## 1. No fact appears in two places

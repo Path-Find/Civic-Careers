@@ -15,7 +15,7 @@ const AI_MODEL = process.env.AI_MODEL || "deepseek-v4-flash";
 // old parses may no longer match what the current prompt would produce. Stamped
 // onto every job_details row so stale-version jobs can be found and selectively
 // reparsed via reparse-stale.ts instead of reparsing (and re-billing) everything.
-export const PARSER_VERSION = 3;
+export const PARSER_VERSION = 4;
 
 export interface ParsedJob {
     job_title: string;
@@ -100,7 +100,7 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
       "required_skills": "Specific named technical skills not captured by the dedicated requirement fields below. Only concrete named things a candidate would list on a resume, NOT generic soft-skill phrases like 'strong communication' or 'attention to detail'. Empty array if none are named.",
       "experience_requirements": "Required experience, especially explicit durations such as '3 years of experience in case management'. Include only mandatory experience; exclude preferred or asset experience. Preserve short source wording. Empty array if none is stated.",
       "education_requirements": "Required degrees, diplomas, fields of study, enrolment conditions, or equivalent education requirements. Preserve the source wording in short list items. Empty array if none are stated.",
-      "license_requirements": "Required professional licences, registrations, designations, or legally required permits, such as P.Eng., EIT, a teaching certificate, or a Class G licence. Do not include optional assets. Empty array if none are required.",
+      "license_requirements": "Required professional licences, registrations, designations, or legally required non-driving permits, such as P.Eng., EIT, or a teaching certificate. Put driver's licences and vehicle requirements only in vehicle_required; do not include Class G/DZ/other driver licences here. Do not include optional assets. Empty array if none are required.",
       "vehicle_required": true | false | null (true only when the posting explicitly requires driving, a driver's licence, a vehicle, or reliable transportation; false only when it explicitly says one is not required; null when not mentioned),
       "language_requirements": "Required languages or language proficiency levels. Include bilingual requirements and named language tests/levels. Do not infer a requirement from the language used by the posting. Empty array if none are stated.",
       "security_check_required": true | false | null (true when a police check, vulnerable sector check, criminal record check, background check, or security clearance is required; false only when explicitly not required; null when not mentioned),

@@ -13,7 +13,6 @@ import {
   extractSoftwareRequirements,
   extractVehicleRequired,
   extractWorkYearDuration,
-  licensesImplyVehicle,
   normalizeLanguageRequirements,
   normalizeListingType,
   normalizeSecurityCheckRequired,
@@ -79,17 +78,19 @@ async function main() {
           ...(aiResult.language_requirements ?? []),
           ...languagesFromSkills,
         ]);
+        const vehicleFromDescription = extractVehicleRequired(description);
+        const vehicleFromAI = normalizeVehicleRequired(aiResult.vehicle_required);
+        const vehicleRequired = vehicleFromDescription === true
+          ? true
+          : (vehicleFromAI ?? vehicleFromDescription);
         description = stripStructuredQualBullets(description, {
           licenses: structuredRequirements.license_requirements,
           education: structuredRequirements.education_requirements,
           experience: structuredRequirements.experience_requirements,
           languages: finalLanguages,
           certifications: certificationRequirements,
+          vehicleRequired,
         });
-        const vehicleFromLicense = licensesImplyVehicle(structuredRequirements.license_requirements);
-        const vehicleRequired = vehicleFromLicense
-          ? true
-          : (normalizeVehicleRequired(aiResult.vehicle_required) ?? extractVehicleRequired(description));
         const securityFromLabel = extractSecurityRequirementLabel(description);
         const securityCheckRequired = sourceFix?.securityCheckRequired
           ?? normalizeSecurityCheckRequired(aiResult.security_check_required)

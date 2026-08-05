@@ -12,7 +12,9 @@ import fs from 'fs';
 import path from 'path';
 import {
   extractLicenseRequirements,
+  extractVehicleRequired,
   licensesImplyVehicle,
+  normalizeProfessionalLicenseRequirements,
   stripLicenseBulletsFromDescription,
 } from './requirements';
 
@@ -35,27 +37,6 @@ function sameList(left: string[], right: string[]): boolean {
   return JSON.stringify(norm(left)) === JSON.stringify(norm(right));
 }
 
-function mergeLicenses(existing: string[], extracted: string[]): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const value of [...existing, ...extracted]) {
-    const key = value.trim().toLowerCase();
-    if (!key || seen.has(key)) continue;
-    // Prefer longer/more specific when one contains the other.
-    const containedAt = out.findIndex(item => {
-      const a = item.toLowerCase();
-      return a.includes(key) || key.includes(a);
-    });
-    if (containedAt >= 0) {
-      if (value.length > out[containedAt].length) out[containedAt] = value;
-      continue;
-    }
-    seen.add(key);
-    out.push(value.trim());
-  }
-  return out;
-}
-
 async function main() {
   const db = createClient({
     url: process.env.TURSO_URL!,
@@ -67,7 +48,6 @@ async function main() {
            d.license_requirements, d.vehicle_required
     FROM jobs j
     JOIN job_details d ON d.id = j.id
-    WHERE d.description IS NOT NULL AND d.description != ''
     ORDER BY j.source, j.id
   `);
 
@@ -89,12 +69,13 @@ async function main() {
     const description = String(row.description ?? '');
     const existing = parseList(row.license_requirements as string | null);
     const extracted = extractLicenseRequirements(description);
-    const merged = mergeLicenses(existing, extracted);
-    const cleanedDescription = stripLicenseBulletsFromDescription(description, merged);
+    const merged = normalizeProfessionalLicenseRequirements([...existing, ...extracted]);
+    const vehicleDetected = extractVehicleRequired(description);
+    const cleanedDescription = stripLicenseBulletsFromDescription(description, merged, vehicleDetected);
     const vehicleFrom = row.vehicle_required === null || row.vehicle_required === undefined
       ? null
       : Number(row.vehicle_required);
-    const vehicleTo = licensesImplyVehicle(merged) ? 1 : vehicleFrom;
+    const vehicleTo = vehicleDetected === true || licensesImplyVehicle(extracted) ? 1 : vehicleFrom;
 
     const licensesFrom = JSON.stringify(existing);
     const licensesTo = JSON.stringify(merged);

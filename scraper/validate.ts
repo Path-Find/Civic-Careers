@@ -3,7 +3,7 @@ import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
 import { cleanJobDescription } from './cleanup_description';
 import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
-import { normalizeEducationRequirements, normalizeLanguageRequirements, normalizeLicenseRequirements } from './requirements';
+import { normalizeEducationRequirements, normalizeExperienceRequirements, normalizeLanguageRequirements, normalizeProfessionalLicenseRequirements } from './requirements';
 import { normalizeJobTitle } from './title';
 
 function coerceString(v: unknown): string {
@@ -92,6 +92,67 @@ export function normalizeRequirementFlag(v: unknown): boolean | null {
 /** @deprecated Prefer normalizeRequirementFlag — same tri-state rules. */
 function normalizeOptionalBool(v: unknown): boolean | null {
   return normalizeRequirementFlag(v);
+}
+
+/**
+ * Union field rules (light normalize only — no full bargaining-unit taxonomy):
+ * - Non-Union / Non-Affiliated / bare N/A → not unionized, empty name
+ * - Bare "Union" → unionized with empty name
+ * - Real name → unionized + light casing (C.U.P.E. → CUPE)
+ * - Generic "Collective Agreement" alone is not a unit name
+ */
+export type UnionFields = { is_unionized: boolean; union_name: string };
+
+function isNonUnionLabel(name: string): boolean {
+  if (!name) return false;
+  // Explicit non-membership labels only — do NOT treat "Non-Academic Staff Association" as non-union.
+  if (/^union\s*\/\s*non[-\s]?union$/i.test(name)) return true;
+  if (/^non[-\s]?union(?:ized)?\b/i.test(name)) return true;
+  if (/^(none|n\/?a|no|not unionized|non-affiliated|non-bargaining|non\s+spécifié|non\s+specifie|unspecified|tbd|unknown)$/i.test(name)) {
+    return true;
+  }
+  if (/^(mgmt\s+)?non[-\s]?union(?:\s*\/\s*non\s*mpe)?(?:,\s*management)?$/i.test(name)) return true;
+  if (/^non[-\s]?union(?:\s+staff|\s+employees)?$/i.test(name)) return true;
+  return false;
+}
+
+/** Light casing/dedupe for known union acronyms — not a full taxonomy. */
+export function normalizeUnionName(raw: string | null | undefined): string {
+  if (raw == null) return '';
+  let s = String(raw).replace(/\?+$/g, '').replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  if (isNonUnionLabel(s)) return '';
+  if (/^union$/i.test(s)) return '';
+
+  // C.U.P.E. / c.u.p.e. → CUPE
+  s = s.replace(/\bC\.U\.P\.E\./gi, 'CUPE');
+  s = s.replace(/\bcupe\b/gi, 'CUPE');
+  s = s.replace(/\bO\.P\.S\.E\.U\./gi, 'OPSEU');
+  s = s.replace(/\bU\.S\.W\./gi, 'USW');
+  s = s.replace(/\bO\.N\.A\./gi, 'ONA');
+  s = s.replace(/\s+/g, ' ').trim();
+
+  // Generic agreement labels are not bargaining-unit names
+  if (/^(collective agreement|faculty collective agreement|academic collective agreement|full-time support staff collective agreement)$/i.test(s)) {
+    return '';
+  }
+
+  return s;
+}
+
+export function normalizeUnionFields(unionName: unknown, isUnionized: unknown): UnionFields {
+  const rawName = coerceString(unionName).replace(/\?+$/g, '').replace(/\s+/g, ' ').trim();
+  const name = normalizeUnionName(rawName);
+  const flag = coerceBool(isUnionized);
+
+  if (isNonUnionLabel(rawName)) {
+    return { is_unionized: false, union_name: '' };
+  }
+  if (/^union$/i.test(rawName)) {
+    return { is_unionized: true, union_name: '' };
+  }
+  if (name) return { is_unionized: true, union_name: name };
+  return { is_unionized: flag, union_name: '' };
 }
 
 /**
@@ -325,28 +386,14 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     work_model: normalizeWorkModel(o['work_model'], job_title),
     employment_type: normalizeEmploymentType(o['employment_type']),
     duration: normalizeDuration(coerceString(o['duration'])),
-    ...(() => {
-      const rawName = coerceString(o['union_name']).replace(/\?+$/g, '').replace(/\s+/g, ' ').trim();
-      const flag = coerceBool(o['is_unionized']);
-      const nameIsNonUnion = !!rawName && (
-        /^(non[-\s]?union(?:ized)?|none|n\/?a|no|not unionized|non union(?: staff| employees)?|mgmt non union|non union\/non mpe|non union, management)$/i.test(rawName)
-        || /^non[-\s]?union\b/i.test(rawName)
-      );
-      // "Non-Union" / "Non-Union?" is never a union membership.
-      if (nameIsNonUnion) return { is_unionized: false, union_name: '' };
-      // AI sometimes sets is_unionized true with name "Union" only.
-      if (/^union$/i.test(rawName)) return { is_unionized: true, union_name: '' };
-      // A real union name implies unionized even if the flag was wrong.
-      if (rawName) return { is_unionized: true, union_name: rawName };
-      return { is_unionized: flag, union_name: '' };
-    })(),
+    ...normalizeUnionFields(o['union_name'], o['is_unionized']),
     is_student: coerceBool(o['is_student']),
     is_inventory: coerceBool(o['is_inventory']),
     benefits: normalizeStringList(o['benefits']),
     required_skills: normalizeStringList(o['required_skills']),
-    experience_requirements: normalizeStringList(o['experience_requirements']),
+    experience_requirements: normalizeExperienceRequirements(normalizeStringList(o['experience_requirements'])),
     education_requirements: normalizeEducationRequirements(o['education_requirements']),
-    license_requirements: normalizeLicenseRequirements(o['license_requirements']),
+    license_requirements: normalizeProfessionalLicenseRequirements(o['license_requirements']),
     vehicle_required: normalizeRequirementFlag(o['vehicle_required']),
     language_requirements: normalizeLanguageRequirements(o['language_requirements']),
     security_check_required: normalizeRequirementFlag(o['security_check_required']),

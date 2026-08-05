@@ -4,6 +4,8 @@ import {
   normalizeEmploymentType,
   normalizeRequirementFlag,
   normalizeSalaryPeriod,
+  normalizeUnionFields,
+  normalizeUnionName,
   normalizeWorkModel,
   validateParsedJob,
 } from '../validate';
@@ -286,6 +288,18 @@ describe('validateParsedJob', () => {
       assert.equal(result?.union_name, '');
     });
 
+    it('normalizes union names lightly and clears non-union labels', () => {
+      assert.equal(normalizeUnionName('C.U.P.E.'), 'CUPE');
+      assert.equal(normalizeUnionName('C.U.P.E. Local 543'), 'CUPE Local 543');
+      assert.equal(normalizeUnionName('Non-Union'), '');
+      assert.equal(normalizeUnionName('Non-Affiliated'), '');
+      assert.equal(normalizeUnionName('Collective Agreement'), '');
+      assert.equal(normalizeUnionName('Non-Academic Staff Association (NASA)'), 'Non-Academic Staff Association (NASA)');
+      assert.deepEqual(normalizeUnionFields('Non-Bargaining', true), { is_unionized: false, union_name: '' });
+      assert.deepEqual(normalizeUnionFields('CUPE 2626', false), { is_unionized: true, union_name: 'CUPE 2626' });
+      assert.deepEqual(normalizeUnionFields('Union', true), { is_unionized: true, union_name: '' });
+    });
+
     it('coerces numeric booleans', () => {
       assert.equal(validateParsedJob({ ...BASE, is_inventory: 1 })?.is_inventory, true);
       assert.equal(validateParsedJob({ ...BASE, is_inventory: 0 })?.is_inventory, false);
@@ -329,8 +343,9 @@ describe('validateParsedJob', () => {
   describe('structured requirements normalization', () => {
     it('normalizes requirement lists', () => {
       const result = validateParsedJob({ ...BASE, license_requirements: 'P.Eng., Class G', software_requirements: ['Excel', 'Adobe Acrobat'] });
-      assert.deepEqual(result?.license_requirements, ['P.Eng.', 'Class G']);
+      assert.deepEqual(result?.license_requirements, ['P.Eng.']);
       assert.deepEqual(result?.software_requirements, ['Excel', 'Adobe Acrobat']);
+      assert.deepEqual(validateParsedJob({ ...BASE, experience_requirements: ['Experience: analyzing complex information', 'Experience is defined as approximately two (2) years or more'] })?.experience_requirements, ['2+ years', 'Analyzing complex information']);
     });
 
     it('canonicalizes Microsoft Office aliases', () => {

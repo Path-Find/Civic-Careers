@@ -475,7 +475,7 @@ export function compactEducationRequirement(value: string): string {
     return already.charAt(0).toUpperCase() + already.slice(1);
   }
 
-  let s = cleanEducationRequirement(value);
+  let s = cleanEducationRequirement(value).replace(/[;,.]+$/, '').trim();
   if (!s) return '';
 
   // Drop emoji / ED1 walls and competency dump.
@@ -514,7 +514,7 @@ export function compactEducationRequirement(value: string): string {
       const num = ({ one: '1', two: '2', three: '3', four: '4', '1': '1', '2': '2', '3': '3', '4': '4' } as Record<string, string>)[raw] || raw;
       if (num) return `${num} years of high school`;
     }
-    if (/\bpartial\s+secondary\b/i.test(s)) return 'Partial high school';
+    if (/\bpartial\s+(?:secondary|high\s+school)\b/i.test(s)) return 'Partial high school';
     // PSC test alternative alone (no diploma stated as primary).
     if (/\bpublic service commission\b|\bPSC\b/i.test(value) && /alternative to a secondary school/i.test(value) && !/secondary school diploma \(high school\)/i.test(value)) {
       return 'High school diploma or PSC alternative';
@@ -933,6 +933,11 @@ export function compactDriverLicense(value: string): string | null {
   return out;
 }
 
+/** True when a licence value describes driving/vehicle eligibility, not a professional licence. */
+export function isDriverLicenseRequirement(value: string): boolean {
+  return looksLikeDriverLicense(value);
+}
+
 /** Split multi-licence walls into separate clauses before compacting. */
 function splitLicenseClauses(value: string): string[] {
   // Erroneous merge from earlier pass: "Ontario Class G/C with Z endorsement"
@@ -1123,6 +1128,11 @@ export function normalizeLicenseRequirements(value: unknown): string[] {
   return out;
 }
 
+/** Values appropriate for the Licences field; driver licences belong under Vehicle. */
+export function normalizeProfessionalLicenseRequirements(value: unknown): string[] {
+  return normalizeLicenseRequirements(value).filter(value => !isDriverLicenseRequirement(value));
+}
+
 function normalizedRequirement(value: string): string {
   return value.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 }
@@ -1237,6 +1247,11 @@ export function extractLicenseRequirements(description: string): string[] {
     }
   }
   return normalizeLicenseRequirements([...values]);
+}
+
+/** Extract only professional licences/registrations for the Licences field. */
+export function extractProfessionalLicenseRequirements(description: string): string[] {
+  return extractLicenseRequirements(description).filter(value => !isDriverLicenseRequirement(value));
 }
 
 function licenseCoreKey(value: string): string {
@@ -1370,8 +1385,12 @@ function keysOverlapLoose(left: string, right: string): boolean {
  * Drop Qualifications (and similar) bullets that only restate a licence already
  * captured in license_requirements — QUALITY.md rule 1.
  */
-export function stripLicenseBulletsFromDescription(description: string, licenses: string[]): string {
-  return stripStructuredQualBullets(description, { licenses });
+export function stripLicenseBulletsFromDescription(
+  description: string,
+  licenses: string[],
+  vehicleRequired: boolean | null = null,
+): string {
+  return stripStructuredQualBullets(description, { licenses, vehicleRequired });
 }
 
 /**
@@ -1386,6 +1405,7 @@ export function stripStructuredQualBullets(
     experience?: string[];
     languages?: string[];
     certifications?: string[];
+    vehicleRequired?: boolean | null;
   },
 ): string {
   if (!description.trim()) return description;
@@ -1394,7 +1414,8 @@ export function stripStructuredQualBullets(
   const experience = fields.experience ?? [];
   const languages = fields.languages ?? [];
   const certifications = fields.certifications ?? [];
-  if (!licenses.length && !education.length && !experience.length && !languages.length && !certifications.length) {
+  if (!licenses.length && !education.length && !experience.length && !languages.length && !certifications.length
+    && fields.vehicleRequired !== true) {
     return description;
   }
 
@@ -1437,6 +1458,14 @@ export function stripStructuredQualBullets(
       }
 
       // Licence restatement
+      if (fields.vehicleRequired === true && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+        && isDriverLicenseRequirement(focus)
+        && !detectLicenseRole(focus)
+        && !detectLicenseBody(focus)) {
+        removed += 1;
+        continue;
+      }
+
       if (licenses.length && LICENSE_TERM.test(focus) && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)) {
         const restates = licenses.some(license => licenseKeysOverlap(license, focus));
         const pureDriver = DRIVER_LICENSE_PHRASE.test(focus) && focus.length < 220
@@ -1576,11 +1605,11 @@ export interface StructuredRequirementValues {
 export function reconcileStructuredRequirements(description: string, current: Partial<StructuredRequirementValues>): StructuredRequirementValues {
   const experienceRequirements = extractExperienceRequirements(description);
   const educationRequirements = extractEducationRequirements(description);
-  const licenseRequirements = extractLicenseRequirements(description);
+  const licenseRequirements = extractProfessionalLicenseRequirements(description);
   const namedBenefits = extractNamedBenefits(description);
   const currentEducation = toStringList(current.education_requirements).filter(retainExistingEducation);
   const currentExperience = normalizeExperienceRequirements(toStringList(current.experience_requirements));
-  const currentLicenses = normalizeLicenseRequirements(
+  const currentLicenses = normalizeProfessionalLicenseRequirements(
     toStringList(current.license_requirements).filter(retainExistingLicense),
   );
   const currentBenefits = toStringList(current.benefits);
@@ -1588,6 +1617,7 @@ export function reconcileStructuredRequirements(description: string, current: Pa
   const requiredLines = descriptionLines(description).filter(line => !line.heading && line.section === 'required').map(line => normalizedRequirement(line.text));
   const skills = currentSkills.filter(skill => {
     if (isLanguageProficiencySkill(skill)) return false;
+    if (isDriverLicenseRequirement(skill)) return false;
     if (licenseRequirements.length > 0 && LICENSE_TERM.test(skill)) return false;
     const skillKey = normalizedRequirement(skill);
     const benefitOnly = namedBenefits.some(benefit => normalizedRequirement(benefit) === skillKey)

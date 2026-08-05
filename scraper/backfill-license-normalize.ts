@@ -9,7 +9,7 @@ import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import { normalizeLicenseRequirements } from './requirements';
+import { normalizeProfessionalLicenseRequirements } from './requirements';
 
 dotenv.config({ quiet: true });
 
@@ -50,7 +50,7 @@ async function main() {
 
   for (const row of result.rows) {
     const from = parseList(row.license_requirements as string | null);
-    const to = normalizeLicenseRequirements(from);
+    const to = normalizeProfessionalLicenseRequirements(from);
     if (sameList(from, to)) continue;
     changes.push({ id: String(row.id), from, to });
     for (let i = 0; i < Math.max(from.length, to.length); i++) {
@@ -61,14 +61,14 @@ async function main() {
     }
     // Pairwise: for each from item, show normalized form
     for (const item of from) {
-      const norm = normalizeLicenseRequirements([item]);
+      const norm = normalizeProfessionalLicenseRequirements([item]);
       const next = norm[0] ?? '∅';
       if (item === next) continue;
       const key = `${item} → ${next}`;
       renameCounts.set(key, (renameCounts.get(key) || 0) + 1);
     }
     for (const item of to) {
-      if (!from.includes(item) && !from.some(f => normalizeLicenseRequirements([f])[0] === item)) {
+      if (!from.includes(item) && !from.some(f => normalizeProfessionalLicenseRequirements([f])[0] === item)) {
         // newly introduced only via merge — skip
       }
     }

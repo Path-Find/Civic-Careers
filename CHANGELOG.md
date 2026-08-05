@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Driver licences no longer appear under Licences** — Class G/DZ and similar driving requirements now populate Vehicle instead; 1,383 existing rows were corrected while professional licences such as P.Eng. remain visible.
+- **Education and experience fields stay compact and lossless** — experience normalization now runs at validation time, 682 existing experience lists were normalized, and partial high-school education is no longer upgraded to a diploma.
+- **Union names are lightly normalized** — dotted acronyms are cleaned, non-union labels are cleared, and real bargaining-unit names imply unionized status without imposing a taxonomy.
 - **Grade 12 / First Aid no longer stuck only in Qualifications body** — `Grade 12` fills Education as `High school diploma`, First Aid/CPR fills Certifications (e.g. `Standard First Aid with CPR-C`), and those restatement bullets are stripped from the body. New parses do this automatically; existing rows backfilled.
 - **Vehicle and security flags stay clean tri-state values** — DB only stores 1 / 0 / null (required / not required / not stated); parse coerces yes/no/unknown and falls back to deterministic extract when AI is silent. Corpus already consistent under #161.
 - **Listing type is locked to three tokens** — `regular` | `ongoing_recruitment` | `inventory` only (`is_inventory` stays in sync with inventory). Short-label normalize + extract-from-text on parse; corpus already clean under #161.

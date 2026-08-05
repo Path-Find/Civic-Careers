@@ -10,7 +10,7 @@ import dotenv from 'dotenv';
 import { cleanJobDescription } from './cleanup_description';
 import {
   normalizeEducationRequirements,
-  normalizeLicenseRequirements,
+  normalizeProfessionalLicenseRequirements,
   stripStructuredQualBullets,
 } from './requirements';
 
@@ -51,7 +51,7 @@ async function main() {
     const before = String(row.description ?? '');
     const education = normalizeEducationRequirements(parseList(row.education_requirements));
     const experience = parseList(row.experience_requirements);
-    const licenses = normalizeLicenseRequirements(parseList(row.license_requirements));
+    const licenses = normalizeProfessionalLicenseRequirements(parseList(row.license_requirements));
     const languages = parseList(row.language_requirements);
 
     let after = cleanJobDescription(before, String(row.job_title ?? ''), String(row.source ?? ''));

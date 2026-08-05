@@ -1,10 +1,14 @@
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
-import { extractExperienceRequirements } from './requirements';
+import { extractExperienceRequirements, normalizeExperienceRequirements } from './requirements';
+
+// Default: normalize populated fields only. Add --fill-missing to also extract
+// experience from descriptions where the field is empty.
 
 dotenv.config({ quiet: true });
 
 const apply = process.argv.includes('--apply');
+const fillMissing = process.argv.includes('--fill-missing');
 const limitArg = process.argv.find(value => value.startsWith('--limit='));
 const limit = Math.max(1, Number(limitArg?.split('=')[1] || 10000));
 const PAGE_SIZE = 250;
@@ -43,9 +47,11 @@ async function main() {
     if (result.rows.length === 0) break;
     for (const row of result.rows) {
       const current = parseList(row.experience_requirements);
-      if (current.length > 0) continue;
-      const values = extractExperienceRequirements(String(row.description ?? ''));
-      if (values.length > 0) {
+      if (current.length === 0 && !fillMissing) continue;
+      const values = current.length > 0
+        ? normalizeExperienceRequirements(current)
+        : extractExperienceRequirements(String(row.description ?? ''));
+      if (JSON.stringify(values) !== JSON.stringify(current)) {
         changes.push({
           id: String(row.id),
           source: String(row.source),

@@ -8,7 +8,9 @@ import {
   normalizeEducationRequirements,
   extractLanguageVehicleRequirements,
   extractLicenseRequirements,
+  extractProfessionalLicenseRequirements,
   normalizeLicenseRequirements,
+  normalizeProfessionalLicenseRequirements,
   extractNamedBenefits,
   stripLicenseBulletsFromDescription,
   stripStructuredQualBullets,
@@ -133,6 +135,12 @@ test('strips Education:/classification/stream prefixes from education requiremen
   );
 });
 
+test('preserves partial high-school education', () => {
+  assert.deepEqual(normalizeEducationRequirements(['Partial high school']), ['Partial high school']);
+  const normalized = normalizeEducationRequirements(["Bachelor's degree in Business Administration; or"]);
+  assert.deepEqual(normalizeEducationRequirements(normalized), normalized);
+});
+
 test('keeps education extraction from absorbing unrelated qualification sentences', () => {
   assert.deepEqual(extractEducationRequirements(`## Qualifications
 A PhD degree (completed, in progress, near-completion, or equivalent experience) in a relevant discipline. A demonstrated interest in accessible and equitable AI. Candidate has experience with web-app programming -- HTML, CSS, JavaScript and TypeScript.
@@ -245,6 +253,20 @@ test('compacts wordy driver licence requirements', () => {
     normalizeLicenseRequirements(["Valid G Drivers' license and access to a reliable vehicle for campus and team travel"]),
     ['Class G'],
   );
+});
+
+test('keeps driver licences under Vehicle, not Licences', () => {
+  const description = '## Qualifications\n- P.Eng. in Ontario or eligible\n- Must have a valid Ontario Class "G" driver\'s licence\n';
+  assert.deepEqual(extractLicenseRequirements(description), ['P.Eng. (Ontario) or eligible', 'Ontario Class G']);
+  assert.deepEqual(extractProfessionalLicenseRequirements(description), ['P.Eng. (Ontario) or eligible']);
+  assert.deepEqual(normalizeProfessionalLicenseRequirements(['P.Eng. (Ontario)', 'Ontario Class G']), ['P.Eng. (Ontario)']);
+
+  const reconciled = reconcileStructuredRequirements(description, { license_requirements: ['P.Eng. (Ontario)', 'Ontario Class G'] });
+  assert.deepEqual(reconciled.license_requirements, ['P.Eng. (Ontario) or eligible']);
+  assert.doesNotMatch(stripStructuredQualBullets(description, {
+    licenses: reconciled.license_requirements,
+    vehicleRequired: true,
+  }), /Class "G"/i);
 });
 
 test('does not treat student registration as a professional licence', () => {
@@ -413,7 +435,7 @@ test('drops obvious stale overview and software-licence values during reconcilia
     required_skills: [],
   });
   assert.deepEqual(result.education_requirements, []);
-  assert.deepEqual(result.license_requirements, ['Class G']);
+  assert.deepEqual(result.license_requirements, []);
 });
 
 test('extracts required licences and excludes optional licences', () => {
@@ -457,7 +479,7 @@ test('moves named benefits out of skills only when the source puts them in benef
     required_skills: ['OMERS', "Class G driver's licence", 'Microsoft Office'],
   });
   assert.deepEqual(result.education_requirements, ["Bachelor's degree in communications"]);
-  assert.deepEqual(result.license_requirements, ['Class G']);
+  assert.deepEqual(result.license_requirements, []);
   assert.deepEqual(result.benefits, ['pension', 'OMERS']);
   assert.deepEqual(result.required_skills, ['Microsoft Office']);
   assert.deepEqual(extractNamedBenefits('## Qualifications\n- Administer OMERS pension plans\n'), []);
