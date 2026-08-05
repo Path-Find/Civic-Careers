@@ -327,6 +327,20 @@ test('extracts required years of experience and ignores optional experience', ()
   ]);
 });
 
+test('compacts federal Experience: walls and definition-of-experience meta lines', () => {
+  assert.deepEqual(extractExperienceRequirements(`## Qualifications
+- Experience: analyzing complex information to present recommendations or render a decision or conclusion
+- Experience: drafting formal reports, briefing notes, or decisions
+- Experience: in the interpretation, application or development of legislation or regulations
+- Experience is defined as experience acquired over a period of approximately two (2) years or more performing the duties on a regular basis
+`), [
+    '2+ years',
+    'Analyzing complex information to present recommendations or render a decision or conclusion',
+    'Drafting formal reports, briefing notes, or decisions',
+    'Interpretation, application or development of legislation or regulations',
+  ]);
+});
+
 test('extracts month-based experience and high-school education without splitting Grade 12', () => {
   const description = `## Qualifications
 - High school (Grade 12) graduation, plus an additional program of over one and up to two years in Law and Security, Police Foundations or equivalent

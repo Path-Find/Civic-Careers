@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **York University job board** — Technomedia portal (~400 postings) now scrapes on the regular schedule (was engine-only, never on the production task list). First full pull uses list detail links + rate limiting so mid-run “resource not available” dead-ends don’t fill the DB.
 
 ### Fixed
+- **Wordy federal Experience walls collapsed** — e.g. “Experience analyzing… / Experience is defined as… two (2) years…” → `2+ years` + short domain labels; definition meta lines dropped; body bullets that only restated Experience stripped.
 - **CMHC Compensation & Benefits sections that only restated sidebar salary + package benefits are gone** (e.g. “Salary range $X–$Y” + “accrued vacation, performance bonus, group insurance…”). Detector no longer treated bare “performance bonus” as unique pay just because a $ salary was also in the section.
 - **CMHC “About CMHC” employer pitch stripped** (“The work you do… well-functioning housing system” + generic “What’s in it for you” benefits package) so postings open on the role, not the mission statement. Existing CMHC/GC rows cleaned.
 - **Company pages took 30+ seconds** (e.g. `/companies/university-of-ottawa`) because they loaded the entire job corpus (~5k rows / 7MB). They now fetch only that employer’s jobs.

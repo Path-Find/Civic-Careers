@@ -129,6 +129,42 @@ export function compactLicenseLabel(value: string): string {
   return s;
 }
 
+/** Compact wordy experience labels (federal "Experience analyzing…" walls). */
+export function compactExperienceLabel(value: string): string {
+  let s = value.replace(/\s+/g, ' ').trim();
+  if (!s) return s;
+
+  if (/\bis defined as\b/i.test(s) || /^experience is defined\b/i.test(s)) {
+    const within = s.match(/within the past\s+(?:\w+\s*)?\(?(\d+)\)?\s*years?/i);
+    if (within) return `Recent (within past ${within[1]} years)`;
+    const n = s.match(/approximately\s+(?:\w+\s*)?\((\d+)\)\s*years?/i)?.[1]
+      || s.match(/(?:period of\s+)?(?:approximately\s+)?(\d+)\s*\+?\s*years?\s+or\s+more/i)?.[1]
+      || s.match(/\((\d+)\)\s*years?\s+or\s+more/i)?.[1]
+      || s.match(/(\d+)\s*\+?\s*years?\s+or\s+more/i)?.[1];
+    if (n) return `${n}+ years`;
+    const word = s.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+years?\s+or\s+more/i)?.[1];
+    if (word) {
+      const map: Record<string, string> = {
+        one: '1', two: '2', three: '3', four: '4', five: '5',
+        six: '6', seven: '7', eight: '8', nine: '9', ten: '10',
+      };
+      return `${map[word.toLowerCase()]}+ years`;
+    }
+    return '';
+  }
+
+  s = s
+    .replace(/^experience\s*:\s*(?:in\s+(?:the\s+)?)?/i, '')
+    .replace(/^experience\s+in\s+(?:the\s+)?/i, '')
+    .replace(/^experience\s+(?:with|of|using)\s+/i, '')
+    .replace(/^experience\s+/i, '')
+    .replace(/^in\s+(?:the\s+)?/i, '')
+    .replace(/[.;\s]+$/g, '')
+    .trim();
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 /** Compact wordy education labels for display (esp. high-school walls). */
 export function compactEducationLabel(value: string): string {
   const s = value.replace(/\s+/g, ' ').trim();
@@ -214,7 +250,29 @@ export function parseJobDetails(job: Job): JobDetails {
     union: formatUnionLabel(job.is_unionized, job.union_name),
     listingType: job.listing_type === 'ongoing_recruitment' ? 'Ongoing recruitment' : job.listing_type === 'inventory' || job.is_inventory === 1 ? 'Candidate inventory' : null,
     studentRequirement: job.is_student === 1 ? 'Yes' : null,
-    experience: joinJsonArray(job.experience_requirements),
+    experience: (() => {
+      try {
+        const values = JSON.parse(job.experience_requirements || '[]');
+        if (!Array.isArray(values) || !values.length) return null;
+        let years: string | null = null;
+        const items: string[] = [];
+        for (const raw of values) {
+          if (typeof raw !== 'string') continue;
+          const isDef = /\bis defined as\b/i.test(raw);
+          const c = compactExperienceLabel(raw);
+          if (!c) continue;
+          if (isDef || /^(?:\d+\+\s*years|Recent\b)/i.test(c)) {
+            if (!years) years = c;
+            continue;
+          }
+          items.push(c);
+        }
+        const ordered = years ? [years, ...items] : items;
+        return ordered.length ? ordered.join(', ') : null;
+      } catch {
+        return joinJsonArray(job.experience_requirements, compactExperienceLabel);
+      }
+    })(),
     education: joinJsonArray(job.education_requirements, compactEducationLabel),
     licenses: joinJsonArray(job.license_requirements, compactLicenseLabel),
     language: joinJsonArray(job.language_requirements),

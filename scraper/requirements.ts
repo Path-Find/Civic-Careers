@@ -1148,6 +1148,72 @@ function experienceCoreKey(value: string): string {
     .trim();
 }
 
+/**
+ * Compact wordy experience strings for storage + display.
+ * - Drop "Experience is defined as… N years" meta lines → "N+ years"
+ * - Strip leading "Experience:" / "Experience in" shells
+ */
+export function normalizeExperienceRequirement(value: string): string | null {
+  let s = value.replace(/\s+/g, ' ').trim();
+  if (!s) return null;
+
+  // Definition / glossary lines (federal "Experience is defined as…", BC "Recent… is defined as…")
+  if (/\bis defined as\b/i.test(s) || /^experience is defined\b/i.test(s)) {
+    const within = s.match(/within the past\s+(?:\w+\s*)?\(?(\d+)\)?\s*years?/i);
+    if (within) return `Recent (within past ${within[1]} years)`;
+    const approx = s.match(/approximately\s+(?:\w+\s*)?\((\d+)\)\s*years?/i)
+      || s.match(/(?:period of\s+)?(?:approximately\s+)?(\d+)\s*\+?\s*years?\s+or\s+more/i)
+      || s.match(/\((\d+)\)\s*years?\s+or\s+more/i)
+      || s.match(/(\d+)\s*\+?\s*years?\s+or\s+more/i)
+      || s.match(/(\d+)\s*\+?\s*years?/i);
+    if (approx?.[1]) return `${approx[1]}+ years`;
+    const word = s.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+years?\s+or\s+more/i);
+    if (word) {
+      const map: Record<string, string> = {
+        one: '1', two: '2', three: '3', four: '4', five: '5',
+        six: '6', seven: '7', eight: '8', nine: '9', ten: '10',
+      };
+      return `${map[word[1].toLowerCase()]}+ years`;
+    }
+    return null; // pure glossary noise
+  }
+
+  s = s
+    .replace(/^experience\s*:\s*(?:in\s+(?:the\s+)?)?/i, '')
+    .replace(/^experience\s+in\s+(?:the\s+)?/i, '')
+    .replace(/^experience\s+(?:with|of|using)\s+/i, '')
+    .replace(/^experience\s+/i, '')
+    .replace(/^in\s+(?:the\s+)?/i, '')
+    .replace(/[.;\s]+$/g, '')
+    .trim();
+  if (!s || s.length < 3) return null;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Normalize a list: compact items, pull definition years to front, drop empties. */
+export function normalizeExperienceRequirements(values: string[]): string[] {
+  let yearsLabel: string | null = null;
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of values) {
+    const isDef = /\bis defined as\b/i.test(raw) || /^experience is defined\b/i.test(raw);
+    const compact = normalizeExperienceRequirement(raw);
+    if (!compact) continue;
+    if (isDef || /^(?:\d+\+\s*years|Recent\b)/i.test(compact)) {
+      if (!yearsLabel) yearsLabel = compact;
+      continue;
+    }
+    const key = compact.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(compact);
+  }
+  if (yearsLabel && !seen.has(yearsLabel.toLowerCase())) {
+    return [yearsLabel, ...out];
+  }
+  return out;
+}
+
 function keysOverlapLoose(left: string, right: string): boolean {
   if (!left || !right) return false;
   if (left === right || left.includes(right) || right.includes(left)) return true;
@@ -1231,16 +1297,17 @@ export function stripStructuredQualBullets(
         }
       }
 
-      // Experience restatement
-      if (expKeys.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
-        && EXPERIENCE_YEARS_PATTERN.test(focus) && /\bexperience\b/i.test(focus)) {
+      // Experience restatement (years lines OR "Experience: analyzing…" already structured)
+      if (expKeys.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus) && /\bexperience\b/i.test(focus)) {
         const bulletKey = experienceCoreKey(focus);
         const restatesExp = expKeys.some(key => keysOverlapLoose(key, bulletKey));
-        // Same time unit already structured (e.g. both "3 years of experience…") and bullet is mostly that fact
         const bothHaveTime = focus.length < 180
           && /\b\d+\s*(?:\+)?\s*(?:years?|months?)\b/i.test(focus)
           && experience.some(e => /\b\d+\s*(?:\+)?\s*(?:years?|months?)\b/i.test(e));
-        if ((restatesExp || bothHaveTime)
+        const experienceColonBullet = /^experience\s*:/i.test(focus) || /^experience\s+(?:analyzing|drafting|in\b|with\b|using\b)/i.test(focus);
+        const definitionLine = /\bis defined as\b/i.test(focus);
+        if ((restatesExp || bothHaveTime || (experienceColonBullet && restatesExp) || definitionLine)
+          && (EXPERIENCE_YEARS_PATTERN.test(focus) || experienceColonBullet || definitionLine)
           && !/\b(?:and\s+)?(?:excellent|strong|proven)\s+(?:communication|organizational|leadership)\b/i.test(focus.slice(0, 40))) {
           removed += 1;
           continue;
@@ -1264,12 +1331,24 @@ export function extractExperienceRequirements(description: string): string[] {
   const values = new Set<string>();
   for (const line of descriptionLines(description)) {
     if (line.heading || line.section === 'optional' || line.section === 'benefits' || STRUCTURED_OPTIONAL_REQUIREMENT.test(line.text) || EXPERIENCE_HISTORY_SIGNAL.test(line.text)) continue;
+    // Federal "Experience: drafting…" / "Experience analyzing…" bullets (no years on the line).
+    if (/^experience(?:\s*:|\s+in\s+|\s+)/i.test(line.text) && !/\bis defined as\b/i.test(line.text)) {
+      const value = compactText(line.text).replace(/^[,;:–—-]\s*/, '').trim();
+      if (value && value.length <= 240) values.add(value);
+      continue;
+    }
+    // "Experience is defined as… two (2) years…" meta line → capture for normalization.
+    if (/\bexperience is defined as\b/i.test(line.text) || /\bexperience\b.{0,40}\bis defined as\b/i.test(line.text)) {
+      const value = compactText(line.text).replace(/^[,;:–—-]\s*/, '').trim();
+      if (value && value.length <= 240) values.add(value);
+      continue;
+    }
     if (!EXPERIENCE_YEARS_PATTERN.test(line.text)) continue;
     const match = line.text.match(EXPERIENCE_CLAUSE_PATTERN);
     const value = compactText(match?.[0] || line.text).replace(/^[,;:–—-]\s*/, '').trim();
     if (value && value.length <= 240) values.add(value);
   }
-  return [...values];
+  return normalizeExperienceRequirements([...values]);
 }
 
 export function extractNamedBenefits(description: string): string[] {
@@ -1297,7 +1376,7 @@ export function reconcileStructuredRequirements(description: string, current: Pa
   const licenseRequirements = extractLicenseRequirements(description);
   const namedBenefits = extractNamedBenefits(description);
   const currentEducation = toStringList(current.education_requirements).filter(retainExistingEducation);
-  const currentExperience = toStringList(current.experience_requirements);
+  const currentExperience = normalizeExperienceRequirements(toStringList(current.experience_requirements));
   const currentLicenses = normalizeLicenseRequirements(
     toStringList(current.license_requirements).filter(retainExistingLicense),
   );
@@ -1331,7 +1410,9 @@ export function reconcileStructuredRequirements(description: string, current: Pa
     ? educationRequirements
     : normalizeEducationRequirements(currentEducation);
   return {
-    experience_requirements: experienceRequirements.length ? experienceRequirements : currentExperience,
+    experience_requirements: experienceRequirements.length
+      ? experienceRequirements
+      : currentExperience,
     education_requirements: education,
     license_requirements: licenseRequirements.length ? licenseRequirements : currentLicenses,
     benefits,
