@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanJobDescription, cleanOverviewBoilerplate, removePlaceholderSections } from '../cleanup_description';
+import { cleanJobDescription, cleanOverviewBoilerplate, removePlaceholderSections, stripStructuredBenefitRestatements } from '../cleanup_description';
 import { cleanSourceDescriptionBoilerplate } from '../source-description-cleanup';
 
 test('removes preceding employer copy at paragraph boundaries', () => {
@@ -149,6 +149,29 @@ test('keeps unique pay like bilingual bonus', () => {
 ## Compensation
 From $78,167 to $91,895 per annum. In addition, the incumbent who meets the language requirements will receive the Bilingualism Bonus of $800 per year.`, 'Officer');
   assert.ok(result.includes('Bilingualism Bonus'));
+});
+
+test('removes structured benefit restatements from Compensation & Benefits', () => {
+  const result = stripStructuredBenefitRestatements(`## Responsibilities
+- Lead the team.
+## Compensation & Benefits
+- Annual paid vacation and annual individual performance incentive.
+- Pension (OMERS)
+- Shift premium of $2.25/hour`, ['pension', 'vacation', 'performance incentive']);
+  assert.equal(result, `## Responsibilities
+- Lead the team.
+## Compensation & Benefits
+- OMERS
+- Shift premium of $2.25/hour`);
+});
+
+test('keeps a Compensation detail line when the repeated benefit has unique context', () => {
+  const description = `## Compensation & Benefits
+Benefits package includes pension and reimbursement of eligible relocation expenses.`;
+  assert.equal(
+    stripStructuredBenefitRestatements(description, ['pension']),
+    description,
+  );
 });
 
 test('placeholder-only cleanup does not trim legitimate overview text', () => {

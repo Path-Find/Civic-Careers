@@ -318,6 +318,99 @@ export function isRedundantCompensationSection(heading: string, body: string): b
 }
 
 /**
+ * Remove benefit names from Compensation & Benefits when the same fact is
+ * already stored in the structured benefits field. Keep lines that add real
+ * detail, such as an amount, named plan, or eligibility condition.
+ */
+export function stripStructuredBenefitRestatements(description: string, benefits: string[]): string {
+  if (!description.trim() || benefits.length === 0) return description;
+
+  const benefitText = benefits.join(' ');
+  const patterns: RegExp[] = [];
+  if (/\bpension\b/i.test(benefitText)) {
+    patterns.push(/\b(?:defined\s+benefit\s+)?pension(?:\s+plan)?\b/gi);
+  }
+  if (/\binsurance\b/i.test(benefitText)) {
+    patterns.push(/\b(?:(?:comprehensive|group|life|health|dental|long[- ]term\s+disability)\s+)?insurance(?:\s+(?:coverage|plan))?\b/gi);
+  }
+  if (/\bvacation\b/i.test(benefitText)) {
+    patterns.push(/\b(?:(?:annual\s+)?paid|accrued|annual\s+individual)?\s*vacation(?:\s+(?:pay|leave|entitlement))?\b/gi);
+  }
+  if (/\bperformance\s+(?:incentive|bonus)\b/i.test(benefitText)) {
+    patterns.push(/\b(?:annual\s+(?:individual\s+)?)?performance\s+(?:incentive|bonus)\b/gi);
+  }
+  if (patterns.length === 0) return description;
+
+  const genericWords = new Set([
+    'a', 'an', 'and', 'annual', 'benefit', 'benefits', 'comprehensive', 'competitive',
+    'defined', 'excellent', 'for', 'from', 'generous', 'great', 'group', 'health',
+    'individual', 'includes', 'including', 'insurance', 'life', 'long', 'mentorship',
+    'one', 'or', 'package', 'paid', 'plan', 'professional', 'support', 'the', 'to',
+    'training', 'vacation', 'well', 'with', 'workplace',
+  ]);
+
+  const cleanRemainder = (text: string): string => text
+    .replace(/\(\s*\)/g, '')
+    .replace(/\s+([,.;:])/g, '$1')
+    .replace(/([,;:])\s*(?=[,;:.]|$)/g, '')
+    .replace(/\s+(?:and|or)\s*(?=[,.;:]|$)/gi, '')
+    .replace(/^[\s,;:.()\-]+|[\s,;:.()\-]+$/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  const isGenericRemainder = (text: string): boolean => {
+    const words = text.toLowerCase().match(/[a-z]+/g) ?? [];
+    return words.length === 0 || words.every(word => genericWords.has(word));
+  };
+
+  const lines = description.split('\n');
+  let inCompensation = false;
+  const kept: string[] = [];
+
+  for (const line of lines) {
+    const heading = line.match(/^(#{1,6})\s+(.+?)\s*$/);
+    if (heading) {
+      inCompensation = /^compensation\s*&\s*benefits$/i.test(heading[2]);
+      kept.push(line);
+      continue;
+    }
+    if (!inCompensation || !patterns.some(pattern => pattern.test(line))) {
+      patterns.forEach(pattern => pattern.lastIndex = 0);
+      kept.push(line);
+      continue;
+    }
+    patterns.forEach(pattern => pattern.lastIndex = 0);
+
+    // A quantified incentive is additional compensation, not a duplicate
+    // package label, so leave the complete line intact.
+    if (/\$\s*[\d,]+|\b\d+(?:\.\d+)?\s*%|\b\d+(?:\.\d+)?\s*percent\b/i.test(line)) {
+      kept.push(line);
+      continue;
+    }
+
+    const bullet = line.match(/^(\s*[-•*]\s+)(.*)$/);
+    const text = bullet ? bullet[2] : line.trim();
+    let remainder = text;
+    for (const pattern of patterns) remainder = remainder.replace(pattern, '');
+    remainder = cleanRemainder(remainder);
+
+    // Drop pure restatements. If a short line has a named plan or other
+    // useful detail, keep that detail while removing the repeated benefit.
+    if (isGenericRemainder(remainder)) continue;
+    if (bullet && remainder.length < text.length) {
+      kept.push(`${bullet[1]}${remainder}`);
+      continue;
+    }
+    kept.push(line);
+  }
+
+  return kept.join('\n')
+    .replace(/(^|\n)#{1,6}\s+Compensation\s*&\s*Benefits\s*\n(?=\s*(?:#{1,6}\s+|$))/gi, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
  * Deterministic cleanup for stored and newly parsed Markdown descriptions.
  * It removes only recognizable portal/employer boilerplate and exact repeated
  * bullets; it does not summarize or invent content.

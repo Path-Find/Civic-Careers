@@ -22,7 +22,7 @@ import {
   splitLanguageOutOfSkills,
   stripStructuredQualBullets,
 } from './requirements';
-import { cleanJobDescription } from './cleanup_description';
+import { cleanJobDescription, stripStructuredBenefitRestatements } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 import { extractStartDate } from './start-date';
 
@@ -65,6 +65,7 @@ async function main() {
           benefits: aiResult.benefits,
           required_skills: aiResult.required_skills,
         }, raw.raw_text);
+        description = stripStructuredBenefitRestatements(description, structuredRequirements.benefits);
         const certificationRequirements = (() => {
           const fromBody = extractCertificationRequirements(description);
           if (fromBody.length) return fromBody;

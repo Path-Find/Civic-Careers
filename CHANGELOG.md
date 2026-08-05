@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Structured benefits no longer appear as generic repeats in Compensation & Benefits** — 192 active listings were cleaned, and future parses remove duplicate pension, insurance, vacation, and performance-incentive lines while preserving extra compensation detail.
 - **Job links use stable source IDs** — direct links no longer depend on SQLite row numbers, while old numeric links remain compatible.
 - **Certification field no longer mixes in unrelated requirements** — security checks and named medical requirements now use their proper fields, while generic training, PPE, memberships, and optional credentials are removed from Certifications.
 - **Certification labels are standardized** — First Aid levels, CPR levels, AED, and recurring labels such as WHMIS, Food Handler, and Worker Health and Safety Awareness now use consistent wording while preserving meaningful alternatives.
