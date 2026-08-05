@@ -9,12 +9,9 @@ Cleared to empty: 0.
 ## Rules applied
 
 - Canonical tokens via `normalizeLanguageRequirements()` in `requirements.ts`
-- Collapse bare `Bilingual` under more specific bilingual forms
-- Drop standalone English/French when `Bilingual (English/French)` is present
-- Essential supersedes plain language name
-- PSC levels uppercased (`bbb/bbb` → `BBB/BBB`); `CBC level` → `CBC/CBC`
-- Multi-level imperative phrases expand to one token per level
-- Stable sort: Essential → plain EN/FR → other languages → Bilingual…
+- Plain names only: English | French | Bilingual | named other
+- Drop Essential / needed / required / proficiency fluff and PSC profiles (BBB/BBB, CBC/CBC)
+- Stable sort: English, French, other named languages, Bilingual last
 
 ## Updated job IDs
 
