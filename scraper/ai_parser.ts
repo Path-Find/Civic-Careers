@@ -15,7 +15,7 @@ const AI_MODEL = process.env.AI_MODEL || "deepseek-v4-flash";
 // old parses may no longer match what the current prompt would produce. Stamped
 // onto every job_details row so stale-version jobs can be found and selectively
 // reparsed via reparse-stale.ts instead of reparsing (and re-billing) everything.
-export const PARSER_VERSION = 4;
+export const PARSER_VERSION = 5;
 
 export interface ParsedJob {
     job_title: string;
@@ -96,7 +96,7 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
       "union_name": "Union name or Non-Union",
       "is_student": boolean,
       "is_inventory": boolean,
-      "benefits": ["pension", "health", "dental", etc],
+      "benefits": ["pension", "health", "dental", etc] (short concrete benefits only; use labels such as "Vacation", "Performance Bonuses", and "Group Insurance"; exclude training, mentorship, professional development, workplace culture, and other employer-pitch language),
       "required_skills": "Specific named technical skills not captured by the dedicated requirement fields below. Only concrete named things a candidate would list on a resume, NOT generic soft-skill phrases like 'strong communication' or 'attention to detail'. Empty array if none are named.",
       "experience_requirements": "Required experience, especially explicit durations such as '3 years of experience in case management'. Include only mandatory experience; exclude preferred or asset experience. Preserve short source wording. Empty array if none is stated.",
       "education_requirements": "Required degrees, diplomas, fields of study, enrolment conditions, or equivalent education requirements. Preserve the source wording in short list items. Empty array if none are stated.",

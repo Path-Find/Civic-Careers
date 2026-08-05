@@ -47,7 +47,7 @@ describe('validateParsedJob', () => {
     assert.equal(result.work_model, 'Hybrid');
     assert.equal(result.employment_type, 'Full-time');
     assert.equal(result.closing_date, '2026-08-01');
-    assert.deepEqual(result.benefits, ['pension', 'health', 'dental']);
+    assert.deepEqual(result.benefits, ['Pension', 'Health Insurance', 'Dental Insurance']);
   });
 
   it('returns null for non-object input', () => {
@@ -309,17 +309,53 @@ describe('validateParsedJob', () => {
   describe('benefits normalization', () => {
     it('passes through arrays', () => {
       const result = validateParsedJob({ ...BASE, benefits: ['pension', 'dental'] });
-      assert.deepEqual(result?.benefits, ['pension', 'dental']);
+      assert.deepEqual(result?.benefits, ['Pension', 'Dental Insurance']);
     });
 
     it('splits comma-separated strings', () => {
       const result = validateParsedJob({ ...BASE, benefits: 'pension, health, dental' });
-      assert.deepEqual(result?.benefits, ['pension', 'health', 'dental']);
+      assert.deepEqual(result?.benefits, ['Pension', 'Health Insurance', 'Dental Insurance']);
     });
 
     it('returns empty array for null/missing', () => {
       assert.deepEqual(validateParsedJob({ ...BASE, benefits: null })?.benefits, []);
       assert.deepEqual(validateParsedJob({ ...BASE, benefits: undefined })?.benefits, []);
+    });
+
+    it('uses short canonical labels and removes vague development claims', () => {
+      const result = validateParsedJob({
+        ...BASE,
+        benefits: [
+          'Accrued vacation',
+          'Annual individual performance bonus',
+          'Group insurance coverage',
+          'Training and mentorship',
+          'Paid training',
+          'Paid Trainings',
+          'Long-term disability',
+          'health',
+          'Dental',
+        ],
+      });
+      assert.deepEqual(result?.benefits, [
+        'Vacation',
+        'Performance Bonuses',
+        'Group Insurance',
+        'Disability Insurance',
+        'Health Insurance',
+        'Dental Insurance',
+      ]);
+    });
+
+    it('keeps concrete benefits with details', () => {
+      const result = validateParsedJob({
+        ...BASE,
+        benefits: ['8% in lieu of benefits and vacation pay', 'Tuition waiver'],
+      });
+      assert.deepEqual(result?.benefits, [
+        '8% In Lieu Of Benefits And Vacation Pay',
+        'Tuition Waiver',
+      ]);
     });
   });
 

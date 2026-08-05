@@ -3,7 +3,7 @@ import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
 import { cleanJobDescription } from './cleanup_description';
 import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
-import { normalizeCertificationRequirements, normalizeEducationRequirements, normalizeExperienceRequirements, normalizeLanguageRequirements, normalizeProfessionalLicenseRequirements } from './requirements';
+import { normalizeBenefits, normalizeCertificationRequirements, normalizeEducationRequirements, normalizeExperienceRequirements, normalizeLanguageRequirements, normalizeProfessionalLicenseRequirements } from './requirements';
 import { normalizeJobTitle } from './title';
 
 function coerceString(v: unknown): string {
@@ -389,7 +389,7 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     ...normalizeUnionFields(o['union_name'], o['is_unionized']),
     is_student: coerceBool(o['is_student']),
     is_inventory: coerceBool(o['is_inventory']),
-    benefits: normalizeStringList(o['benefits']),
+    benefits: normalizeBenefits(normalizeStringList(o['benefits'])),
     required_skills: normalizeStringList(o['required_skills']),
     experience_requirements: normalizeExperienceRequirements(normalizeStringList(o['experience_requirements'])),
     education_requirements: normalizeEducationRequirements(o['education_requirements']),

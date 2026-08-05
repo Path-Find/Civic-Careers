@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Benefits now use short, consistent labels** — active listings normalize entries such as accrued vacation, performance bonuses, and group insurance, while vague training, mentorship, development, and workplace-culture claims are removed.
 - **Jobs closing today no longer repeat structured properties in body requirements** — the 245 active postings expiring today were manually reviewed and de-duplicated without redeploying the site.
 - **Job URLs no longer expose scraper source names** — direct links now use stable numeric public IDs while existing source-based and numeric links continue to resolve.
 - **Qualifications no longer repeat structured requirements** — active job descriptions now remove duplicate education, experience, language, licence, certification, skill, software, vehicle, security, and duplicate-qualification bullets while preserving additional context.

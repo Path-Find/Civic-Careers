@@ -436,7 +436,7 @@ const NAMED_BENEFITS: Array<[string, RegExp]> = [
   ['Public Service Pension Plan', /\bPublic\s+Service\s+Pension\s+Plan\b/i],
 ];
 
-const NON_BENEFIT_LABEL = /^(?:benefit(?:s)?(?:\s+package)?|career\s+(?:advancement|development|growth)(?:\s+opportunities?)?|competitive benefits?|comprehensive benefits? package|continuous\s+learning|education(?:\/training(?:\/staff\s+development)?)?|employee\s+(?:benefits|learning|training)\s+and\s+development|inclusive(?:\s+workplace)?\s+culture|learning(?:\s+and\s+development)?(?:\s+opportunities?|\s+programs?)?|mentorship(?:\s+program)?|mentorship\s+and\s+training|positive\s+workplace\s+culture(?:\s+and\s+work[- ]life\s+balance)?|professional\s+(?:development|learning)(?:\s+(?:days?|funds?|funding))?|recognition\s+programs?|staff\s+development|training(?:\s*(?:,|and|&)\s*(?:mentorship|development))?(?:\s+and\s+more)?|work[- ]life\s+balance)$/i;
+const NON_BENEFIT_LABEL = /^(?:benefit(?:s)?(?:\s+package)?|career\s+(?:advancement|development|growth)(?:\s+opportunities?)?|competitive benefits?(?:\s+(?:package|programs?))?|comprehensive benefits? package|continuous\s+learning|education(?:\/training(?:\/staff\s+development)?)?|employee\s+(?:benefits|learning|training)\s+and\s+development|inclusive(?:\s+workplace)?\s+culture|learning(?:\s+and\s+development)?(?:\s+opportunities?|\s+programs?)?|mentorship(?:\s+program)?|mentorship\s+and\s+training|positive\s+workplace\s+culture(?:\s+and\s+work[- ]life\s+balance)?|professional\s+(?:development|learning)(?:\s+(?:days?|funds?|funding))?|recognition\s+programs?|staff\s+development|training(?:\s*(?:,|and|&)\s*(?:mentorship|development))?(?:\s+and\s+more)?|work[- ]life\s+balance)$/i;
 
 /**
  * Benefits are displayed as quick facts, so keep concrete categories short and
@@ -450,7 +450,7 @@ export function normalizeBenefits(values: string[]): string[] {
       .replace(/\s+/g, ' ')
       .replace(/[.;,:]+$/, '')
       .trim();
-    if (!label || NON_BENEFIT_LABEL.test(label) || /\b(?:training|mentorship)\b/i.test(label)) continue;
+    if (!label || NON_BENEFIT_LABEL.test(label) || /\b(?:training|trainings|mentorship)\b/i.test(label)) continue;
 
     // Preserve quantified or conditional details instead of collapsing them.
     const hasSpecificDetail = /\d|\bin lieu\b|\bdepending on\b|\bup to\b/i.test(label);
