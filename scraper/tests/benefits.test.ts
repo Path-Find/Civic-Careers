@@ -40,10 +40,30 @@ test('keeps named pension plans without a duplicate generic pension label', () =
   assert.deepEqual(normalizeBenefits(['Pension', 'Public Service Pension Plan']), ['Public Service Pension Plan']);
 });
 
+test('canonicalizes compound insurance, incentive, and work-arrangement labels', () => {
+  assert.deepEqual(normalizeBenefits([
+    'Incentive',
+    'Incentive Plan',
+    'EAP',
+    'Extended Health Care',
+    'Dental Care',
+    'Health & Dental Benefits',
+    'Flexible Work Program',
+    'Advancement Opportunities',
+  ]), ['Performance Bonuses', 'Employee Assistance Program', 'Health Insurance', 'Dental Insurance']);
+});
+
 test('contains the reviewed source-specific corrections', () => {
   assert.deepEqual(BENEFIT_OVERRIDES['nanaimo_26_91'], ['Vacation']);
   assert.deepEqual(BENEFIT_OVERRIDES['1290201447'], [
     'Pension', 'Health Insurance', 'Dental Insurance', 'Vacation', 'Tool Allowance',
     'Paid Uniforms', 'Employee Assistance Program', 'Mental Health Support',
+  ]);
+  assert.deepEqual(BENEFIT_OVERRIDES['242422'], [
+    'OMERS', 'Employee Assistance Program', 'Fitness Membership', 'Transit Pass', 'Perkopolis',
+  ]);
+  assert.deepEqual(BENEFIT_OVERRIDES['1291394147'], [
+    'Health Insurance', 'Dental Insurance', 'Public Service Pension Plan',
+    'Fitness Centre Membership', 'Employee Assistance Program', 'Employee Bus Pass', 'Wellness',
   ]);
 });

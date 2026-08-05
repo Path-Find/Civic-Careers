@@ -436,7 +436,7 @@ const NAMED_BENEFITS: Array<[string, RegExp]> = [
   ['Public Service Pension Plan', /\bPublic\s+Service\s+Pension\s+Plan\b/i],
 ];
 
-const NON_BENEFIT_LABEL = /^(?:benefit(?:s)?(?:\s+package)?|career\s+(?:advancement|development|growth)(?:\s+opportunities?)?|competitive benefits?(?:\s+(?:package|programs?))?|comprehensive benefits? package|continuous\s+learning|education(?:\/training(?:\/staff\s+development)?)?|employee\s+(?:benefits|learning|training)\s+and\s+development|inclusive(?:\s+workplace)?\s+culture|learning(?:\s+and\s+development)?(?:\s+opportunities?|\s+programs?)?|mentorship(?:\s+program)?|mentorship\s+and\s+training|positive\s+workplace\s+culture(?:\s+and\s+work[- ]life\s+balance)?|professional\s+(?:development|learning)(?:\s+(?:days?|funds?|funding))?|recognition\s+programs?|remote\s+work\s+programs?|staff\s+development|training(?:\s*(?:,|and|&)\s*(?:mentorship|development))?(?:\s+and\s+more)?|work[- ]life\s+balance)$/i;
+const NON_BENEFIT_LABEL = /^(?:advancement\s+opportunities?|benefit(?:s)?(?:\s+package)?|career\s+(?:advancement|development|growth)(?:\s+opportunities?)?|competitive benefits?(?:\s+(?:package|programs?))?|comprehensive benefits? package|continuous\s+learning|education(?:\/training(?:\/staff\s+development)?)?|employee\s+(?:benefits|learning|training)\s+and\s+development|flex(?:ible)?\s+work(?:\s+(?:program|arrangements?))?|inclusive(?:\s+workplace)?\s+culture|learning(?:\s+and\s+development)?(?:\s+opportunities?|\s+programs?)?|mentorship(?:\s+program)?|mentorship\s+and\s+training|positive\s+workplace\s+culture(?:\s+and\s+work[- ]life\s+balance)?|professional\s+(?:development|learning)(?:\s+(?:days?|funds?|funding))?|recognition\s+programs?|remote\s+work(?:\s+programs?)?|staff\s+development|training(?:\s*(?:,|and|&)\s*(?:mentorship|development))?(?:\s+and\s+more)?|work[- ]life\s+balance)$/i;
 
 /**
  * Benefits are displayed as quick facts, so keep concrete categories short and
@@ -457,20 +457,24 @@ export function normalizeBenefits(values: string[]): string[] {
       normalized.push('Wellness', 'Employee Assistance Program');
       continue;
     }
+    if (/^health\s*(?:&|\+|and)\s*dental(?:\s+benefits?)?$/i.test(label)) {
+      normalized.push('Health Insurance', 'Dental Insurance');
+      continue;
+    }
 
     // Preserve quantified or conditional details instead of collapsing them.
     const hasSpecificDetail = /\d|\bin lieu\b|\bdepending on\b|\bup to\b/i.test(label);
     if (!hasSpecificDetail && /^(?:accrued|annual|annual paid|paid)?\s*(?:vacation|vacation pay|vacation credit|annual leave|paid leave|paid time off|PTO|leave policy)$/i.test(label)) {
       label = 'Vacation';
-    } else if (!hasSpecificDetail && /^(?:annual individual\s+)?performance\s+(?:bonus|bonuses|incentive|incentives)|performance pay|variable pay|bonus$/i.test(label)) {
+    } else if (!hasSpecificDetail && /^(?:annual individual\s+)?(?:performance\s+)?(?:bonus|bonuses|incentive|incentives)(?:\s+plan)?|performance pay|variable pay$/i.test(label)) {
       label = 'Performance Bonuses';
     } else if (!hasSpecificDetail && /^group\s+insurance(?:\s+(?:coverage|plan))?$/i.test(label)) {
       label = 'Group Insurance';
-    } else if (!hasSpecificDetail && /^(?:health|healthcare|health\s+insurance|extended health)$/i.test(label)) {
+    } else if (!hasSpecificDetail && /^(?:health|healthcare|health\s+insurance|extended health|extended health care)$/i.test(label)) {
       label = 'Health Insurance';
     } else if (!hasSpecificDetail && /^(?:health\s*care|healthcare|health)\s+spending\s+account$/i.test(label)) {
       label = 'Health Spending Account';
-    } else if (!hasSpecificDetail && /^dental(?:\s+insurance)?$/i.test(label)) {
+    } else if (!hasSpecificDetail && /^dental(?:\s+(?:insurance|care))?$/i.test(label)) {
       label = 'Dental Insurance';
     } else if (!hasSpecificDetail && /^(?:vision|vision care)$/i.test(label)) {
       label = 'Vision Care';
@@ -486,7 +490,15 @@ export function normalizeBenefits(values: string[]): string[] {
       label = 'Employee Assistance Program';
     } else if (!hasSpecificDetail && /^efap$/i.test(label)) {
       label = 'Employee Assistance Program';
-    } else if (!hasSpecificDetail && /^tuition\s+(?:waiver|remission)$/i.test(label)) {
+    } else if (!hasSpecificDetail && /^eap$/i.test(label)) {
+      label = 'Employee Assistance Program';
+    } else if (!hasSpecificDetail && /^(?:fitness|toldo lancer centre)\s*(?:membership)?$/i.test(label)) {
+      label = 'Fitness Membership';
+    } else if (!hasSpecificDetail && /^out[- ]of[- ]province\/out[- ]of[- ]country coverage$/i.test(label)) {
+      label = 'Travel Benefits';
+    } else if (!hasSpecificDetail && /^emergency travel assistance$/i.test(label)) {
+      label = 'Travel Benefits';
+    } else if (!hasSpecificDetail && /^tuition\s+(?:waiver|remission)(?:\s+program)?$/i.test(label)) {
       label = 'Tuition Waiver';
     } else if (!hasSpecificDetail && /^tuition\s+(?:aid|assistance|reimbursement)$/i.test(label)) {
       label = 'Tuition Assistance';
@@ -494,8 +506,6 @@ export function normalizeBenefits(values: string[]): string[] {
       label = 'OMERS';
     } else if (!hasSpecificDetail && /^life insurance$/i.test(label)) {
       label = 'Life Insurance';
-    } else if (!hasSpecificDetail && /^remote\s+work\s+programs?$/i.test(label)) {
-      continue;
     } else if (!hasSpecificDetail && /^(?:pension|pension plan|retirement|retirement plan|retirement plans|defined (?:benefit|contribution) pension plan)$/i.test(label)) {
       label = 'Pension';
     } else if (!hasSpecificDetail && /^perkopolis\s+perks?$/i.test(label)) {
