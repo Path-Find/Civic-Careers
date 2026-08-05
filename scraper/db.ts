@@ -500,21 +500,37 @@ export async function toggleSaveJob(client: Client, id: string) {
   });
 }
 
+/**
+ * Deactivate jobs that were missing from a scrape of *their own source*.
+ *
+ * Only sources that have at least one raw_jobs row with scraped_at >= runStartedAt
+ * are considered "scraped this run." Jobs for other sources are left alone — so a
+ * York-only technomedia scrape + parse cannot wipe UOttawa/CMHC/etc.
+ *
+ * Within a scraped source, any job id not re-touched in that window is marked inactive
+ * (delisted from the portal).
+ */
 export async function cleanupExpiredJobs(client: Client, runStartedAt: string) {
   await client.execute({
-    sql: `UPDATE jobs SET is_active = 0 WHERE id NOT IN (
-      SELECT id FROM raw_jobs WHERE scraped_at >= ?
-    )`,
-    args: [runStartedAt],
+    sql: `UPDATE jobs SET is_active = 0
+          WHERE source IN (
+            SELECT DISTINCT source FROM raw_jobs WHERE scraped_at >= ?
+          )
+          AND id NOT IN (
+            SELECT id FROM raw_jobs WHERE scraped_at >= ?
+          )`,
+    args: [runStartedAt, runStartedAt],
   });
 
-  // A job no longer showing up in scrapes at all (delisted, or source removed)
-  // has no future rescrape to reset its cap via — its failure record would
-  // otherwise sit there forever. Safe to drop since it can't be retried anyway.
+  // Failure records for ids delisted from a source we actually scraped this run.
   await client.execute({
-    sql: `DELETE FROM parse_failures WHERE id NOT IN (
-      SELECT id FROM raw_jobs WHERE scraped_at >= ?
-    )`,
-    args: [runStartedAt],
+    sql: `DELETE FROM parse_failures
+          WHERE id IN (
+            SELECT j.id FROM jobs j
+            WHERE j.is_active = 0
+              AND j.source IN (SELECT DISTINCT source FROM raw_jobs WHERE scraped_at >= ?)
+              AND j.id NOT IN (SELECT id FROM raw_jobs WHERE scraped_at >= ?)
+          )`,
+    args: [runStartedAt, runStartedAt],
   });
 }

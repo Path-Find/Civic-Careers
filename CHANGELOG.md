@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **York University job board** — Technomedia portal (~400 postings) now scrapes on the regular schedule (was engine-only, never on the production task list). First full pull uses list detail links + rate limiting so mid-run “resource not available” dead-ends don’t fill the DB.
 
 ### Fixed
+- **Homepage available-job count collapsed after a partial scrape + parse** — cleanup treated “not scraped in the last 12h window” as delisted for *every* employer, so a York-only scrape then parse deactivated thousands of still-live postings. Cleanup is now scoped to sources actually re-scraped; wrongly deactivated rows restored.
 - **Wordy federal Experience walls collapsed** — e.g. “Experience analyzing… / Experience is defined as… two (2) years…” → `2+ years` + short domain labels; definition meta lines dropped; body bullets that only restated Experience stripped.
 - **Qualifications no longer restate Languages (or Experience clauses already in the sidebar)** — e.g. “Language requirements: Bilingual Imperative CCC/CCC” and Abilities lines that only repeat Experience domains are stripped from the body.
 - **CMHC Compensation & Benefits sections that only restated sidebar salary + package benefits are gone** (e.g. “Salary range $X–$Y” + “accrued vacation, performance bonus, group insurance…”). Detector no longer treated bare “performance bonus” as unique pay just because a $ salary was also in the section.

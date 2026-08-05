@@ -130,13 +130,16 @@ async function main() {
     }));
   }
 
+  // Only expire within sources that were re-scraped recently (per-source scope).
+  // Using a global "any raw row in last 12h" window wiped every other employer
+  // after partial scrapes (e.g. York-only) + parse — homepage available count collapsed.
   const runMetaResult = await db.execute(
     `SELECT MIN(scraped_at) as started_at FROM raw_jobs WHERE scraped_at > datetime('now', '-12 hours')`
   );
   const startedAt = runMetaResult.rows[0]?.started_at as string | null;
   if (startedAt) {
     await cleanupExpiredJobs(db, startedAt);
-    console.log('\n[Parser] Expired stale jobs.');
+    console.log(`\n[Parser] Expired stale jobs for sources scraped since ${startedAt}.`);
   }
 
   console.log('[Parser] Done.');
