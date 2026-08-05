@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Expired jobs now leave the active feed automatically** — the scraper and parser deactivate listings after their stored closing date instead of relying only on source removal.
 - **Jobs closing 1–13 days from today no longer repeat structured properties in their body requirements** — all 1,854 active postings in the August 6–18 window were manually reviewed and de-duplicated locally without a deploy.
 - **Legacy job requirements were cleaned up across active listings** — confirmed structured-property repeats, stale source boilerplate, duplicate benefits, and non-canonical certification labels were removed while source-specific context was preserved.
+- **Two reviewed job bodies no longer contain broken or repeated compensation text** — source-specific pension, transit-pass, leave, and employer-match details remain readable without duplicating sidebar benefits.
 - **Ten listings received full source-backed review** — missing and incorrect structured fields were corrected, and body text was rewritten so moved facts no longer remain duplicated.
 - **Four new benefits QA batches corrected 200 additional listings** — restored source-backed vacation, assistance, fitness, health-spending, leave, and federal coverage details in a fresh-scrape sample.
 - **Scraped postings no longer remain in the parse queue** — the live raw-jobs audit found zero unparsed rows and zero recorded parse failures after manual review.

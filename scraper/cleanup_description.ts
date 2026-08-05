@@ -443,6 +443,7 @@ export function stripStructuredBenefitRestatements(description: string, benefits
     .replace(/\blife, accidental-death, short-term disability,\b/gi, 'life, accidental-death, and short-term disability coverage,')
     .replace(/\bpublic-service(?=\s*,)/gi, match => /^[A-Z]/.test(match) ? 'Public-service retirement plan' : 'public-service retirement plan')
     .replace(/\bcomprehensive\s+and\s+paid[- ]leave\b/gi, match => /^[A-Z]/.test(match) ? 'Comprehensive paid-leave' : 'comprehensive paid-leave')
+    .replace(/\bMembership in BC(?:['’]s)\s*(?:\(\s*defined benefit\s*\)|)\s*\.?(?=\s*(?:Nationally recognized|$))/i, 'Membership in BC’s defined benefit plan.')
     .replace(/,\s+with OMERS including\b/gi, ', and OMERS with')
     .replace(/,\s+with OMERS(?=\s*(?:\(|,|$))/gi, ', and OMERS')
     .replace(/\s{2,}/g, ' ');

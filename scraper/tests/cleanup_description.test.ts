@@ -184,6 +184,16 @@ test('repairs grammar left by removing a structured benefit name', () => {
   );
 });
 
+test('preserves the useful pension detail after removing a BC Transit plan name', () => {
+  assert.equal(
+    stripStructuredBenefitRestatements(
+      '## Compensation & Benefits\n- Membership in BC’s Public Service Pension Plan (PSPP). Nationally recognized for its strong investment and governance practices.',
+      ['Public Service Pension Plan'],
+    ),
+    '## Compensation & Benefits\n- Membership in BC’s defined benefit plan. Nationally recognized for its strong investment and governance practices.',
+  );
+});
+
 test('placeholder-only cleanup does not trim legitimate overview text', () => {
   const result = removePlaceholderSections(`## Overview
 The department supports a growing community.
