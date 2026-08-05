@@ -328,10 +328,10 @@ export function stripStructuredBenefitRestatements(description: string, benefits
   const benefitText = benefits.join(' ');
   const patterns: RegExp[] = [];
   if (/\bpension\b/i.test(benefitText)) {
-    patterns.push(/\b(?:defined\s+benefit\s+)?pension(?:\s+plan)?\b/gi);
+    patterns.push(/\b(?:(?:defined\s+benefit|public-service|university\s+of\s+ottawa)\s+)?pension(?:\s+plans?)?\b/gi);
   }
   if (/\binsurance\b/i.test(benefitText)) {
-    patterns.push(/\b(?:(?:comprehensive|group|life|health|dental|long[- ]term\s+disability)\s+)?insurance(?:\s+(?:coverage|plan))?\b/gi);
+    patterns.push(/\binsurance(?:\s+(?:coverage|plan))?\b/gi);
   }
   if (/\bvacation\b/i.test(benefitText)) {
     patterns.push(/\b(?:(?:annual\s+)?paid|accrued|annual\s+individual)?\s*vacation(?:\s+(?:pay|leave|entitlement))?\b/gi);
@@ -354,13 +354,41 @@ export function stripStructuredBenefitRestatements(description: string, benefits
     .replace(/\s+([,.;:])/g, '$1')
     .replace(/([,;:])\s*(?=[,;:.]|$)/g, '')
     .replace(/\s+(?:and|or)\s*(?=[,.;:]|$)/gi, '')
-    .replace(/^[\s,;:.()\-]+|[\s,;:.()\-]+$/g, '')
+    .replace(/^\(\s*(.*?)\s*\)$/s, '$1')
+    .replace(/^[\s,;:.\-]+|[\s,;:.\-]+$/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 
   const isGenericRemainder = (text: string): boolean => {
     const words = text.toLowerCase().match(/[a-z]+/g) ?? [];
     return words.length === 0 || words.every(word => genericWords.has(word));
+  };
+
+  const stripBenefitNames = (line: string): string => {
+    const terminalPunctuation = line.match(/[.!?]\s*$/)?.[0].trim() ?? '';
+    let cleaned = line;
+    for (const pattern of patterns) {
+      pattern.lastIndex = 0;
+      cleaned = cleaned.replace(pattern, match => /\bpaid\s+vacation\b/i.test(match) ? 'paid' : '');
+    }
+    const result = cleanRemainder(cleaned)
+      .replace(/\b(includes?|including|offers?|provides?)\s+and\b/gi, '$1')
+      .replace(/\b(?:and|or)\s*(?=[,.;:]|$)/gi, '')
+      .replace(/,\s*(?:and|or)\b/gi, ',')
+      .replace(/(?:,\s*){2,}/g, ', ')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/^with\s+/i, '')
+      .replace(/^\(\s*(.*?)\s*\)$/s, '$1')
+      .replace(/^[\s,;:.\-]+|[\s,;:.\-]+$/g, '')
+      .trim();
+    return terminalPunctuation && result && !/[.!?]$/.test(result)
+      ? `${result}${terminalPunctuation}`
+      : result;
+  };
+
+  const stripBenefitLine = (line: string): string => {
+    const bullet = line.match(/^(\s*[-•*]\s+)(.*)$/);
+    return bullet ? `${bullet[1]}${stripBenefitNames(bullet[2])}` : stripBenefitNames(line);
   };
 
   const lines = description.split('\n');
@@ -384,24 +412,27 @@ export function stripStructuredBenefitRestatements(description: string, benefits
     // A quantified incentive is additional compensation, not a duplicate
     // package label, so leave the complete line intact.
     if (/\$\s*[\d,]+|\b\d+(?:\.\d+)?\s*%|\b\d+(?:\.\d+)?\s*percent\b/i.test(line)) {
-      kept.push(line);
+      kept.push(stripBenefitLine(line));
       continue;
     }
 
     const bullet = line.match(/^(\s*[-•*]\s+)(.*)$/);
     const text = bullet ? bullet[2] : line.trim();
     let remainder = text;
-    for (const pattern of patterns) remainder = remainder.replace(pattern, '');
+    for (const pattern of patterns) {
+      pattern.lastIndex = 0;
+      remainder = remainder.replace(pattern, match => /\bpaid\s+vacation\b/i.test(match) ? 'paid' : '');
+    }
     remainder = cleanRemainder(remainder);
 
     // Drop pure restatements. If a short line has a named plan or other
     // useful detail, keep that detail while removing the repeated benefit.
     if (isGenericRemainder(remainder)) continue;
     if (bullet && remainder.length < text.length) {
-      kept.push(`${bullet[1]}${remainder}`);
+      kept.push(`${bullet[1]}${stripBenefitNames(remainder)}`);
       continue;
     }
-    kept.push(line);
+    kept.push(stripBenefitNames(line));
   }
 
   return kept.join('\n')

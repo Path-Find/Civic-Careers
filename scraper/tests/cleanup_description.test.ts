@@ -170,7 +170,7 @@ test('keeps a Compensation detail line when the repeated benefit has unique cont
 Benefits package includes pension and reimbursement of eligible relocation expenses.`;
   assert.equal(
     stripStructuredBenefitRestatements(description, ['pension']),
-    description,
+    '## Compensation & Benefits\nBenefits package includes reimbursement of eligible relocation expenses.',
   );
 });
 
