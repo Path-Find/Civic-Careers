@@ -415,7 +415,7 @@ function App() {
           ) : currentView === 'home' ? (
             <section className="home-preview">
               <div className="home-preview-heading">
-                <ListSortControls className="list-sort-options" sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => applyMostRecentSort(true)} onClosingSoon={() => applyClosingSoonSort(true)} onNewlyAdded={() => applyNewlyAddedSort(true)} />
+                <ListSortControls className="list-sort-options" sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} counts={homeData ? { closingSoon: homeData.closingSoonCount, newlyAdded: displayRecentlyAddedCount } : undefined} onMostRecent={() => applyMostRecentSort(true)} onClosingSoon={() => applyClosingSoonSort(true)} onNewlyAdded={() => applyNewlyAddedSort(true)} />
                 <div className="home-stats" aria-label="Job totals">
                   <div className="home-stat-primary"><strong>{displayAvailableJobCount.toLocaleString()}</strong> jobs available</div>
                   <div><strong>+{displayRecentlyAddedCount.toLocaleString()}</strong> last 7 days</div>

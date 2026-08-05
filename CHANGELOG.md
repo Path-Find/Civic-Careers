@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Homepage sort options now show clear matching totals** — closing-within-14-days and jobs added in the last 7 days are counted before opening each list.
 - **Job counts stay current without parser-credit waste** — daily scrapes now include UBC, promote only readable scraped postings, and discard broken source shells before they reach the feed.
 - **York University job board** — Technomedia portal (~400 postings) now scrapes on the regular schedule (was engine-only, never on the production task list). First full pull uses list detail links + rate limiting so mid-run “resource not available” dead-ends don’t fill the DB.
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).

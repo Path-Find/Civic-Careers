@@ -50,6 +50,7 @@ export interface HomeData {
   closingSoonJobs: Job[];
   availableJobCount: number;
   recentlyAddedCount: number;
+  closingSoonCount: number;
   lastCheckedAt: string | null;
 }
 

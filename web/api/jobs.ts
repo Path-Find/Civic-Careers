@@ -133,6 +133,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         db.execute(`SELECT
           COUNT(*) AS available_job_count,
           SUM(CASE WHEN ${freshnessDate} >= date('now', '-7 days') THEN 1 ELSE 0 END) AS recently_added_count,
+          SUM(CASE WHEN jd.closing_date IS NOT NULL AND jd.closing_date != ''
+            AND substr(jd.closing_date, 1, 10) <= date('now', '+14 days') THEN 1 ELSE 0 END) AS closing_soon_count,
           MAX(j.scraped_at) AS last_checked_at
           ${jobJoins} ${activeJobWhere}`),
       ]);
@@ -143,6 +145,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         closingSoonJobs: closingSoon.rows,
         availableJobCount: Number(countRow.available_job_count ?? 0),
         recentlyAddedCount: Number(countRow.recently_added_count ?? 0),
+        closingSoonCount: Number(countRow.closing_soon_count ?? 0),
         lastCheckedAt: countRow.last_checked_at ?? null,
       }));
       return;

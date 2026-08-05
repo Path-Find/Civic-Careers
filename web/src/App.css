@@ -142,6 +142,7 @@
 .list-heading-row .list-sort-options { margin-bottom: 0; }
 .list-sort-options button { border: 0; padding: 0; background: transparent; color: #64748b; font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 .list-sort-options button.active { color: #0f172a; }
+.list-sort-count { color: #94a3b8; font-weight: 600; }
 .home-freshness { display: flex; align-items: baseline; gap: 0.35rem; margin-top: 0.4rem; font-size: 0.75rem; color: #64748b; }
 .home-freshness strong { color: #0f172a; }
 .home-preview { width: 100%; }
