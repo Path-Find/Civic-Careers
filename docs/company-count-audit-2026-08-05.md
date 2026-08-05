@@ -39,7 +39,7 @@ Quick comparison of Civic Careers’ current active-job count against the compan
 
 ## Pass summary
 
-- 29 companies checked: all 19 companies that still showed zero, plus the 10 largest Civic Careers counts.
+- 30 companies checked: UBC, all 19 companies that still showed zero, plus the 10 largest Civic Careers counts.
 - 23 companies had a numeric undercount; Waterfront Toronto matched at zero.
 - Six companies were not safely countable because the board was blocked, did not render, or did not expose a combined total.
 - The homepage totals were independently confirmed after the reactivation repair at database timestamp `2026-08-05 00:57:09`: **3,259 jobs available** and **1,893 added in the last 7 days**. These totals were not changed during this audit.
