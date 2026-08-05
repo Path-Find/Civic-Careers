@@ -49,7 +49,8 @@ async function main() {
   const result = await db.execute(`
     SELECT d.id, d.job_title, d.description, j.source,
            d.education_requirements, d.experience_requirements, d.license_requirements,
-           d.language_requirements, d.required_skills, d.is_student,
+           d.language_requirements, d.required_skills, d.software_requirements,
+           d.is_student, d.vehicle_required, d.security_check_required,
            d.certification_requirements
     FROM job_details d
     JOIN jobs j ON j.id = d.id
@@ -66,8 +67,11 @@ async function main() {
     const licenses = normalizeProfessionalLicenseRequirements(parseList(row.license_requirements));
     const languages = parseList(row.language_requirements);
     const requiredSkills = parseList(row.required_skills);
+    const software = parseList(row.software_requirements);
     const certifications = parseList(row.certification_requirements);
     const studentRequired = Number(row.is_student) === 1;
+    const vehicleRequired = Number(row.vehicle_required) === 1;
+    const securityRequired = Number(row.security_check_required) === 1;
 
     let after = EXPERIENCE_LANGUAGE_ONLY || EDUCATION_ONLY || SKILLS_ONLY || STUDENT_ONLY || CERTIFICATIONS_ONLY || LANGUAGES_ONLY
       ? before
@@ -84,7 +88,18 @@ async function main() {
         ? { studentRequired }
       : CERTIFICATIONS_ONLY
         ? { certifications }
-      : { licenses, education, experience, languages, certifications, studentRequired });
+      : {
+        licenses,
+        education,
+        experience,
+        languages,
+        requiredSkills,
+        software,
+        certifications,
+        studentRequired,
+        vehicleRequired,
+        securityRequired,
+      });
 
     if (after === before) continue;
 

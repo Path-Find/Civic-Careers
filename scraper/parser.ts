@@ -92,6 +92,8 @@ async function main() {
           education: structuredRequirements.education_requirements,
           experience: structuredRequirements.experience_requirements,
           languages: finalLanguages,
+          requiredSkills: finalSkills,
+          software: finalSoftwareRequirements,
           certifications: certificationRequirements,
           studentRequired: isStudent === 1,
           vehicleRequired,

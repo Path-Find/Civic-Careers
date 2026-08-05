@@ -127,6 +127,35 @@ test('strips pure skill restatements but preserves mixed qualification bullets',
   assert.match(result, /Strong communication skills/);
 });
 
+test('removes structured tools from qualification restatements and keeps context', () => {
+  const result = stripStructuredQualBullets(`## Qualifications
+- 3+ years — IT support
+- Working knowledge of Windows 10/11 and Microsoft 365 applications.
+- Experience with ITSM processes and tools (e.g., ServiceNow).
+- Experience with SQL and statistical tools.
+- Experience using software (e.g., ENVI, Pix4D, ArcGIS, or QGIS) for analysis.`, {
+    experience: ['3+ years'],
+    requiredSkills: ['ServiceNow'],
+    software: ['Windows', 'Microsoft 365', 'SQL', 'ENVI', 'Pix4D', 'ArcGIS', 'QGIS'],
+  });
+  assert.match(result, /- IT support/);
+  assert.doesNotMatch(result, /Windows|Microsoft 365|ENVI|Pix4D|ArcGIS|QGIS|ServiceNow/);
+  assert.match(result, /Experience with ITSM processes and tools\./);
+  assert.match(result, /Experience with SQL and statistical tools\./);
+  assert.match(result, /Experience using software for analysis\./);
+});
+
+test('removes shorter duplicate qualification bullets after preserving richer context', () => {
+  const result = stripStructuredQualBullets(`## Qualifications
+- Advanced analytics, market research, or customer insights, with demonstrated impact on business strategy
+- Experience with strong experience with SQL and statistical tools
+- advanced analytics, market research, or customer insights
+ - Strong experience with SQL and statistical tools.`, { requiredSkills: ['Unrelated'] });
+  assert.match(result, /demonstrated impact on business strategy/);
+  assert.doesNotMatch(result, /- advanced analytics, market research, or customer insights\n/);
+  assert.doesNotMatch(result, /- Strong experience with SQL and statistical tools\./);
+});
+
 test('extracts Grade 12 as high school diploma and strips first-aid / grade-12 restatements', () => {
   const desc = `## Qualifications
 - Grade 12 or equivalent

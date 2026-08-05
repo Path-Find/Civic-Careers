@@ -1635,19 +1635,30 @@ function isCertificationRestatementBullet(text: string, certifications: string[]
 const SKILL_RESTATEMENT_NOISE = new Set([
   'a', 'an', 'and', 'be', 'by', 'can', 'demonstrated', 'excellent', 'experience', 'familiar',
   'familiarity', 'good', 'have', 'in', 'including', 'knowledge', 'of', 'proficiency', 'proficient',
-  'required', 'skill', 'skills', 'skilled', 'strong', 'the', 'to', 'use', 'using', 'with', 'working',
+  'application', 'applications', 'e', 'g', 'platform', 'platforms', 'process', 'processes',
+  'required', 'skill', 'skills', 'skilled', 'strong', 'system', 'systems', 'the', 'to', 'tool',
+  'tools', 'use', 'using', 'version', 'versions', 'with', 'working',
 ]);
 const MISCLASSIFIED_SKILL_PATTERN = /\b(?:criminal\s+record|vulnerable\s+sector|security\s+clearance|certification|certificate)\b/i;
 
 function skillRestatementTokens(value: string): string[] {
   return normalizedRequirement(value)
     .split(' ')
-    .filter(token => token.length > 1 && !SKILL_RESTATEMENT_NOISE.has(token));
+    .filter(token => token.length > 1 && !/^\d+$/.test(token) && !SKILL_RESTATEMENT_NOISE.has(token));
 }
 
 function isRequiredSkillRestatementBullet(text: string, skills: string[]): boolean {
   if (!skills.length || text.length > 320 || MISCLASSIFIED_SKILL_PATTERN.test(text)) return false;
-  if (!/\b(?:skill|proficien|knowledge|experience|familiar|ability|competenc|expert|adept|literacy|command|using|use)\w*\b/i.test(text)) return false;
+  if (!/\b(?:skill|proficien|knowledge|experience|familiar|ability|competenc|expert|adept|literacy|command|using|use|practic)\w*\b/i.test(text)) return false;
+
+  // Agile-framework wording is often paraphrased instead of copied from the
+  // structured value ("Scrum ceremonies", "Agile principles", etc.).
+  if (skills.some(skill => /\b(?:scrum|kanban|agile)\b/i.test(skill))
+    && /\b(?:scrum|kanban|agile)\b/i.test(text)
+    && /\b(?:certif|ceremon|framework|principle|practic|understanding|knowledge|working)\w*\b/i.test(text)
+    && text.length < 220) {
+    return true;
+  }
 
   let remaining = skillRestatementTokens(text);
   const phrases = skills
@@ -1665,6 +1676,103 @@ function isRequiredSkillRestatementBullet(text: string, skills: string[]): boole
   }
 
   return remaining.length === 0;
+}
+
+function removeStructuredParentheticalMentions(text: string, values: string[]): string | null {
+  if (!values.length) return null;
+  const keys = values.map(normalizedRequirement).filter(Boolean);
+  let changed = false;
+  const cleaned = text.replace(/\([^()]*\)/g, group => {
+    const normalized = normalizedRequirement(group);
+    if (!keys.some(key => normalized.includes(key))) return group;
+    changed = true;
+    return '';
+  })
+    .replace(/\s+([,.;:])/g, '$1')
+    .replace(/\(\s*\)/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+  return changed && cleaned !== text ? cleaned : null;
+}
+
+function qualificationBulletTokens(value: string): string[] {
+  return normalizedRequirement(value)
+    .replace(/\bartificial intelligence\b/g, 'ai')
+    .split(' ')
+    .filter(token => token.length > 2 && !SKILL_RESTATEMENT_NOISE.has(token));
+}
+
+function deduplicateQualificationBullets(description: string): string {
+  const lines = description.split('\n');
+  const remove = new Set<number>();
+  let inQuals = false;
+  let sectionBullets: Array<{ index: number; tokens: string[] }> = [];
+
+  const flush = () => {
+    for (let left = 0; left < sectionBullets.length; left++) {
+      if (remove.has(sectionBullets[left].index)) continue;
+      for (let right = left + 1; right < sectionBullets.length; right++) {
+        if (remove.has(sectionBullets[right].index)) continue;
+        const a = sectionBullets[left];
+        const b = sectionBullets[right];
+        const shorter = a.tokens.length < b.tokens.length ? a : b;
+        const longer = shorter === a ? b : a;
+        if (shorter.tokens.length < 2) continue;
+        const longerSet = new Set(longer.tokens);
+        if (shorter.tokens.every(token => longerSet.has(token))) {
+          remove.add(shorter.index);
+        }
+      }
+    }
+    sectionBullets = [];
+  };
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    if (/^#{1,6}\s+/.test(line) || /^\*{1,2}[^*]+\*{1,2}:?\s*$/.test(line.trim()) || /^[A-Z][A-Za-z0-9 /&'’-]{2,60}:\s*$/.test(line.trim())) {
+      flush();
+      inQuals = isQualificationsHeading(line.trim());
+      continue;
+    }
+    if (!inQuals) continue;
+    const bullet = line.match(/^\s*[-•*]\s+(.+)$/);
+    if (bullet) sectionBullets.push({ index, tokens: qualificationBulletTokens(bullet[1]) });
+  }
+  flush();
+  return lines.filter((_, index) => !remove.has(index)).join('\n');
+}
+
+function repairStructuredCleanupArtifacts(description: string): string {
+  return description
+    .replace(/\bexperience\s+with\s+with\s+and\s+aptitude\b/gi, 'Experience with aptitude')
+    .replace(/\bexperience\s+with\s+or\s+similar\s+student\s+systems\b/gi, 'Experience with student information systems')
+    .replace(/\bcomputer\s+experience\s+with\s+and\s+applications\b/gi, 'Computer experience with software applications')
+    .replace(/\b(?:proficiency|proficient)\s+in\s+suite,\s+especially\s+and\s+and\s+other\s+division-specific\s+software\b/gi, 'Proficiency in office software and other division-specific software')
+    .replace(/\b(?:proficiency|proficient)\s+in\s+suite,\s+especially\s+and\s+other\s+division-specific\s+software\b/gi, 'Proficiency in office software and other division-specific software')
+    .replace(/\b(?:proficiency|proficient)\s+in,\s+including\b/gi, 'Proficiency in relevant software, including')
+    .replace(/\bintermediate\s+to\s+advanced\s+programming\s+skills\s+in,\s+including\b/gi, 'Intermediate to advanced programming skills in relevant tools, including')
+    .replace(/\bintermediate\s+to\s+advanced\s+skills\s+in,\s+including\b/gi, 'Intermediate to advanced technical skills, including')
+    .replace(/\bproficient\s+in,\s+activenet\s+and\b/gi, 'Proficient in recreation-management software')
+    .replace(/\bbasic\s+computer\s+skills\s+in,\s+including\s+and\b/gi, 'Basic computer skills, including common office software')
+    .replace(/\bexpertise\s+with,\s+github,\s+power\s+apps\s+and\s+power\s+automate\b/gi, 'Expertise with development and automation tools')
+    .replace(/\bexperience\s+with,\s+microsoft,\s+word\s+processors,\s+spreadsheets,\s+publishing\s+and\s+database\s+software\b/gi, 'Experience with word processors, spreadsheets, publishing and database software')
+    .replace(/\bproficiency\s+with\s+enterprise\s+hr\s+and\s+financial\s+systems\s+and\s+advanced\s+skills\s+in,\b/gi, 'Proficiency with enterprise HR and financial systems and advanced analytical skills')
+    .replace(/\bproficiency\s+in,\s+ms,\s+ms\b/gi, 'Proficiency in relevant engineering software')
+    .replace(/\bproficiency\s+in,\s+(?=[A-Za-z])/gi, 'Proficiency in relevant software, ')
+    .replace(/\bhighly\s+functional\s+in,\s+gis\b/gi, 'Highly functional in GIS')
+    .replace(/\badvanced\s+skills\s+in,\s*\./gi, 'advanced skills in relevant software.')
+    .replace(/\bexperience\s+with\s+and\s+data\s+security\b/gi, 'Experience with infrastructure and data security')
+    .replace(/\bexperience\s+with\s+advanced\s+knowledge\s+of\s+and\s+experience\s+in,\s+research\b/gi, 'Experience with advanced knowledge of and experience in research')
+    .replace(/\bfamiliarity\s+with\s+or\s+is\s+an\s+asset\b/gi, 'familiarity with database technologies is an asset')
+    .replace(/\b(?:supporting|administering|working\s+with)\s+-based\b/gi, '$1')
+    .replace(/\b(or|and)(?=(?:experience|recent|related|relevant)\b)/gi, '$1 ')
+    .replace(/\bwith\s+with\b/gi, 'with')
+    .replace(/\b(in|with|of|for|on),\s+(?=(?:including|research|finance|Microsoft|MS|word|database|and|or)\b)/gi, '$1 ')
+    .replace(/,\s*,+/g, ',')
+    .replace(/,\s*(?=(?:or|and)\b)/gi, ' ')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n +(?=[-•*])/g, '\n')
+    .trim();
 }
 
 const LANGUAGE_RESTATEMENT_NOISE = new Set([
@@ -1758,9 +1866,11 @@ export function stripStructuredQualBullets(
     experience?: string[];
     languages?: string[];
     requiredSkills?: string[];
+    software?: string[];
     studentRequired?: boolean;
     certifications?: string[];
     vehicleRequired?: boolean | null;
+    securityRequired?: boolean;
   },
 ): string {
   if (!description.trim()) return description;
@@ -1769,11 +1879,14 @@ export function stripStructuredQualBullets(
   const experience = fields.experience ?? [];
   const languages = fields.languages ?? [];
   const requiredSkills = fields.requiredSkills ?? [];
+  const software = fields.software ?? [];
   const studentRequired = fields.studentRequired === true;
   const certifications = fields.certifications ?? [];
+  const securityRequired = fields.securityRequired === true;
   if (!licenses.length && !education.length && !experience.length && !languages.length && !certifications.length
-    && !requiredSkills.length && !studentRequired && fields.vehicleRequired !== true) {
-    return description;
+    && !requiredSkills.length && !software.length && !studentRequired
+    && fields.vehicleRequired !== true && !securityRequired) {
+    return repairStructuredCleanupArtifacts(deduplicateQualificationBullets(description));
   }
 
   const eduKeys = education.map(educationCoreKey).filter(Boolean);
@@ -1788,6 +1901,7 @@ export function stripStructuredQualBullets(
   const hasEducationVerification = education.some(e => /\beducation\s+verification\b/i.test(e));
   const hasFirstAidCert = certifications.some(c => /\bfirst\s+aid\b|\bcpr\b/i.test(c));
   const concreteSkillKeys = new Set(requiredSkills.map(concreteQualificationSkillKey));
+  const structuredSkills = [...new Set([...requiredSkills, ...software])];
 
   const lines = description.split('\n');
   let inQuals = false;
@@ -1873,6 +1987,20 @@ export function stripStructuredQualBullets(
         }
       }
 
+      // Vehicle and security requirements already shown as structured flags.
+      if (fields.vehicleRequired === true && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+        && VEHICLE_SPECIFIC_REQUIREMENT.test(focus) && focus.length < 220
+        && !/\b(?:travel|transport|commut|delivery|fieldwork)\b/i.test(focus)) {
+        removed += 1;
+        continue;
+      }
+      if (securityRequired && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+        && /\b(?:security|reliability)\s+(?:status\s+)?(?:clearance|check)\b/i.test(focus)
+        && focus.length < 220) {
+        removed += 1;
+        continue;
+      }
+
       // Any other certification/training restatement. Keep mixed bullets when
       // they contain an additional fact that is not in the structured field.
       if (certifications.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
@@ -1891,10 +2019,57 @@ export function stripStructuredQualBullets(
       }
 
       // Skills already shown in the structured Skills property.
-      if (requiredSkills.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
-        && isRequiredSkillRestatementBullet(focus, requiredSkills)) {
+      if (structuredSkills.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)
+        && isRequiredSkillRestatementBullet(focus, structuredSkills)) {
         removed += 1;
         continue;
+      }
+
+      // Remove named tools from parenthetical examples. Direct mentions in
+      // prose stay intact unless the whole bullet is a pure restatement; this
+      // prevents fragments such as "supporting -based environments".
+      const withoutStructuredExamples = removeStructuredParentheticalMentions(focus, structuredSkills);
+      const withoutStructuredMentions = withoutStructuredExamples;
+      if (withoutStructuredMentions) {
+        if (isRequiredSkillRestatementBullet(withoutStructuredMentions, structuredSkills)) {
+          removed += 1;
+          continue;
+        }
+        const prefix = line.match(/^\s*[-•*]\s+/)?.[0] ?? '- ';
+        kept.push(`${prefix}${withoutStructuredMentions}`);
+        removed += 1;
+        continue;
+      }
+
+      // Remove duration text from Experience bullets while retaining the
+      // domain/context that does not belong in the structured field.
+      if (experience.length && !STRUCTURED_OPTIONAL_REQUIREMENT.test(focus)) {
+        const durationPattern = /\b(?:\d+(?:\.\d+)?(?:\s*\+|\s*[–-]\s*\d+(?:\.\d+)?)?|one|two|three|four|five|six|seven|eight|nine|ten)\s*(?:years?|months?)\b/i;
+        const hasStructuredDuration = experience.some(value => {
+          const match = value.match(/^(\d+(?:\.\d+)?)(?:\+|–\d+)?\s*(years?|months?)/i);
+          return Boolean(match && durationPattern.test(focus)
+            && new RegExp(`\\b${match[1]}\\s*(?:\\+|[-–]\\s*\\d+)?\\s*(?:years?|months?)\\b`, 'i').test(focus));
+        });
+        if (hasStructuredDuration && /\b(?:experience|years?|months?)\b/i.test(focus)) {
+          const withoutDuration = focus
+            .replace(/\b(?:a\s+)?(?:minimum(?:\s+of)?|at\s+least|over|more\s+than)?\s*(?:\d+(?:\.\d+)?(?:\s*\+|\s*[–-]\s*\d+(?:\.\d+)?)?|one|two|three|four|five|six|seven|eight|nine|ten)\s*(?:years?|months?)\s*(?:of\s+)?/i, ' ')
+            .replace(/^\s*[-–—,:]\s*/, '')
+            .replace(/^\s*(?:in|of)\s+/i, '')
+            .replace(/[.;]+$/, '')
+            .trim();
+          if (!withoutDuration || /^(?:experience|related|relevant|progressive)\s*$/i.test(withoutDuration)) {
+            removed += 1;
+            continue;
+          }
+          if (structuredSkills.length && isRequiredSkillRestatementBullet(withoutDuration, structuredSkills)) {
+            removed += 1;
+            continue;
+          }
+          const prefix = line.match(/^\s*[-•*]\s+/)?.[0] ?? '- ';
+          kept.push(`${prefix}${withoutDuration}`);
+          removed += 1;
+          continue;
+        }
       }
 
       // Education restatement (high school / degree / diploma already structured)
@@ -1974,9 +2149,10 @@ export function stripStructuredQualBullets(
     kept.push(line);
   }
 
-  if (removed === 0) return description;
+  if (removed === 0) return repairStructuredCleanupArtifacts(deduplicateQualificationBullets(description));
   // Drop a Qualifications heading that has no remaining bullets before the next heading.
   let cleaned = kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  cleaned = repairStructuredCleanupArtifacts(deduplicateQualificationBullets(cleaned));
   cleaned = cleaned.replace(
     /(?:^|\n)(#{1,6}\s+Qualifications[^\n]*\n)(?:\s*\n)*(?=(?:#{1,6}\s+|\s*$))/gi,
     '\n',
