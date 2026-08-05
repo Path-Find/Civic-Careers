@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Job terms now display as Term** — fixed-term lengths and end-date ranges are no longer presented as the ambiguous `Duration` field.
 - **Expired jobs now leave the active feed automatically** — the scraper and parser deactivate listings after their stored closing date instead of relying only on source removal.
 - **Jobs closing 1–13 days from today no longer repeat structured properties in their body requirements** — all 1,854 active postings in the August 6–18 window were manually reviewed and de-duplicated locally without a deploy.
 - **Legacy job requirements were cleaned up across active listings** — confirmed structured-property repeats, stale source boilerplate, duplicate benefits, and non-canonical certification labels were removed while source-specific context was preserved.

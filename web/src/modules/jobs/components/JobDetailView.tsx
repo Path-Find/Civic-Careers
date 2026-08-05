@@ -10,7 +10,7 @@ const REPORT_REASONS = [
   'This is a recruitment program',
   'Issue with application link',
   'Issue with Job Description',
-  'Issue with job details (location, salary, work mode, employment type, duration)',
+  'Issue with job details (location, salary, work mode, employment type, term)',
   'Issue with requirements',
   'Issue with closing date',
   'Duplicate job',
@@ -98,7 +98,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   const metadata: DetailMetadata[] = [
     { label: 'Location', value: job.location },
     { label: 'Salary', value: details.salary }, { label: 'Work Mode', value: details.mode },
-    { label: 'Employment', value: details.type }, { label: 'Duration', value: details.duration },
+    { label: 'Employment', value: details.type }, { label: 'Term', value: details.duration },
     { label: 'Start date', value: details.startDate },
     { label: 'Hours', value: details.hours },
     { label: 'Listing type', value: details.listingType }, { label: 'Student requirement', value: details.studentRequirement },
