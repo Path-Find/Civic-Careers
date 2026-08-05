@@ -36,6 +36,16 @@ When a structured field has a canonical form, every listing uses that form — s
 - Not a schema split — one field still answers both questions when sources only give one token
 - Implemented by `normalizeEmploymentType()` in `scraper/validate.ts` (validate + parser write path)
 
+**Duration** (always — single column, constrained shapes):
+
+- Kind tokens: `Permanent` | `Ongoing` | `Seasonal` | `Term` (generic temporary/contract with no dates)
+- Lengths: `N months`, `N years`, `Up to N months`, `N-month work year`
+- Date ranges: `YYYY-MM-DD to YYYY-MM-DD` only
+- Academic: `Fall 2026`, `Winter 2027`, `Fall term` (when year-less)
+- Synonyms: Continuing/Indeterminate/Regular/Tenure-track → `Permanent`; Temporary/Casual/Contract alone → `Term`
+- Prefer empty over unparseable long prose
+- Implemented by `normalizeDuration()` in `scraper/duration.ts` (validate + parser write path + backfill)
+
 Other fields get the same treatment as their vocabulary lands (see GitHub issue on canonical field vocabulary).
 
 ## 1. No fact appears in two places

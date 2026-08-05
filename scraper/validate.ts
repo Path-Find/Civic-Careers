@@ -1,6 +1,7 @@
 import type { ParsedJob } from './ai_parser';
 import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
 import { cleanJobDescription } from './cleanup_description';
+import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
 import { normalizeEducationRequirements, normalizeLanguageRequirements, normalizeLicenseRequirements } from './requirements';
 
@@ -284,7 +285,7 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     closing_date: normalizeClosingDate(o['closing_date']),
     work_model: normalizeWorkModel(o['work_model'], job_title),
     employment_type: normalizeEmploymentType(o['employment_type']),
-    duration: coerceString(o['duration']),
+    duration: normalizeDuration(coerceString(o['duration'])),
     ...(() => {
       const rawName = coerceString(o['union_name']).replace(/\?+$/g, '').replace(/\s+/g, ' ').trim();
       const flag = coerceBool(o['is_unionized']);

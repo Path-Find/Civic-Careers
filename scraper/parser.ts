@@ -1,6 +1,7 @@
 import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, cleanupExpiredJobs, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
+import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
 import { normalizeEmploymentType, normalizeWorkModel } from './validate';
 import {
@@ -96,7 +97,7 @@ async function main() {
           salary_period: aiResult.salary_period,
           work_model: normalizeWorkModel(aiResult.work_model, aiResult.job_title),
           employment_type: normalizeEmploymentType(aiResult.employment_type),
-          duration: aiResult.duration || extractWorkYearDuration(description) || '',
+          duration: normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || ''),
           experience_requirements: JSON.stringify(structuredRequirements.experience_requirements),
           is_unionized: aiResult.is_unionized ? 1 : 0,
           union_name: aiResult.union_name,
