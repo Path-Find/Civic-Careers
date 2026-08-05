@@ -112,11 +112,11 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       'https://jobs-ca.technomedia.com/yorkuniversity/',
       'York University',
     ),
-    'ADP Workforce Now': (db, context) => scrapeADP(
+    'Town of Midland': (db, context) => scrapeADP(
       db,
       context,
       'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=b3dc7fb4-546d-4c57-a2f4-0ab75313ff85&ccId=19000101_000001&lang=en_CA&selectedMenuKey=CurrentOpenings',
-      'ADP Workforce Now',
+      'Town of Midland',
     ),
   },
   'peoplesoft-4': {
