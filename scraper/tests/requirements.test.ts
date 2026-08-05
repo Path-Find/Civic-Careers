@@ -484,6 +484,17 @@ test('normalizes parenthetical numbers and identifies truncated values', () => {
   assert.equal(isTruncatedExperienceRequirement('15+ years of experience (e.g., energy)'), false);
 });
 
+test('normalizes long duration-led Experience values without dropping alternatives', () => {
+  assert.equal(
+    normalizeExperienceRequirement('Minimum 7 years of experience in platform engineering with minimum 3 years leading a team'),
+    '7+ years — Platform engineering with minimum 3 years leading a team',
+  );
+  assert.equal(
+    normalizeExperienceRequirement('3 years experience, OR college diploma and 5 years experience, OR high school diploma and 7 years experience'),
+    '3 years — OR college diploma and 5 years experience, OR high school diploma and 7 years experience',
+  );
+});
+
 test('drops a bare Several years Experience value', () => {
   assert.equal(normalizeExperienceRequirement('Several years'), null);
 });

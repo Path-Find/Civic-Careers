@@ -1339,10 +1339,15 @@ export function normalizeExperienceRequirement(value: string): string | null {
   s = s.replace(/^Experience with\s+(?=(?:\d+(?:\+|–\d+)?\s*(?:years?|months?)|Recent|Several years)(?:\s+—|$))/i, '');
   const durationOnly = s.match(/^(\d+(?:\+|–\d+)?\s*(?:years?|months?))\s+—\s+(.+)$/i);
   if (durationOnly) {
-    if (EXPERIENCE_SKILL_PATTERNS.some(([, pattern]) => pattern.test(durationOnly[2]))) {
+    if (/^(?:cash\s+handling|handling\s+cash)$/i.test(durationOnly[2].replace(/[.;]+$/, '').trim())) {
       return durationOnly[1];
     }
     return s;
+  }
+  const qualitative = s.match(/^(Recent|Several years)\s+—\s+(.+)$/i);
+  if (qualitative) {
+    const domain = qualitative[2].replace(/^[-–—:]\s*/, '').trim();
+    return domain ? qualitative[1] + ' — ' + domain : qualitative[1];
   }
   // A bare vague duration is not useful enough for the structured sidebar.
   if (/^Several years$/i.test(s)) return null;
@@ -1372,15 +1377,6 @@ export function normalizeExperienceRequirement(value: string): string | null {
   s = s
     .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s*\(\s*(\d+)\s*\)(?=\s*(?:years?|months?)\b)/gi, '$2')
     .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten)(?=\s*(?:years?|months?)\b)/gi, raw => EXPERIENCE_WORD_NUMBERS[raw.toLowerCase()]);
-
-  // Keep alternatives readable. Rewriting each side can change the meaning
-  // of part-time/full-time, equivalent, and other source conditions.
-  const hasDurationAlternative = /\b(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)\s*[-–—]?\s*(?:years?|months?)\b[^.;]{0,100}\bor\b[^.;]{0,100}\b(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)\s*[-–—]?\s*(?:years?|months?)\b/i.test(s);
-  if (hasDurationAlternative) {
-    s = s.replace(/^experience\s*:\s*/i, '').replace(/[.;\s]+$/g, '').trim();
-    if (!s || s.length < 3) return null;
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
 
   const number = (raw: string): string => EXPERIENCE_WORD_NUMBERS[raw.toLowerCase()] ?? raw;
   const range = s.match(/^(?:(?:a\s+)?minimum(?:\s+of)?|at\s+least|over|more\s+than)?\s*(\d+(?:\.\d+)?\+?|one|two|three|four|five|six|seven|eight|nine|ten)\s*(years?|yrs?|months?)?\s*(?:-|–|—|to|and\s+up\s+to)\s*(\d+(?:\.\d+)?\+?|one|two|three|four|five|six|seven|eight|nine|ten)\s*(years?|yrs?|months?)\b/i);
@@ -1416,7 +1412,7 @@ export function normalizeExperienceRequirement(value: string): string | null {
 
   const recent = s.match(/^recent(?:\s+experience)?\s*(?:in|with|of|:)?\s*(.*)$/i);
   if (recent) {
-    const domain = recent[1].replace(/^the\s+/i, '').replace(/[.;\s]+$/g, '').trim();
+    const domain = recent[1].replace(/^[-–—:]\s*/, '').replace(/^the\s+/i, '').replace(/[.;\s]+$/g, '').trim();
     return domain ? `Recent — ${domain.charAt(0).toUpperCase()}${domain.slice(1)}` : 'Recent';
   }
 

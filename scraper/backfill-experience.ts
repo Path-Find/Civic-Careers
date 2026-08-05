@@ -4,6 +4,7 @@ import {
   extractExperienceRequirementsFromSources,
   extractExperienceSkills,
   isTruncatedExperienceRequirement,
+  normalizeExperienceRequirement,
   normalizeExperienceRequirements,
 } from './requirements';
 
@@ -14,6 +15,7 @@ dotenv.config({ quiet: true });
 
 const apply = process.argv.includes('--apply');
 const fillMissing = process.argv.includes('--fill-missing');
+const longOnly = process.argv.includes('--long-only');
 const limitArg = process.argv.find(value => value.startsWith('--limit='));
 const limit = Math.max(1, Number(limitArg?.split('=')[1] || 10000));
 const PAGE_SIZE = 250;
@@ -58,20 +60,23 @@ async function main() {
     for (const row of result.rows) {
       const current = parseList(row.experience_requirements);
       const currentSkills = parseList(row.required_skills);
+      if (longOnly && !current.some(value => value.length >= 100)) continue;
       if (current.length === 0 && !fillMissing) continue;
       const description = String(row.description ?? '');
       const rawText = String(row.raw_text ?? '');
       const recovered = extractExperienceRequirementsFromSources(description, rawText)
         .filter(value => !isTruncatedExperienceRequirement(value));
       const safeCurrent = current.filter(value => !isTruncatedExperienceRequirement(value));
-      const values = current.length > 0
+      const values = longOnly
+        ? current.map(value => value.length >= 100 ? normalizeExperienceRequirement(value) : value).filter((value): value is string => Boolean(value))
+        : current.length > 0
         ? normalizeExperienceRequirements(
           safeCurrent.length === current.length || recovered.length === 0
             ? safeCurrent
             : [...safeCurrent, ...recovered],
         )
         : extractExperienceRequirementsFromSources(description, rawText);
-      const skills = [...new Set([...currentSkills, ...extractExperienceSkills(current)])];
+      const skills = longOnly ? currentSkills : [...new Set([...currentSkills, ...extractExperienceSkills(current)])];
       if (JSON.stringify(values) !== JSON.stringify(current) || JSON.stringify(skills) !== JSON.stringify(currentSkills)) {
         changes.push({
           id: String(row.id),
