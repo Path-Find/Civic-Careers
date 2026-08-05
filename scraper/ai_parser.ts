@@ -26,7 +26,7 @@ export interface ParsedJob {
     salary_period: 'yearly' | 'hourly' | 'monthly' | 'flat';
     closing_date: string | null;
     work_model: 'Hybrid' | 'Remote' | 'On-site';
-    employment_type: 'Full-time' | 'Part-time' | 'Contract' | 'Permanent' | 'Occasional';
+    employment_type: 'Full-time' | 'Part-time' | 'Contract' | 'Permanent' | 'Occasional' | 'Seasonal';
     duration: string;
     is_unionized: boolean;
     union_name: string;

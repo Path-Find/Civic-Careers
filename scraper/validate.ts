@@ -133,12 +133,45 @@ export function normalizeWorkModel(v: unknown, titleHint = ''): 'Hybrid' | 'Remo
   return 'On-site';
 }
 
-function normalizeEmploymentType(v: unknown): 'Full-time' | 'Part-time' | 'Contract' | 'Permanent' | 'Occasional' {
-  const s = coerceString(v).toLowerCase().replace(/[\s_-]/g, '');
-  if (s.includes('occasional') || s.includes('substitute') || s.includes('oncall')) return 'Occasional';
-  if (s.includes('part')) return 'Part-time';
-  if (s.includes('contract') || s.includes('temp') || s.includes('casual')) return 'Contract';
-  if (s.includes('permanent')) return 'Permanent';
+/**
+ * Canonical employment_type tokens (single column — schedule + tenure mixed):
+ *   Full-time | Part-time | Contract | Permanent | Occasional | Seasonal
+ *
+ * Conceptual axes (document only; not separate DB columns):
+ *   schedule: Full-time | Part-time | Occasional
+ *   tenure:   Permanent | Contract | Seasonal
+ * Casual / temporary / term → Contract. Unknown defaults to Full-time (existing policy).
+ */
+export type EmploymentType =
+  | 'Full-time'
+  | 'Part-time'
+  | 'Contract'
+  | 'Permanent'
+  | 'Occasional'
+  | 'Seasonal';
+
+export function normalizeEmploymentType(v: unknown): EmploymentType {
+  const s = coerceString(v).toLowerCase().replace(/[\s_-]+/g, '');
+  if (!s) return 'Full-time';
+
+  // Most specific first
+  if (s.includes('occasional') || s.includes('substitute') || s.includes('oncall') || s.includes('supply')) {
+    return 'Occasional';
+  }
+  if (s.includes('seasonal')) return 'Seasonal';
+  if (s.includes('parttime') || (s.includes('part') && !s.includes('impart'))) return 'Part-time';
+  if (s.includes('permanent') || s.includes('continuing') || s.includes('indeterminate')) return 'Permanent';
+  if (
+    s.includes('contract')
+    || s.includes('temporary')
+    || s.includes('temp')
+    || s.includes('casual')
+    || s.includes('term')
+    || s.includes('fixedterm')
+  ) {
+    return 'Contract';
+  }
+  if (s.includes('fulltime') || s.includes('full')) return 'Full-time';
   return 'Full-time';
 }
 

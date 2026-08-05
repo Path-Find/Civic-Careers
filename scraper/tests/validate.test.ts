@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeWorkModel, validateParsedJob } from '../validate';
+import { normalizeEmploymentType, normalizeWorkModel, validateParsedJob } from '../validate';
 
 const BASE = {
   job_title: 'Planner I',
@@ -194,6 +194,8 @@ describe('validateParsedJob', () => {
       assert.equal(validateParsedJob({ ...BASE, employment_type: 'Part-time' })?.employment_type, 'Part-time');
       assert.equal(validateParsedJob({ ...BASE, employment_type: 'Contract' })?.employment_type, 'Contract');
       assert.equal(validateParsedJob({ ...BASE, employment_type: 'Permanent' })?.employment_type, 'Permanent');
+      assert.equal(validateParsedJob({ ...BASE, employment_type: 'Occasional' })?.employment_type, 'Occasional');
+      assert.equal(validateParsedJob({ ...BASE, employment_type: 'Seasonal' })?.employment_type, 'Seasonal');
     });
 
     it('normalizes common AI variants', () => {
@@ -204,6 +206,24 @@ describe('validateParsedJob', () => {
       assert.equal(validateParsedJob({ ...BASE, employment_type: 'temp' })?.employment_type, 'Contract');
       assert.equal(validateParsedJob({ ...BASE, employment_type: 'Casual' })?.employment_type, 'Contract');
       assert.equal(validateParsedJob({ ...BASE, employment_type: 'Occasional Teacher / Eligible to Hire' })?.employment_type, 'Occasional');
+      assert.equal(validateParsedJob({ ...BASE, employment_type: 'Seasonal' })?.employment_type, 'Seasonal');
+      assert.equal(validateParsedJob({ ...BASE, employment_type: 'Continuing' })?.employment_type, 'Permanent');
+      assert.equal(validateParsedJob({ ...BASE, employment_type: 'Indeterminate' })?.employment_type, 'Permanent');
+      assert.equal(validateParsedJob({ ...BASE, employment_type: 'Term' })?.employment_type, 'Contract');
+    });
+
+    it('maps synonyms via normalizeEmploymentType', () => {
+      assert.equal(normalizeEmploymentType('Full-time'), 'Full-time');
+      assert.equal(normalizeEmploymentType('Part-time'), 'Part-time');
+      assert.equal(normalizeEmploymentType('Seasonal'), 'Seasonal');
+      assert.equal(normalizeEmploymentType('seasonal worker'), 'Seasonal');
+      assert.equal(normalizeEmploymentType('Casual'), 'Contract');
+      assert.equal(normalizeEmploymentType('Temporary'), 'Contract');
+      assert.equal(normalizeEmploymentType('Fixed-term'), 'Contract');
+      assert.equal(normalizeEmploymentType('Supply teacher'), 'Occasional');
+      assert.equal(normalizeEmploymentType('On-call'), 'Occasional');
+      assert.equal(normalizeEmploymentType(null), 'Full-time');
+      assert.equal(normalizeEmploymentType(''), 'Full-time');
     });
   });
 

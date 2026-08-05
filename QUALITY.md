@@ -28,6 +28,14 @@ When a structured field has a canonical form, every listing uses that form — s
 - UI may display `On-site` as “In-person”; storage stays `On-site`
 - Implemented by `normalizeWorkModel()` in `scraper/validate.ts` (validate + parser write path)
 
+**Employment type** (always — single column; two conceptual axes):
+
+- Stored tokens only: `Full-time` | `Part-time` | `Contract` | `Permanent` | `Occasional` | `Seasonal`
+- Schedule-ish: Full-time, Part-time, Occasional · Tenure-ish: Permanent, Contract, Seasonal
+- Synonyms: temporary/temp/casual/term/fixed-term → `Contract`; continuing/indeterminate → `Permanent`; substitute/on-call/supply → `Occasional`
+- Not a schema split — one field still answers both questions when sources only give one token
+- Implemented by `normalizeEmploymentType()` in `scraper/validate.ts` (validate + parser write path)
+
 Other fields get the same treatment as their vocabulary lands (see GitHub issue on canonical field vocabulary).
 
 ## 1. No fact appears in two places
