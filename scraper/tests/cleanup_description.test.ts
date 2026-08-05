@@ -125,6 +125,17 @@ test('keeps Compensation sections that describe real benefits', () => {
   assert.ok(result.includes('OMERS'));
 });
 
+test('drops CMHC salary + structured benefits package restatement', () => {
+  const result = cleanJobDescription(`## Responsibilities
+- Lead servicing of multi-unit loans.
+## Compensation & Benefits
+- Salary range: $86,816.59 to $108,520.74 per year.
+- Accrued vacation, annual individual performance bonus, group insurance, training and mentorship, inclusive workplace culture.`, 'Specialist');
+  assert.ok(!result.includes('Compensation'));
+  assert.ok(!result.includes('86,816'));
+  assert.ok(result.includes('Lead servicing'));
+});
+
 test('keeps unique pay like bilingual bonus', () => {
   const result = cleanJobDescription(`## Qualifications
 - Degree required.

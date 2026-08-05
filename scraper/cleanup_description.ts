@@ -219,8 +219,13 @@ export function isRedundantCompensationSection(heading: string, body: string): b
   let text = body.replace(/\s+/g, ' ').trim();
   if (!text) return true;
 
-  // Unique pay beyond base salary — keep.
-  if (/\b(?:bilingual(?:ism)?\s+bonus|northern\s+allowance|shift\s+premium|market\s+(?:modifier|premium|adjustment)|performance\s+bonus|overtime\s+rate|standby|isolation\s+pay)\b/i.test(text)) {
+  // Unique pay beyond base salary — keep. Bare "performance bonus" as a package
+  // name is NOT unique (CMHC lists it in structured benefits too); require $/%.
+  if (/\b(?:bilingual(?:ism)?\s+bonus|northern\s+allowance|shift\s+premium|market\s+(?:modifier|premium|adjustment)|overtime\s+rate|standby|isolation\s+pay)\b/i.test(text)) {
+    return false;
+  }
+  // Only keep when the bonus itself is quantified (not merely a $ salary elsewhere in the section).
+  if (/\bperformance\s+bonus\b.{0,24}(?:\$[\d,]|\d+\s*%|\d+\s*percent)|(?:\$[\d,]|\d+\s*%|\d+\s*percent).{0,24}\bperformance\s+bonus\b/i.test(text)) {
     return false;
   }
 
@@ -269,20 +274,43 @@ export function isRedundantCompensationSection(heading: string, body: string): b
     return t;
   }).filter(Boolean);
 
-  if (lines.length > 0 && lines.every(line =>
+  const isSalaryRestatement = (line: string) =>
     salaryLine.test(line) || bareRange.test(line) || fromRange.test(line) || singleRate.test(line)
-    || /^(?:salary|pay|rate|wage|annual\s+salary|yearly\s+salary|hourly)\b.*\$[\d,]+/i.test(line)
-  )) {
+    || /^(?:salary|pay|rate|wage|annual\s+salary|yearly\s+salary|hourly)\b.*\$[\d,]+/i.test(line);
+
+  // Standard package names already stored as structured benefits (CMHC et al.).
+  const isPackageBenefitRestatement = (line: string) => {
+    const rest = line
+      .replace(/\b(?:accrued\s+vacation|annual\s+paid\s+vacation|annual\s+(?:individual\s+)?performance\s+(?:bonus|incentive)|group\s+insurance(?:\s+coverage)?|training(?:\s+and\s+mentorship)?|mentorship|inclusive\s+workplace(?:\s+culture)?(?:\s+and\s+environment)?|defined\s+benefit\s+pension(?:\s+plan)?|comprehensive\s+group\s+insurance(?:\s+plan)?|from\s+day\s+one|to\s+support\s+your\s+well-being|support\s+towards\s+your\s+personal\s+and\s+professional\s+growth(?:\s+with\s+training(?:,\s*mentorship)?(?:\s+and\s+more)?)?|an\s+inclusive\s+workplace\s+culture(?:\s+and\s+environment)?)\b/gi, ' ')
+      .replace(/[.,;:&]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return rest.length < 4;
+  };
+
+  if (lines.length > 0 && lines.every(line => isSalaryRestatement(line) || isPackageBenefitRestatement(line))) {
     return true;
   }
 
-  const hasItemizedBenefits = /\b(?:\d+%\s*employer|employer-paid|sick\s+leave|wellness\s+allowance|\$\d+\s+for|paramedical|health care spending|telus virtual|group insurance|defined benefit|annual paid vacation|vacation\s+days|weeks?\s+vacation|om\s*ers)\b/i.test(body)
-    || (/(?:^|\n)\s*[-•*]\s+/.test(body) && /\b(?:health|dental|pension|vacation|insurance|leave)\b/i.test(body) && body.split('\n').filter(l => /^\s*[-•*]/.test(l)).length >= 2);
+  if (/\$[\d,]+/.test(text) && /(?:salary|pay|rate|wage|compensation|range|annum|annual)/i.test(text)) {
+    const withoutSalary = text
+      .replace(/(?:(?:annual\s+|yearly\s+|hourly\s+)?salary(?:\s+range)?|pay(?:\s+rate)?|rate(?:\s+of\s+pay)?|wage|compensation|from|starting\s+at)\s*:?\s*\$?[\d,]+(?:\.\d+)?\s*(?:to|[-–—])\s*\$?[\d,]+(?:\.\d+)?\s*(?:per\s+)?(?:year|yr|annum|hour|hr)?\.?/gi, ' ')
+      .replace(/\$[\d,]+(?:\.\d+)?\s*(?:to|[-–—])\s*\$[\d,]+(?:\.\d+)?\s*(?:per\s+)?(?:year|yr|annum|hour|hr)?\.?/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!withoutSalary || isPackageBenefitRestatement(withoutSalary)) return true;
+  }
+
+  const hasItemizedBenefits = /\b(?:\d+%\s*employer|employer-paid|sick\s+leave|wellness\s+allowance|\$\d+\s+for|paramedical|health care spending|telus virtual|weeks?\s+vacation|om\s*ers)\b/i.test(body)
+    || (/(?:^|\n)\s*[-•*]\s+/.test(body)
+      && /\b(?:health|dental|pension|paramedical|wellness)\b/i.test(body)
+      && body.split('\n').filter(l => /^\s*[-•*]/.test(l)).length >= 2
+      && !lines.every(line => isSalaryRestatement(line) || isPackageBenefitRestatement(line)));
 
   if (!hasItemizedBenefits
     && /\$[\d,]+/.test(text)
     && /(?:salary|pay|rate|wage|compensation|range|annum|annual)/i.test(text)
-    && text.length < 280) {
+    && text.length < 400) {
     return true;
   }
 

@@ -81,9 +81,13 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     void fetch(`${API}/api/jobs/${job.id}/apply-click`, { method: 'POST', keepalive: true }).catch(() => {});
   };
   const descriptionSections = reclassifyMandatoryNiceToHave(parseMarkdownSections(job.description ?? null));
-  const overview = descriptionSections.find(section => section.heading.toLowerCase() === 'overview');
+  const overviewRaw = descriptionSections.find(section => section.heading.toLowerCase() === 'overview');
+  // Skip empty / placeholder overviews — no heading with nothing under it.
+  const overview = overviewRaw && overviewRaw.body.trim() && !isPlaceholderSection(overviewRaw.body)
+    ? overviewRaw
+    : undefined;
   const otherInformation = descriptionSections.find(section => /^other important information$/i.test(section.heading));
-  const detailSections = descriptionSections.filter(section => section !== overview
+  const detailSections = descriptionSections.filter(section => section !== overviewRaw
     && section !== otherInformation
     && !HIDDEN_SOURCE_SECTION.test(section.heading)
     && !/^education\b/i.test(section.heading)
