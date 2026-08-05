@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractPostedDate, normalizePostedDate } from '../posted-date';
+import { extractPostedDate, extractRecentRelativePostedDate, normalizePostedDate } from '../posted-date';
+import { extractClosingDate } from '../closing-date';
 
 test('normalizes supported official date formats', () => {
   assert.equal(normalizePostedDate('2026/07/03'), '2026-07-03');
@@ -43,4 +44,17 @@ test('does not extract relative or closing dates', () => {
   assert.equal(extractPostedDate('Closing Date: 07/28/2026'), null);
   assert.equal(extractPostedDate('Posting Date: February 30, 2026'), null);
   assert.equal(extractPostedDate("opportunities posted on the City's Internal Job Posting Portal"), null);
+});
+
+test('extracts only today and yesterday from relative Workday dates', () => {
+  const reference = new Date('2026-08-05T12:00:00.000Z');
+  assert.equal(extractRecentRelativePostedDate('posted onPosted Today', reference), '2026-08-05');
+  assert.equal(extractRecentRelativePostedDate('posted onPosted Yesterday', reference), '2026-08-04');
+  assert.equal(extractRecentRelativePostedDate('posted onPosted 5 Days Ago', reference), null);
+});
+
+test('extracts source closing dates without treating Job End Date as a deadline', () => {
+  assert.equal(extractClosingDate('Posting End DateAugust 12, 2026 Job End DateDecember 15, 2026'), '2026-08-12');
+  assert.equal(extractClosingDate('Internal posting deadline expires Thursday August 13th at 11:59 PM'), '2026-08-13');
+  assert.equal(extractClosingDate('Job End DateDecember 15, 2026'), null);
 });

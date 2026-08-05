@@ -9,9 +9,7 @@
  */
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
-import fs from 'fs';
-import path from 'path';
-import { extractPostedDate, normalizePostedDate } from './posted-date';
+import { extractPostedDate, extractRecentRelativePostedDate, normalizePostedDate } from './posted-date';
 
 dotenv.config({ quiet: true });
 
@@ -32,14 +30,25 @@ async function main() {
     authToken: process.env.TURSO_AUTH_TOKEN!,
   });
 
-  const result = await db.execute(`
-    SELECT r.id, r.source, r.title, r.raw_text, r.posted_at,
-           jd.id AS details_id, jd.posted_at AS details_posted_at, jd.job_title, jd.description
-    FROM raw_jobs r
-    LEFT JOIN job_details jd ON jd.id = r.id
-    WHERE (r.raw_text IS NOT NULL AND r.raw_text != '')
-       OR (jd.description IS NOT NULL AND jd.description != '')
-  `);
+  const pageSize = 200;
+  const rows: any[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await db.execute({
+      sql: `
+        SELECT r.id, r.source, r.title, r.raw_text, r.posted_at,
+               jd.id AS details_id, jd.posted_at AS details_posted_at, jd.job_title, jd.description
+        FROM raw_jobs r
+        LEFT JOIN job_details jd ON jd.id = r.id
+        WHERE (r.posted_at IS NULL OR r.posted_at = '')
+           OR (jd.id IS NOT NULL AND (jd.posted_at IS NULL OR jd.posted_at = ''))
+        ORDER BY r.id
+        LIMIT ? OFFSET ?
+      `,
+      args: [pageSize, offset],
+    });
+    rows.push(...result.rows);
+    if (result.rows.length < pageSize) break;
+  }
 
   const candidates: Candidate[] = [];
   const bySource = new Map<string, number>();
@@ -47,10 +56,12 @@ async function main() {
   let alreadyComplete = 0;
   let extractableButFilled = 0;
 
-  for (const row of result.rows) {
+  for (const row of rows) {
     scanned += 1;
     const extracted = extractPostedDate(String(row.raw_text ?? ''))
-      || extractPostedDate(String(row.description ?? ''));
+      || extractRecentRelativePostedDate(String(row.raw_text ?? ''))
+      || extractPostedDate(String(row.description ?? ''))
+      || extractRecentRelativePostedDate(String(row.description ?? ''));
     if (!extracted) continue;
 
     const currentRaw = normalizePostedDate(row.posted_at as string | null);
@@ -85,7 +96,7 @@ async function main() {
     bySource.set(source, (bySource.get(source) ?? 0) + 1);
   }
 
-  console.log(`[Posted date backfill] Scanned ${scanned} raw_jobs.`);
+  console.log(`[Posted date backfill] Scanned ${scanned} candidate raw_jobs.`);
   console.log(`[Posted date backfill] ${APPLY ? 'Applying' : 'Dry run'}: ${candidates.length} row(s) to fill.`);
   console.log(`[Posted date backfill] Already had a date (extractable but filled): ${extractableButFilled}.`);
   console.log('[Posted date backfill] By source:', JSON.stringify(Object.fromEntries([...bySource.entries()].sort((a, b) => b[1] - a[1])), null, 2));
@@ -117,34 +128,6 @@ async function main() {
   }
   console.log(`[Posted date backfill] Updated ${updated} record(s).`);
 
-  const outPath = path.resolve(__dirname, '../docs/posted-date-backfill-2026-08-04.md');
-  fs.writeFileSync(outPath, [
-    '# Posted date backfill — 2026-08-04',
-    '',
-    'Extracted calendar posted dates from `raw_jobs.raw_text` into empty `posted_at` fields.',
-    '',
-    `Updated: ${updated} rows.`,
-    '',
-    '## Patterns',
-    '',
-    '- `Date Posted:` / `Date Posted (YYYY/MM/DD):` / `Date Posted By`',
-    '- `Posting Date:`',
-    '- `Posted:` / `Posted on` / `Posted On:` (with optional weekday)',
-    '- Two-digit years (`07/13/26` → `2026-07-13`)',
-    '- Skips relative Workday noise (`Posted 30+ Days Ago`)',
-    '',
-    '## By source',
-    '',
-    ...[...bySource.entries()].sort((a, b) => b[1] - a[1]).map(([s, n]) => `- ${s}: ${n}`),
-    '',
-    '## Job IDs',
-    '',
-    '```',
-    ...candidates.map(c => `${c.id}\t${c.postedAt}`),
-    '```',
-    '',
-  ].join('\n'));
-  console.log(`[Posted date backfill] Wrote ${outPath}`);
 }
 
 main().catch(error => {

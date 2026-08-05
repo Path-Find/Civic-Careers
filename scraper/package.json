@@ -9,6 +9,7 @@
     "parse": "npx tsx parser.ts",
     "backfill-software": "npx tsx backfill-software.ts",
     "backfill-posted-dates": "npx tsx backfill-posted-dates.ts",
+    "backfill-metadata-only": "npx tsx backfill-metadata-only.ts",
     "backfill-start-dates": "npx tsx backfill-start-dates.ts",
     "backfill-language-vehicle": "npx tsx backfill-language-vehicle.ts",
     "backfill-certification-normalize": "npx tsx backfill-certification-normalize.ts",

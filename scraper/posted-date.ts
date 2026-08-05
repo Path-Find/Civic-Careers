@@ -109,3 +109,21 @@ export function extractPostedDate(rawText: string): string | null {
   }
   return null;
 }
+
+/**
+ * Workday sometimes exposes only a relative date on the listing/detail page.
+ * Today and yesterday are precise enough for the feed date; older relative
+ * labels are intentionally ignored because they lose accuracy at midnight.
+ */
+export function extractRecentRelativePostedDate(rawText: string, referenceDate = new Date()): string | null {
+  if (!rawText) return null;
+
+  // Workday's flattened text can join the labels as either
+  // "Posted Today" or "posted onPosted Yesterday".
+  const relative = /posted\s+(?:(?:on\s*)?posted\s+)?(today|yesterday)(?=job\s+requisition|time\s+left|\b|$)/i.exec(rawText)?.[1]?.toLowerCase();
+  if (!relative) return null;
+
+  const date = new Date(referenceDate);
+  if (relative === 'yesterday') date.setUTCDate(date.getUTCDate() - 1);
+  return `${date.getUTCFullYear().toString().padStart(4, '0')}-${(date.getUTCMonth() + 1).toString().padStart(2, '0')}-${date.getUTCDate().toString().padStart(2, '0')}`;
+}

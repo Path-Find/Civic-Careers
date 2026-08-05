@@ -415,6 +415,7 @@ export async function retireJob(client: Client, id: string): Promise<void> {
 // parsing forever. The next scrape can recreate the row if the source recovers.
 export async function discardRawJob(client: Client, id: string) {
   await client.batch([
+    { sql: `UPDATE jobs SET is_active = 0, scraped_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [id] },
     { sql: `DELETE FROM raw_jobs WHERE id = ? AND parsed_at IS NULL`, args: [id] },
     { sql: `DELETE FROM parse_failures WHERE id = ?`, args: [id] },
   ], 'write');
@@ -459,6 +460,14 @@ export async function markJobParsed(client: Client, id: string) {
   await client.execute({
     sql: `UPDATE raw_jobs SET parsed_at = CURRENT_TIMESTAMP WHERE id = ?`,
     args: [id],
+  });
+}
+
+/** Source-confirmed closing date refresh; safe to apply without AI parsing. */
+export async function refreshClosingDate(client: Client, id: string, closingDate: string) {
+  await client.execute({
+    sql: `UPDATE job_details SET closing_date = ? WHERE id = ?`,
+    args: [closingDate, id],
   });
 }
 

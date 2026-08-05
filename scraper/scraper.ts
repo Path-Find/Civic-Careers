@@ -1,6 +1,6 @@
 import { chromium, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { initDb } from './db';
+import { cleanupExpiredJobsForSource, initDb } from './db';
 import { BASE_CONFIG, githubRunUrl, notifyDiscord } from './utils';
 
 import { scrapeSuccessFactors } from './engines/successfactors';
@@ -128,6 +128,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'njoyn', label: 'Centennial College', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://centennial.njoyn.com/CL3/xweb/Xweb.asp?page=joblisting&CLID=56827', 'Centennial College') },
   { engine: 'workday', label: 'University of Waterloo', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://uwaterloo.wd3.myworkdayjobs.com/uw_careers', 'University of Waterloo') },
   { engine: 'workday', label: 'Brock University', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://brocku.wd3.myworkdayjobs.com/brocku_careers', 'Brock University') },
+  { engine: 'workday', label: 'UBC', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://ubc.wd10.myworkdayjobs.com/ubcstaffjobs', 'UBC') },
   { engine: 'njoyn', label: 'Sheridan College', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://sheridan.njoyn.com/CL3/xweb/xweb.asp?page=joblisting&CLID=55117', 'Sheridan College') },
   { engine: 'jobs2web', label: 'University of Guelph', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.uoguelph.ca/search/', 'University of Guelph') },
   { engine: 'workday', label: 'University of Ottawa', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://uottawa.wd3.myworkdayjobs.com/en-US/uOttawa_External_Career_Site', 'University of Ottawa') },
@@ -197,7 +198,9 @@ async function main() {
   const results: { label: string; ok: boolean; error?: string }[] = [];
   for (const task of tasks) {
     try {
+      const taskStartedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
       await task.run(db, context);
+      await cleanupExpiredJobsForSource(db, task.label, taskStartedAt);
       await db.execute({
         sql: `INSERT INTO source_scrape_status (source, last_successful_scrape_at, last_status)
               VALUES (?, CURRENT_TIMESTAMP, 'success')

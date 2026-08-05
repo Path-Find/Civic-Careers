@@ -1,4 +1,4 @@
-import { initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
+import { discardRawJob, initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 import { normalizeDuration } from './duration';
@@ -50,10 +50,9 @@ async function main() {
       // reject it locally, for free, instead of paying the AI to fail on it.
       // Also covers rows that were saved with this bug before the scraper fix went in;
       // they'll self-heal once the next scrape overwrites raw_text with real content.
-      if (looksUnrendered(raw.raw_text)) {
-        failedSources.add(raw.source);
-        await recordParseFailure(db, { id: raw.id, url: raw.url, source: raw.source, reason: 'permanent: unrendered page (SPA shell, skipped before AI call)' });
-        process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ❌ (${raw.source}: unrendered page, skipped before AI call)`);
+      if (looksUnrendered(raw.raw_text) || /already expired|no longer available|position has been filled/i.test(raw.raw_text)) {
+        await discardRawJob(db, raw.id);
+        process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ⏭ (${raw.source}: invalid or expired page discarded)`);
         return;
       }
       const { data: aiResult, error } = await parseJobWithAI(raw.raw_text, raw.title ?? undefined);

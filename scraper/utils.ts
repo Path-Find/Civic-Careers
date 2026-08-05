@@ -2,8 +2,9 @@ import { createHash } from 'crypto';
 import { Page, Frame, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import pdfParse from 'pdf-parse';
-import { discardRawJob, retireJob, saveRawJob } from './db';
-import { extractPostedDate, normalizePostedDate } from './posted-date';
+import { discardRawJob, refreshClosingDate, retireJob, saveRawJob } from './db';
+import { extractPostedDate, extractRecentRelativePostedDate, normalizePostedDate } from './posted-date';
+import { extractClosingDate } from './closing-date';
 
 export function urlId(url: string): string {
   return createHash('sha256').update(url).digest('hex').substring(0, 12);
@@ -105,6 +106,8 @@ export async function handleRedirections(page: Page, depth = 0): Promise<boolean
 // AI parsing (no job_title to extract) on every single parse run forever.
 export function looksUnrendered(text: string): boolean {
   return (/skip to main content/i.test(text) && text.length < 400)
+    || /skip to (?:main )?content\s*loading(?:\.{3})?/i.test(text)
+    || /^loading\.\.\.\s+skip to (?:main )?content/i.test(text.trim())
     // Technomedia session/expiry dead-end (seen mid-scrape on York University).
     || /resource you have requested is not available/i.test(text)
     || /La ressource que vous avez demandée n'est pas disponible/i.test(text);
@@ -114,7 +117,9 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
   const descriptionUrl = job.descriptionUrl ?? job.url;
   const applicationUrl = job.applicationUrl ?? job.url;
   const existing = await db.execute({ sql: `SELECT parsed_at, raw_text FROM raw_jobs WHERE id = ?`, args: [job.id!] });
-  if (existing.rows.length > 0 && existing.rows[0]!['parsed_at'] !== null) {
+  const existingParsedAt = existing.rows[0]?.['parsed_at'] as string | null | undefined;
+  const refreshParsed = process.env.REFRESH_PARSED_DETAIL_PAGES === 'true';
+  if (existingParsedAt != null && !refreshParsed) {
     if (job.retiredPage?.(String(existing.rows[0]!['raw_text'] ?? ''))) {
       await retireJob(db, job.id!);
       process.stdout.write(' ⛔');
@@ -154,6 +159,8 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
         title: job.title,
         raw_text: rawText,
       });
+      if (existingParsedAt != null) await db.execute({ sql: `UPDATE raw_jobs SET parsed_at = ? WHERE id = ?`, args: [existingParsedAt, job.id!] });
+      if (existingParsedAt != null) await refreshClosingDate(db, job.id!, extractClosingDate(rawText) ?? '');
       process.stdout.write(' ✅');
       return true;
     }
@@ -241,11 +248,13 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       rawText = rawText.replace(/The University welcomes applications from all qualified individuals,[\s\S]*?(?=#LI-DNI\b|Click here for more details)/i, '').trim();
     }
 
-    const labeledPostedAt = extractPostedDate(rawText);
+    const labeledPostedAt = extractPostedDate(rawText) || extractRecentRelativePostedDate(rawText);
     const postedAt = normalizePostedDate(metadataPostedAt)
       || normalizePostedDate(structuredPostedAt)
       || labeledPostedAt;
     await saveRawJob(db, { id: job.id!, url: descriptionUrl, application_url: applicationUrl, source: sourceName, title: job.title, raw_text: rawText, posted_at: postedAt });
+    if (existingParsedAt != null) await db.execute({ sql: `UPDATE raw_jobs SET parsed_at = ? WHERE id = ?`, args: [existingParsedAt, job.id!] });
+    if (existingParsedAt != null) await refreshClosingDate(db, job.id!, extractClosingDate(rawText) ?? '');
     if (job.retiredPage?.(rawText)) {
       await retireJob(db, job.id!);
       process.stdout.write(' ⛔');

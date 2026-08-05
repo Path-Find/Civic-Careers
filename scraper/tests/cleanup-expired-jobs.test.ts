@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { cleanupExpiredJobs, cleanupExpiredJobsForSource } from '../db';
+import { looksUnrendered } from '../utils';
 
 test('cleanupExpiredJobsForSource deactivates only that source missing this run', async () => {
   const statements: Array<{ sql: string; args?: unknown[] }> = [];
@@ -40,4 +41,9 @@ test('cleanupExpiredJobs is a no-op global path (do not use for expiry)', async 
 
   await cleanupExpiredJobs(client as never, '2026-08-05 00:00:00');
   assert.equal(statements.length, 0, 'global cleanup must not touch the database');
+});
+
+test('recognizes Workday and loading-page shells as unrendered', () => {
+  assert.equal(looksUnrendered('Skip to main contentLoadingFollow UsPrivacy Statement'), true);
+  assert.equal(looksUnrendered('Loading... Skip to Main Content Sign In'), true);
 });

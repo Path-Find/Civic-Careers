@@ -2,7 +2,7 @@ name: Job Feed Scrape
 
 on:
   schedule:
-    - cron: '0 7 * * 1,4' # Run Mon and Thu at 3:00 AM EDT (7:00 AM UTC) — scraping has no DeepSeek cost, timing is just for convenience
+    - cron: '0 7 * * *' # Run daily at 3:00 AM EDT (7:00 AM UTC) — scraping has no DeepSeek cost
   workflow_dispatch: # Allow manual runs, scoped to one engine or all of them
     inputs:
       engine:
@@ -81,6 +81,7 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           AI_MODEL: "deepseek-chat"
           SCRAPE_ENGINE: ${{ matrix.engine }}
+          REFRESH_PARSED_DETAIL_PAGES: ${{ matrix.engine == 'workday' && 'true' || 'false' }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: cd scraper && xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24" npx tsx scraper.ts
 
@@ -92,5 +93,29 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           AI_MODEL: "deepseek-chat"
           SCRAPE_ENGINE: ${{ matrix.engine }}
+          REFRESH_PARSED_DETAIL_PAGES: ${{ matrix.engine == 'workday' && 'true' || 'false' }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: cd scraper && npx tsx scraper.ts
+
+  promote:
+    needs: scrape
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: scraper/package-lock.json
+
+      - name: Install dependencies
+        run: cd scraper && npm ci
+
+      - name: Promote readable scraped postings
+        env:
+          TURSO_URL: ${{ secrets.TURSO_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: cd scraper && npm run backfill-metadata-only -- --apply
