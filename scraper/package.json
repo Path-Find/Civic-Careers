@@ -11,6 +11,7 @@
     "backfill-posted-dates": "npx tsx backfill-posted-dates.ts",
     "backfill-start-dates": "npx tsx backfill-start-dates.ts",
     "backfill-language-vehicle": "npx tsx backfill-language-vehicle.ts",
+    "backfill-certification-normalize": "npx tsx backfill-certification-normalize.ts",
     "backfill-experience": "npx tsx backfill-experience.ts",
     "backfill-education-license": "npx tsx backfill-education-license.ts",
     "backfill-listing-types": "npx tsx backfill-listing-types.ts",

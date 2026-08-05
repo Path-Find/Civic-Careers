@@ -16,6 +16,20 @@ export function normalizeFirstAidCertification(text: string): string | null {
   if (!text || !/\bfirst[-\s]?aid\b|\bcpr\b|\baed\b|defibrillator/i.test(text)) return null;
   if (STRUCTURED_OPTIONAL_REQUIREMENT.test(text)) return null;
 
+  const hasFirstAid = /\bfirst[-\s]?aid\b/i.test(text);
+  const hasCpr = /\bcpr\b/i.test(text);
+  if (!hasFirstAid && !hasCpr && /\baed\b|defibrillator/i.test(text)) return 'AED';
+
+  // These are distinct credentials, not generic First Aid labels. Leave
+  // them intact rather than reducing the brand/program name to "First Aid".
+  if (/\b(?:mental health|psychological|st\.?\s*john'?s|first responder)\b[^\n]{0,80}\bfirst[-\s]?aid\b/i.test(text)) {
+    return null;
+  }
+  // Basic Cardiac Life Support is an alternative to CPR here, not a synonym.
+  if (/\b(?:basic cardiac life support|BLS)\b/i.test(text) && /\b(?:or|and\/or)\b/i.test(text)) {
+    return null;
+  }
+
   // Pure soft-skill "ability to provide first aid" with no cert level/CPR — skip.
   if (/\bability to (?:provide|perform|administer)\s+first[-\s]?aid\b/i.test(text)
     && !/\b(?:standard|emergency|basic|intermediate|advanced)\s+first[-\s]?aid\b/i.test(text)
@@ -25,7 +39,12 @@ export function normalizeFirstAidCertification(text: string): string | null {
   }
 
   let level = 'First Aid';
-  if (/\bstandard\s+first[-\s]?aid\b/i.test(text)) level = 'Standard First Aid';
+  const standardAndIntermediate = /\bstandard\s+or\s+intermediate\s+first[-\s]?aid\b/i.test(text)
+    || /\bstandard\s+first[-\s]?aid\b[\s\S]{0,80}\b(?:or|and|\/)\b[\s\S]{0,40}\bintermediate\s+first[-\s]?aid\b/i.test(text)
+    || /\bintermediate\s+first[-\s]?aid\b[\s\S]{0,80}\b(?:or|and|\/)\b[\s\S]{0,40}\bstandard\s+first[-\s]?aid\b/i.test(text)
+    || /\bintermediate\/standard\s+first[-\s]?aid\b/i.test(text);
+  if (standardAndIntermediate) level = 'Standard or Intermediate First Aid';
+  else if (/\bstandard\s+first[-\s]?aid\b/i.test(text)) level = 'Standard First Aid';
   else if (/\bemergency\s+first[-\s]?aid\b/i.test(text)) level = 'Emergency First Aid';
   else if (/\bintermediate\s+first[-\s]?aid\b/i.test(text)) level = 'Intermediate First Aid';
   else if (/\bbasic\s+first[-\s]?aid\b/i.test(text)) level = 'Basic First Aid';
@@ -33,9 +52,13 @@ export function normalizeFirstAidCertification(text: string): string | null {
   else if (!/\bfirst[-\s]?aid\b/i.test(text) && /\bcpr\b/i.test(text)) level = 'CPR';
 
   let cpr = '';
-  if (/\bcpr(?:\s*[-–—]?\s*|\s+level\s+)c\b/i.test(text) || /\bcpr-c\b/i.test(text)) cpr = 'CPR-C';
-  else if (/\bcpr(?:\s*[-–—]?\s*|\s+level\s+)b\b/i.test(text) || /\bcpr-b\b/i.test(text)) cpr = 'CPR-B';
-  else if (/\bcpr(?:\s*[-–—]?\s*|\s+level\s+)a\b/i.test(text) || /\bcpr-a\b/i.test(text)) cpr = 'CPR-A';
+  const aedAlternative = /\bcpr\b[^\n]{0,20}\b(?:or|and\/or)\s+aed\b/i.test(text);
+  if (/\bcpr(?:\s*[-–—]?\s*|\s+level\s*)["']?c\b/i.test(text)
+    || /\blevel\s*["']?c["']?\s+cpr\b/i.test(text)
+    || /\bclass\s+c\b/i.test(text)
+    || /\bcpr-c\b/i.test(text)) cpr = 'CPR-C';
+  else if (/\bcpr(?:\s*[-–—]?\s*|\s+level\s*)["']?b\b/i.test(text) || /\bcpr-b\b/i.test(text)) cpr = 'CPR-B';
+  else if (/\bcpr(?:\s*[-–—]?\s*|\s+level\s*)["']?a\b/i.test(text) || /\bcpr-a\b/i.test(text)) cpr = 'CPR-A';
   else if (/\bcpr\b/i.test(text) && level !== 'CPR') cpr = 'CPR';
 
   const aed = /\baed\b|defibrillator/i.test(text);
@@ -44,11 +67,76 @@ export function normalizeFirstAidCertification(text: string): string | null {
     if (cpr && cpr !== 'CPR') return aed ? `${cpr}/AED` : cpr;
     return aed ? 'CPR/AED' : 'CPR';
   }
+  if (cpr && aedAlternative) return `${level} with ${cpr} or AED`;
   if (cpr && aed) return `${level} with ${cpr}/AED`;
   if (cpr) return `${level} with ${cpr}`;
   if (aed) return `${level} with AED`;
   if (level === 'First Aid' && !/\bfirst[-\s]?aid\b/i.test(text)) return null;
   return level;
+}
+
+function certificationValues(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean);
+  if (typeof value === 'string' && value.trim()) return value.split(/[,;]/).map(item => item.trim()).filter(Boolean);
+  return [];
+}
+
+/**
+ * Canonicalize safe, recurring certification labels without collapsing
+ * meaningful differences such as First Aid level, CPR level, AED, or an
+ * "standard or intermediate" alternative.
+ */
+export function normalizeCertificationRequirements(value: unknown): string[] {
+  const normalized: string[] = [];
+  for (const item of certificationValues(value)) {
+    let compact = compactText(item)
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .replace(/\s+([.,])/g, '$1')
+      .replace(/[.]$/, '')
+      .trim();
+    if (!compact) continue;
+
+    const firstAid = normalizeFirstAidCertification(compact);
+    if (firstAid) {
+      normalized.push(firstAid);
+      continue;
+    }
+
+    if (/^whmis(?:\s+(?:training|certification|certificate))?$/i.test(compact)) {
+      normalized.push('WHMIS');
+      continue;
+    }
+    if (/^smart\s+serve(?:\s+certification)?$/i.test(compact)) {
+      normalized.push('Smart Serve');
+      continue;
+    }
+    if (/^(?:food\s+handlers?(?:\s+certification)?|food\s+handling\s+certification)$/i.test(compact)) {
+      normalized.push('Food Handler');
+      continue;
+    }
+    if (/^high\s+five\s+certificate$/i.test(compact)) {
+      normalized.push('HIGH FIVE Certificate');
+      continue;
+    }
+    if (/worker\s+health\s+and\s+safety\s+awareness/i.test(compact)) {
+      normalized.push('Worker Health and Safety Awareness training');
+      continue;
+    }
+    if (/^certified\s+in\s+nccp\s+level\s+2\s+theory\s+and\s+practical$/i.test(compact)) {
+      normalized.push('NCCP Level 2 (theory and practical)');
+      continue;
+    }
+    normalized.push(compact);
+  }
+
+  const seen = new Set<string>();
+  return normalized.filter(item => {
+    const key = item.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function extractCertificationRequirements(description: string): string[] {

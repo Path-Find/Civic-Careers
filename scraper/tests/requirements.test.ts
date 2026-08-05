@@ -9,6 +9,7 @@ import {
   mergeConcreteQualificationSkills,
   normalizeExperienceRequirement,
   isTruncatedExperienceRequirement,
+  normalizeCertificationRequirements,
   extractLanguageRequirements,
   normalizeEducationRequirements,
   extractLanguageVehicleRequirements,
@@ -41,6 +42,42 @@ test('extracts required first aid and CPR certification without optional assets'
 ## Nice to Have
 - WHMIS is an asset
 `), ['Intermediate First Aid with CPR-C']);
+});
+
+test('normalizes certification wording without collapsing meaningful distinctions', () => {
+  assert.deepEqual(normalizeCertificationRequirements([
+    'First Aid',
+    'First Aid with CPR-C',
+    'Current Standard First Aid, CPR "C" and AED certification.',
+    'Current certifications in Standard First Aid OR Intermediate First Aid with CPR C and AED.',
+    'AED certification within 3 months of hire',
+    'Standard First Aid OR Intermediate First Aid with CPR C or AED',
+    'Food Handlers certification',
+    'WHMIS training',
+    'HIGH FIVE Certificate.',
+  ]), [
+    'First Aid',
+    'First Aid with CPR-C',
+    'Standard First Aid with CPR-C/AED',
+    'Standard or Intermediate First Aid with CPR-C/AED',
+    'AED',
+    'Standard or Intermediate First Aid with CPR-C or AED',
+    'Food Handler',
+    'WHMIS',
+    'HIGH FIVE Certificate',
+  ]);
+});
+
+test('does not reduce branded or alternative credentials to generic First Aid', () => {
+  assert.deepEqual(normalizeCertificationRequirements([
+    "Completion of St. John's Ambulance First Aid 1 within three months",
+    'Mental Health First Aid and/or Psychological First Aid training',
+    'Current CPR or Basic Cardiac Life Support certification',
+  ]), [
+    "Completion of St. John's Ambulance First Aid 1 within three months",
+    'Mental Health First Aid and/or Psychological First Aid training',
+    'Current CPR or Basic Cardiac Life Support certification',
+  ]);
 });
 
 test('extracts Grade 12 as high school diploma and strips first-aid / grade-12 restatements', () => {

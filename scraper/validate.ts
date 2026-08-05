@@ -3,7 +3,7 @@ import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
 import { cleanJobDescription } from './cleanup_description';
 import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
-import { normalizeEducationRequirements, normalizeExperienceRequirements, normalizeLanguageRequirements, normalizeProfessionalLicenseRequirements } from './requirements';
+import { normalizeCertificationRequirements, normalizeEducationRequirements, normalizeExperienceRequirements, normalizeLanguageRequirements, normalizeProfessionalLicenseRequirements } from './requirements';
 import { normalizeJobTitle } from './title';
 
 function coerceString(v: unknown): string {
@@ -397,7 +397,7 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     vehicle_required: normalizeRequirementFlag(o['vehicle_required']),
     language_requirements: normalizeLanguageRequirements(o['language_requirements']),
     security_check_required: normalizeRequirementFlag(o['security_check_required']),
-    certification_requirements: normalizeStringList(o['certification_requirements']),
+    certification_requirements: normalizeCertificationRequirements(o['certification_requirements']),
     software_requirements: normalizeSoftwareList(o['software_requirements']),
     responsibility_tags: normalizeTags(o['responsibility_tags']),
     qualification_tags: normalizeTags(o['qualification_tags']),
