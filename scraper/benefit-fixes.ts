@@ -4,6 +4,10 @@
  * duplicate generic pension labels and non-benefit development/work-arrangement labels.
  */
 export const BENEFIT_OVERRIDES: Record<string, string[]> = {
+  'peopleadmin_careers_bcit_ca_10581': [
+    'Pension', 'Health Insurance', 'Dental Insurance', 'Vacation', 'Health Spending Account',
+    'Wellness', 'Employee Assistance Program', 'Fitness Membership',
+  ],
   'Full-time-Administrative-Assistant-to-the-Dean--School-of-Wellness--Public-Safety-and-Community-Studies_R176141-1': [
     'Health Insurance', 'Dental Insurance', 'Tuition Assistance', 'CAAT Pension Plan',
   ],
@@ -120,6 +124,14 @@ export const BENEFIT_OVERRIDES: Record<string, string[]> = {
     'Pension', 'Health Insurance', 'Dental Insurance', 'Vacation', 'Health Spending Account',
     'Wellness', 'Employee Assistance Program', 'Fitness Membership',
   ],
+  'peopleadmin_careers_bcit_ca_10588': [
+    'Pension', 'Health Insurance', 'Dental Insurance', 'Wellness', 'Fitness Membership',
+    'Vacation', 'Employee Assistance Program',
+  ],
+  'peopleadmin_careers_bcit_ca_10597': [
+    'Pension', 'Health Insurance', 'Dental Insurance', 'Wellness', 'Fitness Membership',
+    'Vacation', 'Employee Assistance Program',
+  ],
   'neogov_120776': [
     'Pension', 'Health Insurance', 'Dental Insurance', 'Vision Care', 'Hearing Care', 'Life Insurance',
     'Disability Insurance', 'Critical Illness Insurance', 'Vacation', 'Tuition Assistance', 'Fitness Membership',
@@ -159,6 +171,26 @@ export const BENEFIT_OVERRIDES: Record<string, string[]> = {
   ],
   'Administrative-Student-Affairs-Coordinator_JR0000078909-1': [
     'Health Insurance', 'Dental Insurance', 'Life Insurance', 'Pension', 'Tuition Waiver',
+  ],
+  '1291420247': ['OMERS', 'Vacation'],
+  '1d7bdf9bb9b2': ['Health Insurance', 'Dental Insurance', 'OMERS', 'Fitness Membership'],
+  '2448037': [
+    'Pension', 'Health Insurance', 'Dental Insurance', 'Sick Leave', 'Wellness Allowance',
+    'Mental Health Services', 'Paramedical Coverage', 'Virtual Health Care', 'Health Spending Account',
+    'Life Insurance', 'AD&D Insurance', 'Disability Insurance', 'Employee Assistance Program',
+    'Maternity/Parental Leave Top Up', 'Vacation',
+  ],
+  '2448044': [
+    'Pension', 'Health Insurance', 'Dental Insurance', 'Sick Leave', 'Wellness Allowance',
+    'Mental Health Services', 'Health Spending Account', 'Life Insurance', 'AD&D Insurance',
+    'Disability Insurance', 'Employee Assistance Program', 'Maternity/Parental Leave Top Up',
+    'Travel Benefits',
+  ],
+  '2448033': [
+    'Pension', 'Health Insurance', 'Dental Insurance', 'Life Insurance', 'AD&D Insurance',
+    'Disability Insurance', 'Wellness Allowance', 'Mental Health Services', 'Paramedical Coverage',
+    'Virtual Health Care', 'Health Spending Account', 'Employee Assistance Program',
+    'Maternity/Parental Leave Top Up', 'Vacation', 'Travel Benefits',
   ],
   '64aad23d44ef': [
     'Health Insurance', 'Dental Insurance', 'Travel Benefits', 'Pension', 'Tuition Waiver',

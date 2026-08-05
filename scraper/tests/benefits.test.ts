@@ -67,4 +67,14 @@ test('contains the reviewed source-specific corrections', () => {
     'Health Insurance', 'Dental Insurance', 'Public Service Pension Plan',
     'Fitness Centre Membership', 'Employee Assistance Program', 'Employee Bus Pass', 'Wellness',
   ]);
+  assert.deepEqual(BENEFIT_OVERRIDES['peopleadmin_careers_bcit_ca_10581'], [
+    'Pension', 'Health Insurance', 'Dental Insurance', 'Vacation', 'Health Spending Account',
+    'Wellness', 'Employee Assistance Program', 'Fitness Membership',
+  ]);
+  assert.deepEqual(BENEFIT_OVERRIDES['2448037'], [
+    'Pension', 'Health Insurance', 'Dental Insurance', 'Sick Leave', 'Wellness Allowance',
+    'Mental Health Services', 'Paramedical Coverage', 'Virtual Health Care', 'Health Spending Account',
+    'Life Insurance', 'AD&D Insurance', 'Disability Insurance', 'Employee Assistance Program',
+    'Maternity/Parental Leave Top Up', 'Vacation',
+  ]);
 });
