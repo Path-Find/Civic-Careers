@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Job titles no longer repeat employment type or duration** already in the sidebar — e.g. `Change Management Lead (Approximately 2-year contract)` → `Change Management Lead`, `Custodian (Part-Time)` → `Custodian`, `… - Inventory` stripped when it’s a talent-pool label. New parses normalize automatically; existing rows backfilled.
+
 - **Duration field is consistent** — kinds (`Permanent` / `Ongoing` / `Seasonal` / `Term`), ISO date ranges (`YYYY-MM-DD to YYYY-MM-DD`), lengths (`12 months`, `Up to 24 months`), and academic labels (`Fall 2026`). Continuing/Temporary fluff collapsed; unparseable prose cleared. New parses normalize; corpus backfilled under #161.
 - **Employment type is locked to fixed tokens** — `Full-time`, `Part-time`, `Contract`, `Permanent`, `Occasional`, `Seasonal` only (with documented schedule vs tenure meaning). Synonyms map on parse (temporary/casual → Contract, continuing → Permanent, seasonal kept, …). Corpus already clean; write path hardened under #161.
 - **Work mode is locked to three tokens** — stored `work_model` is only `On-site`, `Hybrid`, or `Remote`. Parse-time normalize maps synonyms (WFH, virtual, online, blended, in-person, …); UI still shows On-site as “In-person”. Corpus already clean; write path hardened under #161.

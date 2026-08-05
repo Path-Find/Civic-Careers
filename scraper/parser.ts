@@ -3,6 +3,7 @@ import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
+import { normalizeJobTitle } from './title';
 import { normalizeEmploymentType, normalizeWorkModel } from './validate';
 import {
   dedupeSkillsAgainstSoftware,
@@ -81,7 +82,7 @@ async function main() {
         await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
         await saveJobDetails(db, {
           id: raw.id,
-          job_title: aiResult.job_title,
+          job_title: normalizeJobTitle(aiResult.job_title),
           department: aiResult.department,
           location: normalizeLocation(aiResult.location),
           salary_range: (aiResult.salary_min || aiResult.salary_max)

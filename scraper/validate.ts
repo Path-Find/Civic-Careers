@@ -4,6 +4,7 @@ import { cleanJobDescription } from './cleanup_description';
 import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
 import { normalizeEducationRequirements, normalizeLanguageRequirements, normalizeLicenseRequirements } from './requirements';
+import { normalizeJobTitle } from './title';
 
 function coerceString(v: unknown): string {
   if (typeof v === 'string') return v.trim();
@@ -272,7 +273,7 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
   const o = obj as Record<string, unknown>;
 
-  const job_title = coerceString(o['job_title']) || coerceString(titleHint);
+  const job_title = normalizeJobTitle(coerceString(o['job_title']) || coerceString(titleHint));
   if (!job_title) return null;
 
   return {

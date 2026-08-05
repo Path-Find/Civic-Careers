@@ -83,7 +83,7 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
     SCHEMA:
     {
       "closing_date": "YYYY-MM-DDTHH:MM:SS" | "YYYY-MM-DD" | null  (MOST IMPORTANT - look for any 'closing', 'apply by', 'deadline', 'expires', date in future relative to ${today}),
-      "job_title": "Cleaned title (remove IDs/Internal labels)",
+      "job_title": "Cleaned title only — remove IDs/internal labels, and do NOT put employment type or duration in the title (no '(Part-Time)', '(2-year contract)', 'Temporary Part-Time …', ' - Inventory'). Those belong in employment_type / duration / is_inventory.",
       "department": "Department name",
       "location": "City",
       "salary_min": number | null,
