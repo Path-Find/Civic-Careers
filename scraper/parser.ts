@@ -83,12 +83,14 @@ async function main() {
         const vehicleRequired = vehicleFromDescription === true
           ? true
           : (vehicleFromAI ?? vehicleFromDescription);
+        const isStudent = sourceFix?.isStudent ?? (aiResult.is_student ? 1 : 0);
         description = stripStructuredQualBullets(description, {
           licenses: structuredRequirements.license_requirements,
           education: structuredRequirements.education_requirements,
           experience: structuredRequirements.experience_requirements,
           languages: finalLanguages,
           certifications: certificationRequirements,
+          studentRequired: isStudent === 1,
           vehicleRequired,
         });
         const securityFromLabel = extractSecurityRequirementLabel(description);
@@ -113,7 +115,7 @@ async function main() {
           closing_date: aiResult.closing_date || '',
           is_inventory: isInventory ? 1 : 0,
           listing_type: listingType,
-          is_student: sourceFix?.isStudent ?? (aiResult.is_student ? 1 : 0),
+          is_student: isStudent,
           salary_min: aiResult.salary_min,
           salary_max: aiResult.salary_max,
           salary_period: normalizeSalaryPeriod(aiResult.salary_period),

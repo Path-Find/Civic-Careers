@@ -2,6 +2,7 @@ import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import {
   extractExperienceRequirementsFromSources,
+  extractExperienceSkills,
   isTruncatedExperienceRequirement,
   normalizeExperienceRequirements,
 } from './requirements';
@@ -17,7 +18,7 @@ const limitArg = process.argv.find(value => value.startsWith('--limit='));
 const limit = Math.max(1, Number(limitArg?.split('=')[1] || 10000));
 const PAGE_SIZE = 250;
 
-type Change = { id: string; source: string; title: string; values: string[] };
+type Change = { id: string; source: string; title: string; values: string[]; skills: string[] };
 
 function parseList(value: unknown): string[] {
   if (typeof value !== 'string' || !value.trim()) return [];
@@ -43,7 +44,8 @@ async function main() {
   while (scanned < limit) {
     const result = await db.execute({
       sql: `SELECT jd.id, j.source, jd.job_title, jd.description, jd.experience_requirements,
-                   COALESCE(raw.raw_text, '') AS raw_text
+                   COALESCE(raw.raw_text, '') AS raw_text,
+                   jd.required_skills
             FROM job_details jd
             JOIN jobs j ON j.id = jd.id
             LEFT JOIN raw_jobs raw ON raw.id = jd.id
@@ -55,6 +57,7 @@ async function main() {
     if (result.rows.length === 0) break;
     for (const row of result.rows) {
       const current = parseList(row.experience_requirements);
+      const currentSkills = parseList(row.required_skills);
       if (current.length === 0 && !fillMissing) continue;
       const description = String(row.description ?? '');
       const rawText = String(row.raw_text ?? '');
@@ -68,12 +71,14 @@ async function main() {
             : [...safeCurrent, ...recovered],
         )
         : extractExperienceRequirementsFromSources(description, rawText);
-      if (JSON.stringify(values) !== JSON.stringify(current)) {
+      const skills = [...new Set([...currentSkills, ...extractExperienceSkills(current)])];
+      if (JSON.stringify(values) !== JSON.stringify(current) || JSON.stringify(skills) !== JSON.stringify(currentSkills)) {
         changes.push({
           id: String(row.id),
           source: String(row.source),
           title: String(row.job_title ?? ''),
           values,
+          skills,
         });
       }
     }
@@ -91,8 +96,8 @@ async function main() {
 
   for (let i = 0; i < changes.length; i += 100) {
     await db.batch(changes.slice(i, i + 100).map(change => ({
-      sql: 'UPDATE job_details SET experience_requirements = ? WHERE id = ?',
-      args: [JSON.stringify(change.values), change.id],
+      sql: 'UPDATE job_details SET experience_requirements = ?, required_skills = ? WHERE id = ?',
+      args: [JSON.stringify(change.values), JSON.stringify(change.skills), change.id],
     })), 'write');
   }
   console.log(`[Experience backfill] Updated ${changes.length} row(s).`);

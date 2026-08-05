@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **Experience separates duration from concrete skills** — e.g. `1+ years — Handling cash` now stores `1+ years` in Experience and `Cash handling` in Skills; bare `Several years` values are omitted, and duplicate Student attendance bullets are removed.
 - **Qualifications now capture named software, measurable typing, and education-verification conditions in structured fields** — WordPress is canonicalized as one word, and duplicate Experience/Education/typing bullets are removed from active postings.
 - **Non-driving licence classes no longer imply Vehicle** — engineering and trade certification classes are kept under Licences without falsely marking a job as requiring vehicle access.
 - **Structured requirements are consistent across the corpus** — Education, Experience, and professional licences now use the same canonical extraction and normalization rules, including recovery of complete source clauses.

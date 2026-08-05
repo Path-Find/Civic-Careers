@@ -484,6 +484,10 @@ test('normalizes parenthetical numbers and identifies truncated values', () => {
   assert.equal(isTruncatedExperienceRequirement('15+ years of experience (e.g., energy)'), false);
 });
 
+test('drops a bare Several years Experience value', () => {
+  assert.equal(normalizeExperienceRequirement('Several years'), null);
+});
+
 test('recovers duration-led Experience clauses from concatenated raw source text', () => {
   assert.deepEqual(
     extractExperienceRequirementsFromSources('', '## QualificationsMinimum of 5 years of progressive HR experience.'),
@@ -523,6 +527,14 @@ test('strips measurable typing bullets already represented in Skills', () => {
 - Ability to work independently`);
 });
 
+test('strips student attendance bullets already represented in Student', () => {
+  const result = stripStructuredQualBullets(`## Qualifications
+- Currently attending a Full-time program.
+- Strong customer service skills.`, { studentRequired: true });
+  assert.equal(result, `## Qualifications
+- Strong customer service skills.`);
+});
+
 test('drops obvious stale overview and software-licence values during reconciliation', () => {
   const result = reconcileStructuredRequirements('## Overview\nA college is a post-secondary institution offering programs.\n\n## Qualifications\n- Must possess a valid Class G driver\'s licence', {
     education_requirements: ['A college is a leading post-secondary institution offering programs.'],
@@ -532,6 +544,15 @@ test('drops obvious stale overview and software-licence values during reconcilia
   });
   assert.deepEqual(result.education_requirements, []);
   assert.deepEqual(result.license_requirements, []);
+});
+
+test('keeps cash handling as a Skill while Experience stores only the duration', () => {
+  const result = reconcileStructuredRequirements('', {
+    experience_requirements: ['1+ years — Handling cash'],
+    required_skills: [],
+  });
+  assert.deepEqual(result.experience_requirements, ['1+ years']);
+  assert.deepEqual(result.required_skills, ['Cash handling']);
 });
 
 test('extracts required licences and excludes optional licences', () => {

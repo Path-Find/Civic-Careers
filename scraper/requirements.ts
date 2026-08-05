@@ -307,6 +307,9 @@ const EXPERIENCE_HISTORY_SIGNAL = new RegExp(
   `\\b(?:with\\s+)?(?:more\\s+than|over)\\s+${EXPERIENCE_NUMBER}\\s*${EXPERIENCE_UNIT}\\s+of\\s+experience\\b`,
   'i',
 );
+const EXPERIENCE_SKILL_PATTERNS: Array<[string, RegExp]> = [
+  ['Cash handling', /\b(?:cash\s+handling|handling\s+cash)\b/i],
+];
 // Source text often states education and experience as one combined sentence
 // ("Degree in X and seven years of experience..."); extractExperienceRequirements
 // already isolates its own clause from that same line, so education needs the
@@ -1334,8 +1337,20 @@ export function normalizeExperienceRequirement(value: string): string | null {
   let s = value.replace(/\s+/g, ' ').trim();
   if (!s) return null;
   s = s.replace(/^Experience with\s+(?=(?:\d+(?:\+|–\d+)?\s*(?:years?|months?)|Recent|Several years)(?:\s+—|$))/i, '');
-  if (/^(?:\d+(?:\+|–\d+)?\s*(?:years?|months?)|Recent|Several years)\s+—\s+.+$/i.test(s)) return s;
-  if (/^Several years$/i.test(s)) return 'Several years';
+  const durationOnly = s.match(/^(\d+(?:\+|–\d+)?\s*(?:years?|months?))\s+—\s+(.+)$/i);
+  if (durationOnly) {
+    if (EXPERIENCE_SKILL_PATTERNS.some(([, pattern]) => pattern.test(durationOnly[2]))) {
+      return durationOnly[1];
+    }
+    return s;
+  }
+  // A bare vague duration is not useful enough for the structured sidebar.
+  if (/^Several years$/i.test(s)) return null;
+
+  if (EXPERIENCE_SKILL_PATTERNS.some(([, pattern]) => pattern.test(s))
+    && /^experience\b/i.test(s)) {
+    return null;
+  }
 
   // Definition / glossary lines (federal "Experience is defined as…", BC "Recent… is defined as…")
   if (/\bis defined as\b/i.test(s) || /^experience is defined\b/i.test(s)) {
@@ -1422,6 +1437,13 @@ export function normalizeExperienceRequirement(value: string): string | null {
   return `Experience with ${s.charAt(0).toLowerCase()}${s.slice(1)}`;
 }
 
+/** Extract concrete skills that are also stated as experience domains. */
+export function extractExperienceSkills(values: string[]): string[] {
+  return EXPERIENCE_SKILL_PATTERNS
+    .filter(([, pattern]) => values.some(value => pattern.test(value)))
+    .map(([skill]) => skill);
+}
+
 /** True when a stored value ends inside an opening parenthesized clause. */
 export function isTruncatedExperienceRequirement(value: string): boolean {
   let depth = 0;
@@ -1494,6 +1516,7 @@ export function stripStructuredQualBullets(
     experience?: string[];
     languages?: string[];
     requiredSkills?: string[];
+    studentRequired?: boolean;
     certifications?: string[];
     vehicleRequired?: boolean | null;
   },
@@ -1504,9 +1527,10 @@ export function stripStructuredQualBullets(
   const experience = fields.experience ?? [];
   const languages = fields.languages ?? [];
   const requiredSkills = fields.requiredSkills ?? [];
+  const studentRequired = fields.studentRequired === true;
   const certifications = fields.certifications ?? [];
   if (!licenses.length && !education.length && !experience.length && !languages.length && !certifications.length
-    && !requiredSkills.length && fields.vehicleRequired !== true) {
+    && !requiredSkills.length && !studentRequired && fields.vehicleRequired !== true) {
     return description;
   }
 
@@ -1605,6 +1629,12 @@ export function stripStructuredQualBullets(
       // Measurable typing/keyboarding requirements already shown in Skills.
       if (concreteSkillKeys.size > 0
         && extractConcreteQualificationSkills(focus).some(skill => concreteSkillKeys.has(concreteQualificationSkillKey(skill)))) {
+        removed += 1;
+        continue;
+      }
+
+      // Student status already shown in the Student field.
+      if (studentRequired && /^(?:currently\s+)?(?:attending|enrolled|registered)\s+(?:a\s+)?(?:full[- ]time|part[- ]time)\s+(?:program|course|school|college|university)\b/i.test(focus)) {
         removed += 1;
         continue;
       }
@@ -1754,12 +1784,17 @@ export function reconcileStructuredRequirements(description: string, current: Pa
   const licenseRequirements = extractProfessionalLicenseRequirements(description);
   const namedBenefits = extractNamedBenefits(description);
   const currentEducation = toStringList(current.education_requirements).filter(retainExistingEducation);
-  const currentExperience = normalizeExperienceRequirements(toStringList(current.experience_requirements));
+  const currentExperienceValues = toStringList(current.experience_requirements);
+  const currentExperience = normalizeExperienceRequirements(currentExperienceValues);
   const currentLicenses = normalizeProfessionalLicenseRequirements(
     toStringList(current.license_requirements).filter(retainExistingLicense),
   );
   const currentBenefits = toStringList(current.benefits);
-  const currentSkills = mergeConcreteQualificationSkills(toStringList(current.required_skills), description);
+  const experienceSkills = extractExperienceSkills(currentExperienceValues);
+  const currentSkills = mergeConcreteQualificationSkills(
+    [...toStringList(current.required_skills), ...experienceSkills],
+    description,
+  );
   const requiredLines = descriptionLines(description).filter(line => !line.heading && line.section === 'required').map(line => normalizedRequirement(line.text));
   const skills = [...new Set(currentSkills)].filter(skill => {
     if (isLanguageProficiencySkill(skill)) return false;
