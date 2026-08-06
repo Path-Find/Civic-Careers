@@ -24,7 +24,7 @@ export const COMPANY_TYPES: Record<string, CompanyType[]> = {
   'Conservation Halton': ['publicAgency'],
   'Waterfront Toronto': ['publicAgency'],
   'TTC': ['transit', 'publicAgency'],
-  'EFHC': ['higherEducation'],
+  'University of Windsor': ['higherEducation'],
   'Toronto District School Board': ['publicAgency'],
   'City of Barrie': ['municipal'],
   'City of Belleville': ['municipal'],

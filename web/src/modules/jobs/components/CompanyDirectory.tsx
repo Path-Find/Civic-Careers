@@ -2,7 +2,6 @@ import type { CompanySummary } from '../../../types/jobs';
 
 const COMPANY_DISPLAY_NAMES: Record<string, string> = {
   CMHC: 'Canada Mortgage and Housing Corporation',
-  EFHC: 'University of Windsor',
   TRCA: 'Toronto and Region Conservation Authority',
   TTC: 'Toronto Transit Commission',
 };
@@ -18,7 +17,7 @@ export function CompanyDirectory({ companies, sort, showArchived, onSelectCompan
   onSelectCompany: (name: string) => void;
 }) {
   // Sort by what the user sees (display name), not the internal source key
-  // (CMHC / EFHC / TTC), so A–Z is real alphabetical order.
+  // (CMHC / TTC), so A–Z is real alphabetical order.
   const sortCompanies = (items: CompanySummary[]) => [...items].sort((a, b) => {
     const byDisplay = companyDisplayName(a.name).localeCompare(companyDisplayName(b.name), undefined, { sensitivity: 'base' });
     if (sort === 'mostJobs') return Number(b.active_job_count) - Number(a.active_job_count) || byDisplay;

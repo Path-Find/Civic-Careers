@@ -145,7 +145,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'technomedia', label: 'York University', run: (db, ctx) => scrapeTechnomedia(db, ctx) },
 
   // 11. Health & Other Agencies
-  { engine: 'oracle', label: 'EFHC', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'EFHC') },
+  { engine: 'oracle', label: 'University of Windsor', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location', 'University of Windsor') },
 
   // 12. Western Canada (first sources outside Ontario/Quebec)
   { engine: 'jobs2web', label: 'City of Vancouver', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.vancouver.ca/search/', 'City of Vancouver') },

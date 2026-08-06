@@ -98,7 +98,7 @@ Toronto Public Library is currently disabled (blocked by Radware bot protection)
 ## Oracle Cloud (3)
 
 - **City of Red Deer** — [Careers](https://fa-eyjj-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location)
-- **EFHC** — [Careers](https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location)
+- **University of Windsor** — [Careers](https://efhc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs?mode=location)
 - **Metrolinx** — [Careers](https://ehtc.fa.ca2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs)
 
 ## RSS (1)

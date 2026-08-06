@@ -50,7 +50,7 @@ I classified a repeated block as a candidate only when it is source-specific and
 | Conservation Halton | 14 | Repeated employer values/benefits and privacy/FOIP collection footer. Standing-posting status and eligibility language must remain because they describe the opportunity. |
 | CreateTO | 2 | Both rows represent the same Housing Development Intern posting (one detailed record and one portal shell), not two independent postings. Insufficient evidence for a source-wide cleanup rule. |
 | Durham College | 18 | Repeated college overview, land acknowledgement, benefits, and employer marketing. Candidate non-role employer boilerplate. |
-| EFHC | 10 | Repeated portal cookie/session and AI-assist controls plus employer/land-acknowledgement text. Candidate portal/employer boilerplate; source attribution should be checked before any rule. |
+| University of Windsor | 10 | Repeated portal cookie/session and AI-assist controls plus employer/land-acknowledgement text. Candidate portal/employer boilerplate; source attribution is confirmed. |
 | Fanshawe College | 26 | Repeated cookie notice, current-employee Workday instruction, employer culture, and benefits/development text. Clear portal/employer boilerplate. |
 | George Brown College | 8 | Repeated land acknowledgement, EDI/accommodation, credential-proof, and application text. Clear employer/application boilerplate; keep actual credential requirements. |
 | Government of Canada | 871 | Repeated “We thank all those who apply…” / “only those selected…” and inclusive barrier-free accommodation blocks occur across varied federal posting formats. These two narrow footer patterns are candidates; preserve eligibility, preference, assessment, and position-specific instructions. |
@@ -100,5 +100,5 @@ A separate deterministic 2% holistic audit sampled 103 of 5,149 stored jobs acro
 ## Boundaries for the next cleanup pass
 
 - The findings support deterministic cleanup candidates, but they do not by themselves authorize removing eligibility, compensation, location, duties, qualifications, availability, police-check, driver-abstract, vaccination, or other role-dependent text.
-- The two sources without independent multi-posting evidence are CreateTO and Waterfront Toronto. EFHC also needs source-attribution review because its repeated raw shell contains employer text that may belong to a shared portal.
+- The two sources without independent multi-posting evidence are CreateTO and Waterfront Toronto. University of Windsor's source attribution is confirmed from the parsed department and official university service name.
 - City of Toronto and other unimplemented candidates remain dry-run/review only where the generic cleanup would also remove legitimate role context. The fresh 2% holistic database audit is complete; its remaining follow-up queues are tracked separately.

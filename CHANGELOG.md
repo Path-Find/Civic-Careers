@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Human-verified job flag** — `jobs.verified_at` marks whole listings you’ve reviewed; set/clear with `npx tsx mark-verified.ts`. Cleared automatically on a full AI reparse (not on mechanical field backfills).
 
 ### Fixed
+- **University of Windsor listings now use the actual employer name** — the EFHC portal label no longer creates a misleading company page.
 - **Town of Midland listings now use the actual employer name** — the ADP portal label no longer creates a misleading company page.
 - **Job terms now display as Term** — fixed-term lengths and end-date ranges are no longer presented as the ambiguous `Duration` field.
 - **Ten more listings received full source-backed review** — structured fields, controlled values, and descriptions were corrected, and source-only job end dates now remain visible as `Term ending YYYY-MM-DD`.

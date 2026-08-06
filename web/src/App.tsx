@@ -49,7 +49,7 @@ const COMPANY_PORTALS: Record<string, string> = {
   'City of Peterborough': 'https://www.peterborough.ca/en/city-hall/careers.aspx',
   'City of Niagara Falls': 'https://niagarafalls.ca/city-hall/human-resources/careers/',
   'Town of Whitby': 'https://www.whitby.ca/en/work/careers.aspx',
-  'EFHC': 'https://efhc.ca/careers/',
+  'University of Windsor': 'https://www.uwindsor.ca/faculty/recruitment',
   'CreateTO': 'https://createtg.ca/careers/',
   'City of Welland': 'https://www.welland.ca/hr/jobs.asp',
   'City of Belleville': 'https://www.belleville.ca/en/city-hall/careers.aspx',
