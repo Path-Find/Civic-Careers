@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Homepage loads faster after cache expiry** — indexed active-job lookups and kept the homepage API response cached longer so the initial feed appears sooner.
 - **Job searches now preserve filters in the URL** — searches can be reloaded, shared, and bookmarked without losing the selected filters.
 - **Homepage sort options now show clear matching totals** — closing-within-14-days and jobs added in the last 7 days are counted before opening each list.
 - **Job counts stay current without parser-credit waste** — daily scrapes now include UBC, re-check Workday detail dates, promote only readable postings, and discard broken source shells before they reach the feed.

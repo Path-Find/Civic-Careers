@@ -119,6 +119,10 @@ async function initializeDbOnce(): Promise<Client> {
   }
   await client.execute(`UPDATE jobs SET public_id = rowid WHERE public_id IS NULL`);
   await client.execute(`CREATE UNIQUE INDEX IF NOT EXISTS jobs_public_id_idx ON jobs(public_id)`);
+  // Homepage and company-list queries always begin with active jobs and then
+  // group or sort by source/freshness. Keep those scans indexed.
+  await client.execute(`CREATE INDEX IF NOT EXISTS jobs_active_source_idx ON jobs(is_active, source)`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS jobs_active_scraped_idx ON jobs(is_active, scraped_at DESC)`);
   await client.execute(`
     CREATE TRIGGER IF NOT EXISTS jobs_assign_public_id
     AFTER INSERT ON jobs

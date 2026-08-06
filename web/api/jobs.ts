@@ -139,7 +139,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           ${jobJoins} ${activeJobWhere}`),
       ]);
       const countRow = counts.rows[0] || {};
-      res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
       res.end(JSON.stringify({
         recentJobs: recent.rows,
         closingSoonJobs: closingSoon.rows,
