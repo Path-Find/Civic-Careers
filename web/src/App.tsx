@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { inject } from '@vercel/analytics';
 import { jobIdFromPath, jobRoute, slugify } from './utils';
-import type { Job, View } from './types/jobs';
+import type { Job, ListingTypeFilter, View } from './types/jobs';
 import { parseJobDetails } from './modules/jobs/jobUtils';
 import { useJobs } from './modules/jobs/hooks/useJobs';
 import { useJobFilters } from './modules/jobs/hooks/useJobFilters';
@@ -109,6 +109,89 @@ function LoadingState({ view }: { view: View }) {
   );
 }
 
+type JobUrlState = {
+  searchTerm: string;
+  locationTerm: string;
+  minSalary: number | null;
+  selectedModes: string[];
+  selectedLanguages: string[];
+  vehicleRequired: boolean;
+  deadlineDays: number | null;
+  listingTypeFilter: ListingTypeFilter;
+  showStudentJobs: boolean;
+  sortNewest: boolean;
+  newlyAdded: boolean;
+};
+
+const VALID_MODES = ['In-person', 'Hybrid', 'Remote'] as const;
+const VALID_LANGUAGES = ['English', 'French'] as const;
+const VALID_SALARIES = [50000, 75000, 100000, 125000] as const;
+const VALID_DEADLINES = [0, 7, 14, 30, -1] as const;
+const JOB_FILTER_QUERY_KEYS = ['search', 'location', 'salary', 'mode', 'language', 'vehicle', 'student', 'closing', 'listing', 'sort', 'added'];
+
+const EMPTY_JOB_URL_STATE: JobUrlState = {
+  searchTerm: '',
+  locationTerm: '',
+  minSalary: null,
+  selectedModes: [],
+  selectedLanguages: [],
+  vehicleRequired: false,
+  deadlineDays: null,
+  listingTypeFilter: null,
+  showStudentJobs: false,
+  sortNewest: false,
+  newlyAdded: false,
+};
+
+function validValues<T extends string>(params: URLSearchParams, key: string, allowed: readonly T[]) {
+  return [...new Set(params.getAll(key).filter((value): value is T => allowed.includes(value as T)))];
+}
+
+function parseJobUrlState(search: string): JobUrlState {
+  const params = new URLSearchParams(search);
+  const salary = Number(params.get('salary'));
+  const rawDeadline = params.get('closing');
+  const deadline = Number(rawDeadline);
+  const deadlineDays = rawDeadline !== null && VALID_DEADLINES.includes(deadline as typeof VALID_DEADLINES[number]) ? deadline : null;
+  const newlyAdded = params.get('added') === '7' && deadlineDays === null;
+
+  return {
+    searchTerm: params.get('search') ?? '',
+    locationTerm: params.get('location') ?? '',
+    minSalary: VALID_SALARIES.includes(salary as typeof VALID_SALARIES[number]) ? salary : null,
+    selectedModes: validValues(params, 'mode', VALID_MODES),
+    selectedLanguages: validValues(params, 'language', VALID_LANGUAGES),
+    vehicleRequired: params.get('vehicle') === '1',
+    deadlineDays,
+    listingTypeFilter: params.get('listing') === 'inventory' || params.get('listing') === 'ongoing_recruitment'
+      ? params.get('listing') as Exclude<ListingTypeFilter, null>
+      : null,
+    showStudentJobs: params.get('student') === '1',
+    sortNewest: params.get('sort') === 'newest' && deadlineDays === null && !newlyAdded,
+    newlyAdded,
+  };
+}
+
+function replaceJobFiltersInUrl(state: JobUrlState) {
+  const url = new URL(window.location.href);
+  JOB_FILTER_QUERY_KEYS.forEach(key => url.searchParams.delete(key));
+  if (state.searchTerm) url.searchParams.set('search', state.searchTerm);
+  if (state.locationTerm) url.searchParams.set('location', state.locationTerm);
+  if (state.minSalary !== null) url.searchParams.set('salary', String(state.minSalary));
+  [...state.selectedModes].sort().forEach(mode => url.searchParams.append('mode', mode));
+  [...state.selectedLanguages].sort().forEach(language => url.searchParams.append('language', language));
+  if (state.vehicleRequired) url.searchParams.set('vehicle', '1');
+  if (state.showStudentJobs) url.searchParams.set('student', '1');
+  if (state.deadlineDays !== null) url.searchParams.set('closing', String(state.deadlineDays));
+  if (state.listingTypeFilter) url.searchParams.set('listing', state.listingTypeFilter);
+  if (state.sortNewest) url.searchParams.set('sort', 'newest');
+  if (state.newlyAdded) url.searchParams.set('added', '7');
+
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+  const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (nextUrl !== currentUrl) window.history.replaceState(window.history.state, '', nextUrl);
+}
+
 function App() {
   const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
@@ -168,6 +251,7 @@ function App() {
   // detail page), not a guessed pixel value.
   const headerRef = useRef<HTMLElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const urlHydratedRef = useRef(false);
   const [headerHeight, setHeaderHeight] = useState(80);
 
   useLayoutEffect(() => {
@@ -195,8 +279,25 @@ function App() {
 
   // Sync state with browser history
   useEffect(() => {
-    const handlePopState = () => {
+    const applyJobUrlState = (state: JobUrlState) => {
+      setSearchTerm(state.searchTerm);
+      setLocationTerm(state.locationTerm);
+      setMinSalary(state.minSalary);
+      setSelectedModes(state.selectedModes);
+      setSelectedLanguages(state.selectedLanguages);
+      setVehicleRequired(state.vehicleRequired);
+      setDeadlineDays(state.deadlineDays);
+      setListingTypeFilter(state.listingTypeFilter);
+      setShowStudentJobs(state.showStudentJobs);
+      setSortNewest(state.sortNewest);
+      setNewlyAdded(state.newlyAdded);
+      setServerFilters({ deadlineDays: state.deadlineDays, newlyAdded: state.newlyAdded });
+    };
+
+    const handlePopState = (shouldRefresh: boolean) => {
       const path = window.location.pathname;
+      const isJobListPath = path === '/jobs' || path === '/saved';
+      applyJobUrlState(isJobListPath ? parseJobUrlState(window.location.search) : EMPTY_JOB_URL_STATE);
       if (path.startsWith('/job/')) {
         const jobId = jobIdFromPath(path);
         const legacyRid = jobId && /^\d+$/.test(jobId) ? Number(jobId) : null;
@@ -230,12 +331,33 @@ function App() {
         setCurrentView('home');
         setSelectedJob(null);
       }
+      if (shouldRefresh && path === '/jobs') refresh();
+      urlHydratedRef.current = true;
     };
-    window.addEventListener('popstate', handlePopState);
-    handlePopState();
+    const onPopState = () => handlePopState(true);
+    window.addEventListener('popstate', onPopState);
+    handlePopState(!urlHydratedRef.current);
     window.scrollTo(0, 0);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [jobs, refresh]);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [jobs, refresh, setDeadlineDays, setListingTypeFilter, setLocationTerm, setMinSalary, setNewlyAdded, setSelectedLanguages, setSelectedModes, setServerFilters, setShowStudentJobs, setSortNewest, setVehicleRequired]);
+
+  useEffect(() => {
+    if (!urlHydratedRef.current || selectedJob || (currentView !== 'jobs' && currentView !== 'saved')) return;
+    if (window.location.pathname !== '/jobs' && window.location.pathname !== '/saved') return;
+    replaceJobFiltersInUrl({
+      searchTerm,
+      locationTerm,
+      minSalary,
+      selectedModes,
+      selectedLanguages,
+      vehicleRequired,
+      deadlineDays,
+      listingTypeFilter,
+      showStudentJobs,
+      sortNewest,
+      newlyAdded,
+    });
+  }, [currentView, selectedJob, searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded]);
 
   useEffect(() => {
     if (!selectedJob) return;
