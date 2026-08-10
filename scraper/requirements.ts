@@ -2919,6 +2919,11 @@ function isLanguageRequirementLine(line: DescriptionLine): boolean {
 
 export function extractExplicitLanguageRequirements(text: string): string[] {
   const values = new Set<string>();
+  // A posting that offers different language requirements by location or
+  // stream does not establish one language requirement for this listing.
+  // Do not turn "English only, French only, or Bilingual" into all three
+  // filter values.
+  if (/\bvarious\s+language\s+requirements?\b/i.test(text)) return [];
   const hasLanguageLabel = /\blanguage\s+requirements?\b|\blanguage\s+requirement\s*:/i.test(text);
   if (hasLanguageLabel) {
     const hasBilingualPair = /\bbilingual\b[^.!?\n]{0,100}\b(?:english\s+and\s+french|french\s+and\s+english)\b/i.test(text);
@@ -2944,10 +2949,10 @@ export function extractLanguageRequirements(description: string, title = ''): st
   const values = new Set<string>();
   const hasVariousLanguageLabel = /\bvarious\s+language\s+requirements?\b/i.test(description);
   if (/\bbilingual\b/i.test(title)) values.add('Bilingual');
+  if (hasVariousLanguageLabel) return normalizeLanguageRequirements([...values]);
   for (const value of extractExplicitLanguageRequirements(description)) values.add(value);
   for (const line of descriptionLines(description)) {
     if (!isLanguageRequirementLine(line)) continue;
-    if (hasVariousLanguageLabel && /\bvarious\s+language\s+requirements?\b/i.test(line.text)) continue;
     for (const value of canonicalLanguageLine(line.text)) values.add(value);
   }
   return normalizeLanguageRequirements([...values]);

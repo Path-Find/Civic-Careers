@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Job terms now display as Term** — fixed-term lengths and end-date ranges are no longer presented as the ambiguous `Duration` field.
 - **Expired jobs now leave the active feed automatically** — the scraper and parser deactivate listings after their stored closing date instead of relying only on source removal.
 - **Structured job fields are normalized and non-redundant** — requirements, compensation, benefits, experience, education, licences, certifications, software, languages, vehicle, security, employment, term, work mode, hours, availability, location, union, and listing type now use consistent values without repeating the same fact in the description.
+- **Ambiguous language options no longer create false filter matches** — postings that offer different language requirements by location or stream are left unlabelled instead of being marked as requiring English, French, and Bilingual simultaneously.
 - **Job descriptions keep the role-specific content** — source boilerplate, employer marketing, portal metadata, duplicate compensation, and repeated requirements are removed while useful context remains.
 - **Recruitment pools are classified correctly** — applicant pools and future-vacancy inventories no longer appear as ordinary jobs.
 - **Direct job links load correctly** — stable numeric public IDs resolve to the posting, and the browser title uses Civic Careers.

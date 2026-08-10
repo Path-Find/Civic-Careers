@@ -947,7 +947,7 @@ test('extracts labelled language metadata from raw source text', () => {
   assert.deepEqual(extractLanguageRequirements('Language requirements (essential for the job)\nEnglish Essential\nFrench essential\nBilingual imperative BBB/BBB'), ['English', 'French', 'Bilingual']);
   assert.deepEqual(extractLanguageRequirements('Language of instruction: Français | French\nCompetence in second language: Passive'), ['French']);
   assert.deepEqual(extractLanguageRequirements('## Qualifications\n- Speak English fluently.'), ['English']);
-  assert.deepEqual(extractLanguageRequirements('Various language requirements: English only, French only, or Bilingual competencies.'), ['English', 'French', 'Bilingual']);
+  assert.deepEqual(extractLanguageRequirements('Various language requirements: English only, French only, or Bilingual competencies.'), []);
 });
 
 test('does not treat posting language or language-of-work text as a requirement', () => {
