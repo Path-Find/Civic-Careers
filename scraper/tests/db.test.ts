@@ -111,7 +111,9 @@ test('saveRawJob creates a shell listing without marking it parsed', async () =>
 
   assert.equal(statements.length, 2);
   assert.match(statements[0].sql, /parsed_at/i);
+  assert.match(statements[0].sql, /pending_closing_date_status/i);
   assert.match(statements[0].sql, /NULL/i);
+  assert.equal(statements[0].args?.[9], 'not_checked');
   assert.match(statements[1].sql, /INSERT INTO jobs/i);
   assert.match(statements[1].sql, /ON CONFLICT\(id\) DO NOTHING/i);
 });
@@ -163,6 +165,7 @@ test('savePendingJob publishes a PDF link without queueing it for parsing', asyn
     'Example Employer',
     'PDF role',
   ]);
+  assert.equal(statements[0].args?.[8], 'known');
   assert.match(statements[1].sql, /ON CONFLICT\(id\) DO UPDATE/i);
 });
 

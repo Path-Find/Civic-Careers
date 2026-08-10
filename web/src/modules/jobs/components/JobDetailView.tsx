@@ -128,6 +128,8 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     <div className="detail-grid">
       <div className="detail-sidebar" style={{ top: `${headerHeight + 20}px` }}>
         {job.closing_date && <div className="deadline-card"><div className="deadline-label">Apply By</div><div className="deadline-value">{formatDate(job.closing_date)}</div></div>}
+        {!job.closing_date && job.details_pending === 1 && job.closing_date_status === 'not_listed' && <div className="deadline-card"><div className="deadline-label">Apply By</div><div className="deadline-value">No deadline listed</div></div>}
+        {!job.closing_date && job.details_pending === 1 && job.closing_date_status === 'open_until_filled' && <div className="deadline-card"><div className="deadline-label">Apply By</div><div className="deadline-value">Open until filled</div></div>}
         <div className="detail-actions">
           <a className="detail-action apply-button" href={job.url} target="_blank" rel="noopener noreferrer" onClick={recordApplyClick}><ExternalLink size={14} /> Apply</a>
           <button className="detail-action save-button" onClick={event => onToggleSave(job, event)}><Bookmark size={14} fill={job.is_saved ? '#0f172a' : 'transparent'} />{job.is_saved ? 'Saved' : 'Save'}</button>

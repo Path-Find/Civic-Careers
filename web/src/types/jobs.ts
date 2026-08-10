@@ -7,6 +7,8 @@ export type AcademicRoleType =
   | 'academic_instructor'
   | 'course_staff';
 
+export type ClosingDateStatus = 'known' | 'not_checked' | 'not_listed' | 'open_until_filled' | 'invalid';
+
 export interface Job {
   id: string;
   job_title: string | null;
@@ -45,6 +47,7 @@ export interface Job {
   details_url: string | null;
   description?: string | null;
   closing_date: string | null;
+  closing_date_status: ClosingDateStatus | null;
   posted_at: string | null;
   /** ISO date (YYYY-MM-DD) or short free text (Immediate, Fall 2026, October 2026). */
   start_date: string | null;

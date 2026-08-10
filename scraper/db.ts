@@ -57,6 +57,7 @@ async function initializeDbOnce(): Promise<Client> {
       pending_is_student INTEGER,
       pending_duration TEXT,
       pending_closing_date TEXT,
+      pending_closing_date_status TEXT DEFAULT 'not_checked',
       first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       parsed_at DATETIME,
@@ -106,6 +107,22 @@ async function initializeDbOnce(): Promise<Client> {
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
+  try {
+    await client.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_closing_date_status TEXT DEFAULT 'not_checked'`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  await client.execute(`
+    UPDATE raw_jobs
+    SET pending_closing_date_status = CASE
+      WHEN pending_closing_date IS NOT NULL AND TRIM(pending_closing_date) <> '' THEN 'known'
+      WHEN pending_closing_date_status IS NULL OR TRIM(pending_closing_date_status) = '' THEN 'not_checked'
+      ELSE pending_closing_date_status
+    END
+    WHERE pending_closing_date_status IS NULL
+       OR TRIM(pending_closing_date_status) = ''
+       OR (pending_closing_date IS NOT NULL AND TRIM(pending_closing_date) <> '' AND pending_closing_date_status <> 'known')
+  `);
   await client.execute(`UPDATE raw_jobs SET first_seen_at = COALESCE(first_seen_at, scraped_at) WHERE first_seen_at IS NULL`);
 
   // Scraper-owned fields only
@@ -443,10 +460,11 @@ export async function saveRawJob(client: Client, job: {
   const title = job.title?.trim() || extractRawJobTitle(job.source, job.raw_text) || null;
   const pending = extractPendingMetadata(title, job.raw_text);
   const pendingClosingDate = extractClosingDate(job.raw_text);
+  const pendingClosingDateStatus = pendingClosingDate ? 'known' : 'not_checked';
   await client.batch([
     {
-      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_duration, pending_closing_date, first_seen_at, scraped_at, parsed_at, posted_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
+      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
           url = excluded.url,
           application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
@@ -457,9 +475,14 @@ export async function saveRawJob(client: Client, job: {
           pending_is_student = COALESCE(excluded.pending_is_student, raw_jobs.pending_is_student),
           pending_duration = NULL,
           pending_closing_date = excluded.pending_closing_date,
+          pending_closing_date_status = CASE
+            WHEN excluded.pending_closing_date IS NOT NULL AND TRIM(excluded.pending_closing_date) <> '' THEN 'known'
+            WHEN raw_jobs.pending_closing_date_status IN ('not_listed', 'open_until_filled', 'invalid') THEN raw_jobs.pending_closing_date_status
+            ELSE 'not_checked'
+          END,
           scraped_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pendingClosingDate, job.posted_at ?? null],
+      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
     },
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
@@ -483,10 +506,11 @@ export async function savePendingJob(client: Client, job: {
 }) {
   const title = job.title?.trim() || null;
   const pending = extractPendingMetadata(title, '');
+  const pendingClosingDateStatus = job.closing_date ? 'known' : 'not_checked';
   await client.batch([
     {
-      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_duration, pending_closing_date, first_seen_at, scraped_at, parsed_at, posted_at)
-        VALUES (?, ?, ?, ?, '', ?, ?, ?, NULL, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
+        VALUES (?, ?, ?, ?, '', ?, ?, ?, NULL, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
         ON CONFLICT(id) DO UPDATE SET
           url = excluded.url,
           application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
@@ -497,10 +521,14 @@ export async function savePendingJob(client: Client, job: {
           pending_is_student = COALESCE(excluded.pending_is_student, raw_jobs.pending_is_student),
           pending_duration = NULL,
           pending_closing_date = COALESCE(excluded.pending_closing_date, raw_jobs.pending_closing_date),
+          pending_closing_date_status = CASE
+            WHEN excluded.pending_closing_date IS NOT NULL AND TRIM(excluded.pending_closing_date) <> '' THEN 'known'
+            ELSE COALESCE(raw_jobs.pending_closing_date_status, 'not_checked')
+          END,
           scraped_at = CURRENT_TIMESTAMP,
           parsed_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-      args: [job.id, job.url, job.application_url ?? null, job.source, title, pending.salaryText, pending.isStudent, job.closing_date ?? null, job.posted_at ?? null],
+      args: [job.id, job.url, job.application_url ?? null, job.source, title, pending.salaryText, pending.isStudent, job.closing_date ?? null, pendingClosingDateStatus, job.posted_at ?? null],
     },
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)

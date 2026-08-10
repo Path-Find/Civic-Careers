@@ -2,7 +2,12 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createDb } from './_db.js';
 
 const PUBLIC_CACHE = 's-maxage=86400, stale-while-revalidate=86400';
-const closingDate = 'COALESCE(jd.closing_date, raw.pending_closing_date)';
+const closingDate = `COALESCE(NULLIF(TRIM(jd.closing_date), ''), NULLIF(TRIM(raw.pending_closing_date), ''))`;
+const closingDateStatus = `CASE
+  WHEN ${closingDate} IS NOT NULL THEN 'known'
+  WHEN jd.id IS NULL THEN COALESCE(raw.pending_closing_date_status, 'not_checked')
+  ELSE NULL
+END`;
 
 const jobColumns = `
   COALESCE(j.public_id, j.rowid) AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
@@ -10,7 +15,8 @@ const jobColumns = `
   COALESCE(jd.job_title, raw.title) AS job_title, jd.department, jd.location,
   raw.url AS details_url,
   COALESCE(jd.salary_range, raw.pending_salary_text) AS salary_range,
-  ${closingDate} AS closing_date, COALESCE(jd.posted_at, raw.posted_at) AS posted_at, jd.start_date,
+  ${closingDate} AS closing_date, ${closingDateStatus} AS closing_date_status,
+  COALESCE(jd.posted_at, raw.posted_at) AS posted_at, jd.start_date,
   jd.is_inventory, jd.listing_type, COALESCE(jd.is_student, raw.pending_is_student, 0) AS is_student,
   CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending,
   jd.salary_min, jd.salary_max, jd.salary_period,
