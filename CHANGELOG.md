@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Medical and fitness requirements have a structured field** — department placement and the job-detail layout now keep related facts together, with benefits in the sidebar and education in the requirements card.
 
 ### Fixed
+- **Workland titles no longer show cookie/loading text** — City of Cornwall postings now keep their actual source titles when the portal shell is present.
 - **Public job feeds avoid repeated database reads** — shared cache windows now match the scrape cadence instead of rechecking Turso every few seconds.
 - **University of Windsor listings now use the actual employer name** — the EFHC portal label no longer creates a misleading company page.
 - **Town of Midland listings now use the actual employer name** — the ADP portal label no longer creates a misleading company page.

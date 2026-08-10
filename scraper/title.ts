@@ -116,6 +116,9 @@ export function extractRawJobTitle(source: string, rawText: string | null | unde
     )?.[1] ?? '';
   } else if (source === 'City of Thunder Bay') {
     candidate = rawText.match(/Back\s+(.+?)JOB_DESCRIPTION\.SHARE/i)?.[1] ?? '';
+  } else if (source === 'City of Cornwall') {
+    candidate = rawText.match(/(?:Stay Connected|Log Out)\s+(.+?)(?=City of Cornwall\b)/i)?.[1] ?? '';
+    candidate = candidate.replace(/\s*\(\d{2}-\d{3}\)\s*$/, '');
   }
 
   const title = normalizeJobTitle(candidate);

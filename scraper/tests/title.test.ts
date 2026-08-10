@@ -137,6 +137,10 @@ describe('extractRawJobTitle', () => {
       extractRawJobTitle('City of Thunder Bay', 'Back Traffic Control & Street Lighting Technician I (Full-Time)JOB_DESCRIPTION.SHARE.HTML'),
       'Traffic Control & Street Lighting Technician I',
     );
+    assert.equal(
+      extractRawJobTitle('City of Cornwall', 'Stay Connected\nCoordinator II, Arts & Culture (26-199)City of Cornwall 159 Pitt Street'),
+      'Coordinator II, Arts & Culture',
+    );
   });
 
   it('does not turn a portal shell into a fake title', () => {
