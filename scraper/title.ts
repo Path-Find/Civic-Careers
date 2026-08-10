@@ -82,3 +82,44 @@ export function normalizeJobTitle(title: string | null | undefined): string {
 
   return t || original;
 }
+
+const PEOPLE_SOFT_SOURCES = new Set([
+  'Toronto Metropolitan University',
+  'Western University',
+  'City of Calgary',
+  'City of Winnipeg',
+  'McMaster University',
+  'Durham Region',
+  'Niagara Region',
+]);
+
+/**
+ * Recover only a source-provided title when a scraper captured raw text but
+ * could not populate the listing metadata. This deliberately knows about the
+ * affected source layouts and returns empty for portal chrome without a title.
+ */
+export function extractRawJobTitle(source: string, rawText: string | null | undefined): string {
+  if (!rawText) return '';
+
+  let candidate = '';
+  if (PEOPLE_SOFT_SOURCES.has(source)) {
+    candidate = rawText.match(
+      /Job Title\s*(?!Search|Job Description|$)(.+?)(?=\s*(?:Next Job|Job ID|Regular\/Temporary|Appointment Type|Faculty\/Unit|Department|Location|Open Date|Job Number|Full\/Part Time))/i,
+    )?.[1] ?? '';
+  } else if (source === 'Toronto District School Board') {
+    candidate = rawText.match(
+      /Skip to job title(?:Skip to action buttons)?\s*(.+?)(?=\s*Apply now\b)/i,
+    )?.[1] ?? '';
+  } else if (source === 'City of Windsor') {
+    candidate = rawText.match(
+      /Job Title:\s*([^\n]+?)(?=Job Posting Number:|Posting Type:|$)/i,
+    )?.[1] ?? '';
+  } else if (source === 'City of Thunder Bay') {
+    candidate = rawText.match(/Back\s+(.+?)JOB_DESCRIPTION\.SHARE/i)?.[1] ?? '';
+  }
+
+  const title = normalizeJobTitle(candidate);
+  if (!title || /^(?:search|title|job description|jobs?)$/i.test(title)) return '';
+  if (/search jobs|job description|no results|frequently asked/i.test(title)) return '';
+  return title;
+}

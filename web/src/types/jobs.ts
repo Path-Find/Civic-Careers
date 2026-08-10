@@ -42,6 +42,7 @@ export interface Job {
   is_inventory: number;
   listing_type: 'regular' | 'ongoing_recruitment' | 'inventory' | null;
   is_student: number;
+  details_pending: number;
   rid: number;
 }
 

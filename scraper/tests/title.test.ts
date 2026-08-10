@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { isEmploymentOrDurationParen, normalizeJobTitle } from '../title';
+import { extractRawJobTitle, isEmploymentOrDurationParen, normalizeJobTitle } from '../title';
 
 describe('isEmploymentOrDurationParen', () => {
   it('matches employment and duration parentheticals', () => {
@@ -112,5 +112,37 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeJobTitle('Change Management Lead'), 'Change Management Lead');
     assert.equal(normalizeJobTitle('Utility Student'), 'Utility Student');
     assert.equal(normalizeJobTitle(''), '');
+  });
+});
+
+describe('extractRawJobTitle', () => {
+  it('recovers titles from affected source layouts without parsing the body', () => {
+    assert.equal(
+      extractRawJobTitle('Western University', 'Job TitleAdministrative Assistant V\nNext JobApply for JobJob ID44107'),
+      'Administrative Assistant V',
+    );
+    assert.equal(
+      extractRawJobTitle('City of Calgary', 'Search JobsJob DescriptionJob TitleTechnical Documentation SpecialistNext JobJob ID315101'),
+      'Technical Documentation Specialist',
+    );
+    assert.equal(
+      extractRawJobTitle('Toronto District School Board', 'Skip to job titleSkip to action buttons\nManager, Indigenous Community Engagement (Permanent)\nApply now'),
+      'Manager, Indigenous Community Engagement',
+    );
+    assert.equal(
+      extractRawJobTitle('City of Windsor', 'Skip To Job Description\nCaretaker\nJob Title: CaretakerJob Posting Number: 2026-0264'),
+      'Caretaker',
+    );
+    assert.equal(
+      extractRawJobTitle('City of Thunder Bay', 'Back Traffic Control & Street Lighting Technician I (Full-Time)JOB_DESCRIPTION.SHARE.HTML'),
+      'Traffic Control & Street Lighting Technician I',
+    );
+  });
+
+  it('does not turn a portal shell into a fake title', () => {
+    assert.equal(
+      extractRawJobTitle('Toronto Metropolitan University', 'Search JobsJob DescriptionSearch Category NameSearch keywordsNo results to displayTitleTitleTitle'),
+      '',
+    );
   });
 });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { deactivateExpiredJobs, saveJobDetails } from '../db';
+import { deactivateExpiredJobs, promotePendingJobs, saveJob, saveJobDetails, saveRawJob } from '../db';
 
 test('deactivateExpiredJobs updates active jobs before the supplied date', async () => {
   const statements: Array<{ sql: string; args?: unknown[] }> = [];
@@ -74,4 +74,66 @@ test('saveJobDetails refreshes every parsed field on conflict', async () => {
   }
   // Full details rewrite clears human verification.
   assert.ok(statements.some((s) => /verified_at\s*=\s*NULL/i.test(s)));
+});
+
+test('saveRawJob creates a shell listing without marking it parsed', async () => {
+  const statements: Array<{ sql: string; args?: unknown[] }> = [];
+  const client = {
+    batch: async (queries: Array<{ sql: string; args?: unknown[] }>) => {
+      statements.push(...queries);
+      return [];
+    },
+  };
+
+  await saveRawJob(client as never, {
+    id: 'job-raw-1',
+    url: 'https://example.com/job-raw-1',
+    application_url: 'https://example.com/apply/job-raw-1',
+    source: 'Example Employer',
+    raw_text: 'A rendered posting body',
+    title: 'Pending role',
+    posted_at: '2026-08-10',
+  });
+
+  assert.equal(statements.length, 2);
+  assert.match(statements[0].sql, /parsed_at/i);
+  assert.match(statements[0].sql, /NULL/i);
+  assert.match(statements[1].sql, /INSERT INTO jobs/i);
+  assert.match(statements[1].sql, /ON CONFLICT\(id\) DO NOTHING/i);
+});
+
+test('saveRawJob recovers a source title when the scraper did not provide one', async () => {
+  const statements: Array<{ sql: string; args?: unknown[] }> = [];
+  const client = {
+    batch: async (queries: Array<{ sql: string; args?: unknown[] }>) => {
+      statements.push(...queries);
+      return [];
+    },
+  };
+
+  await saveRawJob(client as never, {
+    id: 'job-raw-title-fallback',
+    url: 'https://example.com/job-title-fallback',
+    source: 'Western University',
+    raw_text: 'Job TitleAdministrative Assistant V\nNext JobApply for JobJob ID44107',
+  });
+
+  assert.equal(statements[0].args?.[5], 'Administrative Assistant V');
+});
+
+test('promotePendingJobs inserts only raw rows that are still unparsed and have no shell', async () => {
+  const statements: string[] = [];
+  const client = {
+    execute: async (query: string | { sql: string }) => {
+      statements.push(typeof query === 'string' ? query : query.sql);
+      return { rowsAffected: 653, rows: [] };
+    },
+  };
+
+  const promoted = await promotePendingJobs(client as never);
+
+  assert.equal(promoted, 653);
+  assert.match(statements[0], /r\.parsed_at IS NULL/i);
+  assert.match(statements[0], /j\.id IS NULL/i);
+  assert.match(statements[0], /COALESCE\(r\.application_url, r\.url\)/i);
 });

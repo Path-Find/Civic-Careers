@@ -148,7 +148,10 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
               <div dangerouslySetInnerHTML={{ __html: renderMarkdown(otherInformation.body) }} />
             </div>}
           </section>}
-          {job.description ? <div className="detail-description">
+          {job.details_pending === 1 ? <div className="detail-pending" role="status">
+            <strong>Details pending</strong>
+            <p>The job was found, but its details are still being prepared.</p>
+          </div> : job.description ? <div className="detail-description">
             {overview && <div className="detail-overview" dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${overview.heading}\n${compactOverview(overview.body)}`) }} />}
             {detailSections.map(section => {
               const isGroupedSection = /responsibilit|qualif/i.test(section.heading);

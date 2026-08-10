@@ -4,8 +4,10 @@ import { createDb } from './_db.js';
 const jobColumns = `
   COALESCE(j.public_id, j.rowid) AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
-  jd.job_title, jd.department, jd.location, jd.salary_range,
-  jd.closing_date, jd.posted_at, jd.start_date, jd.is_inventory, jd.listing_type, jd.is_student,
+  COALESCE(jd.job_title, raw.title) AS job_title, jd.department, jd.location, jd.salary_range,
+  jd.closing_date, COALESCE(jd.posted_at, raw.posted_at) AS posted_at, jd.start_date,
+  jd.is_inventory, jd.listing_type, jd.is_student,
+  CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending,
   jd.salary_min, jd.salary_max, jd.salary_period,
   jd.work_model, jd.employment_type, jd.duration,
   jd.hours, jd.availability,
@@ -17,9 +19,11 @@ const jobColumns = `
 
 const jobJoins = `
   FROM jobs j
-  LEFT JOIN job_details jd ON j.id = jd.id`;
+  LEFT JOIN job_details jd ON j.id = jd.id
+  LEFT JOIN raw_jobs raw ON j.id = raw.id`;
 
-const freshnessDate = `date(CASE WHEN jd.posted_at IS NOT NULL AND date(jd.posted_at) <= date('now') THEN jd.posted_at ELSE j.first_seen_at END)`;
+const freshnessDate = `date(CASE WHEN COALESCE(jd.posted_at, raw.posted_at) IS NOT NULL AND date(COALESCE(jd.posted_at, raw.posted_at)) <= date('now') THEN COALESCE(jd.posted_at, raw.posted_at) ELSE j.first_seen_at END)`;
+const visiblePending = `AND (jd.id IS NOT NULL OR length(trim(COALESCE(raw.title, ''))) > 0)`;
 
 /** Match web/src/utils.ts slugify — company URLs are /companies/{slug}. */
 function slugifySource(text: string): string {
@@ -70,7 +74,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     if (id) {
       const result = await db.execute({
-        sql: 'SELECT description FROM job_details WHERE id = ?',
+        sql: `SELECT jd.description, CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending
+              FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id WHERE j.id = ?`,
         args: [id]
       });
       if (result.rows.length === 0) {
@@ -78,7 +83,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         res.end(JSON.stringify({ error: 'Job not found' }));
         return;
       }
-      res.end(JSON.stringify({ description: result.rows[0].description }));
+      res.end(JSON.stringify({
+        description: result.rows[0].description ?? null,
+        details_pending: Number(result.rows[0].details_pending ?? 0),
+      }));
       return;
     }
 
@@ -121,6 +129,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     if (view === 'home') {
       const activeJobWhere = `
         WHERE j.is_active = 1
+          ${visiblePending}
           AND COALESCE(jd.is_inventory, 0) = 0
           AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))`;
       const [recent, closingSoon, counts] = await Promise.all([
@@ -156,6 +165,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         SELECT
           j.source AS name,
           SUM(CASE WHEN j.is_active = 1
+            ${visiblePending}
             AND COALESCE(jd.is_inventory, 0) = 0
             AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))
             THEN 1 ELSE 0 END) AS active_job_count,
@@ -226,6 +236,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       const activeJobWhere = `
         WHERE j.is_active = 1
+          ${visiblePending}
           AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))
           ${filterClause}`;
 
@@ -277,6 +288,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       db.execute({
         sql: `SELECT ${jobColumns} ${jobJoins}
           WHERE j.is_active = 1
+            ${visiblePending}
             AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))
           ORDER BY ${freshnessDate} DESC, j.first_seen_at DESC LIMIT ? OFFSET ?`,
         args: [limit, offset],
@@ -286,6 +298,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         SUM(CASE WHEN COALESCE(jd.is_inventory, 0) = 0 THEN 1 ELSE 0 END) AS available_total
         ${jobJoins}
         WHERE j.is_active = 1
+          ${visiblePending}
           AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))`),
     ]);
     res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');

@@ -1,5 +1,6 @@
 import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
+import { extractRawJobTitle } from './title';
 dotenv.config({ quiet: true });
 
 // After this many failed parse attempts, a job is excluded from getUnparsedJobs
@@ -386,19 +387,45 @@ export async function saveRawJob(client: Client, job: {
   title?: string | undefined;
   posted_at?: string | null;
 }) {
-  await client.execute({
-    sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, first_seen_at, scraped_at, parsed_at, posted_at)
-      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        url = excluded.url,
-        application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
-        source = excluded.source,
-        raw_text = excluded.raw_text,
-        title = COALESCE(excluded.title, raw_jobs.title),
-        scraped_at = CURRENT_TIMESTAMP,
-        posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-    args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, job.title ?? null, job.posted_at ?? null],
-  });
+  const title = job.title?.trim() || extractRawJobTitle(job.source, job.raw_text) || null;
+  await client.batch([
+    {
+      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, first_seen_at, scraped_at, parsed_at, posted_at)
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          url = excluded.url,
+          application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
+          source = excluded.source,
+          raw_text = excluded.raw_text,
+          title = COALESCE(excluded.title, raw_jobs.title),
+          scraped_at = CURRENT_TIMESTAMP,
+          posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
+      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, job.posted_at ?? null],
+    },
+    {
+      sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
+        SELECT id, COALESCE(application_url, url), source, 1, first_seen_at, scraped_at
+        FROM raw_jobs WHERE id = ?
+        ON CONFLICT(id) DO NOTHING`,
+      args: [job.id],
+    },
+  ], 'write');
+}
+
+/**
+ * Publish raw postings as shell listings without marking them parsed.
+ * The normal parser later fills job_details and sets raw_jobs.parsed_at.
+ */
+export async function promotePendingJobs(client: Client): Promise<number> {
+  const result = await client.execute(`
+    INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
+    SELECT r.id, COALESCE(r.application_url, r.url), r.source, 1, r.first_seen_at, r.scraped_at
+    FROM raw_jobs r
+    LEFT JOIN jobs j ON j.id = r.id
+    WHERE r.parsed_at IS NULL AND j.id IS NULL
+    ON CONFLICT(id) DO NOTHING
+  `);
+  return result.rowsAffected ?? 0;
 }
 
 export async function retireJob(client: Client, id: string): Promise<void> {
