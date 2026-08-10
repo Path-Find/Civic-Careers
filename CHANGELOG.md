@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Academic appointment summaries** — professor, teaching assistant, research assistant, and related postings can show their course, workload, office hours, supervisor, and appointment type in a dedicated scan card.
 - **Existing academic listings are populated** — active academic postings now carry source-backed role and appointment context wherever the posting provides it.
 - **Academic coverage includes tutors and course support roles** — markers, lab demonstrators, tutors, abbreviated university sources, and research-assistant postings are included without misclassifying ordinary campus jobs.
+- **Academic appointment labels stay accurate** — recreational instructors are excluded and postdoctoral fellows use their specific role instead of the broader research-assistant label.
 
 ### Fixed
 - **PDF postings no longer rely on fragile text extraction** — listings keep their original PDF link and show a clear details-pending state instead of risking misleading parsed content.

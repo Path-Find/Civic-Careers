@@ -20,12 +20,19 @@ const BATCH_DELAY_MS = Number(process.env.ACADEMIC_BACKFILL_DELAY_MS || 2000);
 const AI_MODEL = process.env.AI_MODEL || 'deepseek-v4-flash';
 const academicSourcePattern = /\b(?:university|college|institute|polytechnic|UBC)\b|school of/i;
 const academicRolePattern = /\b(professor|lecturer|instructor|teaching assistant|research assistant|academic assistant|graduate assistant|post[- ]?doctoral|postdoc|sessional|faculty member|course coordinator|course staff|course assistant|teaching fellow|research fellow|tutor|marker|lab demonstrator)\b/i;
-const highConfidenceAcademicRolePattern = /\b(professor|lecturer|teaching assistant|research assistant|academic assistant|graduate assistant|post[- ]?doctoral|postdoc|faculty member|course coordinator|course staff|course assistant|teaching fellow|research fellow)\b/i;
+const postdoctoralMentionPattern = /\bpost[- ]?doctoral\b|\bpostdoc\b/i;
+const postdoctoralRolePattern = /^(?:post[- ]?doctoral|postdoc|phd\s+or\s+postdoc)\b/i;
+const highConfidenceAcademicRolePattern = /\b(professor|lecturer|teaching assistant|research assistant|academic assistant|graduate assistant|faculty member|course coordinator|course staff|course assistant|teaching fellow|research fellow)\b/i;
+const recreationalInstructorPattern = /\b(?:swim(?:ming)?|lifeguard|fitness|recreation|aquatic|sports?|coach|camp|skate|dance|yoga)\b.*\binstructor\b|\binstructor\b.*\b(?:swim(?:ming)?|lifeguard|fitness|recreation|aquatic|sports?|coach|camp|skate|dance|yoga)\b/i;
 
 function isAcademicCandidate(candidate: Pick<Candidate, 'source' | 'job_title'>): boolean {
   if (!academicRolePattern.test(candidate.job_title)) return false;
+  if (recreationalInstructorPattern.test(candidate.job_title)) return false;
+  if (postdoctoralMentionPattern.test(candidate.job_title)
+    && !postdoctoralRolePattern.test(candidate.job_title)
+    && !highConfidenceAcademicRolePattern.test(candidate.job_title)) return false;
   const educationalSource = academicSourcePattern.test(candidate.source);
-  if (highConfidenceAcademicRolePattern.test(candidate.job_title)) return true;
+  if (postdoctoralRolePattern.test(candidate.job_title) || highConfidenceAcademicRolePattern.test(candidate.job_title)) return true;
   if (!educationalSource) return false;
   // Sessional is also used for ordinary campus retail and support jobs.
   if (/\bsessional\b/i.test(candidate.job_title)
@@ -134,7 +141,7 @@ function inferAcademicContext(candidate: Candidate): AcademicContext {
   let academic_role_type: string | null = null;
   if (/\bteaching assistant\b|\bacademic assistant\b|\bgraduate assistant\b|\binstructional assistant\b|\bcourse assistant\b|\bmarker(?:[- ]grader)?\b|\btutor\b|\blab demonstrator\b/i.test(title)) academic_role_type = 'teaching_assistant';
   else if (/\bresearch assistant\b|\bresearch fellow\b/i.test(title)) academic_role_type = 'research_assistant';
-  else if (/\bpost[- ]?doctoral\b|\bpostdoc\b/i.test(title)) academic_role_type = 'postdoctoral';
+  else if (postdoctoralRolePattern.test(title)) academic_role_type = 'postdoctoral';
   else if (/\bprofessor\b|\blecturer\b|\bfaculty member\b|\bsessional\s*[-–—]?\s*faculty\b/i.test(title) || /\brank of (?:lecturer|assistant professor)\b/i.test(text)) academic_role_type = 'faculty';
   else if (/\b(course coordinator|course staff)\b/i.test(title)) academic_role_type = 'course_staff';
   else if (/\binstructor\b|\bteaching fellow\b/i.test(title)) academic_role_type = 'academic_instructor';
@@ -276,7 +283,16 @@ async function sanitizeStoredContext(db: ReturnType<typeof createClient>) {
     const academic_workload = cleanAcademicWorkload(row.academic_workload);
     const academic_office_hours = cleanAcademicOfficeHours(row.academic_office_hours);
     const academic_appointment_type = cleanAcademicAppointmentType(row.academic_appointment_type);
-    const academic_role_type = /^assistant instructor\b/i.test(String(row.job_title ?? ''))
+    const title = String(row.job_title ?? '');
+    const academic_role_type = recreationalInstructorPattern.test(title)
+      ? null
+      : postdoctoralRolePattern.test(title)
+      ? 'postdoctoral'
+      : row.academic_role_type === 'postdoctoral'
+        && postdoctoralMentionPattern.test(title)
+        && !highConfidenceAcademicRolePattern.test(title)
+      ? null
+      : /^assistant instructor\b/i.test(title)
       && row.academic_role_type === 'teaching_assistant'
       ? 'academic_instructor'
       : row.academic_role_type;
