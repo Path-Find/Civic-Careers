@@ -67,6 +67,12 @@ not invent a taxonomy or turn a generic duty into a requirement:
 | `posted_at` | `YYYY-MM-DD` | Original publication date when known; not the scrape date |
 | `hours` | Short schedule quantity such as `35 hours per week` | Hours or FTE; not days of availability |
 | `availability` | Short schedule qualifier such as `2 days per week`, `Weekends`, or `Shift work` | Days, shifts, weekends, evenings, or other availability requirements |
+| `academic_role_type` | `faculty`, `teaching_assistant`, `research_assistant`, `postdoctoral`, `academic_instructor`, `course_staff`, or empty | Clearly academic appointments only; do not classify a university employer's administrative job or a municipal recreation instructor |
+| `academic_course` | Short course code and/or title, or empty | Course attached to the academic role; do not infer one from the employer |
+| `academic_workload` | Short source-backed amount such as `65 total hours`, `3 hours per week`, or `0.5 FTE`, or empty | Academic workload or appointment amount; not a generic schedule restatement |
+| `academic_office_hours` | Short source-backed office, consultation, lab, or student-contact hours, or empty | Explicit academic contact-hour requirement; do not infer it from teaching duties |
+| `academic_supervisor` | Explicit supervisor, principal investigator, or supervising person/department, or empty | Named supervision only; do not infer a supervisor from the department |
+| `academic_appointment_type` | Explicit value such as `Tenure-track`, `Limited-term`, or `Sessional`, or empty | Appointment classification; do not duplicate the employment type or term |
 | `is_inventory` | `0`, `1`, or empty when unknown | Candidate/talent inventory status only |
 | `listing_type` | `regular`, `ongoing_recruitment`, or `inventory` | Choose an existing listing classification |
 | `is_student` | `0`, `1`, or empty when unknown | Only when the candidate must be a student or the posting is explicitly student-only; a duty involving students does not qualify |

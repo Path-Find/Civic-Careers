@@ -116,6 +116,13 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Eligibility', value: details.future, highlight: true },
   ].filter(item => item.value);
   const hasRequirementsCard = requirementMetadata.length > 0 || Boolean(otherInformation);
+  const academicMetadata: DetailMetadata[] = [
+    { label: 'Course / project', value: details.academicCourse },
+    { label: 'Workload', value: details.academicWorkload || details.hours },
+    { label: 'Office hours', value: details.academicOfficeHours },
+    { label: 'Appointment', value: details.academicAppointmentType },
+    { label: 'Supervisor', value: details.academicSupervisor },
+  ].filter(item => item.value);
 
   return <main className="detail-main">
     <div className="detail-grid">
@@ -135,6 +142,18 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
             {job.department && job.department !== job.source && <span className="detail-department"> · {job.department}</span>}
           </div>
           <h1 className="detail-title" title={job.job_title || undefined}>{job.job_title}</h1>
+          {details.academicRole && <section className="detail-academic-card" aria-labelledby="academic-heading">
+            <div className="detail-academic-header">
+              <h2 id="academic-heading" className="detail-academic-heading">Academic appointment</h2>
+              <span className="detail-academic-role">{details.academicRole}</span>
+            </div>
+            {academicMetadata.length > 0 && <div className="detail-academic-grid">
+              {academicMetadata.map(item => <div key={item.label} className="detail-requirement-item">
+                <div className="metadata-label">{item.label}</div>
+                <div className="metadata-value">{item.value}</div>
+              </div>)}
+            </div>}
+          </section>}
           {hasRequirementsCard && <section className="detail-requirements-card" aria-labelledby="requirements-heading">
             <h2 id="requirements-heading" className="detail-requirements-heading">Job requirements & details</h2>
             {requirementMetadata.length > 0 && <div className="detail-requirements-grid">

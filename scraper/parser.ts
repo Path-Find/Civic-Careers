@@ -132,6 +132,14 @@ async function main() {
           work_model: normalizeWorkModel(aiResult.work_model, aiResult.job_title),
           employment_type: normalizeEmploymentType(aiResult.employment_type),
           duration: normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || ''),
+          hours: aiResult.hours,
+          availability: aiResult.availability,
+          academic_role_type: aiResult.academic_role_type,
+          academic_course: aiResult.academic_course,
+          academic_workload: aiResult.academic_workload,
+          academic_office_hours: aiResult.academic_office_hours,
+          academic_supervisor: aiResult.academic_supervisor,
+          academic_appointment_type: aiResult.academic_appointment_type,
           experience_requirements: JSON.stringify(structuredRequirements.experience_requirements),
           ...(() => {
             const u = normalizeUnionFields(aiResult.union_name, aiResult.is_unionized);

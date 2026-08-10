@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Homepage quick filters** — ending within 14 days, added in the last 7 days, and city-based Near me with browser-location permission and manual fallback.
+- **Academic appointment summaries** — professor, teaching assistant, research assistant, and related postings can show their course, workload, office hours, supervisor, and appointment type in a dedicated scan card.
 
 ### Fixed
 - **Pending details no longer look like a job-list warning** — the list badge is gone, while the job page shows a neutral details-pending card and recruitment/student labels use the standard grey treatment.

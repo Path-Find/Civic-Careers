@@ -105,6 +105,11 @@
 .detail-source { color: #2563eb; font-size: 0.8125rem; font-weight: 700; cursor: pointer; }
 .detail-department { color: #64748b; font-size: 0.8125rem; font-weight: 700; }
 .detail-title { font-size: 2.5rem; font-weight: 800; margin: 0 0 1.5rem; letter-spacing: -0.04em; line-height: 1.1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
+.detail-academic-card { margin-bottom: 1.5rem; padding: 1.25rem; border: 1px solid #cbd5e1; border-radius: 12px; background: #f8fafc; }
+.detail-academic-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.detail-academic-heading { margin: 0; color: #0f172a; font-size: 1rem; font-weight: 800; }
+.detail-academic-role { padding: 0.3rem 0.55rem; border: 1px solid #cbd5e1; border-radius: 999px; background: white; color: #475569; font-size: 0.68rem; font-weight: 800; white-space: nowrap; }
+.detail-academic-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; }
 .detail-requirements-card { margin-bottom: 1.5rem; padding: 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; background: white; }
 .detail-requirements-heading { margin: 0 0 1rem; color: #0f172a; font-size: 1rem; font-weight: 800; }
 .detail-requirements-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; }
@@ -200,6 +205,8 @@
   .app-nav-wrap { justify-content: space-between; flex-wrap: wrap; }
   .search-wrap { width: 100%; }
   .detail-title { font-size: 2rem; }
+  .detail-academic-header { align-items: flex-start; flex-direction: column; gap: 0.6rem; }
+  .detail-academic-grid { grid-template-columns: 1fr; }
   .detail-requirements-grid { grid-template-columns: 1fr; }
   .home-preview-heading { grid-template-columns: 1fr; }
   .home-stats { width: 100%; justify-content: flex-start; text-align: left; white-space: normal; }

@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   normalizeEmploymentType,
+  normalizeAcademicRoleType,
   normalizeRequirementFlag,
   normalizeSalaryPeriod,
   normalizeUnionFields,
@@ -48,6 +49,33 @@ describe('validateParsedJob', () => {
     assert.equal(result.employment_type, 'Full-time');
     assert.equal(result.closing_date, '2026-08-01');
     assert.deepEqual(result.benefits, ['Pension', 'Health Insurance', 'Dental Insurance']);
+  });
+
+  it('normalizes academic roles and keeps academic context source-backed', () => {
+    const result = validateParsedJob({
+      ...BASE,
+      academic_role_type: 'TA',
+      academic_course: 'SOC 490',
+      academic_workload: '65 total hours',
+      academic_office_hours: '3 hours per week',
+      academic_supervisor: 'Department of Sociology',
+      academic_appointment_type: 'N/A',
+      hours: '10 hours per week',
+      availability: 'Evenings',
+    });
+    assert.equal(result?.academic_role_type, 'teaching_assistant');
+    assert.equal(result?.academic_course, 'SOC 490');
+    assert.equal(result?.academic_workload, '65 total hours');
+    assert.equal(result?.academic_office_hours, '3 hours per week');
+    assert.equal(result?.academic_supervisor, 'Department of Sociology');
+    assert.equal(result?.academic_appointment_type, '');
+    assert.equal(result?.hours, '10 hours per week');
+    assert.equal(result?.availability, 'Evenings');
+  });
+
+  it('does not invent an academic role from unknown labels', () => {
+    assert.equal(normalizeAcademicRoleType('university staff'), null);
+    assert.equal(validateParsedJob({ ...BASE, academic_role_type: 'recreation instructor' })?.academic_role_type, null);
   });
 
   it('returns null for non-object input', () => {

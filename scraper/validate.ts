@@ -1,4 +1,4 @@
-import type { ParsedJob } from './ai_parser';
+import type { AcademicRoleType, ParsedJob } from './ai_parser';
 import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
 import { cleanJobDescription } from './cleanup_description';
 import { normalizeDuration } from './duration';
@@ -10,6 +10,23 @@ function coerceString(v: unknown): string {
   if (typeof v === 'string') return v.trim();
   if (v == null) return '';
   return String(v).trim();
+}
+
+function normalizeOptionalText(v: unknown): string {
+  const value = coerceString(v);
+  return /^(?:n\/?a|none|null|not applicable|not specified|unknown)$/i.test(value) ? '' : value;
+}
+
+export function normalizeAcademicRoleType(v: unknown): AcademicRoleType {
+  const value = coerceString(v).toLowerCase().replace(/[\s-]+/g, '_');
+  if (!value || value === 'none' || value === 'null' || value === 'unknown') return null;
+  if (value === 'faculty' || value === 'professor' || value === 'lecturer') return 'faculty';
+  if (value === 'teaching_assistant' || value === 'ta' || value === 'academic_assistant') return 'teaching_assistant';
+  if (value === 'research_assistant' || value === 'ra') return 'research_assistant';
+  if (value === 'postdoctoral' || value === 'postdoc' || value === 'post_doctoral') return 'postdoctoral';
+  if (value === 'academic_instructor') return 'academic_instructor';
+  if (value === 'course_staff' || value === 'course_coordinator') return 'course_staff';
+  return null;
 }
 
 /** Title-case ALL CAPS department labels; leave short codes (EECS, CMHC) alone. */
@@ -386,6 +403,14 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     work_model: normalizeWorkModel(o['work_model'], job_title),
     employment_type: normalizeEmploymentType(o['employment_type']),
     duration: normalizeDuration(coerceString(o['duration'])),
+    hours: normalizeOptionalText(o['hours']),
+    availability: normalizeOptionalText(o['availability']),
+    academic_role_type: normalizeAcademicRoleType(o['academic_role_type']),
+    academic_course: normalizeOptionalText(o['academic_course']),
+    academic_workload: normalizeOptionalText(o['academic_workload']),
+    academic_office_hours: normalizeOptionalText(o['academic_office_hours']),
+    academic_supervisor: normalizeOptionalText(o['academic_supervisor']),
+    academic_appointment_type: normalizeOptionalText(o['academic_appointment_type']),
     ...normalizeUnionFields(o['union_name'], o['is_unionized']),
     is_student: coerceBool(o['is_student']),
     is_inventory: coerceBool(o['is_inventory']),

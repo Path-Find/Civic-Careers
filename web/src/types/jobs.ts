@@ -1,3 +1,11 @@
+export type AcademicRoleType =
+  | 'faculty'
+  | 'teaching_assistant'
+  | 'research_assistant'
+  | 'postdoctoral'
+  | 'academic_instructor'
+  | 'course_staff';
+
 export interface Job {
   id: string;
   job_title: string | null;
@@ -12,6 +20,12 @@ export interface Job {
   duration: string | null;
   hours: string | null;
   availability: string | null;
+  academic_role_type: AcademicRoleType | null;
+  academic_course: string | null;
+  academic_workload: string | null;
+  academic_office_hours: string | null;
+  academic_supervisor: string | null;
+  academic_appointment_type: string | null;
   is_unionized: number | null;
   union_name: string | null;
   benefits: string | null;
@@ -90,6 +104,12 @@ export interface JobDetails {
   benefits: string | null;
   skills: string | null;
   future: string | null;
+  academicRole: string | null;
+  academicCourse: string | null;
+  academicWorkload: string | null;
+  academicOfficeHours: string | null;
+  academicSupervisor: string | null;
+  academicAppointmentType: string | null;
 }
 
 export interface JobFilters {

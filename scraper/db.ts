@@ -173,6 +173,12 @@ async function initializeDbOnce(): Promise<Client> {
       duration TEXT,
       hours TEXT,
       availability TEXT,
+      academic_role_type TEXT,
+      academic_course TEXT,
+      academic_workload TEXT,
+      academic_office_hours TEXT,
+      academic_supervisor TEXT,
+      academic_appointment_type TEXT,
       is_unionized INTEGER,
       union_name TEXT,
       benefits TEXT,
@@ -218,6 +224,8 @@ async function initializeDbOnce(): Promise<Client> {
     'listing_type', 'experience_requirements', 'education_requirements', 'license_requirements', 'vehicle_required',
     'language_requirements', 'security_check_required', 'certification_requirements',
     'software_requirements', 'medical_requirements', 'hours', 'availability',
+    'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours',
+    'academic_supervisor', 'academic_appointment_type',
   ]) {
     try {
       await client.execute(`ALTER TABLE job_details ADD COLUMN ${column} ${column.endsWith('_required') ? 'INTEGER' : 'TEXT'}`);
@@ -309,6 +317,14 @@ export async function saveJobDetails(client: Client, job: {
   work_model?: string;
   employment_type?: string;
   duration?: string;
+  hours?: string;
+  availability?: string;
+  academic_role_type?: string | null;
+  academic_course?: string;
+  academic_workload?: string;
+  academic_office_hours?: string;
+  academic_supervisor?: string;
+  academic_appointment_type?: string;
   experience_requirements?: string;
   is_unionized?: number;
   union_name?: string;
@@ -333,6 +349,7 @@ export async function saveJobDetails(client: Client, job: {
       id, job_title, department, location, salary_range, description, closing_date,
       is_inventory, listing_type, is_student, salary_min, salary_max, salary_period,
       work_model, employment_type, duration, experience_requirements, is_unionized, union_name, benefits, required_skills,
+      hours, availability, academic_role_type, academic_course, academic_workload, academic_office_hours, academic_supervisor, academic_appointment_type,
       education_requirements, license_requirements, vehicle_required, language_requirements,
       security_check_required, certification_requirements, software_requirements, medical_requirements,
       responsibility_tags, qualification_tags, parser_version, posted_at, start_date
@@ -340,7 +357,7 @@ export async function saveJobDetails(client: Client, job: {
     VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
@@ -358,6 +375,14 @@ export async function saveJobDetails(client: Client, job: {
       work_model = excluded.work_model,
       employment_type = excluded.employment_type,
       duration = excluded.duration,
+      hours = excluded.hours,
+      availability = excluded.availability,
+      academic_role_type = excluded.academic_role_type,
+      academic_course = excluded.academic_course,
+      academic_workload = excluded.academic_workload,
+      academic_office_hours = excluded.academic_office_hours,
+      academic_supervisor = excluded.academic_supervisor,
+      academic_appointment_type = excluded.academic_appointment_type,
       experience_requirements = excluded.experience_requirements,
       is_unionized = excluded.is_unionized,
       union_name = excluded.union_name,
@@ -382,6 +407,8 @@ export async function saveJobDetails(client: Client, job: {
       job.is_inventory ?? 0, job.listing_type ?? 'regular', job.is_student ?? 0,
       job.salary_min ?? null, job.salary_max ?? null, job.salary_period ?? null,
       job.work_model ?? null, job.employment_type ?? null, job.duration ?? null, job.experience_requirements ?? null,
+      job.hours ?? null, job.availability ?? null, job.academic_role_type ?? null, job.academic_course ?? null,
+      job.academic_workload ?? null, job.academic_office_hours ?? null, job.academic_supervisor ?? null, job.academic_appointment_type ?? null,
       job.is_unionized ?? null, job.union_name ?? null, job.benefits ?? null,
       job.required_skills ?? null, job.education_requirements ?? null, job.license_requirements ?? null,
       job.vehicle_required ?? null, job.language_requirements ?? null, job.security_check_required ?? null,

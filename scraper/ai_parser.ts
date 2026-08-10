@@ -15,7 +15,16 @@ const AI_MODEL = process.env.AI_MODEL || "deepseek-v4-flash";
 // old parses may no longer match what the current prompt would produce. Stamped
 // onto every job_details row so stale-version jobs can be found and selectively
 // reparsed via reparse-stale.ts instead of reparsing (and re-billing) everything.
-export const PARSER_VERSION = 6;
+export const PARSER_VERSION = 7;
+
+export type AcademicRoleType =
+    | 'faculty'
+    | 'teaching_assistant'
+    | 'research_assistant'
+    | 'postdoctoral'
+    | 'academic_instructor'
+    | 'course_staff'
+    | null;
 
 export interface ParsedJob {
     job_title: string;
@@ -28,6 +37,14 @@ export interface ParsedJob {
     work_model: 'Hybrid' | 'Remote' | 'On-site';
     employment_type: 'Full-time' | 'Part-time' | 'Contract' | 'Permanent' | 'Occasional' | 'Seasonal';
     duration: string;
+    hours: string;
+    availability: string;
+    academic_role_type: AcademicRoleType;
+    academic_course: string;
+    academic_workload: string;
+    academic_office_hours: string;
+    academic_supervisor: string;
+    academic_appointment_type: string;
     is_unionized: boolean;
     union_name: string;
     is_student: boolean;
@@ -92,6 +109,14 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
       "work_model": "Hybrid" | "Remote" | "On-site",
       "employment_type": "Full-time" | "Part-time" | "Contract" | "Permanent" | "Occasional" (use Occasional for substitute, on-call, or occasional teaching roles),
       "duration": "Length of contract if applicable",
+      "hours": "Required or scheduled hours / FTE, such as '35 hours per week', '65 total hours', or '0.5 FTE'. Empty string if not stated.",
+      "availability": "Required days, shifts, evenings, weekends, or other availability conditions. Empty string if not stated.",
+      "academic_role_type": "faculty" | "teaching_assistant" | "research_assistant" | "postdoctoral" | "academic_instructor" | "course_staff" | null,
+      "academic_course": "Course code and/or course title when the role is tied to a course. Empty string if not stated.",
+      "academic_workload": "Academic workload or appointment amount when stated, such as '65 total hours', '3 hours per week', or '0.5 FTE'. Empty string if not stated.",
+      "academic_office_hours": "Required or scheduled office, consultation, lab, or student-contact hours when explicitly stated. Empty string if not stated.",
+      "academic_supervisor": "Named supervisor, principal investigator, or supervising department/person when explicitly stated. Empty string if not stated.",
+      "academic_appointment_type": "Explicit academic appointment type such as 'Tenure-track', 'Limited-term', or 'Sessional'. Empty string if not stated.",
       "is_unionized": boolean,
       "union_name": "Union name or Non-Union",
       "is_student": boolean,
@@ -115,6 +140,8 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
     CLASSIFICATION RULE (strict): Check every source requirement and classify all that apply. Put mandatory education, experience, registration, licensing, legal, employment, and student-eligibility conditions under Qualifications. Put only genuinely optional assets or preferences under Nice to Have. Never place a mandatory condition under Nice to Have just because the source labels it as an asset or preference.
 
     TAG OUTPUT RULE (strict): Return responsibility_tags and qualification_tags as arrays using only these exact labels: Education & mentoring, Planning & evaluation, Client care, Operations & compliance, Research & improvement, Collaboration, Equity & advocacy, Student. Check all that apply for each section; return [] when none apply. Student is only a qualification tag. These tags summarize the section's actual content, not just exact words in the text.
+
+    ACADEMIC ROLE RULE (strict): Set academic_role_type only when the posting clearly describes an academic appointment or course-based academic role. Use faculty for professor, lecturer, or faculty appointments; teaching_assistant for teaching/academic assistants, tutors, markers, or course assistants; research_assistant for research assistants; postdoctoral for postdoctoral roles; academic_instructor for instructors teaching at a university or college; and course_staff for course coordinators or comparable course-specific staff. A university or college employer alone is not enough. Do not classify municipal recreation instructors, trainers, program instructors, or university administrative/support roles as academic. Use null when the evidence is unclear. Extract the academic context fields only when the source states them; do not infer a course, supervisor, hours, office hours, or appointment type from the title or employer.
 
     CONSTRAINTS:
     - If salary is a range like "$96,566.00 - $132,880.00", salary_min = 96566, salary_max = 132880.

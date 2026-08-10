@@ -1,7 +1,20 @@
 import { daysUntilClose, fixCasing, formatSalary } from '../../utils';
-import type { Job, JobDetails } from '../../types/jobs';
+import type { AcademicRoleType, Job, JobDetails } from '../../types/jobs';
 
 export const CLOSING_SOON_DAYS = 14;
+
+const ACADEMIC_ROLE_LABELS: Record<AcademicRoleType, string> = {
+  faculty: 'Faculty',
+  teaching_assistant: 'Teaching assistant',
+  research_assistant: 'Research assistant',
+  postdoctoral: 'Postdoctoral',
+  academic_instructor: 'Academic instructor',
+  course_staff: 'Course staff',
+};
+
+export function formatAcademicRole(value: AcademicRoleType | null | undefined): string | null {
+  return value ? ACADEMIC_ROLE_LABELS[value] : null;
+}
 
 export function jobFreshnessTimestamp(job: Pick<Job, 'posted_at' | 'first_seen_at'>, now = Date.now()): number {
   const postedAt = job.posted_at ? Date.parse(`${job.posted_at.slice(0, 10)}T00:00:00Z`) : NaN;
@@ -274,6 +287,12 @@ export function parseJobDetails(job: Job): JobDetails {
     startDate: formatStartDate(job.start_date),
     hours: job.hours || null,
     availability: job.availability || null,
+    academicRole: formatAcademicRole(job.academic_role_type),
+    academicCourse: job.academic_course || null,
+    academicWorkload: job.academic_workload || null,
+    academicOfficeHours: job.academic_office_hours || null,
+    academicSupervisor: job.academic_supervisor || null,
+    academicAppointmentType: job.academic_appointment_type || null,
     union: formatUnionLabel(job.is_unionized, job.union_name),
     listingType: job.listing_type === 'ongoing_recruitment' ? 'Ongoing recruitment' : job.listing_type === 'inventory' || job.is_inventory === 1 ? 'Candidate inventory' : null,
     studentRequirement: job.is_student === 1 ? 'Yes' : null,

@@ -14,6 +14,8 @@ const jobColumns = `
   jd.salary_min, jd.salary_max, jd.salary_period,
   jd.work_model, jd.employment_type, COALESCE(jd.duration, raw.pending_duration) AS duration,
   jd.hours, jd.availability,
+  jd.academic_role_type, jd.academic_course, jd.academic_workload, jd.academic_office_hours,
+  jd.academic_supervisor, jd.academic_appointment_type,
   jd.is_unionized, jd.union_name, jd.benefits, jd.required_skills,
   jd.experience_requirements, jd.education_requirements, jd.license_requirements, jd.vehicle_required,
   jd.language_requirements, jd.security_check_required, jd.certification_requirements,
