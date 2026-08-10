@@ -20,6 +20,21 @@ export async function scrapePeopleSoft(db: Client, context: BrowserContext, sear
     await safeGoto(page, searchUrl, 60000);
     await page.waitForTimeout(8000);
 
+    // A default search can show an HTML message saying that no criteria were
+    // entered. It sits above the results and prevents the row action from
+    // firing until it is dismissed.
+    const dismissMessage = async (frame: Frame) => {
+      const okButton = frame.getByRole('button', { name: 'OK', exact: true });
+      if (await okButton.count() && await okButton.first().isVisible().catch(() => false)) {
+        await okButton.first().click();
+        await page.waitForTimeout(500);
+        return true;
+      }
+      return false;
+    };
+
+    await dismissMessage(page.mainFrame());
+
     // McMaster renders the actual PeopleSoft search inside a child frame;
     // the outer portal frame contains only the navigation shell. Prefer the
     // frame with the populated search results when one is present.
@@ -32,30 +47,35 @@ export async function scrapePeopleSoft(db: Client, context: BrowserContext, sear
         break;
       }
     }
+    await dismissMessage(target);
+
+    const firstRowSelector = 'li[onclick*="HRS_VIEW_DETAILS"], [id^="HRS_VIEW_DETAILS"], a[id^="POSTINGLINK$"]';
 
     // Niagara Region lands on the PeopleSoft shell first and only renders
     // the searchable job list after "View All Jobs" is selected.
     const viewAllJobs = target.getByText('View All Jobs', { exact: true }).first();
     let openedAllJobs = false;
-    if (await viewAllJobs.count() && !(await target.locator('li[onclick*="HRS_VIEW_DETAILS"], [id^="HRS_VIEW_DETAILS"], a[id^="POSTINGLINK$"]').count())) {
+    if (await viewAllJobs.count() && !(await target.locator(firstRowSelector).count())) {
       await viewAllJobs.click();
       await page.waitForTimeout(6000);
       openedAllJobs = true;
+      await dismissMessage(target);
     }
 
     // Some tenants (TMU confirmed) show facet counts on load but don't
     // populate real results until the search is explicitly submitted —
-    // clicking this is a safe no-op on tenants that already auto-populate
-    // (Winnipeg confirmed).
+    // only submit when there are genuinely no result rows. Submitting an
+    // already-populated default search can return to the shell on some
+    // tenants and make the scraper save the search page as a job.
     const searchBtn = await target.$('#HRS_SCH_WRK_FLU_HRS_SEARCH_BTN, [id*="HRS_SEARCH_BTN"]');
-    if (searchBtn && !openedAllJobs) {
+    if (searchBtn && !openedAllJobs && !(await target.locator(firstRowSelector).count())) {
       await searchBtn.click();
       await page.waitForTimeout(6000);
+      await dismissMessage(target);
     }
 
     // The detail trigger is a child div on some tenants, but the row owns the
     // actual OnRowAction handler (TransLink uses this shape).
-    const firstRowSelector = 'li[onclick*="HRS_VIEW_DETAILS"], [id^="HRS_VIEW_DETAILS"], a[id^="POSTINGLINK$"]';
     await target.locator(firstRowSelector).first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
     const firstRow = await target.$(firstRowSelector);
     if (!firstRow) {
@@ -64,6 +84,14 @@ export async function scrapePeopleSoft(db: Client, context: BrowserContext, sear
     }
     await firstRow.click();
     await page.waitForTimeout(4000);
+
+    // Never persist a search shell. A valid PeopleSoft detail page has the
+    // detail heading, an apply control, and a numeric job ID.
+    const detailText = await target.locator('body').innerText().catch(() => '');
+    if (!/Job Description/i.test(detailText) || !/Apply for Job/i.test(detailText) || !/Job (?:Opening )?Id\s*[:#]?\s*\d+/i.test(detailText)) {
+      console.log(`[${sourceName}] First row did not open a job detail page`);
+      return;
+    }
 
     const seenIds = new Set<string>();
     let count = 0;

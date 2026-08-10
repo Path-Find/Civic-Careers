@@ -226,7 +226,20 @@ async function main() {
     }
   }
 
-  const sourceEntries = Object.entries(SOURCES);
+  const requestedSources = new Set(
+    (process.env.TRIAL_SOURCES ?? '')
+      .split(',')
+      .map(source => source.trim())
+      .filter(Boolean),
+  );
+  const sourceEntries = Object.entries(SOURCES)
+    .filter(([source]) => requestedSources.size === 0 || requestedSources.has(source));
+  if (sourceEntries.length === 0) {
+    throw new Error(`No trial sources matched TRIAL_SOURCES=${[...requestedSources].join(',')}`);
+  }
+  if (requestedSources.size > 0) {
+    console.log(`[Trial] Running selected sources: ${sourceEntries.map(([source]) => source).join(', ')}`);
+  }
   for (const [source, run] of sourceEntries) {
     await runTrialSource(source, () => run(db, context));
   }
