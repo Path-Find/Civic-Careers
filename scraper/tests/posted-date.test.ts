@@ -68,8 +68,10 @@ test('extracts source closing dates without treating Job End Date as a deadline'
   assert.equal(extractClosingDate('Close date: apply online by August 12, 2026'), '2026-08-12');
   assert.equal(extractClosingDate('Closing Date: 11:59 p.m. on Wednesday, August 19, 2026'), '2026-08-19');
   assert.equal(extractClosingDate('Closing date of August 31, 2026 at 11:59 p.m.'), '2026-08-31');
+  assert.equal(extractClosingDate('Closing Date: August, 23, 2026 23:59 EST'), '2026-08-23');
   assert.equal(extractClosingDate('Apply online at careers.example.ca by Monday, August 10, 2026'), '2026-08-10');
   assert.equal(extractClosingDate('Apply By: $127,855 per year 11:59 p.m. on Thursday, August 27, 2026'), '2026-08-27');
+  assert.equal(extractClosingDate('Posting Start Date/Posting End Date From 07-02-2026 to 08-17-2026'), '2026-08-17');
   assert.equal(extractClosingDate('Job End DateDecember 15, 2026'), null);
   assert.equal(extractClosingDate('Start Date2026/09/01 End Date2027/04/30'), null);
 });
@@ -78,6 +80,46 @@ test('classifies pending closing-date status when no date is available', () => {
   assert.deepEqual(extractClosingDateStatus('Applications accepted until the position is filled'), {
     date: null,
     status: 'open_until_filled',
+  });
+  assert.deepEqual(extractClosingDateStatus('Posting Start Date/Posting End Date Ongoing'), {
+    date: null,
+    status: 'open_until_filled',
+  });
+  assert.deepEqual(extractClosingDateStatus('This posting will remain open until all positions are filled'), {
+    date: null,
+    status: 'open_until_filled',
+  });
+  assert.deepEqual(extractClosingDateStatus('The closing date for this competition will remain open until it is filled'), {
+    date: null,
+    status: 'open_until_filled',
+  });
+  assert.deepEqual(extractClosingDateStatus('Closing Date: Ongoing'), {
+    date: null,
+    status: 'open_until_filled',
+  });
+  assert.deepEqual(extractClosingDateStatus('Closing Date: Open until suitable candidate found'), {
+    date: null,
+    status: 'open_until_filled',
+  });
+  assert.deepEqual(extractClosingDateStatus('Closing Date:Open Until FilledTo Apply:'), {
+    date: null,
+    status: 'open_until_filled',
+  });
+  assert.deepEqual(extractClosingDateStatus('Job Closing Date (YYYY-MM-DD): Until Position has been Filled Job Description'), {
+    date: null,
+    status: 'open_until_filled',
+  });
+  assert.deepEqual(extractClosingDateStatus('External Closing Date: PCC#: 1042'), {
+    date: null,
+    status: 'not_listed',
+  });
+  assert.deepEqual(extractClosingDateStatus('Closing Date Days of Work Sunday - Saturday'), {
+    date: null,
+    status: 'not_listed',
+  });
+  assert.deepEqual(extractClosingDateStatus('Job Closing Date (YYYY-MM-DD): 20026/08/31'), {
+    date: null,
+    status: 'invalid',
   });
   assert.deepEqual(extractClosingDateStatus('No closing date listed'), {
     date: null,

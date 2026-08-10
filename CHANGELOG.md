@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Academic role coverage includes more appointment titles** — standalone faculty, instructional assistants, post-docs, demonstrators, and research associates now receive the appropriate appointment card label.
 
 ### Fixed
+- **Pending deadline statuses cover more source formats** — ongoing, open-until-filled, blank, malformed, and punctuation-heavy closing fields no longer remain unclassified.
 - **Existing pending listings receive deadline statuses immediately** — the new deadline explanations no longer wait for the next scrape.
 - **Pending listings can distinguish missing application deadlines** — detail pages now say when a posting is open until filled or does not list a deadline.
 - **Compensation sections no longer repeat structured salary and schedule metadata** — job descriptions keep unique benefits while avoiding duplicate pay, hours, and term details.

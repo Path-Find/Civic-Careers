@@ -1,7 +1,7 @@
 import { normalizePostedDate } from './posted-date';
 
 const WEEKDAY = '(?:Mon(?:day)?|Tue(?:s(?:day)?)?|Wed(?:nesday)?|Thu(?:rs(?:day)?)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)';
-const DATE_VALUE = `(?:${WEEKDAY},?\\s+)?(?:[A-Za-z]{3,9}\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s*\\d{2,4}|[A-Za-z]{3,9}\\s+\\d{1,2}(?:st|nd|rd|th)?|\\d{4}\\s*[/-]\\s*\\d{1,2}\\s*[/-]\\s*\\d{1,2}|\\d{1,2}\\s*[/-]\\s*\\d{1,2}\\s*[/-]\\s*\\d{2,4}|\\d{1,2}[-/][A-Za-z]{3,9}[-/]\\d{2,4})`;
+const DATE_VALUE = `(?:${WEEKDAY},?\\s+)?(?:[A-Za-z]{3,9}\\s*,?\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s*\\d{2,4}|[A-Za-z]{3,9}\\s+\\d{1,2}(?:st|nd|rd|th)?|\\d{4}\\s*[/-]\\s*\\d{1,2}\\s*[/-]\\s*\\d{1,2}|\\d{1,2}\\s*[/-]\\s*\\d{1,2}\\s*[/-]\\s*\\d{2,4}|\\d{1,2}[-/][A-Za-z]{3,9}[-/]\\d{2,4})`;
 const CLOSING_LABEL = new RegExp(
   `(?:posting\\s+end\\s+date|post\\s+end\\s+date|posting\\s+closing\\s+date|external\\s+closing\\s+date|job\\s+closing\\s+date(?:\\s*\\([^)]*\\))?|closing\\s+date(?:\\s*\\([^)]*\\))?|close\\s+date|closing\\s+deadline|application\\s+deadline|apply\\s+by|apply\\s+before|please\\s+apply\\s+by|last\\s+(?:date|day)\\s+to\\s+apply|posting\\s+close(?:s|d)?|deadline(?:\\s+to\\s+apply|\\s+expires)?\\s*[:\\-]?|applications?\\s+must\\s+be\\s+received(?:\\s+by)?|\\|\\s*expires?)\\s*[:\\-]?\\s*(${DATE_VALUE})`,
   'gi',
@@ -13,6 +13,7 @@ const PARENTHESIZED_CLOSING = new RegExp(
 );
 
 const CONTEXTUAL_CLOSING = [
+  new RegExp(`posting\\s+(?:start\\s+date\\s*[/]\\s*)?posting\\s+end\\s+date[\\s\\S]{0,80}?\\b(?:to|through)\\s+(${DATE_VALUE})`, 'gi'),
   new RegExp(`(?:close|closing)\\s+date[\\s\\S]{0,160}?\\bon\\s+(${DATE_VALUE})`, 'gi'),
   new RegExp(`closing\\s+date\\s+(?:of|:)?\\s*(${DATE_VALUE})`, 'gi'),
   new RegExp(`apply(?:\\s+online)?[\\s\\S]{0,100}?\\bby\\s+(${DATE_VALUE})`, 'gi'),
@@ -26,12 +27,20 @@ const WORKDAY_APPLY_END = new RegExp(
 
 export type ClosingDateStatus = 'known' | 'not_checked' | 'not_listed' | 'open_until_filled' | 'invalid';
 
-const OPEN_UNTIL_FILLED = /\b(?:open|ongoing|accepting applications?|applications?\s+(?:are\s+)?accepted)\s+(?:until|through)\s+(?:the\s+)?(?:position\s+is\s+)?filled\b|\buntil\s+filled\b|\bongoing\s+(?:recruitment|opportunity)\b/i;
-const NO_DEADLINE = /\b(?:no|without)\s+(?:application\s+)?(?:closing\s+)?deadline\b|\b(?:no|without)\s+(?:closing|application)\s+date\b|\bdeadline\s+(?:is\s+)?(?:not\s+(?:listed|specified)|unavailable)\b|\bno\s+deadline\s+listed\b/i;
+const OPEN_UNTIL_FILLED = new RegExp([
+  `\\bposting\\s+(?:start\\s+date\\s*[/]\\s*)?posting\\s+end\\s+date\\s*[:\\-]?\\s*ongoing\\b`,
+  `\\b(?:closing|external|job|posting)\\s+date\\s*[:\\-]?\\s*(?:ongoing(?=\\b|to\\s+apply)|open\\s+until\\s+filled(?=\\b|to\\s+apply))`,
+  `\\b(?:open|ongoing|accepting applications?|applications?\\s+(?:are\\s+)?accepted|(?:will\\s+)?remain\\s+open)\\s+(?:until|through)\\s+(?:(?:all\\s+)?positions?\\s+(?:are|is)\\s+|(?:the\\s+)?position\\s+(?:is|has\\s+been)\\s+|it\\s+(?:is|has\\s+been)\\s+)?filled(?=\\b|job\\s+description|to\\s+apply)`,
+  `\\buntil\\s+(?:(?:all\\s+)?positions?\\s+(?:are|is)\\s+|(?:the\\s+)?position\\s+(?:is|has\\s+been)\\s+|it\\s+(?:is|has\\s+been)\\s+)?filled(?=\\b|job\\s+description|to\\s+apply)`,
+  `\\bongoing\\s+(?:recruitment|opportunity)\\b`,
+  `\\b(?:open|ongoing)\\s+until\\s+(?:a\\s+)?suitable\\s+candidate\\s+found\\b`,
+].join('|'), 'i');
+const NO_DEADLINE = /\b(?:no|without)\s+(?:application\s+)?(?:closing\s+)?deadline\b|\b(?:no|without)\s+(?:closing|application)\s+date\b|\bdeadline\s+(?:is\s+)?(?:not\s+(?:listed|specified)|unavailable)\b|\bno\s+deadline\s+listed\b|\b(?:external|job|posting)?\s*closing\s+date(?:\s*\([^)]*\))?\s*:?\s*(?=(?:job\s+description|application\s+posted|pcc#|openings|back|share|apply\s+now|all\s+qualified\s+candidates|experience\s+the|take\s+on|imagine|days\s+of\s+work|standard\s+hours))/i;
 const INVALID_CLOSING_VALUE = /(?:posting\s+(?:end|closing)\s+date|external\s+closing\s+date|job\s+closing\s+date|closing\s+date|close\s+date|closing\s+deadline|application\s+deadline|apply\s+(?:by|before)|last\s+(?:date|day)\s+to\s+apply|posting\s+close(?:s|d)?|deadline(?:\s+to\s+apply|\s+expires)?|applications?\s+must\s+be\s+received)\b\s*[:\-]\s*(?:tbd|n\/?a|not\s+(?:available|listed|specified)|none|unknown|[-–—])/i;
+const INVALID_CLOSING_DATE = /(?:posting\s+(?:end|closing)\s+date|external\s+closing\s+date|job\s+closing\s+date|closing\s+date|close\s+date|closing\s+deadline|application\s+deadline|apply\s+(?:by|before)|last\s+(?:date|day)\s+to\s+apply|posting\s+close(?:s|d)?|deadline(?:\s+to\s+apply|\s+expires)?|applications?\s+must\s+be\s+received)\b(?:\s*\([^)]*\))?\s*[:\-]\s*\d{2,6}\s*[/-]\s*\d{1,2}\s*[/-]\s*\d{1,4}\b/i;
 
 function normalizeClosingValue(value: string): string | null {
-  const cleaned = value.replace(/\s*([/-])\s*/g, '$1').trim();
+  const cleaned = value.replace(/\s*([/-])\s*/g, '$1').replace(/^([A-Za-z]{3,9}),\s+/, '$1 ').trim();
   return normalizePostedDate(cleaned, { maxYearsAhead: 5 })
     || normalizePostedDate(`${cleaned}, ${new Date().getUTCFullYear()}`, { maxYearsAhead: 5 });
 }
@@ -68,6 +77,6 @@ export function extractClosingDateStatus(rawText: string): { date: string | null
   if (!text) return { date: null, status: 'not_checked' };
   if (OPEN_UNTIL_FILLED.test(text)) return { date: null, status: 'open_until_filled' };
   if (NO_DEADLINE.test(text)) return { date: null, status: 'not_listed' };
-  if (INVALID_CLOSING_VALUE.test(text)) return { date: null, status: 'invalid' };
+  if (INVALID_CLOSING_VALUE.test(text) || INVALID_CLOSING_DATE.test(text)) return { date: null, status: 'invalid' };
   return { date: null, status: 'not_checked' };
 }
