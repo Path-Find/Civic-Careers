@@ -22,9 +22,8 @@
 .job-badge { white-space: nowrap; font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.025em; font-weight: 800; }
 .job-badge-expired { background: #f1f5f9; color: #94a3b8; }
 .job-badge-inventory { background: #f0fdf4; color: #0ea5e9; border: 1px solid #bae6fd; }
-.job-badge-ongoing { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.job-badge-ongoing { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
 .job-badge-student { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
-.job-badge-pending { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
 .job-row-meta { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; color: #64748b; }
 .job-row-source { color: #0f172a; font-weight: 600; }
 .job-row-actions { display: flex; align-items: center; gap: 1.5rem; flex-shrink: 0; }
@@ -125,8 +124,8 @@
 .detail-quick-chip { padding: 0.25rem 0.5rem; border: 1px solid #e2e8f0; border-radius: 999px; background: #f8fafc; color: #475569; font-size: 0.68rem; font-weight: 700; line-height: 1.2; }
 .detail-loading { border-top: 1px solid #f1f5f9; padding-top: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
 .detail-loading-line { height: 1.25rem; background: #f1f5f9; border-radius: 4px; }
-.detail-pending { border-top: 1px solid #f1f5f9; padding-top: 1.5rem; color: #64748b; }
-.detail-pending strong { color: #334155; }
+.detail-pending { margin-bottom: 1.5rem; padding: 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; color: #64748b; }
+.detail-pending h2 { margin: 0; color: #334155; font-size: 1rem; font-weight: 800; }
 .detail-pending p { margin: 0.5rem 0 0; }
 
 .company-row { padding: 0.6rem 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
