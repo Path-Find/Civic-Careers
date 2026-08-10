@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { deactivateExpiredJobs, promotePendingJobs, saveJob, saveJobDetails, saveRawJob } from '../db';
+import { deactivateExpiredJobs, promotePendingJobs, saveJob, saveJobDetails, savePendingJob, saveRawJob } from '../db';
 
 test('deactivateExpiredJobs updates active jobs before the supplied date', async () => {
   const statements: Array<{ sql: string; args?: unknown[] }> = [];
@@ -129,6 +129,37 @@ test('saveRawJob recovers a source title when the scraper did not provide one', 
   });
 
   assert.equal(statements[0].args?.[5], 'Administrative Assistant V');
+});
+
+test('savePendingJob publishes a PDF link without queueing it for parsing', async () => {
+  const statements: Array<{ sql: string; args?: unknown[] }> = [];
+  const client = {
+    batch: async (queries: Array<{ sql: string; args?: unknown[] }>) => {
+      statements.push(...queries);
+      return [];
+    },
+  };
+
+  await savePendingJob(client as never, {
+    id: 'job-pdf-1',
+    url: 'https://example.com/posting.pdf',
+    application_url: 'https://example.com/apply/job-pdf-1',
+    source: 'Example Employer',
+    title: 'PDF role',
+    closing_date: '2026-08-20',
+  });
+
+  assert.equal(statements.length, 2);
+  assert.match(statements[0].sql, /raw_text/i);
+  assert.match(statements[0].sql, /CURRENT_TIMESTAMP/i);
+  assert.deepEqual(statements[0].args?.slice(0, 5), [
+    'job-pdf-1',
+    'https://example.com/posting.pdf',
+    'https://example.com/apply/job-pdf-1',
+    'Example Employer',
+    'PDF role',
+  ]);
+  assert.match(statements[1].sql, /ON CONFLICT\(id\) DO UPDATE/i);
 });
 
 test('promotePendingJobs inserts only raw rows that are still unparsed and have no shell', async () => {

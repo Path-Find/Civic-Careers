@@ -1,7 +1,6 @@
 import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import pdfParse from 'pdf-parse';
-import { saveRawJob } from '../db';
+import { savePendingJob } from '../db';
 import { safeGoto, urlId } from '../utils';
 
 export type SapWebDynproJob = {
@@ -80,27 +79,16 @@ export async function scrapeSapWebDynpro(
         const source = await detailFrame.getAttribute('src');
         if (!source) throw new Error(`SAP detail PDF URL missing for ${job.title}`);
         const pdfUrl = new URL(source, popup.url()).toString();
-        const cookies = await context.cookies(pdfUrl);
-        const response = await fetch(pdfUrl, {
-          headers: {
-            Cookie: cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; '),
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-          },
-        });
-        if (!response.ok) throw new Error(`SAP detail PDF returned HTTP ${response.status}`);
-        const parsed = await pdfParse(Buffer.from(await response.arrayBuffer()));
-        const rawText = parsed.text.trim();
-        if (rawText.length < 100) throw new Error(`SAP detail PDF was empty for ${job.title}`);
-        await saveRawJob(db, {
+        await savePendingJob(db, {
           id: job.id,
-          url: job.url,
+          url: pdfUrl,
           application_url: job.applicationUrl,
           source: sourceName,
-          raw_text: rawText,
           title: job.title,
+          closing_date: job.closingDate ?? null,
           posted_at: job.postedAt,
         });
-        process.stdout.write(' ✅');
+        process.stdout.write(' ⏳');
       } finally {
         await popup.close();
         // The SAP window-opening control needs a short reset before the next

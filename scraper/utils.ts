@@ -1,8 +1,7 @@
 import { createHash } from 'crypto';
 import { Page, Frame, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import pdfParse from 'pdf-parse';
-import { discardRawJob, refreshClosingDate, retireJob, saveRawJob } from './db';
+import { discardRawJob, refreshClosingDate, retireJob, savePendingJob, saveRawJob } from './db';
 import { extractPostedDate, extractRecentRelativePostedDate, normalizePostedDate } from './posted-date';
 import { extractClosingDate } from './closing-date';
 
@@ -139,32 +138,27 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
     return true;
   }
 
-  const page = await context.newPage();
-  try {
-    if (/\.pdf(?:[?#]|$)/i.test(descriptionUrl)) {
-      const response = await fetch(descriptionUrl);
-      if (!response.ok) throw new Error(`PDF returned HTTP ${response.status}`);
-      const parsed = await pdfParse(Buffer.from(await response.arrayBuffer()));
-      const rawText = parsed.text.trim();
-      if (rawText.length < 100) {
-        console.warn(`\n   ⚠️  [${sourceName}] PDF contained no usable text: ${descriptionUrl}`);
-        await discardRawJob(db, job.id!);
-        return false;
-      }
-      await saveRawJob(db, {
+  if (/\.pdf(?:[?#]|$)/i.test(descriptionUrl)) {
+    try {
+      await savePendingJob(db, {
         id: job.id!,
         url: descriptionUrl,
         application_url: applicationUrl,
         source: sourceName,
         title: job.title,
-        raw_text: rawText,
+        closing_date: job.closingDate ?? null,
       });
-      if (existingParsedAt != null) await db.execute({ sql: `UPDATE raw_jobs SET parsed_at = ? WHERE id = ?`, args: [existingParsedAt, job.id!] });
-      if (existingParsedAt != null) await refreshClosingDate(db, job.id!, extractClosingDate(rawText) ?? '');
-      process.stdout.write(' ✅');
+      process.stdout.write(' ⏳');
       return true;
+    } catch (err: any) {
+      console.warn(`\n   ⚠️  [${sourceName}] Failed to stage PDF listing ${descriptionUrl}: ${err.message}`);
+      await discardRawJob(db, job.id!).catch(() => {});
+      return false;
     }
+  }
 
+  const page = await context.newPage();
+  try {
     await safeGoto(page, descriptionUrl, 45000);
 
     // Dayforce detail pages contain normal external-site copy in their footer;

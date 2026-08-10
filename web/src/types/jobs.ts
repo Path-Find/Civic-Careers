@@ -41,6 +41,7 @@ export interface Job {
   medical_requirements: string | null;
   responsibility_tags: string | null;
   qualification_tags: string | null;
+  details_url: string | null;
   description?: string | null;
   closing_date: string | null;
   posted_at: string | null;

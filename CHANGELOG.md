@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Homepage quick filters** — ending within 14 days, added in the last 7 days, and city-based Near me with browser-location permission and manual fallback.
 - **Academic appointment summaries** — professor, teaching assistant, research assistant, and related postings can show their course, workload, office hours, supervisor, and appointment type in a dedicated scan card.
+- **Existing academic listings are populated** — active academic postings now carry source-backed role and appointment context wherever the posting provides it.
 
 ### Fixed
+- **PDF postings no longer rely on fragile text extraction** — listings keep their original PDF link and show a clear details-pending state instead of risking misleading parsed content.
 - **Pending details no longer look like a job-list warning** — the list badge is gone, while the job page shows a neutral details-pending card and recruitment/student labels use the standard grey treatment.
 - **Pending listings can retain source application deadlines** — explicit last-apply dates now show in Apply By without removing the details-pending state.
 

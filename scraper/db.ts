@@ -471,6 +471,51 @@ export async function saveRawJob(client: Client, job: {
   ], 'write');
 }
 
+/** Publish a listing whose source detail document is intentionally not parsed. */
+export async function savePendingJob(client: Client, job: {
+  id: string;
+  url: string;
+  application_url?: string | null;
+  source: string;
+  title?: string | undefined;
+  closing_date?: string | null;
+  posted_at?: string | null;
+}) {
+  const title = job.title?.trim() || null;
+  const pending = extractPendingMetadata(title, '');
+  await client.batch([
+    {
+      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_duration, pending_closing_date, first_seen_at, scraped_at, parsed_at, posted_at)
+        VALUES (?, ?, ?, ?, '', ?, ?, ?, NULL, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          url = excluded.url,
+          application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
+          source = excluded.source,
+          raw_text = '',
+          title = COALESCE(excluded.title, raw_jobs.title),
+          pending_salary_text = COALESCE(excluded.pending_salary_text, raw_jobs.pending_salary_text),
+          pending_is_student = COALESCE(excluded.pending_is_student, raw_jobs.pending_is_student),
+          pending_duration = NULL,
+          pending_closing_date = COALESCE(excluded.pending_closing_date, raw_jobs.pending_closing_date),
+          scraped_at = CURRENT_TIMESTAMP,
+          parsed_at = CURRENT_TIMESTAMP,
+          posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
+      args: [job.id, job.url, job.application_url ?? null, job.source, title, pending.salaryText, pending.isStudent, job.closing_date ?? null, job.posted_at ?? null],
+    },
+    {
+      sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
+        SELECT id, COALESCE(application_url, url), source, 1, first_seen_at, scraped_at
+        FROM raw_jobs WHERE id = ?
+        ON CONFLICT(id) DO UPDATE SET
+          url = excluded.url,
+          source = excluded.source,
+          is_active = 1,
+          scraped_at = excluded.scraped_at`,
+      args: [job.id],
+    },
+  ], 'write');
+}
+
 /**
  * Publish raw postings as shell listings without marking them parsed.
  * The normal parser later fills job_details and sets raw_jobs.parsed_at.

@@ -8,6 +8,7 @@ const jobColumns = `
   COALESCE(j.public_id, j.rowid) AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
   COALESCE(jd.job_title, raw.title) AS job_title, jd.department, jd.location,
+  raw.url AS details_url,
   COALESCE(jd.salary_range, raw.pending_salary_text) AS salary_range,
   ${closingDate} AS closing_date, COALESCE(jd.posted_at, raw.posted_at) AS posted_at, jd.start_date,
   jd.is_inventory, jd.listing_type, COALESCE(jd.is_student, raw.pending_is_student, 0) AS is_student,

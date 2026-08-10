@@ -170,6 +170,9 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           {job.details_pending === 1 ? <section className="detail-pending" role="status" aria-labelledby="details-pending-heading">
             <h2 id="details-pending-heading">Details pending</h2>
             <p>The job was found, but its details are still being prepared.</p>
+            {job.details_url && <a className="detail-pending-link" href={job.details_url} target="_blank" rel="noopener noreferrer">
+              {/\.pdf(?:[?#]|$)/i.test(job.details_url) ? 'View full posting (PDF)' : 'Open original posting'} <ExternalLink size={14} />
+            </a>}
           </section> : job.description ? <div className="detail-description">
             {overview && <div className="detail-overview" dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${overview.heading}\n${compactOverview(overview.body)}`) }} />}
             {detailSections.map(section => {
