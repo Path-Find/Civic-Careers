@@ -9,6 +9,8 @@ import { useRecentlyViewed } from './modules/jobs/hooks/useRecentlyViewed';
 import { JobRow } from './modules/jobs/components/JobRow';
 import { JobFiltersSidebar } from './modules/jobs/components/JobFiltersSidebar';
 import { JobDetailView } from './modules/jobs/components/JobDetailView';
+import { HomeQuickFilters } from './modules/jobs/components/HomeQuickFilters';
+import { LocationPrompt } from './modules/jobs/components/LocationPrompt';
 import { CompanyDirectory } from './modules/jobs/components/CompanyDirectory';
 import { CompanyFiltersSidebar } from './modules/jobs/components/CompanyFiltersSidebar';
 import { ListSortControls } from './modules/jobs/components/ListSortControls';
@@ -201,6 +203,16 @@ function App() {
   const [companySort, setCompanySort] = useState<'alphabetical' | 'mostJobs' | 'recent'>('alphabetical');
   const [companyStatus, setCompanyStatus] = useState<'hiring' | 'all'>('hiring');
   const [selectedCompanyTypes, setSelectedCompanyTypes] = useState<CompanyType[]>([]);
+  const [locationPromptOpen, setLocationPromptOpen] = useState(false);
+  const [locationPromptCity, setLocationPromptCity] = useState(() => {
+    try {
+      return window.localStorage.getItem('civic-careers-near-city') ?? '';
+    } catch {
+      return '';
+    }
+  });
+  const [locationPromptError, setLocationPromptError] = useState<string | null>(null);
+  const [locationPromptRequesting, setLocationPromptRequesting] = useState(false);
   const filters = useJobFilters(jobs, currentView, searchTerm);
   const {
     minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
@@ -381,6 +393,59 @@ function App() {
     refresh();
   };
 
+  const applyLocationFilter = (city: string) => {
+    const trimmedCity = city.trim();
+    if (!trimmedCity) return;
+    try {
+      window.localStorage.setItem('civic-careers-near-city', trimmedCity);
+    } catch {
+      // Private browsing may block local storage; the active filter still works.
+    }
+    setLocationTerm(trimmedCity);
+    setLocationPromptCity(trimmedCity);
+    setLocationPromptOpen(false);
+    setLocationPromptError(null);
+    if (currentView !== 'jobs') handleNavigate('jobs');
+    else refresh();
+  };
+
+  const reverseGeocodeCity = async (latitude: number, longitude: number) => {
+    const params = new URLSearchParams({ format: 'jsonv2', zoom: '10', addressdetails: '1', lat: String(latitude), lon: String(longitude) });
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`);
+    if (!response.ok) throw new Error('City lookup failed');
+    const data = await response.json() as { address?: Record<string, string> };
+    const address = data.address ?? {};
+    const city = address.city || address.town || address.municipality || address.village;
+    if (!city) throw new Error('City lookup failed');
+    return city;
+  };
+
+  const requestNearMe = () => {
+    setLocationPromptOpen(true);
+    setLocationPromptError(null);
+    if (!navigator.geolocation) {
+      setLocationPromptRequesting(false);
+      setLocationPromptError('Browser location is not available. Enter your city below.');
+      return;
+    }
+    setLocationPromptRequesting(true);
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        reverseGeocodeCity(position.coords.latitude, position.coords.longitude)
+          .then(applyLocationFilter)
+          .catch(() => {
+            setLocationPromptRequesting(false);
+            setLocationPromptError('We could not identify your city. Enter it below.');
+          });
+      },
+      () => {
+        setLocationPromptRequesting(false);
+        setLocationPromptError('Location permission was not granted. Enter your city below.');
+      },
+      { enableHighAccuracy: false, maximumAge: 60 * 60 * 1000, timeout: 10000 },
+    );
+  };
+
   const handleSelectJob = (job: Job) => {
     if (!job.is_active) return;
     setSelectedJob(job);
@@ -537,7 +602,7 @@ function App() {
           ) : currentView === 'home' ? (
             <section className="home-preview">
               <div className="home-preview-heading">
-                <ListSortControls className="list-sort-options" sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} counts={homeData ? { closingSoon: homeData.closingSoonCount, newlyAdded: displayRecentlyAddedCount } : undefined} onMostRecent={() => applyMostRecentSort(true)} onClosingSoon={() => applyClosingSoonSort(true)} onNewlyAdded={() => applyNewlyAddedSort(true)} />
+                <HomeQuickFilters deadlineDays={deadlineDays} newlyAdded={newlyAdded} locationTerm={locationTerm} closingSoonCount={homeData?.closingSoonCount} newlyAddedCount={displayRecentlyAddedCount} onClosingSoon={() => applyClosingSoonSort(true)} onNewlyAdded={() => applyNewlyAddedSort(true)} onNearMe={requestNearMe} />
                 <div className="home-stats" aria-label="Job totals">
                   <div className="home-stat-primary"><strong>{displayAvailableJobCount.toLocaleString()}</strong> jobs available</div>
                   <div><strong>+{displayRecentlyAddedCount.toLocaleString()}</strong> last 7 days</div>
@@ -643,6 +708,7 @@ function App() {
           )}
         </main>
       )}
+      {locationPromptOpen && <LocationPrompt city={locationPromptCity} error={locationPromptError} requesting={locationPromptRequesting} onCityChange={setLocationPromptCity} onSubmit={() => applyLocationFilter(locationPromptCity)} onRetry={requestNearMe} onClose={() => { setLocationPromptOpen(false); setLocationPromptRequesting(false); }} />}
       <footer className="app-footer">
         <div className="app-footer-inner">
           <div className="app-footer-left"><span>© 2026 Civic Careers</span></div>

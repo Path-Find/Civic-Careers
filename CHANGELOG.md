@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Homepage quick filters** — ending within 14 days, added in the last 7 days, and city-based Near me with browser-location permission and manual fallback.
+
 ### Fixed
 - **Pending details no longer look like a job-list warning** — the list badge is gone, while the job page shows a neutral details-pending card and recruitment/student labels use the standard grey treatment.
 - **Pending listings can retain source-backed job terms** — explicit end dates now appear as Term without pretending the rest of the job details are ready.
