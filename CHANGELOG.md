@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Academic role coverage includes more appointment titles** — standalone faculty, instructional assistants, post-docs, demonstrators, and research associates now receive the appropriate appointment card label.
 
 ### Fixed
+- **Compensation sections no longer repeat structured salary and schedule metadata** — job descriptions keep unique benefits while avoiding duplicate pay, hours, and term details.
 - **PDF postings no longer rely on fragile text extraction** — listings keep their original PDF link and show a clear details-pending state instead of risking misleading parsed content.
 - **Pending details no longer look like a job-list warning** — the list badge is gone, while the job page shows a neutral details-pending card and recruitment/student labels use the standard grey treatment.
 - **Pending listings can retain source application deadlines** — explicit last-apply dates from source closing, apply-by, and apply-before labels now show in Apply By without removing the details-pending state.

@@ -1,5 +1,5 @@
 import { initDb } from './db';
-import { cleanJobDescription, removePlaceholderSections } from './cleanup_description';
+import { cleanCompensationSections, cleanJobDescription, removePlaceholderSections } from './cleanup_description';
 import { cleanSourceDescriptionBoilerplate } from './source-description-cleanup';
 
 const apply = process.argv.includes('--apply');
@@ -9,6 +9,7 @@ const sourceArg = process.argv.find(value => value.startsWith('--source='));
 const sourceFilter = sourceArg?.slice('--source='.length) || '';
 const sourceOnly = process.argv.includes('--source-only');
 const placeholderOnly = process.argv.includes('--placeholder-only');
+const compensationOnly = process.argv.includes('--compensation-only');
 
 async function main() {
   const db = await initDb();
@@ -27,6 +28,8 @@ async function main() {
       ? removePlaceholderSections(before)
       : sourceOnly
       ? cleanSourceDescriptionBoilerplate(String(row.source ?? ''), before)
+      : compensationOnly
+      ? cleanCompensationSections(before)
       : cleanJobDescription(before, String(row.job_title ?? ''), String(row.source ?? ''));
     return {
       id: String(row.id),
@@ -43,7 +46,7 @@ async function main() {
   for (const row of allChanges) bySource.set(row.source, (bySource.get(row.source) ?? 0) + 1);
 
   console.log(`[Description cleanup] Scanned ${result.rows.length} descriptions.`);
-  const mode = placeholderOnly ? 'placeholder sections only' : sourceOnly ? 'source rules only' : '';
+  const mode = placeholderOnly ? 'placeholder sections only' : sourceOnly ? 'source rules only' : compensationOnly ? 'compensation sections only' : '';
   console.log(`[Description cleanup] ${apply ? 'Applying' : 'Dry run'} ${allChanges.length} candidate(s); showing ${candidates.length}${mode ? ` (${mode})` : ''}.`);
   if (skippedEmpty.length > 0) console.log(`[Description cleanup] Skipping ${skippedEmpty.length} candidate(s) that would become empty.`);
   console.log(`[Description cleanup] Sources: ${[...bySource.entries()].sort((a, b) => b[1] - a[1]).map(([source, count]) => `${source}=${count}`).join(', ')}`);

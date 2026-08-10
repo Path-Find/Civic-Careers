@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanJobDescription, cleanOverviewBoilerplate, removePlaceholderSections, stripStructuredBenefitRestatements } from '../cleanup_description';
+import { cleanCompensationSections, cleanJobDescription, cleanOverviewBoilerplate, removePlaceholderSections, stripStructuredBenefitRestatements } from '../cleanup_description';
 import { cleanSourceDescriptionBoilerplate } from '../source-description-cleanup';
 
 test('removes preceding employer copy at paragraph boundaries', () => {
@@ -120,6 +120,43 @@ Annual salary: $70,688–$86,007. The position includes the federal government b
   assert.ok(!result.includes('Compensation'));
   assert.ok(!result.includes('70,688'));
   assert.ok(result.includes('Two years'));
+});
+
+test('drops salary plus duplicated hours and term metadata', () => {
+  const result = cleanJobDescription(`## Overview
+Supports the team.
+## Compensation & Benefits
+- Hourly Rate: $23.31 - $29.14
+- Hours of Work: 35 hours per week
+- Temporary full-time position for 5 months`, 'Coordinator');
+  assert.ok(!result.includes('Compensation & Benefits'));
+  assert.ok(!result.includes('$23.31'));
+});
+
+test('removes duplicated salary while keeping unique compensation detail', () => {
+  const result = cleanJobDescription(`## Compensation & Benefits
+- Hourly Rate: $33.03 per hour
+- 4% vacation pay and 7% in lieu of benefits
+- Hours: Monday to Friday, 35 hours per week`, 'Supervisor');
+  assert.ok(result.includes('Compensation & Benefits'));
+  assert.ok(!result.includes('$33.03'));
+  assert.ok(result.includes('4% vacation pay'));
+  assert.ok(!result.includes('Hours: Monday to Friday'));
+});
+
+test('recognizes hourly salary-only sections as redundant', () => {
+  const result = cleanJobDescription(`## Compensation & Benefits
+$17.60 - $17.60 Hourly`, 'Usher');
+  assert.equal(result, '');
+});
+
+test('compensation-only cleanup leaves unrelated sections untouched', () => {
+  const result = cleanCompensationSections(`## Overview
+Keep this wording.
+## Compensation & Benefits
+- Hourly Rate: $23.31 - $29.14
+- Hours of Work: 35 hours per week`);
+  assert.equal(result, '## Overview\nKeep this wording.');
 });
 
 test('keeps Compensation sections that describe real benefits', () => {

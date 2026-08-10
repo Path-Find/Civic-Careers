@@ -134,7 +134,7 @@ export const isRedundantCompensation = (heading: string, body: string): boolean 
 
   // Salary range patterns (Annual salary: $X–$Y / From $X to $Y per annum / Salary range: …)
   const money = String.raw`\$?[\d,]+(?:\.\d{1,4})?`;
-  const period = String.raw`(?:per\s+)?(?:hour|hr|year|yr|annum|annual(?:ly)?|\/per\s+hour)?`;
+  const period = String.raw`(?:per\s+)?(?:hour(?:ly)?|hr|year(?:ly)?|yr|annum|annual(?:ly)?|\/per\s+hour)?`;
   const salaryLine = new RegExp(
     String.raw`^(?:(?:annual\s+|yearly\s+|hourly\s+)?salary(?:\s+range)?|pay(?:\s+rate)?|rate(?:\s+of\s+pay)?|wage|compensation|yearly\s+salary|hourly(?:\s+(?:pay\s+)?rate)?|from|starting\s+at)\s*:?\s*${money}\s*(?:to|[-–—])\s*${money}\s*${period}(?:\s*\([^)]*\))?(?:\s+as\s+per\s+the\s+collective\s+agreement)?(?:\s+plus\s+applicable\s+premiums?)?\.?$`,
     'i',

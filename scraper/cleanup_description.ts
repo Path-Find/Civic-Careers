@@ -214,17 +214,64 @@ export function removePlaceholderSections(description: string): string {
  * generic "benefits package" line) already shown in structured sidebar fields.
  * Keep unique pay (bonuses, premiums) and itemized benefit lists.
  */
+const COMPENSATION_MONEY = String.raw`\$?[\d,]+(?:\.\d{1,4})?`;
+const COMPENSATION_PERIOD = String.raw`(?:per\s+)?(?:hour(?:ly)?|hr|year(?:ly)?|yr|annum|annual(?:ly)?|\/per\s+hour)?`;
+const COMPENSATION_SALARY_PREFIX = new RegExp(
+  String.raw`^\s*(?:[-•*]\s*)?(?:(?:annual\s+|yearly\s+|hourly\s+)?salary(?:\s+range)?|pay(?:\s+rate)?|rate(?:\s+of\s+pay)?|wage|compensation|yearly\s+salary|hourly(?:\s+(?:pay\s+)?rate)?)\s*:?\s*${COMPENSATION_MONEY}\s*(?:(?:to|[-–—])\s*${COMPENSATION_MONEY}\s*)?${COMPENSATION_PERIOD}\s*[,.;:]?\s*`,
+  'i',
+);
+
+function stripCompensationSalaryRestatements(body: string): string {
+  return body
+    .split('\n')
+    .map(line => {
+      const strippedSalary = line.replace(COMPENSATION_SALARY_PREFIX, '').trim();
+      if (strippedSalary !== line.trim()) return strippedSalary;
+
+      if (/^\s*(?:[-•*]\s*)?(?:hours?(?:\s+of\s+work)?|work\s+schedule|schedule)\s*:/i.test(line)) {
+        return '';
+      }
+      if (/^\s*(?:[-•*]\s*)?(?:temporary|permanent|full[- ]time|part[- ]time|contract)\b/i.test(line)
+        && !/\b(?:bonus|premium|allowance|vacation|benefit|pension|insurance|health|dental|statutory|reimbursement|relocation|tuition)\b/i.test(line)) {
+        return '';
+      }
+      return line.trim();
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+export function cleanCompensationSections(description: string): string {
+  if (!description.trim() || !/^##\s+(?:compensation|benefit|salary|pay\b|remuneration)/im.test(description)) {
+    return description;
+  }
+
+  let removedSection = false;
+  const cleaned = description
+    .split(/(?=^##\s+)/m)
+    .map(chunk => {
+      const lines = chunk.split('\n');
+      const heading = lines[0]?.match(/^##\s+(.+)$/)?.[1]?.trim() || '';
+      if (!/compensation|benefit|salary|pay\b|remuneration/i.test(heading)) return chunk;
+
+      const originalBody = lines.slice(1).join('\n');
+      const body = stripCompensationSalaryRestatements(originalBody);
+      if (isRedundantCompensationSection(heading, body)) {
+        removedSection = true;
+        return '';
+      }
+      return body === originalBody ? chunk : `${lines[0]}\n${body}`;
+    })
+    .join('');
+
+  if (!removedSection) return cleaned;
+  return cleaned.replace(/\n{3,}/g, '\n\n').trim();
+}
+
 export function isRedundantCompensationSection(heading: string, body: string): boolean {
   if (!/compensation|benefit|salary|pay\b|remuneration/i.test(heading)) return false;
   let text = body.replace(/\s+/g, ' ').trim();
   if (!text) return true;
-
-  // Salary plus schedule, term, or work-location detail is not a pure
-  // property restatement; keep the unique employment conditions visible.
-  if (/\$[\d,]+/.test(text)
-    && /\b(?:hours?|full[- ]time|part[- ]time|temporary|contract|work\s+from\s+home|remote|flexible\s+work|days?\s+per\s+week|months?)\b/i.test(text)) {
-    return false;
-  }
 
   // Unique pay beyond base salary — keep. Bare "performance bonus" as a package
   // name is NOT unique (CMHC lists it in structured benefits too); require $/%.
@@ -251,7 +298,7 @@ export function isRedundantCompensationSection(heading: string, body: string): b
   if (!text) return true;
 
   const money = String.raw`\$?[\d,]+(?:\.\d{1,4})?`;
-  const period = String.raw`(?:per\s+)?(?:hour|hr|year|yr|annum|annual(?:ly)?|\/per\s+hour)?`;
+  const period = COMPENSATION_PERIOD;
   const salaryLine = new RegExp(
     String.raw`^(?:(?:annual\s+|yearly\s+|hourly\s+)?salary(?:\s+range)?|pay(?:\s+rate)?|rate(?:\s+of\s+pay)?|wage|compensation|yearly\s+salary|hourly(?:\s+(?:pay\s+)?rate)?|from|starting\s+at)\s*:?\s*${money}\s*(?:to|[-–—])\s*${money}\s*${period}(?:\s*\([^)]*\))?(?:\s+as\s+per\s+the\s+collective\s+agreement)?(?:\s+plus\s+applicable\s+premiums?)?\.?$`,
     'i',
@@ -525,6 +572,12 @@ export function cleanJobDescription(description: string, jobTitle: string, sourc
       body: removePlaceholderSectionBody(deduplicateBullets(removeBoilerplate(section.heading.toLocaleLowerCase() === 'overview'
         ? cleanOverviewBoilerplate(removeBoilerplate(section.body), jobTitle)
         : removeBoilerplate(section.body)))),
+    }))
+    .map(section => ({
+      ...section,
+      body: /compensation|benefit|salary|pay\b|remuneration/i.test(section.heading)
+        ? stripCompensationSalaryRestatements(section.body)
+        : section.body,
     }))
     // Salary already lives in structured fields / sidebar — drop pure restatements.
     .filter(section => !section.heading || !isRedundantCompensationSection(section.heading, section.body));
