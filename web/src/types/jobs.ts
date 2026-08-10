@@ -2,6 +2,7 @@ export type AcademicRoleType =
   | 'faculty'
   | 'teaching_assistant'
   | 'research_assistant'
+  | 'research_associate'
   | 'postdoctoral'
   | 'academic_instructor'
   | 'course_staff';

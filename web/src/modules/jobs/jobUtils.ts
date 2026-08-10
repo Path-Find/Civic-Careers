@@ -7,6 +7,7 @@ const ACADEMIC_ROLE_LABELS: Record<AcademicRoleType, string> = {
   faculty: 'Faculty',
   teaching_assistant: 'Teaching assistant',
   research_assistant: 'Research assistant',
+  research_associate: 'Research associate',
   postdoctoral: 'Postdoctoral',
   academic_instructor: 'Academic instructor',
   course_staff: 'Course staff',

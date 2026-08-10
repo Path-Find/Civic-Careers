@@ -23,6 +23,7 @@ export function normalizeAcademicRoleType(v: unknown): AcademicRoleType {
   if (value === 'faculty' || value === 'professor' || value === 'lecturer') return 'faculty';
   if (value === 'teaching_assistant' || value === 'ta' || value === 'academic_assistant') return 'teaching_assistant';
   if (value === 'research_assistant' || value === 'ra') return 'research_assistant';
+  if (value === 'research_associate') return 'research_associate';
   if (value === 'postdoctoral' || value === 'postdoc' || value === 'post_doctoral') return 'postdoctoral';
   if (value === 'academic_instructor') return 'academic_instructor';
   if (value === 'course_staff' || value === 'course_coordinator') return 'course_staff';

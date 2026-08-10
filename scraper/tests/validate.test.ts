@@ -76,6 +76,7 @@ describe('validateParsedJob', () => {
   it('does not invent an academic role from unknown labels', () => {
     assert.equal(normalizeAcademicRoleType('university staff'), null);
     assert.equal(validateParsedJob({ ...BASE, academic_role_type: 'recreation instructor' })?.academic_role_type, null);
+    assert.equal(normalizeAcademicRoleType('research associate'), 'research_associate');
   });
 
   it('returns null for non-object input', () => {
