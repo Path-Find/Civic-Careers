@@ -1,4 +1,7 @@
 import { chromium, BrowserContext } from 'playwright';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Client } from '@libsql/client';
 import { initDb } from './db';
 import { BASE_CONFIG } from './utils';
@@ -171,6 +174,17 @@ async function main() {
   const headless = !process.env.DISPLAY && process.env.CI !== 'false';
   const browser = await chromium.launch({ headless });
   const context = await browser.newContext(BASE_CONFIG);
+
+  const configuredTrialDbUrl = process.env.TRIAL_DB_URL?.trim();
+  const trialDbUrl = configuredTrialDbUrl || `file:${join(await mkdtemp(join(tmpdir(), 'civic-careers-trial-')), 'trial.sqlite')}`;
+  if (/^https?:/i.test(trialDbUrl) && process.env.ALLOW_LIVE_TRIAL_DB !== '1') {
+    await browser.close();
+    throw new Error('Refusing to run trial sources against a remote database. Set ALLOW_LIVE_TRIAL_DB=1 only for an intentional live trial.');
+  }
+  process.env.TURSO_URL = trialDbUrl;
+  if (/^file:/i.test(trialDbUrl)) delete process.env.TURSO_AUTH_TOKEN;
+  console.log(`[Trial] Using isolated database: ${trialDbUrl}`);
+
   const db = await initDb();
   let failed = false;
 
