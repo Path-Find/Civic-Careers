@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createDb } from './_db.js';
 
+const PUBLIC_CACHE = 's-maxage=86400, stale-while-revalidate=86400';
+
 const jobColumns = `
   COALESCE(j.public_id, j.rowid) AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
@@ -84,6 +86,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         res.end(JSON.stringify({ error: 'Job not found' }));
         return;
       }
+      res.setHeader('Cache-Control', PUBLIC_CACHE);
       res.end(JSON.stringify({
         description: result.rows[0].description ?? null,
         details_pending: Number(result.rows[0].details_pending ?? 0),
@@ -149,7 +152,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           ${jobJoins} ${activeJobWhere}`),
       ]);
       const countRow = counts.rows[0] || {};
-      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+      res.setHeader('Cache-Control', PUBLIC_CACHE);
       res.end(JSON.stringify({
         recentJobs: recent.rows,
         closingSoonJobs: closingSoon.rows,
@@ -177,7 +180,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         ${jobJoins}
         GROUP BY j.source
         ORDER BY active_job_count DESC, name ASC`);
-      res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+      res.setHeader('Cache-Control', PUBLIC_CACHE);
       res.end(JSON.stringify(result.rows));
       return;
     }
@@ -191,7 +194,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         const match = sources.rows.find(row => slugifySource(String(row.source ?? '')) === sourceSlug);
         sourceFilter = match?.source != null ? String(match.source) : null;
         if (!sourceFilter) {
-          res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+          res.setHeader('Cache-Control', PUBLIC_CACHE);
           res.end(JSON.stringify({ jobs: [], total: 0, availableTotal: 0, source: null }));
           return;
         }
@@ -261,7 +264,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           args: countArgs,
         }),
       ]);
-      res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+      res.setHeader('Cache-Control', PUBLIC_CACHE);
       res.end(JSON.stringify({
         jobs: result.rows,
         total: Number(count.rows[0]?.total ?? 0),
@@ -302,7 +305,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           ${visiblePending}
           AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))`),
     ]);
-    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', PUBLIC_CACHE);
     res.end(JSON.stringify({
       jobs: result.rows,
       total: Number(count.rows[0]?.total ?? 0),
