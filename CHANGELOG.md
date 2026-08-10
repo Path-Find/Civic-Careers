@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Pending details no longer look like a job-list warning** — the list badge is gone, while the job page shows a neutral details-pending card and recruitment/student labels use the standard grey treatment.
-- **Pending listings can retain source-backed job terms** — explicit end dates now appear as Term without pretending the rest of the job details are ready.
+- **Pending listings can retain source application deadlines** — explicit last-apply dates now show in Apply By without removing the details-pending state.
 
 ## [1.9.10] - 2026-08-10
 

@@ -5,92 +5,13 @@ import { extractPendingMetadata } from '../pending-metadata';
 test('extracts obvious source salary text and high-confidence student flags', () => {
   assert.deepEqual(
     extractPendingMetadata('Library Page - Student Position', 'Salary: $22.92 - $27.14 per hour'),
-    { salaryText: '$22.92 - $27.14 per hour', isStudent: 1, duration: null },
+    { salaryText: '$22.92 - $27.14 per hour', isStudent: 1 },
   );
 });
 
 test('does not classify incidental student wording as a student job', () => {
   assert.deepEqual(
     extractPendingMetadata('Manager, Strategic Operations', 'Supports student success and student learning.'),
-    { salaryText: null, isStudent: null, duration: null },
-  );
-});
-
-test('keeps an explicit job end date while leaving ambiguous multi-date postings empty', () => {
-  assert.equal(
-    extractPendingMetadata('Work Study Assistant', 'Job Start Date 09-08-2026 Job End Date 04-30-2027').duration,
-    '2026-09-08 to 2027-04-30',
-  );
-  assert.equal(
-    extractPendingMetadata('Term role', 'One position ends February 28, 2027. Another ends May 10, 2027.').duration,
-    null,
-  );
-  assert.equal(
-    extractPendingMetadata('Sessional role', 'Sessional Dates: September 2026 to April 2027').duration,
-    '2026-09-01 to 2027-04-30',
-  );
-  assert.equal(
-    extractPendingMetadata('Term role', 'Term Position Length: Until 31 December 2028').duration,
-    'Term ending 2028-12-31',
-  );
-  assert.equal(
-    extractPendingMetadata('Seasonal role', 'Dates: October 16th to October 30th 2026').duration,
-    '2026-10-16 to 2026-10-30',
-  );
-  assert.equal(
-    extractPendingMetadata('Seasonal role', 'This is a Seasonal position from September 2026 - June 2027.').duration,
-    '2026-09-01 to 2027-06-30',
-  );
-  assert.equal(
-    extractPendingMetadata('Multiple positions', 'One temporary position until 2 September 2027. One temporary position until October 2026.').duration,
-    null,
-  );
-  assert.equal(
-    extractPendingMetadata('Student role', 'This is a casual employment opportunity with anticipated start date of September 1, 2026 and end date of December 31, 2026.').duration,
-    '2026-09-01 to 2026-12-31',
-  );
-  assert.equal(
-    extractPendingMetadata('Term role', 'This is a term position with a projected end date of July 5, 2028.').duration,
-    'Term ending 2028-07-05',
-  );
-  assert.equal(
-    extractPendingMetadata('Short-term faculty role', 'Desired Start Date 10/08/2026 End Date (if applicable) 29/04/2027').duration,
-    '2026-08-10 to 2027-04-29',
-  );
-  assert.equal(
-    extractPendingMetadata('Bilingual student role', 'Work Start Date:septembre 01, 2026 Work End Date:décembre 31, 2026').duration,
-    '2026-09-01 to 2026-12-31',
-  );
-  assert.equal(
-    extractPendingMetadata('Continuing and term role', 'Position End Date (if temporary) 04/30/2027. The Position End Date listed on the posting applies only to the temporary term position. The other position is a continuing role.').duration,
-    null,
-  );
-  assert.equal(
-    extractPendingMetadata('Temporary role', 'Temporary - Full Time until 11/01/2027').duration,
-    'Term ending 2027-11-01',
-  );
-  assert.equal(
-    extractPendingMetadata('Term role', 'Position Type: Part-time, (Term - approximately ending October 16, 2026)').duration,
-    'Term ending 2026-10-16',
-  );
-  assert.equal(
-    extractPendingMetadata('Temporary role', 'Term of Employment: Temporary, Full-time position (end on March 31, 2027)').duration,
-    'Term ending 2027-03-31',
-  );
-  assert.equal(
-    extractPendingMetadata('Funded role', 'The current contract is possible until Aug 31, 2029.').duration,
-    null,
-  );
-  assert.equal(
-    extractPendingMetadata('Term role', 'This is a contract position until January 2028.').duration,
-    'Term ending January 2028',
-  );
-  assert.equal(
-    extractPendingMetadata('Term role', 'This is a term position ending March 2027.').duration,
-    'Term ending March 2027',
-  );
-  assert.equal(
-    extractPendingMetadata('Contradictory role', 'This fixed-term contract has an anticipated start date in August 2026, concluding in January 2026.').duration,
-    null,
+    { salaryText: null, isStudent: null },
   );
 });

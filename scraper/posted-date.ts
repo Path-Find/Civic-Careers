@@ -80,6 +80,14 @@ export function normalizePostedDate(
     return toIsoDate(Number(match[3]), month, Number(match[1]), maxYearsAhead);
   }
 
+  // Nova Scotia and similar public-sector pages use 31-Aug-26.
+  match = cleaned.match(/^(\d{1,2})[-/]([A-Za-z]{3,9})[-/](\d{2,4})/);
+  if (match) {
+    const month = MONTHS[match[2].toLowerCase()];
+    if (!month) return null;
+    return toIsoDate(Number(match[3]), month, Number(match[1]), maxYearsAhead);
+  }
+
   match = cleaned.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
   if (match) {
     const a = Number(match[1]);

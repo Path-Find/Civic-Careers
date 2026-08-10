@@ -56,5 +56,10 @@ test('extracts only today and yesterday from relative Workday dates', () => {
 test('extracts source closing dates without treating Job End Date as a deadline', () => {
   assert.equal(extractClosingDate('Posting End DateAugust 12, 2026 Job End DateDecember 15, 2026'), '2026-08-12');
   assert.equal(extractClosingDate('Internal posting deadline expires Thursday August 13th at 11:59 PM'), '2026-08-13');
+  assert.equal(extractClosingDate('Job Closing Date (YYYY-MM-DD): 2026 / 8 / 31'), '2026-08-31');
+  assert.equal(extractClosingDate('Closing Date: ​31-Aug-26'), '2026-08-31');
+  assert.equal(extractClosingDate('Please apply by 09/04/2026'), '2026-09-04');
+  assert.equal(extractClosingDate('time left to applyEnd Date: August 25, 2026 (14 days left to apply)'), '2026-08-25');
   assert.equal(extractClosingDate('Job End DateDecember 15, 2026'), null);
+  assert.equal(extractClosingDate('Start Date2026/09/01 End Date2027/04/30'), null);
 });
