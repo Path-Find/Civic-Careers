@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Portal metadata no longer leaks into public listings** — cookie text, portal labels, and other source-site UI are excluded from job titles and employer information.
 - **Active job counts stay reliable** — partial scrapes no longer remove unaffected jobs, unreadable postings stay out of the feed, and expired listings leave it automatically.
-- **Job details are organized without repetition** — medical and fitness requirements, compensation, benefits, and other structured fields stay in consistent sections, while descriptions retain role-specific content instead of repeating structured facts or boilerplate.
+- **Job details are organized by information type** — medical and fitness requirements, compensation, benefits, education, and other structured fields stay in consistent sections, while descriptions retain role-specific content instead of repeating them or boilerplate.
+- **Job freshness uses official posting dates** — recent and newly added lists use validated source dates instead of scrape time, while expected start dates appear separately when provided.
 - **Ambiguous language options no longer create false filter matches** — postings with different requirements by location or stream are not incorrectly marked as English, French, and Bilingual simultaneously.
 - **Recruitment pools are classified correctly** — applicant pools and future-vacancy inventories no longer appear as ordinary jobs.
 - **Job terms now display as Term** — fixed-term lengths and end-date ranges no longer appear under the ambiguous `Duration` field.
