@@ -8,34 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Unparsed postings can appear while details are pending** — new listings retain their title, employer, application link, and dates until the normal parser fills in the full details.
-- **Pending listings show obvious source metadata** — high-confidence salary text and student/co-op flags can appear before full parsing while the source body remains hidden.
-- **Homepage loads faster after cache expiry** — indexed active-job lookups and kept the homepage API response cached longer so the initial feed appears sooner.
-- **Homepage filters are shareable and show complete totals** — searches can be reloaded, shared, and bookmarked, while recent and closing-soon counts cover the full result set.
-- **Job counts stay current after partial scrapes** — readable postings are promoted and broken source shells stay out of the feed.
-- **York University jobs are scheduled** — the Technomedia board is now part of the regular scrape.
-- **Listings can be marked human-verified** — verification survives mechanical backfills and clears only on a full AI reparse.
-- **Medical and fitness requirements have a structured field** — department placement and the job-detail layout now keep related facts together, with benefits in the sidebar and education in the requirements card.
+- **New postings appear before full details are parsed** — titles, employers, links, dates, and obvious salary or student signals are shown while the full body remains pending.
+- **Homepage filters are shareable and count the full result set** — searches can be reloaded or bookmarked, and recent and closing-soon totals cover all matching jobs.
 
 ### Fixed
-- **Workland titles no longer show cookie/loading text** — City of Cornwall postings now keep their actual source titles when the portal shell is present.
-- **Public job feeds avoid repeated database reads** — shared cache windows now match the scrape cadence instead of rechecking Turso every few seconds.
-- **University of Windsor listings now use the actual employer name** — the EFHC portal label no longer creates a misleading company page.
-- **Town of Midland listings now use the actual employer name** — the ADP portal label no longer creates a misleading company page.
-- **Job terms now display as Term** — fixed-term lengths and end-date ranges are no longer presented as the ambiguous `Duration` field.
-- **Expired jobs now leave the active feed automatically** — the scraper and parser deactivate listings after their stored closing date instead of relying only on source removal.
-- **Structured job fields are normalized and non-redundant** — requirements, compensation, benefits, experience, education, licences, certifications, software, languages, vehicle, security, employment, term, work mode, hours, availability, location, union, and listing type now use consistent values without repeating the same fact in the description.
-- **Ambiguous language options no longer create false filter matches** — postings that offer different language requirements by location or stream are left unlabelled instead of being marked as requiring English, French, and Bilingual simultaneously.
-- **Job descriptions keep the role-specific content** — source boilerplate, employer marketing, portal metadata, duplicate compensation, and repeated requirements are removed while useful context remains.
+- **Portal metadata no longer leaks into public listings** — cookie text, portal labels, and other source-site UI are excluded from job titles and employer information.
+- **Active job counts stay reliable** — partial scrapes no longer remove unaffected jobs, unreadable postings stay out of the feed, and expired listings leave it automatically.
+- **Job details are organized without repetition** — medical and fitness requirements, compensation, benefits, and other structured fields stay in consistent sections, while descriptions retain role-specific content instead of repeating structured facts or boilerplate.
+- **Ambiguous language options no longer create false filter matches** — postings with different requirements by location or stream are not incorrectly marked as English, French, and Bilingual simultaneously.
 - **Recruitment pools are classified correctly** — applicant pools and future-vacancy inventories no longer appear as ordinary jobs.
+- **Job terms now display as Term** — fixed-term lengths and end-date ranges no longer appear under the ambiguous `Duration` field.
 - **Direct job links load correctly** — stable numeric public IDs resolve to the posting, and the browser title uses Civic Careers.
-- **“Closing within 14 days” (and Newly added) showed ~20 matches** because the filter only ran on the first loaded page of jobs. Those sorts now query the API with a real total and paginate the full matching set.
-- **Homepage counts stay accurate after partial scrapes** — cleanup only deactivates sources that were actually re-scraped, so unrelated employers do not disappear from the feed.
-- **Company pages took 30+ seconds** (e.g. `/companies/university-of-ottawa`) because they loaded the entire job corpus (~5k rows / 7MB). They now fetch only that employer’s jobs.
-- **CSOD engines were missing from the scheduled scrape matrix** (George Brown, Mohawk, Durham, Ontario Tech) so those boards could go stale between manual runs.
-- **The RCMP 9-1-1 Police Dispatchers listing had no salary or real job content**: the hand-written override was sourced from the RCMP's "application process" page instead of their actual job pages, so it only ever had how-to-apply steps and eligibility notes, not duties or pay. Rebuilt from the RCMP's actual duties and compensation pages, with real salary ($65,714–$87,946/yr) and benefits now in the structured fields instead of missing entirely.
-- **Job detail requirements were duplicated and visually fragmented**: structured requirements, hours, responsibilities, qualifications, and other details now have clearer single-purpose placement in the sidebar and body cards.
-- **Alongside/CareerBeacon sources were not scrapeable through their widget links**: UNB and Saint Mary’s now use a shared widget extractor and accessible canonical CareerBeacon detail URLs, preserving raw descriptions, application links, and official posted dates for trial validation.
+- **Company pages load only that employer’s jobs** — opening an employer no longer loads the entire job catalogue first.
+- **Public job feeds avoid repeated database reads** — read-only results cache for 24 hours, matching the scrape cadence.
 
 ## [1.9.9] - 2026-08-04
 
