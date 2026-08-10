@@ -12,6 +12,7 @@
     "backfill-metadata-only": "npx tsx backfill-metadata-only.ts",
     "promote-pending-jobs": "npx tsx promote-pending-jobs.ts",
     "backfill-pending-titles": "npx tsx backfill-pending-titles.ts",
+    "backfill-pending-metadata": "npx tsx backfill-pending-metadata.ts",
     "backfill-start-dates": "npx tsx backfill-start-dates.ts",
     "backfill-language-vehicle": "npx tsx backfill-language-vehicle.ts",
     "backfill-certification-normalize": "npx tsx backfill-certification-normalize.ts",

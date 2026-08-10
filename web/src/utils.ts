@@ -239,9 +239,9 @@ export const renderMarkdown = (md: string | null): string => {
   return DOMPurify.sanitize(html, { ADD_ATTR: ['style'] });
 };
 
-export const formatSalary = (job: { salary_min: number | null; salary_max: number | null; salary_period: string | null }): string | null => {
+export const formatSalary = (job: { salary_min: number | null; salary_max: number | null; salary_period: string | null; salary_range?: string | null }): string | null => {
   const { salary_min: min, salary_max: max, salary_period: period } = job;
-  if (!min && !max) return null;
+  if (!min && !max) return job.salary_range || null;
   const fmt = (n: number) => period === 'hourly' ? `$${n}/hr` : period === 'flat' ? `$${Math.round(n).toLocaleString()}` : `$${Math.round(n / 1000)}K`;
   const periodLabel = period === 'hourly' ? '' : period === 'monthly' ? ' / mo' : period === 'flat' ? ' flat' : ' / yr';
   if (min !== null && max !== null && min === max) return `${fmt(min)}${periodLabel}`;

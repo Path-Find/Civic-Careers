@@ -1,6 +1,7 @@
 import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
 import { extractRawJobTitle } from './title';
+import { extractPendingMetadata } from './pending-metadata';
 dotenv.config({ quiet: true });
 
 // After this many failed parse attempts, a job is excluded from getUnparsedJobs
@@ -51,6 +52,8 @@ async function initializeDbOnce(): Promise<Client> {
       source TEXT NOT NULL,
       raw_text TEXT NOT NULL,
       title TEXT,
+      pending_salary_text TEXT,
+      pending_is_student INTEGER,
       first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       parsed_at DATETIME,
@@ -77,6 +80,16 @@ async function initializeDbOnce(): Promise<Client> {
   }
   try {
     await client.execute(`ALTER TABLE raw_jobs ADD COLUMN application_url TEXT`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  try {
+    await client.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_salary_text TEXT`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  try {
+    await client.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_is_student INTEGER`);
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
@@ -388,19 +401,22 @@ export async function saveRawJob(client: Client, job: {
   posted_at?: string | null;
 }) {
   const title = job.title?.trim() || extractRawJobTitle(job.source, job.raw_text) || null;
+  const pending = extractPendingMetadata(title, job.raw_text);
   await client.batch([
     {
-      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, first_seen_at, scraped_at, parsed_at, posted_at)
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
+      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, first_seen_at, scraped_at, parsed_at, posted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
           url = excluded.url,
           application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
           source = excluded.source,
           raw_text = excluded.raw_text,
           title = COALESCE(excluded.title, raw_jobs.title),
+          pending_salary_text = COALESCE(excluded.pending_salary_text, raw_jobs.pending_salary_text),
+          pending_is_student = COALESCE(excluded.pending_is_student, raw_jobs.pending_is_student),
           scraped_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, job.posted_at ?? null],
+      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, job.posted_at ?? null],
     },
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)

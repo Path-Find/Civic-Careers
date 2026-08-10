@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Unparsed postings can appear while details are pending** — new listings retain their title, employer, application link, and dates until the normal parser fills in the full details.
+- **Pending listings show obvious source metadata** — high-confidence salary text and student/co-op flags can appear before full parsing while the source body remains hidden.
 - **Homepage loads faster after cache expiry** — indexed active-job lookups and kept the homepage API response cached longer so the initial feed appears sooner.
 - **Homepage filters are shareable and show complete totals** — searches can be reloaded, shared, and bookmarked, while recent and closing-soon counts cover the full result set.
 - **Job counts stay current after partial scrapes** — readable postings are promoted and broken source shells stay out of the feed.

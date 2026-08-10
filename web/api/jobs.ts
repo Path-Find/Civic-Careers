@@ -4,9 +4,10 @@ import { createDb } from './_db.js';
 const jobColumns = `
   COALESCE(j.public_id, j.rowid) AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
-  COALESCE(jd.job_title, raw.title) AS job_title, jd.department, jd.location, jd.salary_range,
+  COALESCE(jd.job_title, raw.title) AS job_title, jd.department, jd.location,
+  COALESCE(jd.salary_range, raw.pending_salary_text) AS salary_range,
   jd.closing_date, COALESCE(jd.posted_at, raw.posted_at) AS posted_at, jd.start_date,
-  jd.is_inventory, jd.listing_type, jd.is_student,
+  jd.is_inventory, jd.listing_type, COALESCE(jd.is_student, raw.pending_is_student, 0) AS is_student,
   CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending,
   jd.salary_min, jd.salary_max, jd.salary_period,
   jd.work_model, jd.employment_type, jd.duration,
