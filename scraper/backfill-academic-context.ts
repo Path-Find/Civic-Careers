@@ -18,8 +18,20 @@ const DETERMINISTIC_ONLY = process.argv.includes('--deterministic-only');
 const CONCURRENCY = Number(process.env.ACADEMIC_BACKFILL_CONCURRENCY || 2);
 const BATCH_DELAY_MS = Number(process.env.ACADEMIC_BACKFILL_DELAY_MS || 2000);
 const AI_MODEL = process.env.AI_MODEL || 'deepseek-v4-flash';
-const academicSourcePattern = /university|college|institute|school of|polytechnic/i;
-const academicRolePattern = /\b(professor|lecturer|instructor|teaching assistant|research assistant|academic assistant|post[- ]?doctoral|postdoc|sessional|faculty member|course coordinator)\b/i;
+const academicSourcePattern = /\b(?:university|college|institute|polytechnic|UBC)\b|school of/i;
+const academicRolePattern = /\b(professor|lecturer|instructor|teaching assistant|research assistant|academic assistant|graduate assistant|post[- ]?doctoral|postdoc|sessional|faculty member|course coordinator|course staff|course assistant|teaching fellow|research fellow|tutor|marker|lab demonstrator)\b/i;
+const highConfidenceAcademicRolePattern = /\b(professor|lecturer|teaching assistant|research assistant|academic assistant|graduate assistant|post[- ]?doctoral|postdoc|faculty member|course coordinator|course staff|course assistant|teaching fellow|research fellow)\b/i;
+
+function isAcademicCandidate(candidate: Pick<Candidate, 'source' | 'job_title'>): boolean {
+  if (!academicRolePattern.test(candidate.job_title)) return false;
+  const educationalSource = academicSourcePattern.test(candidate.source);
+  if (highConfidenceAcademicRolePattern.test(candidate.job_title)) return true;
+  if (!educationalSource) return false;
+  // Sessional is also used for ordinary campus retail and support jobs.
+  if (/\bsessional\b/i.test(candidate.job_title)
+    && !/professor|lecturer|instructor|faculty|teaching|course|tutor|marker|demonstrator|academic/i.test(candidate.job_title)) return false;
+  return true;
+}
 
 const client = new OpenAI({
   baseURL: 'https://api.deepseek.com',
@@ -120,12 +132,12 @@ function inferAcademicContext(candidate: Candidate): AcademicContext {
   const title = candidate.job_title;
   const text = `${title}\n${sourceText(candidate)}`;
   let academic_role_type: string | null = null;
-  if (/\bteaching assistant\b|\bacademic assistant\b|\bgraduate assistant\b|\binstructional assistant\b/i.test(title)) academic_role_type = 'teaching_assistant';
-  else if (/\bresearch assistant\b/i.test(title)) academic_role_type = 'research_assistant';
+  if (/\bteaching assistant\b|\bacademic assistant\b|\bgraduate assistant\b|\binstructional assistant\b|\bcourse assistant\b|\bmarker(?:[- ]grader)?\b|\btutor\b|\blab demonstrator\b/i.test(title)) academic_role_type = 'teaching_assistant';
+  else if (/\bresearch assistant\b|\bresearch fellow\b/i.test(title)) academic_role_type = 'research_assistant';
   else if (/\bpost[- ]?doctoral\b|\bpostdoc\b/i.test(title)) academic_role_type = 'postdoctoral';
   else if (/\bprofessor\b|\blecturer\b|\bfaculty member\b|\bsessional\s*[-–—]?\s*faculty\b/i.test(title) || /\brank of (?:lecturer|assistant professor)\b/i.test(text)) academic_role_type = 'faculty';
   else if (/\b(course coordinator|course staff)\b/i.test(title)) academic_role_type = 'course_staff';
-  else if (/\binstructor\b/i.test(title)) academic_role_type = 'academic_instructor';
+  else if (/\binstructor\b|\bteaching fellow\b/i.test(title)) academic_role_type = 'academic_instructor';
 
   const academic_course = extractAcademicCourse(title);
   const workload = text.match(/\b(?:\d+(?:\.\d+)?\s*(?:hours?|hrs?)\s*(?:per\s+(?:week|course|term)|\/\s*(?:week|course|term))|\d+(?:\.\d+)?\s*FTE)\b[^.\n]{0,80}/i)?.[0] ?? '';
@@ -163,7 +175,7 @@ Rules:
 - Use null for academic_role_type when the posting is not clearly an academic appointment or course-based academic role.
 - A university or college employer alone is not enough.
 - Do not classify municipal recreation instructors, trainers, program instructors, or university administrative/support roles as academic.
-- Use faculty for professor, lecturer, or faculty appointments; teaching_assistant for teaching/academic assistants, tutors, markers, or course assistants; research_assistant for research assistants; postdoctoral for postdoctoral roles; academic_instructor for instructors teaching at a university or college; and course_staff for course coordinators or comparable course-specific staff.
+- Use faculty for professor, lecturer, or faculty appointments; teaching_assistant for teaching/academic assistants, tutors, markers, lab demonstrators, or course assistants; research_assistant for research assistants; postdoctoral for postdoctoral roles; academic_instructor for instructors teaching at a university or college; and course_staff for course coordinators or comparable course-specific staff.
 - Extract only facts explicitly stated in the posting. Do not infer a course, supervisor, hours, office hours, workload, or appointment type from the employer or title alone.
 - Keep values short and source-backed. Do not put ordinary job metadata such as salary, location, closing date, or generic employment type in these fields.
 - academic_workload may preserve total assignment hours or appointment percentage; hours is the general work-hours field. They may contain the same fact when that is how the source states it.
@@ -320,7 +332,7 @@ async function main() {
       hours: String(row.hours ?? ''),
       availability: String(row.availability ?? ''),
     }))
-    .filter(candidate => academicSourcePattern.test(candidate.source) && academicRolePattern.test(candidate.job_title));
+    .filter(isAcademicCandidate);
 
   console.log(`[academic-context] Active non-inventory postings without a stored academic role: ${result.rows.length}`);
   console.log(`[academic-context] Academic candidates: ${candidates.length}${APPLY ? (DETERMINISTIC_ONLY ? ' (applying deterministic fallback)' : ' (applying AI)') : ' (dry run)'}`);

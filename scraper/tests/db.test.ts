@@ -19,7 +19,7 @@ test('deactivateExpiredJobs updates active jobs before the supplied date', async
   assert.deepEqual(statements[0].args, ['2026-08-05']);
 });
 
-test('saveJobDetails refreshes every parsed field on conflict', async () => {
+test('saveJobDetails refreshes parsed fields but preserves academic context on blank reparse', async () => {
   const statements: string[] = [];
   const client = {
     execute: async (query: { sql: string }) => {
@@ -80,7 +80,11 @@ test('saveJobDetails refreshes every parsed field on conflict', async () => {
     'language_requirements', 'security_check_required', 'certification_requirements',
     'software_requirements',
   ]) {
-    assert.match(upsert, new RegExp(`${field} = excluded\\.${field}`));
+    if (['hours', 'availability', 'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours', 'academic_supervisor', 'academic_appointment_type'].includes(field)) {
+      assert.match(upsert, new RegExp(`${field} = COALESCE\\(NULLIF\\(excluded\\.${field}, ''\\), ${field}\\)`));
+    } else {
+      assert.match(upsert, new RegExp(`${field} = excluded\\.${field}`));
+    }
   }
   // Full details rewrite clears human verification.
   assert.ok(statements.some((s) => /verified_at\s*=\s*NULL/i.test(s)));
