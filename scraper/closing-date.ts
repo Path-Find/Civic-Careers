@@ -24,6 +24,12 @@ const WORKDAY_APPLY_END = new RegExp(
   'gi',
 );
 
+export type ClosingDateStatus = 'known' | 'not_checked' | 'not_listed' | 'open_until_filled' | 'invalid';
+
+const OPEN_UNTIL_FILLED = /\b(?:open|ongoing|accepting applications?|applications?\s+(?:are\s+)?accepted)\s+(?:until|through)\s+(?:the\s+)?(?:position\s+is\s+)?filled\b|\buntil\s+filled\b|\bongoing\s+(?:recruitment|opportunity)\b/i;
+const NO_DEADLINE = /\b(?:no|without)\s+(?:application\s+)?(?:closing\s+)?deadline\b|\b(?:no|without)\s+(?:closing|application)\s+date\b|\bdeadline\s+(?:is\s+)?(?:not\s+(?:listed|specified)|unavailable)\b|\bno\s+deadline\s+listed\b/i;
+const CLOSING_LABEL_SIGNAL = /(?:posting\s+(?:end|closing)\s+date|external\s+closing\s+date|job\s+closing\s+date|closing\s+date|close\s+date|closing\s+deadline|application\s+deadline|apply\s+(?:by|before)|last\s+(?:date|day)\s+to\s+apply|posting\s+close(?:s|d)?|deadline(?:\s+to\s+apply|\s+expires)?|applications?\s+must\s+be\s+received)\b/i;
+
 function normalizeClosingValue(value: string): string | null {
   const cleaned = value.replace(/\s*([/-])\s*/g, '$1').trim();
   return normalizePostedDate(cleaned, { maxYearsAhead: 5 })
@@ -52,4 +58,16 @@ export function extractClosingDate(rawText: string): string | null {
     if (normalized) return normalized;
   }
   return null;
+}
+
+export function extractClosingDateStatus(rawText: string): { date: string | null; status: ClosingDateStatus } {
+  const date = extractClosingDate(rawText);
+  if (date) return { date, status: 'known' };
+
+  const text = rawText.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, ' ').trim();
+  if (!text) return { date: null, status: 'not_checked' };
+  if (OPEN_UNTIL_FILLED.test(text)) return { date: null, status: 'open_until_filled' };
+  if (NO_DEADLINE.test(text)) return { date: null, status: 'not_listed' };
+  if (CLOSING_LABEL_SIGNAL.test(text)) return { date: null, status: 'invalid' };
+  return { date: null, status: 'not_checked' };
 }

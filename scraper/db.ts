@@ -2,7 +2,7 @@ import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
 import { extractRawJobTitle } from './title';
 import { extractPendingMetadata } from './pending-metadata';
-import { extractClosingDate } from './closing-date';
+import { extractClosingDateStatus } from './closing-date';
 dotenv.config({ quiet: true });
 
 // After this many failed parse attempts, a job is excluded from getUnparsedJobs
@@ -459,8 +459,9 @@ export async function saveRawJob(client: Client, job: {
 }) {
   const title = job.title?.trim() || extractRawJobTitle(job.source, job.raw_text) || null;
   const pending = extractPendingMetadata(title, job.raw_text);
-  const pendingClosingDate = extractClosingDate(job.raw_text);
-  const pendingClosingDateStatus = pendingClosingDate ? 'known' : 'not_checked';
+  const pendingClosing = extractClosingDateStatus(job.raw_text);
+  const pendingClosingDate = pendingClosing.date;
+  const pendingClosingDateStatus = pendingClosing.status;
   await client.batch([
     {
       sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
