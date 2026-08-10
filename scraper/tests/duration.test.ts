@@ -45,6 +45,7 @@ test('end dates normalize without becoming application deadlines', () => {
   assert.equal(normalizeDuration('Term ending 2027-07-26'), 'Term ending 2027-07-26');
   assert.equal(normalizeDuration('Job End Date July 26, 2027'), 'Term ending 2027-07-26');
   assert.equal(normalizeDuration('expected end date Sept 27, 2027'), 'Term ending 2027-09-27');
+  assert.equal(normalizeDuration('End Date 31 December 2028'), 'Term ending 2028-12-31');
 });
 
 test('academic terms compact', () => {

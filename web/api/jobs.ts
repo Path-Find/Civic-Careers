@@ -12,7 +12,7 @@ const jobColumns = `
   jd.is_inventory, jd.listing_type, COALESCE(jd.is_student, raw.pending_is_student, 0) AS is_student,
   CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending,
   jd.salary_min, jd.salary_max, jd.salary_period,
-  jd.work_model, jd.employment_type, jd.duration,
+  jd.work_model, jd.employment_type, COALESCE(jd.duration, raw.pending_duration) AS duration,
   jd.hours, jd.availability,
   jd.is_unionized, jd.union_name, jd.benefits, jd.required_skills,
   jd.experience_requirements, jd.education_requirements, jd.license_requirements, jd.vehicle_required,

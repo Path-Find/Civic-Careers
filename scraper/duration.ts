@@ -182,7 +182,7 @@ function extractLength(text: string): string | null {
 
 function extractEndDate(text: string): string | null {
   const date = text.match(
-    /\b(?:job\s+)?end\s+date\s*:?\s*((?:\d{4}[-/]\d{1,2}[-/]\d{1,2})|(?:\d{1,2}[-/]\d{1,2}[-/]\d{4})|(?:[A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}))/i,
+    /\b(?:job\s+)?end\s+date\s*:?\s*((?:\d{4}[-/]\d{1,2}[-/]\d{1,2})|(?:\d{1,2}[-/]\d{1,2}[-/]\d{4})|(?:[A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})|(?:\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+,?\s+\d{4}))/i,
   );
   const parsed = date ? parseOneDate(date[1]) : null;
   return parsed ? `Term ending ${parsed}` : null;
