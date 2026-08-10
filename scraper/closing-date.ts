@@ -3,7 +3,12 @@ import { normalizePostedDate } from './posted-date';
 const WEEKDAY = '(?:Mon(?:day)?|Tue(?:s(?:day)?)?|Wed(?:nesday)?|Thu(?:rs(?:day)?)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)';
 const DATE_VALUE = `(?:${WEEKDAY},?\\s+)?(?:[A-Za-z]{3,9}\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s*\\d{2,4}|[A-Za-z]{3,9}\\s+\\d{1,2}(?:st|nd|rd|th)?|\\d{4}\\s*[/-]\\s*\\d{1,2}\\s*[/-]\\s*\\d{1,2}|\\d{1,2}\\s*[/-]\\s*\\d{1,2}\\s*[/-]\\s*\\d{2,4}|\\d{1,2}[-/][A-Za-z]{3,9}[-/]\\d{2,4})`;
 const CLOSING_LABEL = new RegExp(
-  `(?:posting\\s+end\\s+date|post\\s+end\\s+date|posting\\s+closing\\s+date|external\\s+closing\\s+date|job\\s+closing\\s+date(?:\\s*\\([^)]*\\))?|closing\\s+date(?:\\s*\\([^)]*\\))?|close\\s+date|closing\\s+deadline|application\\s+deadline|apply\\s+by|please\\s+apply\\s+by|last\\s+(?:date|day)\\s+to\\s+apply|posting\\s+close(?:s|d)?|deadline(?:\\s+to\\s+apply|\\s+expires)?\\s*[:\\-]?|applications?\\s+must\\s+be\\s+received(?:\\s+by)?|\\|\\s*expires?)\\s*[:\\-]?\\s*(${DATE_VALUE})`,
+  `(?:posting\\s+end\\s+date|post\\s+end\\s+date|posting\\s+closing\\s+date|external\\s+closing\\s+date|job\\s+closing\\s+date(?:\\s*\\([^)]*\\))?|closing\\s+date(?:\\s*\\([^)]*\\))?|close\\s+date|closing\\s+deadline|application\\s+deadline|apply\\s+by|apply\\s+before|please\\s+apply\\s+by|last\\s+(?:date|day)\\s+to\\s+apply|posting\\s+close(?:s|d)?|deadline(?:\\s+to\\s+apply|\\s+expires)?\\s*[:\\-]?|applications?\\s+must\\s+be\\s+received(?:\\s+by)?|\\|\\s*expires?)\\s*[:\\-]?\\s*(${DATE_VALUE})`,
+  'gi',
+);
+
+const PARENTHESIZED_CLOSING = new RegExp(
+  `job\\s+closing\\s+date\\s*\\(\\s*(${DATE_VALUE})\\s*\\)`,
   'gi',
 );
 
@@ -27,6 +32,10 @@ function normalizeClosingValue(value: string): string | null {
 
 export function extractClosingDate(rawText: string): string | null {
   const text = rawText.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, ' ');
+  for (const match of text.matchAll(PARENTHESIZED_CLOSING)) {
+    const normalized = normalizeClosingValue(match[1]);
+    if (normalized) return normalized;
+  }
   for (const match of text.matchAll(CLOSING_LABEL)) {
     const value = match[1];
     const normalized = normalizeClosingValue(value);
