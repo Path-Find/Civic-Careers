@@ -22,7 +22,7 @@ async function main() {
     SELECT r.id, r.source, r.title, r.raw_text
     FROM raw_jobs r
     LEFT JOIN job_details d ON d.id = r.id
-    WHERE d.id IS NULL AND r.parsed_at IS NULL
+    WHERE d.id IS NULL AND r.parsed_at IS NULL AND r.pending_duration IS NULL
     ORDER BY r.source, r.id
   `);
 
@@ -36,7 +36,7 @@ async function main() {
     counts.set(String(row.source), (counts.get(String(row.source)) ?? 0) + 1);
     if (APPLY) {
       await db.execute({
-        sql: 'UPDATE raw_jobs SET pending_duration = ? WHERE id = ? AND parsed_at IS NULL',
+        sql: 'UPDATE raw_jobs SET pending_duration = ? WHERE id = ? AND parsed_at IS NULL AND pending_duration IS NULL',
         args: [duration, row.id],
       });
     }

@@ -45,4 +45,52 @@ test('keeps an explicit job end date while leaving ambiguous multi-date postings
     extractPendingMetadata('Multiple positions', 'One temporary position until 2 September 2027. One temporary position until October 2026.').duration,
     null,
   );
+  assert.equal(
+    extractPendingMetadata('Student role', 'This is a casual employment opportunity with anticipated start date of September 1, 2026 and end date of December 31, 2026.').duration,
+    '2026-09-01 to 2026-12-31',
+  );
+  assert.equal(
+    extractPendingMetadata('Term role', 'This is a term position with a projected end date of July 5, 2028.').duration,
+    'Term ending 2028-07-05',
+  );
+  assert.equal(
+    extractPendingMetadata('Short-term faculty role', 'Desired Start Date 10/08/2026 End Date (if applicable) 29/04/2027').duration,
+    '2026-08-10 to 2027-04-29',
+  );
+  assert.equal(
+    extractPendingMetadata('Bilingual student role', 'Work Start Date:septembre 01, 2026 Work End Date:décembre 31, 2026').duration,
+    '2026-09-01 to 2026-12-31',
+  );
+  assert.equal(
+    extractPendingMetadata('Continuing and term role', 'Position End Date (if temporary) 04/30/2027. The Position End Date listed on the posting applies only to the temporary term position. The other position is a continuing role.').duration,
+    null,
+  );
+  assert.equal(
+    extractPendingMetadata('Temporary role', 'Temporary - Full Time until 11/01/2027').duration,
+    'Term ending 2027-11-01',
+  );
+  assert.equal(
+    extractPendingMetadata('Term role', 'Position Type: Part-time, (Term - approximately ending October 16, 2026)').duration,
+    'Term ending 2026-10-16',
+  );
+  assert.equal(
+    extractPendingMetadata('Temporary role', 'Term of Employment: Temporary, Full-time position (end on March 31, 2027)').duration,
+    'Term ending 2027-03-31',
+  );
+  assert.equal(
+    extractPendingMetadata('Funded role', 'The current contract is possible until Aug 31, 2029.').duration,
+    null,
+  );
+  assert.equal(
+    extractPendingMetadata('Term role', 'This is a contract position until January 2028.').duration,
+    'Term ending January 2028',
+  );
+  assert.equal(
+    extractPendingMetadata('Term role', 'This is a term position ending March 2027.').duration,
+    'Term ending March 2027',
+  );
+  assert.equal(
+    extractPendingMetadata('Contradictory role', 'This fixed-term contract has an anticipated start date in August 2026, concluding in January 2026.').duration,
+    null,
+  );
 });

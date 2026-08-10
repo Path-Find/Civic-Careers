@@ -36,6 +36,7 @@ test('date ranges normalize to ISO', () => {
   assert.equal(normalizeDuration('September 1, 2026 to December 31, 2026'), '2026-09-01 to 2026-12-31');
   assert.equal(normalizeDuration('September 01, 2026 to December 31, 2026'), '2026-09-01 to 2026-12-31');
   assert.equal(normalizeDuration('09-08-2026 to 04-30-2027'), '2026-09-08 to 2027-04-30');
+  assert.equal(normalizeDuration('10/08/2026 to 29/04/2027'), '2026-08-10 to 2027-04-29');
   assert.equal(normalizeDuration('2026-09-01 to 2026-12-31'), '2026-09-01 to 2026-12-31');
   assert.equal(normalizeDuration('September 1, 2026 - December 31, 2026'), '2026-09-01 to 2026-12-31');
   assert.equal(normalizeDuration('September - December 2026'), '2026-09-01 to 2026-12-31');
@@ -46,6 +47,8 @@ test('end dates normalize without becoming application deadlines', () => {
   assert.equal(normalizeDuration('Job End Date July 26, 2027'), 'Term ending 2027-07-26');
   assert.equal(normalizeDuration('expected end date Sept 27, 2027'), 'Term ending 2027-09-27');
   assert.equal(normalizeDuration('End Date 31 December 2028'), 'Term ending 2028-12-31');
+  assert.equal(normalizeDuration('septembre 01, 2026 to décembre 31, 2026'), '2026-09-01 to 2026-12-31');
+  assert.equal(normalizeDuration('Term ending March 2027'), 'Term ending March 2027');
 });
 
 test('academic terms compact', () => {

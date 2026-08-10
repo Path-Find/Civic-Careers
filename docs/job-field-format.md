@@ -61,7 +61,7 @@ not invent a taxonomy or turn a generic duty into a requirement:
 | `salary_range` | Normalized human-readable fallback matching the numeric fields | Keep consistent with min/max/period; do not use it instead of the numeric fields |
 | `work_model` | One of `On-site`, `Hybrid`, or `Remote` | Choose an existing value; do not infer remote status from a location |
 | `employment_type` | One of `Full-time`, `Part-time`, `Contract`, `Permanent`, `Occasional`, or `Seasonal` | Choose an existing value; temporary/term/casual source wording maps to `Contract` |
-| `duration` | Canonical value: `Permanent`, `Ongoing`, `Seasonal`, `Term`, `Term ending YYYY-MM-DD`, `N months`, `N years`, `Up to N months`, `N-month work year`, an academic term, or `YYYY-MM-DD to YYYY-MM-DD` | Contract/assignment term or date range; the UI displays this as `Term`; do not use for application closing dates |
+| `duration` | Canonical value: `Permanent`, `Ongoing`, `Seasonal`, `Term`, `Term ending YYYY-MM-DD`, `Term ending Month YYYY` when the source provides only the end month, `N months`, `N years`, `Up to N months`, `N-month work year`, an academic term, or `YYYY-MM-DD to YYYY-MM-DD` | Contract/assignment term or date range; the UI displays this as `Term`; do not use for application closing dates |
 | `start_date` | `YYYY-MM-DD` when exact; otherwise short source-backed text such as `Fall 2026` or `Immediate` | Expected start date only |
 | `closing_date` | `YYYY-MM-DD` | Application deadline (`Apply By`); never confuse with the job's end date |
 | `posted_at` | `YYYY-MM-DD` | Original publication date when known; not the scrape date |

@@ -25,7 +25,23 @@ const MONTHS: Record<string, number> = {
   october: 10, oct: 10,
   november: 11, nov: 11,
   december: 12, dec: 12,
+  janvier: 1,
+  février: 2, fevrier: 2,
+  mars: 3,
+  avril: 4,
+  mai: 5,
+  juin: 6,
+  juillet: 7,
+  août: 8, aout: 8,
+  septembre: 9,
+  octobre: 10,
+  novembre: 11,
+  décembre: 12, decembre: 12,
 };
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
@@ -40,7 +56,7 @@ function iso(y: number, m: number, d: number): string | null {
 }
 
 /** Parse a single date token into YYYY-MM-DD */
-function parseOneDate(raw: string): string | null {
+function parseOneDate(raw: string, dayFirst = false): string | null {
   const s = raw.trim();
   if (!s) return null;
 
@@ -54,17 +70,22 @@ function parseOneDate(raw: string): string | null {
 
   // MM-DD-YYYY or MM/DD/YYYY
   m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
-  if (m) return iso(+m[3], +m[1], +m[2]);
+  if (m) {
+    const first = +m[1];
+    const second = +m[2];
+    if (dayFirst || first > 12) return iso(+m[3], second, first);
+    return iso(+m[3], first, second);
+  }
 
   // Month D, YYYY / Month D YYYY
-  m = s.match(/^([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/);
+  m = s.match(/^([A-Za-zÀ-ÿ]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/);
   if (m) {
     const mon = MONTHS[m[1].toLowerCase()];
     if (mon) return iso(+m[3], mon, +m[2]);
   }
 
   // D Month YYYY
-  m = s.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+),?\s+(\d{4})$/);
+  m = s.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-zÀ-ÿ]+),?\s+(\d{4})$/);
   if (m) {
     const mon = MONTHS[m[2].toLowerCase()];
     if (mon) return iso(+m[3], mon, +m[1]);
@@ -92,14 +113,17 @@ function extractDateRange(text: string): string | null {
     /(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})\s*(?:to|-|–|—|through|until)\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})/i,
   );
   if (m) {
-    const a = parseOneDate(m[1]);
-    const b = parseOneDate(m[2]);
+    const first = Number(m[1].split(/[-\/]/)[0]);
+    const second = Number(m[2].split(/[-\/]/)[0]);
+    const dayFirst = first > 12 || second > 12;
+    const a = parseOneDate(m[1], dayFirst);
+    const b = parseOneDate(m[2], dayFirst);
     if (a && b) return `${a} to ${b}`;
   }
 
   // Month D, YYYY to Month D, YYYY
   m = s.match(
-    /([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})\s*(?:to|-|–|—|through|until)\s*([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})/i,
+    /([A-Za-zÀ-ÿ]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})\s*(?:to|-|–|—|through|until)\s*([A-Za-zÀ-ÿ]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})/i,
   );
   if (m) {
     const a = parseOneDate(m[1]);
@@ -109,7 +133,7 @@ function extractDateRange(text: string): string | null {
 
   // Month - Month YYYY (same year): September - December 2026
   m = s.match(
-    /\b([A-Za-z]+)\s*[-–—]\s*([A-Za-z]+)\s+(\d{4})\b/i,
+    /\b([A-Za-zÀ-ÿ]+)\s*[-–—]\s*([A-Za-zÀ-ÿ]+)\s+(\d{4})\b/i,
   );
   if (m) {
     const m1 = MONTHS[m[1].toLowerCase()];
@@ -125,7 +149,7 @@ function extractDateRange(text: string): string | null {
 
   // Month YYYY to Month YYYY
   m = s.match(
-    /\b([A-Za-z]+)\s+(\d{4})\s*(?:to|-|–|—)\s*([A-Za-z]+)\s+(\d{4})\b/i,
+    /\b([A-Za-zÀ-ÿ]+)\s+(\d{4})\s*(?:to|-|–|—)\s*([A-Za-zÀ-ÿ]+)\s+(\d{4})\b/i,
   );
   if (m) {
     const m1 = MONTHS[m[1].toLowerCase()];
@@ -182,7 +206,7 @@ function extractLength(text: string): string | null {
 
 function extractEndDate(text: string): string | null {
   const date = text.match(
-    /\b(?:job\s+)?end\s+date\s*:?\s*((?:\d{4}[-/]\d{1,2}[-/]\d{1,2})|(?:\d{1,2}[-/]\d{1,2}[-/]\d{4})|(?:[A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})|(?:\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+,?\s+\d{4}))/i,
+    /\b(?:job\s+)?end\s+date\s*:?\s*((?:\d{4}[-/]\d{1,2}[-/]\d{1,2})|(?:\d{1,2}[-/]\d{1,2}[-/]\d{4})|(?:[A-Za-zÀ-ÿ]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})|(?:\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-zÀ-ÿ]+,?\s+\d{4}))/i,
   );
   const parsed = date ? parseOneDate(date[1]) : null;
   return parsed ? `Term ending ${parsed}` : null;
@@ -264,6 +288,11 @@ export function normalizeDuration(raw: string | null | undefined): string {
   if (/^\d{1,2}-month work year$/i.test(s)) return s.toLowerCase().replace(/^(\d+)/, (_, n) => n).replace('month', 'month');
   if (/^\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/.test(s)) return s;
   if (/^Term ending \d{4}-\d{2}-\d{2}$/i.test(s)) return `Term ending ${s.slice(-10)}`;
+  const monthEnd = s.match(/^Term ending\s+([A-Za-zÀ-ÿ]+)\s+(20\d{2})$/i);
+  if (monthEnd) {
+    const month = MONTHS[monthEnd[1].toLowerCase()];
+    if (month) return `Term ending ${MONTH_NAMES[month - 1]} ${monthEnd[2]}`;
+  }
 
   // Date range wins when present (most informative for term posts)
   const range = extractDateRange(s);
