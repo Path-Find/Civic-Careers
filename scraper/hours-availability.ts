@@ -107,6 +107,8 @@ export function normalizeAvailability(raw: string | null | undefined): string {
 
   // Employment fluff is not availability
   if (/^(full[-\s]?time|part[-\s]?time)(\s+term)?$/i.test(s)) return '';
+  // A leftover qualifier from a workload sentence is not a schedule.
+  if (/^(?:a\s+)?(?:minimum|maximum)\s+of$/i.test(s)) return '';
   // Number/credit fragments leftover from hours splits
   if (/^[\d.\s()]+$/.test(s)) return '';
   if (/^\(?\d+\s*credits?\)?$/i.test(s)) return '';

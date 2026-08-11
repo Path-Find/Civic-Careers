@@ -4,6 +4,21 @@ What makes a job listing correct in this database. Use this to review any listin
 
 A listing fails review if it violates any of these. "Looks basically right" is not a pass — check every rule.
 
+## Reference contract and audit
+
+Use [`docs/job-field-format.md`](docs/job-field-format.md) for the complete
+field contract, controlled vocabularies, date rules, and Academic role card
+mapping. To check the live database for values outside that contract, run the
+read-only report from `scraper/`:
+
+```sh
+npm run report:structured-values
+```
+
+Use `--json` for machine-readable output, `--include-inactive` to include
+inactive parsed jobs, or `--fail-on-invalid` when the report should return a
+failure status if it finds an issue.
+
 ## 0. One fact, one spelling
 
 When a structured field has a canonical form, every listing uses that form — same token, same casing. Do not leave free-text variants that mean the same thing (`Toronto` vs `Toronto, ON` vs `Toronto, Ontario, Canada`; `English Essential` vs `English`).

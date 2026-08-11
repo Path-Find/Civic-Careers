@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PDF postings no longer rely on fragile text extraction** — listings keep their original PDF link and show a clear details-pending state instead of risking misleading parsed content.
 - **Pending details no longer look like a job-list warning** — the list badge is gone, while the job page shows a neutral details-pending card and recruitment/student labels use the standard grey treatment.
 - **Pending listings can retain source application deadlines** — explicit last-apply dates from source closing, apply-by, and apply-before labels now show in Apply By without removing the details-pending state.
+- **Availability no longer shows workload fragments** — parser cleanup keeps phrases such as “minimum of” out of schedule metadata.
 
 ## [1.9.10] - 2026-08-10
 

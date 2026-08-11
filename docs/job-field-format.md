@@ -27,6 +27,9 @@ complete current vocabulary:
 - `employment_type`: `Full-time`, `Part-time`, `Contract`, `Permanent`,
   `Occasional`, `Seasonal`
 - `listing_type`: `regular`, `ongoing_recruitment`, `inventory`
+- `academic_role_type`: `faculty`, `teaching_assistant`,
+  `research_assistant`, `research_associate`, `postdoctoral`,
+  `academic_instructor`, `course_staff`
 - Boolean fields: `is_inventory`, `is_student`, `vehicle_required`, and
   `security_check_required` use `0`, `1`, or empty when genuinely unknown;
   `is_unionized` also uses `0`, `1`, or empty when unknown
@@ -39,6 +42,19 @@ complete current vocabulary:
 When a source phrase does not exactly match a controlled value, map it to the
 closest existing value according to the parser rules. If no value applies,
 leave the field empty rather than adding a new category.
+
+To check the live database for values that escaped this contract, run the
+read-only structured-value report from `scraper/`:
+
+```sh
+npm run report:structured-values
+```
+
+Use `--json` for machine-readable output, `--include-inactive` to include
+inactive parsed rows, or `--fail-on-invalid` for a check that should fail when
+the report finds an issue. Free-text fields such as `availability`, `duration`,
+and `location` are not treated as closed vocabularies; the report only flags
+known placeholder fragments in those fields.
 
 The JSON-array properties below are evidence-backed lists, not open-ended
 categories. Add a short item only when the source explicitly supports it; do
@@ -67,7 +83,7 @@ not invent a taxonomy or turn a generic duty into a requirement:
 | `posted_at` | `YYYY-MM-DD` | Original publication date when known; not the scrape date |
 | `hours` | Short schedule quantity such as `35 hours per week` | Hours or FTE; not days of availability |
 | `availability` | Short schedule qualifier such as `2 days per week`, `Weekends`, or `Shift work` | Days, shifts, weekends, evenings, or other availability requirements |
-| `academic_role_type` | `faculty`, `teaching_assistant`, `research_assistant`, `postdoctoral`, `academic_instructor`, `course_staff`, or empty | Clearly academic appointments only; do not classify a university employer's administrative job or a municipal recreation instructor |
+| `academic_role_type` | `faculty`, `teaching_assistant`, `research_assistant`, `research_associate`, `postdoctoral`, `academic_instructor`, `course_staff`, or empty | Clearly academic appointments only; do not classify a university employer's administrative job or a municipal recreation instructor |
 | `academic_course` | Short course code and/or title, or empty | Course attached to the academic role; do not infer one from the employer |
 | `academic_workload` | Short source-backed amount such as `65 total hours`, `3 hours per week`, or `0.5 FTE`, or empty | Academic workload or appointment amount; not a generic schedule restatement |
 | `academic_office_hours` | Short source-backed office, consultation, lab, or student-contact hours, or empty | Explicit academic contact-hour requirement; do not infer it from teaching duties |
@@ -92,6 +108,22 @@ not invent a taxonomy or turn a generic duty into a requirement:
 | `responsibility_tags` | JSON array using only the responsibility labels listed above | High-level summary of duties; do not add new labels ad hoc |
 | `qualification_tags` | JSON array using only the qualification labels listed above | High-level summary of qualifications; do not use it as a substitute for requirements |
 | `description` | Markdown with only genuinely additional narrative | `## Overview`, `## Responsibilities`, and `## Qualifications` as needed; no repeated location, pay, dates, employment type, duration, hours, availability, or structured requirements |
+
+## Academic role card
+
+When `academic_role_type` is present, the detail page shows an **Academic
+role** card. It is a presentation layer over the same source-backed fields; it
+does not create a second copy of the job data.
+
+- `academic_role_type` supplies the role label.
+- `academic_course` appears as **Course / project**.
+- `academic_workload` appears as **Workload**. If it is empty, the card may
+  use the general `hours` value as the workload fallback.
+- `academic_office_hours`, `academic_appointment_type`, and
+  `academic_supervisor` appear under their matching labels when present.
+- Salary, employment type, term, start date, availability, and other general
+  metadata remain in their normal sections. Do not move a fact into an
+  academic field just because the employer is a university.
 
 ## Date and end-date rule
 

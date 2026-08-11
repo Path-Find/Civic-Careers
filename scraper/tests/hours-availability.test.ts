@@ -31,6 +31,7 @@ test('normalizeAvailability maps schedule tags', () => {
   assert.equal(normalizeAvailability('Shift work / variable hours'), 'Shift work; Variable');
   assert.equal(normalizeAvailability('Flex hours including days, evenings and weekends'), 'Evenings; Weekends; Flexible');
   assert.equal(normalizeAvailability('Full-time term'), '');
+  assert.equal(normalizeAvailability('minimum of'), '');
   assert.equal(normalizeAvailability('36.'), '');
   assert.equal(normalizeAvailability('(3 credits)'), '');
   assert.equal(normalizeAvailability('Weekdays, evenings, weekends, and holidays'), 'Evenings; Weekends; Weekdays; Holidays');
