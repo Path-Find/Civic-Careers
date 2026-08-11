@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractNanaimoJobs, extractPhenomJobs, extractStLawrenceJobs, shouldScrapeGovernmentOfCanadaListing } from '../engines/custom';
+import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractNanaimoJobs, extractPeterboroughJobs, extractPhenomJobs, extractStLawrenceJobs, isPeterboroughUnavailablePage, shouldScrapeGovernmentOfCanadaListing } from '../engines/custom';
 import { APPLICATION_URL_FIXES, EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES, isRetiredGovernmentOfCanadaPage } from '../source-fixes';
 
 test('ignores the Government of Canada candidate profile page as a job', () => {
@@ -85,6 +85,31 @@ test('extracts custom HTML job links while ignoring category and apply links', (
     title: 'Invigilator (26-26)',
     url: 'https://www.northerncollege.ca/careers/jobs/invigilator-26-26/',
   }]);
+});
+
+test('extracts Peterborough SAP jobs embedded in the municipal careers page', () => {
+  const html = `<a href="https://career17.sapsf.com/sfcareer/jobreqcareer?jobId=156&amp;company=thecorpo01?jobId=156&amp;company=thecorpo01">Library Page</a>
+    <a href="https://career17.sapsf.com/sfcareer/jobreqcareer?jobId=155&amp;company=thecorpo01">PW Mechanic</a>
+    <a href="/council-city-hall/careers/hiring-process/aqua-fitness-instructors-candidate-pool">Candidate Pool</a>
+    <a href="https://career17.sapsf.com/sfcareer/jobreqcareer?jobId=155&amp;company=thecorpo01">Duplicate</a>`;
+
+  assert.deepEqual(extractPeterboroughJobs(html, 'https://www.peterborough.ca/council-city-hall/careers'), [
+    {
+      id: 'peterborough_156',
+      title: 'Library Page',
+      url: 'https://career17.sapsf.com/sfcareer/jobreqcareer?jobId=156&company=thecorpo01',
+    },
+    {
+      id: 'peterborough_155',
+      title: 'PW Mechanic',
+      url: 'https://career17.sapsf.com/sfcareer/jobreqcareer?jobId=155&company=thecorpo01',
+    },
+  ]);
+});
+
+test('retires Peterborough links whose SAP detail page is an application error', () => {
+  assert.equal(isPeterboroughUnavailablePage('Application Error\nAn application error occurred. Please try again later.'), true);
+  assert.equal(isPeterboroughUnavailablePage('Job Title\nP.W. Mechanic\nJob Description\nRepair municipal equipment.'), false);
 });
 
 test('extracts stable Phenom job IDs and titles from rendered result links', () => {

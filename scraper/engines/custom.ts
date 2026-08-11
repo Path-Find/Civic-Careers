@@ -411,7 +411,6 @@ export async function scrapePeterborough(db: Client, context: BrowserContext) {
   const sourceName = 'City of Peterborough';
   const base = 'https://www.peterborough.ca';
   const careersPath = '/council-city-hall/careers';
-  const STATIC_SLUGS = ['', 'why-work-for-us', 'hiring-process', 'volunteering'];
 
   console.log(`Scraping ${sourceName}...`);
   const page = await context.newPage();
@@ -419,27 +418,11 @@ export async function scrapePeterborough(db: Client, context: BrowserContext) {
     await safeGoto(page, `${base}${careersPath}`, 60000);
     await page.waitForTimeout(2000);
 
-    const jobUrls = await page.evaluate(({ careersPath, staticSlugs }) => {
-      const seen = new Set<string>();
-      return Array.from(document.querySelectorAll<HTMLAnchorElement>(`a[href*="${careersPath}/"]`))
-        .map(a => a.href)
-        .filter(href => {
-          try {
-            const path = new URL(href).pathname.replace(/\/$/, '');
-            const slug = path.replace(careersPath + '/', '').split('/')[0] || '';
-            if (!slug || staticSlugs.includes(slug)) return false;
-            if (slug.endsWith('-candidate-pool') || path.includes('/hiring-process/') || path.includes('/volunteering/')) return false;
-            if (seen.has(href)) return false;
-            seen.add(href);
-            return true;
-          } catch { return false; }
-        });
-    }, { careersPath, staticSlugs: STATIC_SLUGS });
+    const jobs = extractPeterboroughJobs(await page.content(), `${base}${careersPath}`);
 
-    console.log(`[${sourceName}] Found ${jobUrls.length} job pages`);
-    for (const url of jobUrls) {
-      const slug = new URL(url).pathname.replace(/\/$/, '').split('/').pop() || '';
-      await scrapeRawAndStage(db, context, { id: `peterborough_${slug}`, url }, sourceName);
+    console.log(`[${sourceName}] Found ${jobs.length} job pages`);
+    for (const job of jobs) {
+      await scrapeRawAndStage(db, context, { ...job, retiredPage: isPeterboroughUnavailablePage }, sourceName);
     }
     console.log(`\n[${sourceName}] Done.`);
   } catch (err: any) {
@@ -448,6 +431,36 @@ export async function scrapePeterborough(db: Client, context: BrowserContext) {
   } finally {
     await page.close();
   }
+}
+
+export type PeterboroughJob = { id: string; title: string; url: string };
+
+export function isPeterboroughUnavailablePage(rawText: string): boolean {
+  return /(?:application error|job .*?is no longer available|requested page .*?not available)/i.test(rawText);
+}
+
+export function extractPeterboroughJobs(html: string, portalUrl: string): PeterboroughJob[] {
+  const jobs: PeterboroughJob[] = [];
+  const seen = new Set<string>();
+  const anchorPattern = /<a\b[^>]*href=["']([^"']*\/sfcareer\/jobreqcareer[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+  for (const match of html.matchAll(anchorPattern)) {
+    const rawUrl = decodeHtmlEntities(match[1]);
+    const jobId = rawUrl.match(/[?&]jobId=(\d+)/i)?.[1];
+    const company = rawUrl.match(/[?&]company=([\w-]+)/i)?.[1];
+    if (!jobId || !company || seen.has(jobId)) continue;
+
+    const title = decodeHtmlEntities(
+      match[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    );
+    if (!title) continue;
+
+    const url = new URL(`/sfcareer/jobreqcareer?jobId=${jobId}&company=${company}`, new URL(rawUrl, portalUrl).origin).href;
+    seen.add(jobId);
+    jobs.push({ id: `peterborough_${jobId}`, title, url });
+  }
+
+  return jobs;
 }
 
 export async function scrapeVaughanPL(db: Client, context: BrowserContext) {
