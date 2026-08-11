@@ -4,6 +4,7 @@ export function HomeQuickFilters({
   locationTerm,
   closingSoonCount,
   newlyAddedCount,
+  nearMeCount,
   onClosingSoon,
   onNewlyAdded,
   onNearMe,
@@ -13,6 +14,7 @@ export function HomeQuickFilters({
   locationTerm: string;
   closingSoonCount?: number;
   newlyAddedCount?: number;
+  nearMeCount?: number | null;
   onClosingSoon: () => void;
   onNewlyAdded: () => void;
   onNearMe: () => void;
@@ -25,7 +27,7 @@ export function HomeQuickFilters({
       Added in last 7 days{newlyAddedCount !== undefined && <span className="list-sort-count"> ({newlyAddedCount.toLocaleString()})</span>}
     </button>
     <button className={locationTerm ? 'active' : ''} onClick={onNearMe}>
-      Near me{locationTerm && <span className="list-sort-count"> ({locationTerm})</span>}
+      Near me{nearMeCount !== undefined && nearMeCount !== null && <span className="list-sort-count"> ({nearMeCount.toLocaleString()})</span>}
     </button>
   </div>;
 }

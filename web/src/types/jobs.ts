@@ -71,6 +71,7 @@ export interface HomeData {
   availableJobCount: number;
   recentlyAddedCount: number;
   closingSoonCount: number;
+  nearMeCount: number | null;
   lastCheckedAt: string | null;
 }
 

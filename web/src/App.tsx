@@ -602,7 +602,7 @@ function App() {
           ) : currentView === 'home' ? (
             <section className="home-preview">
               <div className="home-preview-heading">
-                <HomeQuickFilters deadlineDays={deadlineDays} newlyAdded={newlyAdded} locationTerm={locationTerm} closingSoonCount={homeData?.closingSoonCount} newlyAddedCount={displayRecentlyAddedCount} onClosingSoon={() => applyClosingSoonSort(true)} onNewlyAdded={() => applyNewlyAddedSort(true)} onNearMe={requestNearMe} />
+                <HomeQuickFilters deadlineDays={deadlineDays} newlyAdded={newlyAdded} locationTerm={locationTerm} closingSoonCount={homeData?.closingSoonCount} newlyAddedCount={displayRecentlyAddedCount} nearMeCount={homeData?.nearMeCount} onClosingSoon={() => applyClosingSoonSort(true)} onNewlyAdded={() => applyNewlyAddedSort(true)} onNearMe={requestNearMe} />
                 <div className="home-stats" aria-label="Job totals">
                   <div className="home-stat-primary"><strong>{displayAvailableJobCount.toLocaleString()}</strong> jobs available</div>
                   <div><strong>+{displayRecentlyAddedCount.toLocaleString()}</strong> last 7 days</div>

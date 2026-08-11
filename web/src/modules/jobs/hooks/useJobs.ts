@@ -42,6 +42,15 @@ function appendServerFilters(params: URLSearchParams, filters: JobsListServerFil
   }
 }
 
+function savedNearCity(): string | null {
+  try {
+    const city = window.localStorage.getItem('civic-careers-near-city')?.trim();
+    return city || null;
+  } catch {
+    return null;
+  }
+}
+
 export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [homeData, setHomeData] = useState<HomeData | null>(null);
@@ -103,7 +112,12 @@ export function useJobs() {
       appendServerFilters(params, serverFiltersRef.current);
       endpoint = `${API}/api/jobs?${params}`;
     } else if (view) {
-      endpoint = `${API}/api/jobs?view=${view}`;
+      const params = new URLSearchParams({ view });
+      if (view === 'home') {
+        const city = savedNearCity();
+        if (city) params.set('location', city);
+      }
+      endpoint = `${API}/api/jobs?${params}`;
     } else {
       const params = new URLSearchParams({ view: 'jobs', limit: '50' });
       appendServerFilters(params, serverFiltersRef.current);

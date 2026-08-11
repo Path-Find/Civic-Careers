@@ -141,12 +141,21 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (view === 'home') {
+      const locationParam = parsed.searchParams.get('location')?.trim() || null;
       const activeJobWhere = `
         WHERE j.is_active = 1
           ${visiblePending}
           AND COALESCE(jd.is_inventory, 0) = 0
           AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))`;
-      const [recent, closingSoon, counts] = await Promise.all([
+      const nearbyCount = locationParam
+        ? db.execute({
+          sql: `SELECT COUNT(*) AS nearby_count ${jobJoins}
+            ${activeJobWhere}
+            AND LOWER(COALESCE(jd.location, '')) LIKE LOWER(?)`,
+          args: [`%${locationParam}%`],
+        })
+        : Promise.resolve({ rows: [] as Array<Record<string, unknown>> });
+      const [recent, closingSoon, counts, nearby] = await Promise.all([
         db.execute(`SELECT * FROM (SELECT ${jobColumns}, ${freshnessDate} AS freshness_date, ROW_NUMBER() OVER (PARTITION BY j.source ORDER BY ${freshnessDate} DESC, j.first_seen_at DESC) AS source_rank ${jobJoins} ${activeJobWhere}) recent_by_source WHERE source_rank = 1 ORDER BY freshness_date DESC LIMIT 10`),
         db.execute(`SELECT ${jobColumns} ${jobJoins}
           ${activeJobWhere}
@@ -160,6 +169,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
             AND substr(${closingDate}, 1, 10) <= date('now', '+14 days') THEN 1 ELSE 0 END) AS closing_soon_count,
           MAX(j.scraped_at) AS last_checked_at
           ${jobJoins} ${activeJobWhere}`),
+        nearbyCount,
       ]);
       const countRow = counts.rows[0] || {};
       res.setHeader('Cache-Control', PUBLIC_CACHE);
@@ -169,6 +179,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         availableJobCount: Number(countRow.available_job_count ?? 0),
         recentlyAddedCount: Number(countRow.recently_added_count ?? 0),
         closingSoonCount: Number(countRow.closing_soon_count ?? 0),
+        nearMeCount: locationParam ? Number(nearby.rows[0]?.nearby_count ?? 0) : null,
         lastCheckedAt: countRow.last_checked_at ?? null,
       }));
       return;
