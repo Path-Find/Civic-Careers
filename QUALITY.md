@@ -27,8 +27,8 @@ npm run backfill:tag-vocabulary -- --apply
 ```
 
 It keeps only the documented values, moves `Student` to
-`qualification_tags`, and does not rewrite dates, descriptions, or other job
-properties.
+`qualification_tags` only when `is_student = 1`, and does not rewrite dates,
+descriptions, or other job properties.
 
 ## 0. One fact, one spelling
 

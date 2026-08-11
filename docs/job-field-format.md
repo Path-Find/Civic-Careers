@@ -37,7 +37,9 @@ complete current vocabulary:
   evaluation`, `Client care`, `Operations & compliance`, `Research &
   improvement`, `Collaboration`, and `Equity & advocacy`
 - `qualification_tags`: choose from the same list plus `Student`; `Student`
-  is never a responsibility tag
+  is never a responsibility tag and means the source requires student
+  eligibility, not merely that the job involves teaching or supporting
+  students
 
 When a source phrase does not exactly match a controlled value, map it to the
 closest existing value according to the parser rules. If no value applies,

@@ -8,6 +8,7 @@ type Candidate = {
   id: string;
   source: string;
   title: string;
+  is_student: number | null;
   responsibility_tags: string;
   qualification_tags: string;
 };
@@ -37,7 +38,7 @@ function invalidTags(row: Candidate): string[] {
 
 async function loadCandidates(db: Awaited<ReturnType<typeof initDb>>): Promise<Candidate[]> {
   const result = await db.execute(`
-    SELECT j.id, j.source, jd.job_title AS title,
+    SELECT j.id, j.source, jd.job_title AS title, jd.is_student,
            jd.responsibility_tags, jd.qualification_tags
     FROM jobs j
     JOIN job_details jd ON jd.id = j.id
@@ -49,6 +50,7 @@ async function loadCandidates(db: Awaited<ReturnType<typeof initDb>>): Promise<C
     id: String(row.id),
     source: String(row.source ?? ''),
     title: String(row.title ?? ''),
+    is_student: row.is_student == null ? null : Number(row.is_student),
     responsibility_tags: String(row.responsibility_tags ?? '[]'),
     qualification_tags: String(row.qualification_tags ?? '[]'),
   })).filter(row => invalidTags(row).length > 0);
@@ -72,7 +74,7 @@ async function main(): Promise<void> {
     await Promise.all(batch.map(async row => {
       const responsibilityTags = [...new Set(parseTags(row.responsibility_tags).filter(tag => RESPONSIBILITY_TAGS.has(tag as never)))];
       const qualificationTags = [...new Set(parseTags(row.qualification_tags).filter(tag => QUALIFICATION_TAGS.has(tag as never)))];
-      if (parseTags(row.responsibility_tags).includes('Student') && !qualificationTags.includes('Student')) {
+      if (row.is_student === 1 && parseTags(row.responsibility_tags).includes('Student') && !qualificationTags.includes('Student')) {
         qualificationTags.push('Student');
       }
       await db.execute({
