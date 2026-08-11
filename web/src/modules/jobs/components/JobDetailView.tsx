@@ -120,7 +120,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Course / project', value: details.academicCourse },
     { label: 'Workload', value: details.academicWorkload || details.hours },
     { label: 'Office hours', value: details.academicOfficeHours },
-    { label: 'Appointment', value: details.academicAppointmentType },
+    { label: 'Appointment type', value: details.academicAppointmentType },
     { label: 'Supervisor', value: details.academicSupervisor },
   ].filter(item => item.value);
 

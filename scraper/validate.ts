@@ -5,6 +5,7 @@ import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
 import { normalizeBenefits, normalizeCertificationRequirements, normalizeEducationRequirements, normalizeExperienceRequirements, normalizeLanguageRequirements, normalizeProfessionalLicenseRequirements } from './requirements';
 import { normalizeJobTitle } from './title';
+import { normalizeAcademicAppointmentType, normalizeAcademicCourse, normalizeAcademicOfficeHours, normalizeAcademicSupervisor, normalizeAcademicWorkload } from './academic-context';
 
 function coerceString(v: unknown): string {
   if (typeof v === 'string') return v.trim();
@@ -407,11 +408,11 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     hours: normalizeOptionalText(o['hours']),
     availability: normalizeOptionalText(o['availability']),
     academic_role_type: normalizeAcademicRoleType(o['academic_role_type']),
-    academic_course: normalizeOptionalText(o['academic_course']),
-    academic_workload: normalizeOptionalText(o['academic_workload']),
-    academic_office_hours: normalizeOptionalText(o['academic_office_hours']),
-    academic_supervisor: normalizeOptionalText(o['academic_supervisor']),
-    academic_appointment_type: normalizeOptionalText(o['academic_appointment_type']),
+    academic_course: normalizeAcademicCourse(o['academic_course']),
+    academic_workload: normalizeAcademicWorkload(o['academic_workload']),
+    academic_office_hours: normalizeAcademicOfficeHours(o['academic_office_hours']),
+    academic_supervisor: normalizeAcademicSupervisor(o['academic_supervisor']),
+    academic_appointment_type: normalizeAcademicAppointmentType(o['academic_appointment_type']),
     ...normalizeUnionFields(o['union_name'], o['is_unionized']),
     is_student: coerceBool(o['is_student']),
     is_inventory: coerceBool(o['is_inventory']),

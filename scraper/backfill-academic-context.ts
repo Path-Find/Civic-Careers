@@ -10,6 +10,7 @@ import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import { normalizeAcademicRoleType } from './validate';
 import { splitHoursAndAvailability } from './hours-availability';
+import { normalizeAcademicAppointmentType, normalizeAcademicCourse, normalizeAcademicOfficeHours, normalizeAcademicSupervisor, normalizeAcademicWorkload } from './academic-context';
 
 dotenv.config({ quiet: true });
 
@@ -82,10 +83,6 @@ function sourceText(candidate: Candidate): string {
   return raw || candidate.description.trim();
 }
 
-function isGenericAppointmentType(value: string): boolean {
-  return /^(?:(?:full|part)[-\s]?time|temporary|contract|permanent|casual|seasonal|occasional|on[-\s]?call)(?:\s*,\s*(?:(?:full|part)[-\s]?time|temporary|contract|permanent|casual|seasonal|occasional|on[-\s]?call))*$/i.test(value);
-}
-
 function cleanAcademicHours(value: unknown): string {
   const raw = cleanText(value);
   if (!raw) return '';
@@ -103,26 +100,6 @@ function cleanAcademicAvailability(value: unknown): string {
   return /scheduled weekly hours|\bFTE\b|per course|hours?/i.test(normalized) ? '' : normalized;
 }
 
-function cleanAcademicWorkload(value: unknown): string {
-  const raw = cleanText(value);
-  if (!raw || isGenericAppointmentType(raw)) return '';
-  const fte = raw.match(/\b(?!0(?:\.0+)?\s*FTE\b)\d+(?:\.\d+)?\s*FTE\b/i)?.[0];
-  if (fte && /\bFTE\b/i.test(raw)) return fte.replace(/\s+/g, ' ');
-  const leadingHours = raw.match(/^(?:up to |approximately |about )?\d+(?:\.\d+)?\s*(?:hours?|hrs?)(?:\s*(?:per\s+(?:week|course|term)|\/\s*(?:week|course|term)|total))?/i)?.[0];
-  if (leadingHours) return leadingHours.trim();
-  return raw;
-}
-
-function cleanAcademicOfficeHours(value: unknown): string {
-  const raw = cleanText(value);
-  return /^(?:office|consultation|student[- ]contact) hours?$/i.test(raw) ? '' : raw;
-}
-
-function cleanAcademicAppointmentType(value: unknown): string {
-  const raw = cleanText(value);
-  return raw && !isGenericAppointmentType(raw) ? raw : '';
-}
-
 function extractAcademicCourse(title: string): string {
   return title.match(/\b(?!Fall\b|Winter\b|Spring\b|Summer\b)[A-Z]{2,8}(?:[- ]?)\d{3,4}[A-Z]?\b(?:\s*\([^)]{1,24}\))?/i)?.[0] ?? '';
 }
@@ -132,11 +109,11 @@ function normalizeContext(context: AcademicContext): AcademicContext {
     academic_role_type: normalizeAcademicRoleType(context.academic_role_type),
     hours: cleanAcademicHours(context.hours),
     availability: cleanAcademicAvailability(context.availability),
-    academic_course: cleanText(context.academic_course),
-    academic_workload: cleanAcademicWorkload(context.academic_workload),
-    academic_office_hours: cleanAcademicOfficeHours(context.academic_office_hours),
-    academic_supervisor: cleanText(context.academic_supervisor),
-    academic_appointment_type: cleanAcademicAppointmentType(context.academic_appointment_type),
+    academic_course: normalizeAcademicCourse(context.academic_course),
+    academic_workload: normalizeAcademicWorkload(context.academic_workload),
+    academic_office_hours: normalizeAcademicOfficeHours(context.academic_office_hours),
+    academic_supervisor: normalizeAcademicSupervisor(context.academic_supervisor),
+    academic_appointment_type: normalizeAcademicAppointmentType(context.academic_appointment_type),
   };
 }
 
@@ -286,9 +263,9 @@ async function sanitizeStoredContext(db: ReturnType<typeof createClient>) {
   for (const row of result.rows) {
     const hours = cleanAcademicHours(row.hours);
     const availability = cleanAcademicAvailability(row.availability);
-    const academic_workload = cleanAcademicWorkload(row.academic_workload);
-    const academic_office_hours = cleanAcademicOfficeHours(row.academic_office_hours);
-    const academic_appointment_type = cleanAcademicAppointmentType(row.academic_appointment_type);
+    const academic_workload = normalizeAcademicWorkload(row.academic_workload);
+    const academic_office_hours = normalizeAcademicOfficeHours(row.academic_office_hours);
+    const academic_appointment_type = normalizeAcademicAppointmentType(row.academic_appointment_type);
     const title = String(row.job_title ?? '');
     const academic_role_type = recreationalInstructorPattern.test(title)
       ? null
@@ -306,7 +283,7 @@ async function sanitizeStoredContext(db: ReturnType<typeof createClient>) {
       && row.academic_role_type === 'teaching_assistant'
       ? 'academic_instructor'
       : row.academic_role_type;
-    const storedCourse = cleanText(row.academic_course);
+    const storedCourse = normalizeAcademicCourse(row.academic_course);
     const academic_course = /^(?:Fall|Winter|Spring|Summer)\s+\d{4}$/i.test(storedCourse)
       ? extractAcademicCourse(String(row.job_title ?? ''))
       : storedCourse;
@@ -314,9 +291,9 @@ async function sanitizeStoredContext(db: ReturnType<typeof createClient>) {
       && academic_course === storedCourse
       && hours === cleanText(row.hours)
       && availability === cleanText(row.availability)
-      && academic_workload === cleanText(row.academic_workload)
-      && academic_office_hours === cleanText(row.academic_office_hours)
-      && academic_appointment_type === cleanText(row.academic_appointment_type)) continue;
+      && academic_workload === normalizeAcademicWorkload(row.academic_workload)
+      && academic_office_hours === normalizeAcademicOfficeHours(row.academic_office_hours)
+      && academic_appointment_type === normalizeAcademicAppointmentType(row.academic_appointment_type)) continue;
     await db.execute({
       sql: `UPDATE job_details SET academic_role_type = ?, academic_course = ?, hours = ?, availability = ?, academic_workload = ?, academic_office_hours = ?, academic_appointment_type = ? WHERE id = ?`,
       args: [academic_role_type || null, academic_course || null, hours || null, availability || null, academic_workload || null, academic_office_hours || null, academic_appointment_type || null, String(row.id)],

@@ -17,6 +17,68 @@ export function formatAcademicRole(value: AcademicRoleType | null | undefined): 
   return value ? ACADEMIC_ROLE_LABELS[value] : null;
 }
 
+const ACADEMIC_PLACEHOLDER = /^(?:n\/?a|none|null|not applicable|not specified|unknown)$/i;
+const GENERIC_APPOINTMENT = /^(?:(?:full|part)[- ]?time|temporary|contract|permanent|casual|seasonal|occasional|on[- ]?call)$/i;
+
+function cleanAcademicCardValue(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const normalized = value.replace(/\s+/g, ' ').replace(/[\u2013\u2014]/g, '-').trim();
+  return !normalized || ACADEMIC_PLACEHOLDER.test(normalized) ? null : normalized;
+}
+
+function stripAcademicCardLabel(value: string, labels: string): string {
+  return value.replace(new RegExp(`^(?:${labels})\\s*[:\\-]\\s*`, 'i'), '').trim();
+}
+
+function normalizeAcademicUnits(value: string): string {
+  return value
+    .replace(/\bhrs?\.?\b/gi, 'hours')
+    .replace(/\bper\s*(?:wk|wks)\b/gi, 'per week')
+    .replace(/\/\s*(?:wk|wks|week)\b/gi, ' per week')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function formatAcademicCourse(value: string | null): string | null {
+  const cleaned = cleanAcademicCardValue(value);
+  if (!cleaned) return null;
+  const normalized = stripAcademicCardLabel(cleaned, 'course(?:\\s*/\\s*project)?|course code(?:\\s*/\\s*title)?|project');
+  return /^(?:Fall|Winter|Spring|Summer)\s+\d{4}$/i.test(normalized) ? null : normalized || null;
+}
+
+function formatAcademicWorkload(value: string | null): string | null {
+  const cleaned = cleanAcademicCardValue(value);
+  if (!cleaned) return null;
+  const normalized = normalizeAcademicUnits(stripAcademicCardLabel(cleaned, 'academic workload|workload|appointment amount|appointment'))
+    .replace(/\b(\d+(?:\.\d+)?)\s*FTE\b/gi, '$1 FTE')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return !normalized || GENERIC_APPOINTMENT.test(normalized) ? null : normalized;
+}
+
+function formatAcademicOfficeHours(value: string | null): string | null {
+  const cleaned = cleanAcademicCardValue(value);
+  if (!cleaned) return null;
+  const normalized = normalizeAcademicUnits(stripAcademicCardLabel(cleaned, 'academic office hours|office hours|consultation hours|student[- ]contact hours|lab hours'));
+  return /^(?:office|consultation|student[- ]contact|lab) hours?$/i.test(normalized) ? null : normalized || null;
+}
+
+function formatAcademicSupervisor(value: string | null): string | null {
+  const cleaned = cleanAcademicCardValue(value);
+  if (!cleaned) return null;
+  return stripAcademicCardLabel(cleaned, 'academic supervisor|supervisor|principal investigator|PI|supervising (?:department|person)') || null;
+}
+
+function formatAcademicAppointmentType(value: string | null): string | null {
+  const cleaned = cleanAcademicCardValue(value);
+  if (!cleaned) return null;
+  const normalized = stripAcademicCardLabel(cleaned, 'academic appointment type|appointment type|appointment')
+    .replace(/\btenure\s*[- ]?\s*track\b/i, 'Tenure-track')
+    .replace(/\blimited\s*[- ]?\s*term\b/i, 'Limited-term')
+    .replace(/\bsessional(?:\s+faculty)?\b/i, 'Sessional');
+  return !normalized || GENERIC_APPOINTMENT.test(normalized) ? null : normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
 export function jobFreshnessTimestamp(job: Pick<Job, 'posted_at' | 'first_seen_at'>, now = Date.now()): number {
   const postedAt = job.posted_at ? Date.parse(`${job.posted_at.slice(0, 10)}T00:00:00Z`) : NaN;
   if (Number.isFinite(postedAt) && postedAt <= now) return postedAt;
@@ -289,11 +351,11 @@ export function parseJobDetails(job: Job): JobDetails {
     hours: job.hours || null,
     availability: job.availability || null,
     academicRole: formatAcademicRole(job.academic_role_type),
-    academicCourse: job.academic_course || null,
-    academicWorkload: job.academic_workload || null,
-    academicOfficeHours: job.academic_office_hours || null,
-    academicSupervisor: job.academic_supervisor || null,
-    academicAppointmentType: job.academic_appointment_type || null,
+    academicCourse: formatAcademicCourse(job.academic_course),
+    academicWorkload: formatAcademicWorkload(job.academic_workload) || formatAcademicWorkload(job.hours),
+    academicOfficeHours: formatAcademicOfficeHours(job.academic_office_hours),
+    academicSupervisor: formatAcademicSupervisor(job.academic_supervisor),
+    academicAppointmentType: formatAcademicAppointmentType(job.academic_appointment_type),
     union: formatUnionLabel(job.is_unionized, job.union_name),
     listingType: job.listing_type === 'ongoing_recruitment' ? 'Ongoing recruitment' : job.listing_type === 'inventory' || job.is_inventory === 1 ? 'Candidate inventory' : null,
     studentRequirement: job.is_student === 1 ? 'Yes' : null,

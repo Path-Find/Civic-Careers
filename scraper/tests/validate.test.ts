@@ -73,6 +73,24 @@ describe('validateParsedJob', () => {
     assert.equal(result?.availability, 'Evenings');
   });
 
+  it('normalizes every academic card property', () => {
+    const result = validateParsedJob({
+      ...BASE,
+      academic_role_type: 'TA',
+      academic_course: 'Course / project: SOC 490 – Community Research',
+      academic_workload: 'Workload: 65 hrs total',
+      academic_office_hours: 'Office hours: 3 hrs/wk',
+      academic_supervisor: 'PI: Dr. Jane Doe',
+      academic_appointment_type: 'Appointment type: tenure track',
+    });
+    assert.equal(result?.academic_role_type, 'teaching_assistant');
+    assert.equal(result?.academic_course, 'SOC 490 - Community Research');
+    assert.equal(result?.academic_workload, '65 hours total');
+    assert.equal(result?.academic_office_hours, '3 hours per week');
+    assert.equal(result?.academic_supervisor, 'Dr. Jane Doe');
+    assert.equal(result?.academic_appointment_type, 'Tenure-track');
+  });
+
   it('does not invent an academic role from unknown labels', () => {
     assert.equal(normalizeAcademicRoleType('university staff'), null);
     assert.equal(validateParsedJob({ ...BASE, academic_role_type: 'recreation instructor' })?.academic_role_type, null);
