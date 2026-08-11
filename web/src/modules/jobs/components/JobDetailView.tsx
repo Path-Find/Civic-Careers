@@ -146,7 +146,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           <h1 className="detail-title" title={job.job_title || undefined}>{job.job_title}</h1>
           {details.academicRole && <section className="detail-academic-card" aria-labelledby="academic-heading">
             <div className="detail-academic-header">
-              <h2 id="academic-heading" className="detail-academic-heading">Academic appointment</h2>
+              <h2 id="academic-heading" className="detail-academic-heading">Academic role</h2>
               <span className="detail-academic-role">{details.academicRole}</span>
             </div>
             {academicMetadata.length > 0 && <div className="detail-academic-grid">
