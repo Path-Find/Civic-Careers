@@ -61,6 +61,18 @@ const SOURCES = {
     scrapeNeogov(db, context, 'https://gjobs.neogov.ca/careers/cambriancollege', 'Cambrian College'),
   'City of Abbotsford': (db: Client, context: BrowserContext) =>
     scrapeNjoyn(db, context, 'https://abbotsford.njoyn.com/CL3/xweb/Xweb.asp?CLID=55227&page=joblisting', 'City of Abbotsford'),
+  'City of Burnaby': (db: Client, context: BrowserContext) =>
+    scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?org=CITYBURNABY&cws=37', 'City of Burnaby'),
+  'City of Delta': (db: Client, context: BrowserContext) =>
+    scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?org=XNZ8Q7&cws=37', 'City of Delta'),
+  'City of Richmond (BC)': (db: Client, context: BrowserContext) =>
+    scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=TRQS8M&cws=37', 'City of Richmond (BC)'),
+  'District of West Vancouver': (db: Client, context: BrowserContext) =>
+    scrapeTaleo(db, context, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=WESTVAN&cws=40', 'District of West Vancouver'),
+  'City of Kamloops': (db: Client, context: BrowserContext) =>
+    scrapeHRSmart(db, context, 'https://kamloops.hua.hrsmart.com/hr/ats/JobSearch/search', 'City of Kamloops'),
+  'City of Kelowna': (db: Client, context: BrowserContext) =>
+    scrapePeopleAdmin(db, context, 'https://careeropportunities.kelowna.ca/postings/search', 'City of Kelowna'),
   'Town of Newmarket': (db: Client, context: BrowserContext) =>
     scrapeHRSmart(db, context, 'https://newmarket.hua.hrsmart.com/hr/ats/JobSearch/viewAll', 'Town of Newmarket'),
   'County of Brant': (db: Client, context: BrowserContext) =>
@@ -149,6 +161,18 @@ const SOURCES = {
     scrapeSapWebDynpro(db, context, 'https://careers.hydro.mb.ca/sap/bc/webdynpro/sap/hrrcf_a_unreg_job_search', 'Manitoba Hydro'),
   'Government of Alberta': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/', 'Government of Alberta'),
+  'Canada Post': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://jobs.canadapost.ca/go/Canada-Post-All-Current-Opportunities/2319117/', 'Canada Post'),
+  'Bank of Canada': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://careers.bankofcanada.ca/go/All-Job-Opportunities/2400817/', 'Bank of Canada'),
+  ICBC: (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://careers.icbc.com/go/All-Current-Job-Opportunities/2681517/', 'ICBC'),
+  SaskPower: (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://jobs.saskpower.com/search/?q', 'SaskPower'),
+  SaskTel: (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://jobs.sasktel.com/go/Current-Opportunities/2684517/', 'SaskTel'),
+  'Government of Nova Scotia': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://jobs.novascotia.ca/go/All-Opportunities/502817/', 'Government of Nova Scotia'),
   'Ontario Energy Board': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://careers.oeb.ca/', 'Ontario Energy Board'),
   'City of Ottawa (Jobs2Web)': (db: Client, context: BrowserContext) =>

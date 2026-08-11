@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Trial source coverage expanded** — validated federal, crown, provincial, and British Columbia municipal job boards are now included in isolated recurring source checks before promotion.
 - **Homepage quick filters** — ending within 14 days, added in the last 7 days, and city-based Near me with browser-location permission and manual fallback.
 - **Academic appointment summaries** — professor, teaching assistant, research assistant, and related postings can show their course, workload, office hours, supervisor, and appointment type in a dedicated scan card.
 - **Existing academic listings are populated** — active academic postings now carry source-backed role and appointment context wherever the posting provides it.
