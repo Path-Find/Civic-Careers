@@ -10,24 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Trial source coverage expanded** — validated federal, crown, provincial, and British Columbia municipal job boards are now included in isolated recurring source checks before promotion.
 - **Homepage quick filters** — ending within 14 days, added in the last 7 days, and city-based Near me with browser-location permission, manual fallback, and a matching count when a city is already known.
-- **Academic appointment summaries** — professor, teaching assistant, research assistant, and related postings can show their course, workload, office hours, supervisor, and appointment type in a dedicated scan card.
-- **Existing academic listings are populated** — active academic postings now carry source-backed role and appointment context wherever the posting provides it.
-- **Academic coverage includes tutors and course support roles** — markers, lab demonstrators, tutors, abbreviated university sources, and research-assistant postings are included without misclassifying ordinary campus jobs.
-- **Academic appointment labels stay accurate** — recreational instructors are excluded and postdoctoral fellows use their specific role instead of the broader research-assistant label.
+- **Academic role coverage and context expanded** — faculty, teaching, research, tutor, and course-support postings now use source-backed role labels and consistent course, workload, office-hours, supervisor, and appointment context.
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
-- **Academic role coverage includes more appointment titles** — standalone faculty, instructional assistants, post-docs, demonstrators, and research associates now receive the appropriate appointment card label.
 
 ### Fixed
 - **PeopleSoft sources no longer save search shells as jobs** — default-search dialogs and redundant resubmissions no longer block or replace real detail-page captures.
-- **Pending deadline statuses cover more source formats** — ongoing, open-until-filled, blank, malformed, and punctuation-heavy closing fields no longer remain unclassified.
-- **Existing pending listings receive deadline statuses immediately** — the new deadline explanations no longer wait for the next scrape.
-- **Pending listings can distinguish missing application deadlines** — detail pages now say when a posting is open until filled or does not list a deadline.
-- **Compensation sections no longer repeat structured salary and schedule metadata** — job descriptions keep unique benefits while avoiding duplicate pay, hours, and term details.
+- **Pending listings now show accurate deadline status** — source dates, open-until-filled postings, missing deadlines, and malformed values are handled consistently for both new and existing listings.
+- **Compensation and schedule sections no longer repeat structured metadata** — job descriptions keep unique benefits without duplicating pay, hours, term, or workload details.
 - **PDF postings no longer rely on fragile text extraction** — listings keep their original PDF link and show a clear details-pending state instead of risking misleading parsed content.
 - **Pending details no longer look like a job-list warning** — the list badge is gone, while the job page shows a neutral details-pending card and recruitment/student labels use the standard grey treatment.
-- **Pending listings can retain source application deadlines** — explicit last-apply dates from source closing, apply-by, and apply-before labels now show in Apply By without removing the details-pending state.
-- **Availability no longer shows workload fragments** — parser cleanup keeps phrases such as “minimum of” out of schedule metadata.
-- **City of Peterborough postings are discovered from its embedded SAP board** — live municipal job links no longer disappear because they use external SuccessFactors URLs.
 
 ## [1.9.10] - 2026-08-10
 
