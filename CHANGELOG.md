@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PeopleSoft sources no longer save search shells as jobs** — default-search dialogs and redundant resubmissions no longer block or replace real detail-page captures.
 - **Pending listings now show accurate deadline status** — source dates, open-until-filled postings, missing deadlines, and malformed values are handled consistently for both new and existing listings.
 - **Compensation and schedule sections no longer repeat structured metadata** — job descriptions keep unique benefits without duplicating pay, hours, term, or workload details.
+- **SuccessFactors sources no longer stop after the tenth result page** — larger official boards can be trialled and captured across their full numbered result set.
 - **PDF postings no longer rely on fragile text extraction** — listings keep their original PDF link and show a clear details-pending state instead of risking misleading parsed content.
 - **Pending details no longer look like a job-list warning** — the list badge is gone, while the job page shows a neutral details-pending card and recruitment/student labels use the standard grey treatment.
 

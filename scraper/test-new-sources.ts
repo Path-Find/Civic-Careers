@@ -31,6 +31,7 @@ import { scrapeVipCloud } from './engines/vipcloud';
 import { scrapeWorkzoom } from './engines/workzoom';
 import { scrapeSapWebDynpro } from './engines/sap-webdynpro';
 import { scrapeAlongside } from './engines/alongside';
+import { scrapeSuccessFactors } from './engines/successfactors';
 import { scrapeBrassRing, scrapeCollingwood, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNanaimo, scrapeNipissing, scrapeNorthBay, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
@@ -192,6 +193,14 @@ const SOURCES = {
       'https://widget.alongside.com/widgets/jobs_widget/horizontal/247668/en',
       'https://widget.alongside.com/widgets/jobs_widget/horizontal/201305/en',
     ], "Saint Mary's University"),
+  'Shared Health Manitoba': (db: Client, context: BrowserContext) =>
+    scrapeSuccessFactors(
+      db,
+      context,
+      'https://careers.wrha.mb.ca/search/?createNewAlert=false&q=&locationsearch=&optionsFacetsDD_facility=&optionsFacetsDD_customfield2=',
+      'Shared Health Manitoba',
+      'https://careers.wrha.mb.ca',
+    ),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {

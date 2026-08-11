@@ -3,6 +3,19 @@ import { Client } from '@libsql/client';
 import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 import { LEGACY_JOB_IDS_BY_APPLICATION_URL } from '../source-fixes';
 
+export type SuccessFactorsPageLink = { title: string; href: string };
+
+export function getNextNumberedSuccessFactorsPage(
+  currentTitle: string,
+  links: SuccessFactorsPageLink[],
+  currentUrl: string,
+): string | null {
+  const currentNumber = Number(currentTitle.match(/\d+/)?.[0] || 1);
+  const nextTitle = `Page ${currentNumber + 1}`;
+  const next = links.find(link => link.title === nextTitle);
+  return next?.href && next.href !== currentUrl ? next.href : null;
+}
+
 export async function scrapeSuccessFactors(db: Client, context: BrowserContext, url: string, sourceName: string, baseUrl: string) {
   console.log(`Scraping ${sourceName} (SuccessFactors)...`);
   const page = await context.newPage();
@@ -45,8 +58,13 @@ export async function scrapeSuccessFactors(db: Client, context: BrowserContext, 
 
     let hasNextPage = true;
     let pageNum = 1;
+    const visitedPageUrls = new Set<string>();
 
     while (hasNextPage) {
+      const currentPageUrl = page.url();
+      if (visitedPageUrls.has(currentPageUrl)) break;
+      visitedPageUrls.add(currentPageUrl);
+
       console.log(`[${sourceName}] Page ${pageNum}...`);
       await page.waitForSelector('.job-row, .jobResultItem, .job-list-item, [role="listitem"], tr.data-row', { timeout: 15000 }).catch(() => {});
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -94,7 +112,7 @@ export async function scrapeSuccessFactors(db: Client, context: BrowserContext, 
           await nextBtn.click();
           await page.waitForTimeout(10000);
           pageNum++;
-          if (pageNum > 10) break;
+          if (pageNum > 100) break;
           continue;
         }
       }
@@ -103,19 +121,25 @@ export async function scrapeSuccessFactors(db: Client, context: BrowserContext, 
       // expose numbered pagination without a Next link. Follow the next
       // numbered page only, rather than the "Last Page" link, so page 2 does
       // not loop forever on its own URL.
-      const numberedNextHref = await page.evaluate(() => {
+      const numberedPage = await page.evaluate(() => {
         const currentTitle = document.querySelector('a.current-page')?.getAttribute('title') || '';
-        const currentNumber = Number(currentTitle.match(/\d+/)?.[0] || 1);
-        const nextTitle = `Page ${currentNumber + 1}`;
-        const next = Array.from(document.querySelectorAll('ul.pagination a[title^="Page "]'))
-          .find(link => link.getAttribute('title') === nextTitle) as HTMLAnchorElement | undefined;
-        return next?.href || null;
+        const links = Array.from(document.querySelectorAll('ul.pagination a[title^="Page "]'))
+          .map(link => ({
+            title: link.getAttribute('title') || '',
+            href: (link as HTMLAnchorElement).href,
+          }));
+        return { currentTitle, links };
       });
-      if (numberedNextHref && numberedNextHref !== page.url()) {
+      const numberedNextHref = getNextNumberedSuccessFactorsPage(
+        numberedPage.currentTitle,
+        numberedPage.links,
+        page.url(),
+      );
+      if (numberedNextHref) {
         await page.goto(numberedNextHref, { waitUntil: 'domcontentloaded', timeout: 60000 });
         await page.waitForTimeout(10000);
         pageNum++;
-        if (pageNum > 10) break;
+        if (pageNum > 100) break;
         continue;
       }
       hasNextPage = false;
