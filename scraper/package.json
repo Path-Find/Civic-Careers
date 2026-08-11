@@ -24,6 +24,7 @@
     "backfill-reactivate-open-jobs": "npx tsx backfill-reactivate-open-jobs.ts",
     "backfill-expired-jobs": "npx tsx backfill-expired-jobs.ts",
     "backfill-description-cleanup": "npx tsx backfill-description-cleanup.ts",
+    "backfill:tag-vocabulary": "npx tsx backfill-tag-vocabulary.ts",
     "report:structured-values": "npx tsx report-structured-values.ts",
     "backfill-locations": "npx tsx backfill-normalize-locations.ts",
     "mark-verified": "npx tsx mark-verified.ts",
