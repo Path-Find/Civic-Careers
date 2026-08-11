@@ -201,6 +201,10 @@ const SOURCES = {
       'Shared Health Manitoba',
       'https://careers.wrha.mb.ca',
     ),
+  'VIA TGF Inc.': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://carrieres-careers.altotrain.ca/search/', 'VIA TGF Inc.'),
+  'Toronto Hydro': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://jobs.torontohydro.com/search/', 'Toronto Hydro'),
 } satisfies Record<string, SourceRunner>;
 
 async function main() {
