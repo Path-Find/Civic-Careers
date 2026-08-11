@@ -17,8 +17,8 @@ export function JobRow({ job, onClick }: { job: Job; onClick: () => void }) {
       <div className="job-row-title">
         <span className="job-row-title-text" title={job.job_title || undefined}>{job.job_title}</span>
         {!job.is_active && <span className="job-badge job-badge-expired">Expired</span>}
-        {job.listing_type === 'ongoing_recruitment' && <span className="job-badge job-badge-ongoing">Ongoing recruitment</span>}
-        {(job.listing_type === 'inventory' || job.is_inventory === 1) && <span className="job-badge job-badge-inventory">Candidate inventory</span>}
+        {job.listing_type === 'ongoing_recruitment' && <span className="job-badge job-badge-status" data-status="ongoing-recruitment">Ongoing recruitment</span>}
+        {(job.listing_type === 'inventory' || job.is_inventory === 1) && <span className="job-badge job-badge-status" data-status="candidate-inventory">Candidate inventory</span>}
         {job.is_student === 1 && <span className="job-badge job-badge-student">Student/Co-op</span>}
       </div>
       <div className="job-row-meta">

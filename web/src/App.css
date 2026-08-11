@@ -21,8 +21,7 @@
 .job-row-title-text { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .job-badge { white-space: nowrap; font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.025em; font-weight: 800; }
 .job-badge-expired { background: #f1f5f9; color: #94a3b8; }
-.job-badge-inventory { background: #f0fdf4; color: #0ea5e9; border: 1px solid #bae6fd; }
-.job-badge-ongoing { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+.job-badge-status { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
 .job-badge-student { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
 .job-row-meta { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; color: #64748b; }
 .job-row-source { color: #0f172a; font-weight: 600; }
@@ -105,6 +104,15 @@
 .detail-source { color: #2563eb; font-size: 0.8125rem; font-weight: 700; cursor: pointer; }
 .detail-department { color: #64748b; font-size: 0.8125rem; font-weight: 700; }
 .detail-title { font-size: 2.5rem; font-weight: 800; margin: 0 0 1.5rem; letter-spacing: -0.04em; line-height: 1.1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
+.location-map-card { margin-bottom: 1.5rem; padding: 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
+.location-map-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.location-map-header h2 { margin: 0; color: #0f172a; font-size: 1rem; font-weight: 800; }
+.location-map-precision { border: 1px solid #cbd5e1; border-radius: 999px; padding: 0.25rem 0.55rem; color: #475569; background: white; font-size: 0.68rem; font-weight: 800; white-space: nowrap; }
+.location-map-precision-exact { border-color: #bbf7d0; color: #166534; background: #f0fdf4; }
+.location-map-precision-unavailable { border-color: #e2e8f0; color: #64748b; background: #f8fafc; }
+.location-map-value { margin: 0.75rem 0 0; color: #1e293b; font-size: 0.875rem; font-weight: 700; }
+.location-map-link { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.75rem; color: #2563eb; font-size: 0.75rem; font-weight: 700; text-decoration: none; }
+.location-map-note { margin: 0.65rem 0 0; color: #64748b; font-size: 0.7rem; line-height: 1.4; }
 .detail-academic-card { margin-bottom: 1.5rem; padding: 1.25rem; border: 1px solid #cbd5e1; border-radius: 12px; background: #f8fafc; }
 .detail-academic-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
 .detail-academic-heading { margin: 0; color: #0f172a; font-size: 1rem; font-weight: 800; }
@@ -142,6 +150,17 @@
 .company-sort-options { display: flex; gap: 0.75rem; }
 .company-sort-options button { border: 0; padding: 0; background: transparent; color: #64748b; font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 .company-sort-options button.active { color: #0f172a; }
+.company-page-header { margin-bottom: 1.5rem; padding: 1.25rem 1.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; }
+.company-page-title { margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+.company-page-portal { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.4rem; color: #2563eb; font-size: 0.8125rem; font-weight: 600; text-decoration: none; }
+.company-page-portal-missing { margin: 0.4rem 0 0; color: #94a3b8; font-size: 0.75rem; }
+.company-title-suggestions { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; }
+.company-title-suggestions-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.55rem; }
+.company-title-suggestions h3 { margin: 0; color: #64748b; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.company-title-clear { border: 0; padding: 0; background: transparent; color: #64748b; font: inherit; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+.company-title-options { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.company-title-option { border: 1px solid #e2e8f0; border-radius: 999px; padding: 0.3rem 0.55rem; background: white; color: #475569; font: inherit; font-size: 0.7rem; font-weight: 600; cursor: pointer; }
+.company-title-option:hover, .company-title-option.active { border-color: #0f172a; background: #0f172a; color: white; }
 .list-sort-options { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
 .list-heading-row { position: sticky; top: 0; z-index: 10; display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding: 0.75rem 0; background: white; flex-wrap: wrap; }
 .list-count-label { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }

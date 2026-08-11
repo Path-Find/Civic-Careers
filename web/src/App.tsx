@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { inject } from '@vercel/analytics';
 import { jobIdFromPath, jobRoute, slugify } from './utils';
 import type { Job, ListingTypeFilter, View } from './types/jobs';
-import { parseJobDetails } from './modules/jobs/jobUtils';
+import { normalizeJobTitle, parseJobDetails } from './modules/jobs/jobUtils';
 import { useJobs } from './modules/jobs/hooks/useJobs';
 import { useJobFilters } from './modules/jobs/hooks/useJobFilters';
 import { useRecentlyViewed } from './modules/jobs/hooks/useRecentlyViewed';
@@ -12,65 +12,12 @@ import { JobDetailView } from './modules/jobs/components/JobDetailView';
 import { HomeQuickFilters } from './modules/jobs/components/HomeQuickFilters';
 import { LocationPrompt } from './modules/jobs/components/LocationPrompt';
 import { CompanyDirectory } from './modules/jobs/components/CompanyDirectory';
+import { CompanyTitleSuggestions } from './modules/jobs/components/CompanyTitleSuggestions';
 import { CompanyFiltersSidebar } from './modules/jobs/components/CompanyFiltersSidebar';
 import { ListSortControls } from './modules/jobs/components/ListSortControls';
-import { companyTypes, type CompanyType } from './modules/jobs/companyTypes';
+import { companyPortal, companyTypes, type CompanyType } from './modules/jobs/companyTypes';
 
 import { Search, ExternalLink, X } from 'lucide-react';
-
-const COMPANY_PORTALS: Record<string, string> = {
-  'City of Toronto': 'https://jobs.toronto.ca/jobsatcity/',
-  'Government of Canada': 'https://www.canada.ca/en/public-service-commission/jobs/services/gc-jobs.html',
-  'CMHC': 'https://www.cmhc-schl.gc.ca/about-us/careers',
-  'University of Toronto': 'https://jobs.utoronto.ca/',
-  'Metrolinx': 'https://metrolinx.jibeapply.com/',
-  'City of Hamilton': 'https://www.hamilton.ca/city-careers',
-  'York Region': 'https://www.york.ca/careers',
-  'City of Barrie': 'https://www.barrie.ca/government-contact/careers',
-  'Brock University': 'https://brocku.wd3.myworkdayjobs.com/brocku_careers',
-  'University of Waterloo': 'https://uwaterloo.wd3.myworkdayjobs.com/uw_careers',
-  'York University': 'https://jobs-ca.technomedia.com/yorkuniversity/',
-  'University of Ottawa': 'https://uottawa.wd3.myworkdayjobs.com/en-US/uOttawa_External_Career_Site',
-  'TTC': 'https://www.ttc.ca/jobs',
-  'City of Richmond Hill': 'https://www.richmondhill.ca/en/find-or-learn-about/careers.aspx',
-  'Town of Milton': 'https://www.milton.ca/en/work-and-play/careers.aspx',
-  'Town of Caledon': 'https://www.caledon.ca/en/government/careers.aspx',
-  'City of Brantford': 'https://www.brantford.ca/en/your-government/careers.aspx',
-  'City of Waterloo': 'https://www.waterloo.ca/en/government/careers.aspx',
-  'City of Cambridge': 'https://www.cambridge.ca/en/your-government/careers.aspx',
-  'City of Burlington': 'https://www.burlington.ca/en/your-government/careers.aspx',
-  'City of Windsor': 'https://windsor.myrecruitmentplus.com/',
-  'City of St. Catharines': 'https://www.stcatharines.ca/en/government/careers.aspx',
-  'City of Thunder Bay': 'https://www.thunderbay.ca/en/city-hall/jobs.aspx',
-  'OCAD University': 'https://www.ocadu.ca/about/careers',
-  'Seneca College': 'https://www.senecacollege.ca/about/careers.html',
-  'Town of Oakville': 'https://www.oakville.ca/town-hall/careers/',
-  'Algonquin College': 'https://www.algonquincollege.com/hr/careers/',
-  'City of London': 'https://www.london.ca/careers',
-  'Town of Ajax': 'https://www.ajax.ca/en/inside-town-hall/careers.aspx',
-  'City of Peterborough': 'https://www.peterborough.ca/en/city-hall/careers.aspx',
-  'City of Niagara Falls': 'https://niagarafalls.ca/city-hall/human-resources/careers/',
-  'Town of Whitby': 'https://www.whitby.ca/en/work/careers.aspx',
-  'University of Windsor': 'https://www.uwindsor.ca/faculty/recruitment',
-  'CreateTO': 'https://createtg.ca/careers/',
-  'City of Welland': 'https://www.welland.ca/hr/jobs.asp',
-  'City of Belleville': 'https://www.belleville.ca/en/city-hall/careers.aspx',
-  'Waterfront Toronto': 'https://www.waterfrontoronto.ca/about-us/careers',
-  'Vaughan Public Library': 'https://www.vaughanpl.info/about/careers',
-  'Peel Region': 'https://www.peelregion.ca/jobs/',
-  'Durham Region': 'https://www.durham.ca/en/doing-business/careers.aspx',
-  'City of Kingston': 'https://www.cityofkingston.ca/city-hall/careers',
-  'City of Cornwall': 'https://www.cornwall.ca/en/play-here/careers.aspx',
-  'Town of Smiths Falls': 'https://www.smithsfalls.ca/en/town-hall/careers.aspx',
-  'City of Oshawa': 'https://www.oshawa.ca/en/city-hall/careers.aspx',
-  'City of Vaughan': 'https://www.vaughan.ca/about-city-vaughan/careers',
-  'City of Sarnia': 'https://www.sarnia.ca/living-here/careers/',
-  'City of St. Thomas': 'https://www.stthomas.ca/city_hall/human_resources/employment_opportunities',
-  'Region of Waterloo': 'https://www.regionofwaterloo.ca/en/regional-government/careers.aspx',
-  'Halton Region': 'https://www.halton.ca/about-halton/careers',
-  'Town of Halton Hills': 'https://www.haltonhills.ca/en/your-government/careers.aspx',
-  'Conservation Halton': 'https://www.conservationhalton.ca/careers/'
-};
 
 inject();
 
@@ -195,7 +142,7 @@ function replaceJobFiltersInUrl(state: JobUrlState) {
 }
 
 function App() {
-  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
+  const { jobs, homeData, companySummaries, companyTitleSuggestions, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -203,6 +150,7 @@ function App() {
   const [companySort, setCompanySort] = useState<'alphabetical' | 'mostJobs' | 'recent'>('alphabetical');
   const [companyStatus, setCompanyStatus] = useState<'hiring' | 'all'>('hiring');
   const [selectedCompanyTypes, setSelectedCompanyTypes] = useState<CompanyType[]>([]);
+  const [companyTitleFilter, setCompanyTitleFilter] = useState<string | null>(null);
   const [locationPromptOpen, setLocationPromptOpen] = useState(false);
   const [locationPromptCity, setLocationPromptCity] = useState(() => {
     try {
@@ -230,6 +178,12 @@ function App() {
   const lastCheckedAt = homeData?.lastCheckedAt ?? latestJobCheckedAt;
   // jobsSource is set by the scoped company-page API fetch — no need to mirror it into searchTerm.
   const isCompanyPage = currentView === 'jobs' && Boolean(jobsSource);
+  const companyTitleOptions = [...new Set(companyTitleSuggestions.map(normalizeJobTitle).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+    .slice(0, 20);
+  const companyFilteredJobs = isCompanyPage && companyTitleFilter
+    ? filteredJobs.filter(job => normalizeJobTitle(job.job_title) === companyTitleFilter)
+    : filteredJobs;
   // deadlineDays + newlyAdded are applied server-side (full corpus + accurate total).
   // Other filters still run client-side on loaded pages only.
   const hasClientOnlyFilters = Boolean(
@@ -241,12 +195,13 @@ function App() {
     || minSalary
     || showStudentJobs
     || listingTypeFilter
+    || companyTitleFilter
   );
   const hasJobFilters = hasClientOnlyFilters || deadlineDays !== null || newlyAdded;
   // Prefer API totals whenever no client-only filters are active (includes deadline / newly-added / company scope).
   const displayedJobCount = currentView === 'jobs' && !hasClientOnlyFilters
     ? jobsAvailableTotal
-    : filteredJobs.length;
+    : companyFilteredJobs.length;
 
   /** Keep useJobs server filter ref in sync, then optionally re-fetch the list. */
   const applyServerListFilters = (next: { deadlineDays: number | null; newlyAdded: boolean }, shouldRefresh: boolean) => {
@@ -326,6 +281,7 @@ function App() {
         setSelectedJob(null);
       } else if (path.startsWith('/companies/')) {
         setCurrentView('jobs');
+        setCompanyTitleFilter(null);
         setSelectedJob(null);
       } else if (path === '/companies') {
         setCurrentView('companies');
@@ -383,6 +339,7 @@ function App() {
   const handleNavigate = (view: View, companyFilter?: string) => {
     setCurrentView(view);
     setSelectedJob(null);
+    setCompanyTitleFilter(null);
     window.scrollTo(0, 0);
     if (companyFilter) {
       setSearchTerm(companyFilter);
@@ -471,7 +428,7 @@ function App() {
 
   const reset = () => {
     setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setSelectedLanguages([]); setVehicleRequired(false); setMinSalary(null); setDeadlineDays(null); setListingTypeFilter(null); setSortNewest(false); setNewlyAdded(false);
-    setLocationTerm(''); setShowStudentJobs(false); setSelectedCompanyTypes([]);
+    setLocationTerm(''); setShowStudentJobs(false); setSelectedCompanyTypes([]); setCompanyTitleFilter(null);
     setServerFilters({ deadlineDays: null, newlyAdded: false });
     window.history.pushState(null, '', '/');
     refresh();
@@ -654,27 +611,26 @@ function App() {
                   {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => applyMostRecentSort(false)} onClosingSoon={() => applyClosingSoonSort(false)} onNewlyAdded={() => applyNewlyAddedSort(false)} />}
                 </div>
                 {isCompanyPage && (
-                  <div style={{ marginBottom: '1.5rem', padding: '1.25rem 1.5rem', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="company-page-header">
                     <div>
-                      <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: '#0f172a' }}>{jobsSource}</h2>
-                      {jobsSource && COMPANY_PORTALS[jobsSource] && (
-                        <a 
-                          href={COMPANY_PORTALS[jobsSource]} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#2563eb', fontSize: '0.8125rem', fontWeight: 600, marginTop: '0.4rem', textDecoration: 'none' }}
-                        >
+                      <h2 className="company-page-title">{jobsSource}</h2>
+                      {jobsSource && companyPortal(jobsSource) ? <a className="company-page-portal" href={companyPortal(jobsSource)!} target="_blank" rel="noopener noreferrer">
                           <ExternalLink size={14} />
                           Visit Official Careers Site
-                        </a>
-                      )}
+                        </a> : <p className="company-page-portal-missing">Official careers link not recorded</p>}
                     </div>
+                    <CompanyTitleSuggestions
+                      titles={companyTitleOptions}
+                      selectedTitle={companyTitleFilter}
+                      onSelect={title => setCompanyTitleFilter(previous => previous === title ? null : title)}
+                      onClear={() => setCompanyTitleFilter(null)}
+                    />
                   </div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {(currentView === 'jobs' || currentView === 'saved') ? (
                     <>
-                      {filteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
+                      {companyFilteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
                       {currentView === 'saved' && <section className="recently-viewed-section">
                         <div className="recently-viewed-heading-row">
                           <h2 className="list-count-label recently-viewed-heading">Recently viewed</h2>

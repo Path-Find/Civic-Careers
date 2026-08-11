@@ -8,12 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Company pages now support maintained organization metadata and navigation** — source-backed organization types, official careers destinations, title suggestions, and location precision help people move from an employer to the right jobs and job board without inferred categories or addresses.
 - **Trial source coverage expanded** — validated federal, crown, provincial, and British Columbia municipal job boards are now included in isolated recurring source checks before promotion.
 - **Homepage quick filters** — ending within 14 days, added in the last 7 days, and city-based Near me with browser-location permission, manual fallback, and a matching count when a city is already known.
 - **Academic role coverage and context expanded** — faculty, teaching, research, tutor, and course-support postings now use source-backed role labels and consistent course, workload, office-hours, supervisor, and appointment context.
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Company-page status and location states are now consistent** — Candidate Inventory uses the shared status-pill treatment, while exact, area-only, and unavailable workplace locations are shown without implying a precise address where the source does not provide one.
 - **PeopleSoft sources no longer save search shells as jobs** — default-search dialogs and redundant resubmissions no longer block or replace real detail-page captures.
 - **Pending listings now show accurate deadline status** — source dates, open-until-filled postings, missing deadlines, and malformed values are handled consistently for both new and existing listings.
 - **Compensation and schedule sections no longer repeat structured metadata** — job descriptions keep unique benefits without duplicating pay, hours, term, or workload details.

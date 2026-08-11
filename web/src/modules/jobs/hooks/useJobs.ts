@@ -59,6 +59,7 @@ export function useJobs() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [jobsTotal, setJobsTotal] = useState(0);
   const [jobsAvailableTotal, setJobsAvailableTotal] = useState(0);
+  const [companyTitleSuggestions, setCompanyTitleSuggestions] = useState<string[]>([]);
   /** Exact source name when the jobs list is scoped to one employer (company page). */
   const [jobsSource, setJobsSource] = useState<string | null>(null);
   const loadingMoreRef = useRef(false);
@@ -131,6 +132,7 @@ export function useJobs() {
           const closingSoonJobs = data.closingSoonJobs.map(normalizeJob);
           setHomeData({ ...data, recentJobs, closingSoonJobs });
           setJobs([...recentJobs, ...closingSoonJobs]);
+          setCompanyTitleSuggestions([]);
           clearSourceScope();
           return;
         }
@@ -138,12 +140,14 @@ export function useJobs() {
         if (view === 'companies') {
           setCompanySummaries(data);
           setJobs([]);
+          setCompanyTitleSuggestions([]);
           clearSourceScope();
           return;
         }
 
         if (view === 'saved') {
           setJobs((Array.isArray(data) ? data : []).map(normalizeJob));
+          setCompanyTitleSuggestions([]);
           clearSourceScope();
           return;
         }
@@ -155,6 +159,7 @@ export function useJobs() {
           setJobs(job ? [job] : []);
           setJobsTotal(job ? 1 : 0);
           setJobsAvailableTotal(job?.is_active ? 1 : 0);
+          setCompanyTitleSuggestions([]);
           clearSourceScope();
           return;
         }
@@ -164,6 +169,7 @@ export function useJobs() {
         setJobs(list);
         setJobsTotal(Number(data.total ?? list.length));
         setJobsAvailableTotal(Number(data.availableTotal ?? data.total ?? list.length));
+        setCompanyTitleSuggestions(Array.isArray(data.titleSuggestions) ? data.titleSuggestions : []);
         setSourceScope(data.source ?? null);
       })
       .catch(error => console.error('Error fetching jobs:', error))
@@ -233,6 +239,7 @@ export function useJobs() {
     jobsTotal,
     jobsAvailableTotal,
     jobsSource,
+    companyTitleSuggestions,
     setServerFilters,
     loadMore,
     refresh,

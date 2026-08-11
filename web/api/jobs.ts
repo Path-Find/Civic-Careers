@@ -272,6 +272,21 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       const listArgs = [...filterArgs, limit, offset];
       const countArgs = [...filterArgs];
+      const titleSuggestions = sourceFilter
+        ? db.execute({
+          sql: `SELECT DISTINCT COALESCE(jd.job_title, raw.title) AS title
+            ${jobJoins}
+            WHERE j.source = ?
+              AND j.is_active = 1
+              ${visiblePending}
+              AND COALESCE(jd.is_inventory, 0) = 0
+              AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))
+              AND TRIM(COALESCE(jd.job_title, raw.title, '')) <> ''
+            ORDER BY title COLLATE NOCASE
+            LIMIT 50`,
+          args: [sourceFilter],
+        })
+        : Promise.resolve({ rows: [] as Array<Record<string, unknown>> });
       const [result, count] = await Promise.all([
         db.execute({
           sql: `SELECT ${jobColumns} ${jobJoins} ${activeJobWhere} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
@@ -291,6 +306,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         total: Number(count.rows[0]?.total ?? 0),
         availableTotal: Number(count.rows[0]?.available_total ?? 0),
         source: sourceFilter,
+        titleSuggestions: (await titleSuggestions).rows
+          .map(row => String(row.title ?? '').trim())
+          .filter(Boolean),
       }));
       return;
     }

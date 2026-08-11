@@ -445,6 +445,36 @@ export function normalizeDepartment(value: string | null | undefined): string {
   return cleaned;
 }
 
+export function normalizeJobTitle(value: string | null | undefined): string {
+  return fixCasing((value || '')
+    .replace(/^Available Position:\s+/i, '')
+    .replace(/\(\d+\)\s*$/, '')
+    .replace(/\d+$/, '')
+    .replace(/ -([A-Z])/, ' - $1')
+    .trim());
+}
+
+export type LocationPrecision = 'exact' | 'approximate' | 'unavailable';
+
+export function classifyJobLocation(value: string | null | undefined): {
+  precision: LocationPrecision;
+  label: string;
+  mapQuery: string | null;
+} {
+  const location = (value || '').replace(/\s+/g, ' ').trim();
+  if (!location || /\b(?:remote|work from home|various locations|multiple locations|province[- ]wide|all locations)\b/i.test(location)) {
+    return { precision: 'unavailable', label: 'No fixed location', mapQuery: null };
+  }
+
+  const hasStreetAddress = /\b\d{1,6}[A-Za-z]?(?:[-/]\d{1,6})?\s+[\w.'’-]+(?:\s+[\w.'’-]+){0,5}\s+(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|way|parkway|pkwy|place|pl|court|ct|crescent|cres|highway|hwy)\b/i.test(location);
+  const precision = hasStreetAddress ? 'exact' : 'approximate';
+  return {
+    precision,
+    label: hasStreetAddress ? 'Specific address' : 'Area only',
+    mapQuery: location,
+  };
+}
+
 export function normalizeJob(job: Job): Job {
   const normalizeLocation = (value: string | null): string => {
     if (!value) return '';
@@ -454,12 +484,7 @@ export function normalizeJob(job: Job): Job {
   };
   return {
     ...job,
-    job_title: fixCasing((job.job_title || '')
-      .replace(/^Available Position:\s+/i, '')
-      .replace(/\(\d+\)\s*$/, '')
-      .replace(/\d+$/, '')
-      .replace(/ -([A-Z])/, ' - $1')
-      .trim()),
+    job_title: normalizeJobTitle(job.job_title),
     location: normalizeLocation(job.location),
     department: normalizeDepartment(job.department),
     closing_date: (job.closing_date || '').replace(/Posted on\s+/i, '').trim(),
