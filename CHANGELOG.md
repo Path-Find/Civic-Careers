@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Jobs can now be filtered and shared by exact employer and source-backed education** — employer, degree level, and education-field selections stay in the URL and apply across the full catalogue.
+- **Job and results links can be copied directly** — shared URLs reopen the same posting or filter state without relying on local browser data.
+- **Active job filters now explain themselves** — a deterministic summary states the selected criteria in plain language.
 - **Location filters now support multiple cities** — enter comma-separated locations to combine matches while keeping the filtered result count and shareable URL in sync.
 - **Company pages now support maintained organization metadata and navigation** — grouped employers such as the City of Ottawa can show child organizations like OC Transpo and their official job links without duplicating jobs or inferring relationships from titles.
 - **Trial source coverage expanded** — validated federal, crown, provincial, and British Columbia municipal job boards are now included in isolated recurring source checks before promotion.
@@ -16,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Jobs filters now work on narrow screens** — the filter controls remain reachable without forcing a second scrolling panel, and Saved clearly keeps its filters separate from Recently viewed.
 - **Conservation Halton pending listings now stay visible before full parsing** — source titles are recovered from the posting text so valid jobs keep their Details pending state.
 - **Academic job titles no longer repeat parenthetical union markers** — bargaining-unit details stay available in the structured Union field instead of cluttering titles.
 - **Pending listings now expose source-backed status metadata** — hiring pools, candidate inventories, fixed-term postings, and deadline states remain visible before full details are parsed.

@@ -3,6 +3,7 @@ import { useState, type MouseEvent } from 'react';
 import { compactOverview, formatDate, getQuickScanLabels, isPlaceholderSection, isRedundantCompensation, parseMarkdownSections, reclassifyMandatoryNiceToHave, renderMarkdown } from '../../../utils';
 import { parseTagList } from '../jobUtils';
 import { JobLocationMap } from './JobLocationMap';
+import { CopyLinkButton } from './CopyLinkButton';
 import type { Job, JobDetails, View } from '../../../types/jobs';
 
 const REPORT_REASONS = [
@@ -146,6 +147,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           <a className="detail-action apply-button" href={job.url} target="_blank" rel="noopener noreferrer" onClick={recordApplyClick}><ExternalLink size={14} /> Apply</a>
           <button className="detail-action save-button" onClick={event => onToggleSave(job, event)}><Bookmark size={14} fill={job.is_saved ? '#0f172a' : 'transparent'} />{job.is_saved ? 'Saved' : 'Save'}</button>
         </div>
+        <CopyLinkButton label="Copy job link" />
         <div className="detail-metadata">{metadata.filter(item => item.value).map(item => <div key={item.label}><div className="metadata-label">{item.label}</div><div className={`metadata-value ${item.highlight ? 'highlight' : ''}`}>{item.value}</div></div>)}</div>
         <button className="detail-action report-button" onClick={() => setShowReportDialog(true)}>Report a problem</button>
       </div>

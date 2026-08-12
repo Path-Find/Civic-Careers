@@ -269,7 +269,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       if (sourceGroup) sourceFilters = sourceGroup.sourceNames;
 
       if (sourceNamesParam) {
-        sourceFilters = [...new Set(sourceNamesParam.split(',').map(value => value.trim()).filter(Boolean))];
+        sourceFilters = [...new Set(sourceNamesParam.split(',').flatMap(value => {
+          // Some clients serialize spaces as literal plus signs in a query value.
+          const trimmed = value.trim().replace(/\+/g, ' ');
+          const group = ORGANIZATION_GROUPS.find(candidate => candidate.name === trimmed);
+          return group ? group.sourceNames : trimmed ? [trimmed] : [];
+        }))];
         sourceGroup = organizationGroupForSources(sourceFilters);
       }
 
@@ -300,6 +305,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         : Number(deadlineRaw);
       const newlyAdded = parsed.searchParams.get('newlyAdded') === '1'
         || parsed.searchParams.get('newlyAdded') === 'true';
+      const educationLevels = [...new Set(parsed.searchParams.get('educationLevels')?.split(',').map(value => value.trim()).filter(value =>
+        ['high_school', 'diploma', 'bachelors', 'masters', 'doctorate', 'student'].includes(value)
+      ) ?? [])];
+      const educationField = parsed.searchParams.get('educationField')?.trim().toLowerCase() ?? '';
 
       const filterArgs: Array<string | number> = [];
       let filterClause = '';
@@ -328,6 +337,24 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       if (newlyAdded) {
         filterClause += ` AND ${freshnessDate} >= date('now', '-7 days')`;
+      }
+
+      const educationText = `LOWER(COALESCE(jd.education_requirements, ''))`;
+      const educationPatterns: Record<string, string> = {
+        high_school: '%high school%',
+        diploma: '%diploma%',
+        bachelors: '%bachelor%',
+        masters: '%master%',
+        doctorate: '%doctor%',
+        student: '%enrolled%',
+      };
+      if (educationLevels.length > 0) {
+        filterClause += ` AND (${educationLevels.map(() => `${educationText} LIKE ?`).join(' OR ')})`;
+        filterArgs.push(...educationLevels.map(level => educationPatterns[level]));
+      }
+      if (educationField) {
+        filterClause += ` AND ${educationText} LIKE ?`;
+        filterArgs.push(`%${educationField}%`);
       }
 
       const activeJobWhere = `

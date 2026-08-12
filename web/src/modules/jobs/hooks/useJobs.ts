@@ -9,11 +9,17 @@ const pendingRequests = new Map<string, Promise<unknown>>();
 export type JobsListServerFilters = {
   deadlineDays: number | null;
   newlyAdded: boolean;
+  sourceNames: string[];
+  educationLevels: string[];
+  educationField: string;
 };
 
 const EMPTY_SERVER_FILTERS: JobsListServerFilters = {
   deadlineDays: null,
   newlyAdded: false,
+  sourceNames: [],
+  educationLevels: [],
+  educationField: '',
 };
 
 function fetchJson(endpoint: string) {
@@ -40,6 +46,18 @@ function appendServerFilters(params: URLSearchParams, filters: JobsListServerFil
   if (filters.newlyAdded) {
     params.set('newlyAdded', '1');
   }
+  if (filters.sourceNames.length > 0) {
+    params.set('sources', filters.sourceNames.join(','));
+  }
+  if (filters.educationLevels.length > 0) {
+    params.set('educationLevels', filters.educationLevels.join(','));
+  }
+  if (filters.educationField.trim()) {
+    params.set('educationField', filters.educationField.trim());
+  }
+  if (filters.sourceNames.length > 0 || filters.educationLevels.length > 0 || filters.educationField.trim()) {
+    params.set('filtersVersion', '2');
+  }
 }
 
 function savedNearCity(): string | null {
@@ -64,6 +82,7 @@ export function useJobs() {
   const [jobsSource, setJobsSource] = useState<string | null>(null);
   const [jobsOrganization, setJobsOrganization] = useState<OrganizationGroup | null>(null);
   const loadingMoreRef = useRef(false);
+  const refreshRequestRef = useRef(0);
   const jobsSourcesRef = useRef<string[]>([]);
   /** Read by refresh/loadMore — update via setServerFilters before calling refresh. */
   const serverFiltersRef = useRef<JobsListServerFilters>(EMPTY_SERVER_FILTERS);
@@ -80,12 +99,13 @@ export function useJobs() {
     jobsSourcesRef.current = sources;
   };
 
-  /** Sync server-backed list filters (deadline / newly added). Call before refresh(). */
+  /** Sync server-backed list filters. Call before refresh(). */
   const setServerFilters = useCallback((next: JobsListServerFilters) => {
     serverFiltersRef.current = next;
   }, []);
 
   const refresh = useCallback((singleJobId?: string) => {
+    const requestId = ++refreshRequestRef.current;
     setLoading(true);
     const path = window.location.pathname;
     const companySlug = companySlugFromPath(path);
@@ -128,8 +148,13 @@ export function useJobs() {
       endpoint = `${API}/api/jobs?${params}`;
     }
 
-    fetchJson(endpoint)
-      .then(data => {
+    const companiesRequest = (view === 'jobs' || view === 'saved') && !companySlug
+      ? fetchJson(`${API}/api/jobs?view=companies`)
+      : Promise.resolve(null);
+    Promise.all([fetchJson(endpoint), companiesRequest])
+      .then(([data, companies]) => {
+        if (requestId !== refreshRequestRef.current) return;
+        if (companies) setCompanySummaries(Array.isArray(companies) ? companies : []);
         if (view === 'home') {
           const recentJobs = data.recentJobs.map(normalizeJob);
           const closingSoonJobs = data.closingSoonJobs.map(normalizeJob);

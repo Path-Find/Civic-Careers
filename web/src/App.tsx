@@ -15,6 +15,9 @@ import { CompanyDirectory } from './modules/jobs/components/CompanyDirectory';
 import { CompanyTitleSuggestions } from './modules/jobs/components/CompanyTitleSuggestions';
 import { CompanyFiltersSidebar } from './modules/jobs/components/CompanyFiltersSidebar';
 import { ListSortControls } from './modules/jobs/components/ListSortControls';
+import { CopyLinkButton } from './modules/jobs/components/CopyLinkButton';
+import { EDUCATION_LEVELS, matchesEducationField, matchesEducationLevel, type EducationLevel } from './modules/jobs/educationFilters';
+import { buildFilterSummary } from './modules/jobs/filterSummary';
 import { companyPortal, companyTypes, type CompanyType } from './modules/jobs/companyTypes';
 
 import { Search, ExternalLink, X } from 'lucide-react';
@@ -70,13 +73,16 @@ type JobUrlState = {
   showStudentJobs: boolean;
   sortNewest: boolean;
   newlyAdded: boolean;
+  selectedCompanyNames: string[];
+  selectedEducationLevels: EducationLevel[];
+  educationField: string;
 };
 
 const VALID_MODES = ['In-person', 'Hybrid', 'Remote'] as const;
 const VALID_LANGUAGES = ['English', 'French'] as const;
 const VALID_SALARIES = [50000, 75000, 100000, 125000] as const;
 const VALID_DEADLINES = [0, 7, 14, 30, -1] as const;
-const JOB_FILTER_QUERY_KEYS = ['search', 'location', 'salary', 'mode', 'language', 'vehicle', 'student', 'closing', 'listing', 'sort', 'added'];
+const JOB_FILTER_QUERY_KEYS = ['search', 'location', 'salary', 'mode', 'language', 'vehicle', 'student', 'closing', 'listing', 'sort', 'added', 'company', 'degree', 'field'];
 
 const EMPTY_JOB_URL_STATE: JobUrlState = {
   searchTerm: '',
@@ -90,6 +96,9 @@ const EMPTY_JOB_URL_STATE: JobUrlState = {
   showStudentJobs: false,
   sortNewest: false,
   newlyAdded: false,
+  selectedCompanyNames: [],
+  selectedEducationLevels: [],
+  educationField: '',
 };
 
 function validValues<T extends string>(params: URLSearchParams, key: string, allowed: readonly T[]) {
@@ -118,6 +127,9 @@ function parseJobUrlState(search: string): JobUrlState {
     showStudentJobs: params.get('student') === '1',
     sortNewest: params.get('sort') === 'newest' && deadlineDays === null && !newlyAdded,
     newlyAdded,
+    selectedCompanyNames: params.getAll('company').filter(Boolean),
+    selectedEducationLevels: validValues(params, 'degree', EDUCATION_LEVELS.map(level => level.value) as readonly EducationLevel[]),
+    educationField: params.get('field') ?? '',
   };
 }
 
@@ -135,6 +147,9 @@ function replaceJobFiltersInUrl(state: JobUrlState) {
   if (state.listingTypeFilter) url.searchParams.set('listing', state.listingTypeFilter);
   if (state.sortNewest) url.searchParams.set('sort', 'newest');
   if (state.newlyAdded) url.searchParams.set('added', '7');
+  [...state.selectedCompanyNames].sort().forEach(company => url.searchParams.append('company', company));
+  [...state.selectedEducationLevels].sort().forEach(level => url.searchParams.append('degree', level));
+  if (state.educationField.trim()) url.searchParams.set('field', state.educationField.trim());
 
   const nextUrl = `${url.pathname}${url.search}${url.hash}`;
   const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -151,6 +166,9 @@ function App() {
   const [companyStatus, setCompanyStatus] = useState<'hiring' | 'all'>('hiring');
   const [selectedCompanyTypes, setSelectedCompanyTypes] = useState<CompanyType[]>([]);
   const [companyTitleFilter, setCompanyTitleFilter] = useState<string | null>(null);
+  const [selectedCompanyNames, setSelectedCompanyNames] = useState<string[]>([]);
+  const [selectedEducationLevels, setSelectedEducationLevels] = useState<EducationLevel[]>([]);
+  const [educationField, setEducationField] = useState('');
   const [locationPromptOpen, setLocationPromptOpen] = useState(false);
   const [locationPromptCity, setLocationPromptCity] = useState(() => {
     try {
@@ -185,6 +203,14 @@ function App() {
   const companyFilteredJobs = isCompanyPage && companyTitleFilter
     ? filteredJobs.filter(job => normalizeJobTitle(job.job_title) === companyTitleFilter)
     : filteredJobs;
+  const selectedCompanySources = selectedCompanyNames.flatMap(name => companySummaries.find(company => company.name === name)?.sourceNames ?? [name]);
+  const employerFilteredJobs = currentView === 'saved'
+    ? companyFilteredJobs.filter(job => selectedCompanyNames.length === 0 || selectedCompanyNames.includes(jobsSource ?? '') || selectedCompanySources.includes(job.source))
+    : companyFilteredJobs;
+  const educationFilteredJobs = employerFilteredJobs.filter(job =>
+    (selectedEducationLevels.length === 0 || selectedEducationLevels.some(level => matchesEducationLevel(job.education_requirements, level)))
+    && matchesEducationField(job.education_requirements, educationField)
+  );
   // deadlineDays + newlyAdded are applied server-side (full corpus + accurate total).
   // Other filters still run client-side on loaded pages only.
   const hasClientOnlyFilters = Boolean(
@@ -198,16 +224,45 @@ function App() {
     || listingTypeFilter
     || companyTitleFilter
   );
-  const hasJobFilters = hasClientOnlyFilters || deadlineDays !== null || newlyAdded;
+  const hasJobFilters = hasClientOnlyFilters || deadlineDays !== null || newlyAdded || selectedCompanyNames.length > 0 || selectedEducationLevels.length > 0 || educationField.trim().length > 0;
   // Prefer API totals whenever no client-only filters are active (includes deadline / newly-added / company scope).
   const displayedJobCount = currentView === 'jobs' && !hasClientOnlyFilters
     ? jobsAvailableTotal
-    : companyFilteredJobs.length;
+    : educationFilteredJobs.length;
 
   /** Keep useJobs server filter ref in sync, then optionally re-fetch the list. */
-  const applyServerListFilters = (next: { deadlineDays: number | null; newlyAdded: boolean }, shouldRefresh: boolean) => {
-    setServerFilters(next);
+  const applyServerListFilters = (next: { deadlineDays?: number | null; newlyAdded?: boolean; sourceNames?: string[]; educationLevels?: string[]; educationField?: string }, shouldRefresh: boolean) => {
+    const serverFilters = {
+      deadlineDays: next.deadlineDays ?? deadlineDays,
+      newlyAdded: next.newlyAdded ?? newlyAdded,
+      sourceNames: next.sourceNames ?? selectedCompanySources,
+      educationLevels: next.educationLevels ?? selectedEducationLevels,
+      educationField: next.educationField ?? educationField,
+    };
+    setServerFilters(serverFilters);
     if (shouldRefresh) refresh();
+  };
+  const toggleCompanyFilter = (name: string) => {
+    const nextNames = selectedCompanyNames.includes(name)
+      ? selectedCompanyNames.filter(value => value !== name)
+      : [...selectedCompanyNames, name];
+    setSelectedCompanyNames(nextNames);
+    const nextSources = nextNames.flatMap(value => companySummaries.find(company => company.name === value)?.sourceNames ?? [value]);
+    applyServerListFilters({ sourceNames: nextSources }, currentView === 'jobs');
+  };
+  const toggleEducationLevel = (level: EducationLevel) => {
+    const nextLevels = selectedEducationLevels.includes(level)
+      ? selectedEducationLevels.filter(value => value !== level)
+      : [...selectedEducationLevels, level];
+    setSelectedEducationLevels(nextLevels);
+    applyServerListFilters({ educationLevels: nextLevels }, currentView === 'jobs');
+  };
+  const changeEducationField = (value: string) => {
+    setEducationField(value);
+    if (educationRefreshTimerRef.current !== null) window.clearTimeout(educationRefreshTimerRef.current);
+    educationRefreshTimerRef.current = window.setTimeout(() => {
+      applyServerListFilters({ educationField: value }, currentView === 'jobs');
+    }, 300);
   };
   const isListingView = currentView === 'jobs' || currentView === 'saved' || currentView === 'companies';
   const filteredCompanySummaries = companySummaries.filter(company => selectedCompanyTypes.length === 0 || selectedCompanyTypes.some(type => companyTypes(company.name).includes(type)));
@@ -219,6 +274,7 @@ function App() {
   // detail page), not a guessed pixel value.
   const headerRef = useRef<HTMLElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const educationRefreshTimerRef = useRef<number | null>(null);
   const urlHydratedRef = useRef(false);
   const [headerHeight, setHeaderHeight] = useState(80);
 
@@ -259,7 +315,12 @@ function App() {
       setShowStudentJobs(state.showStudentJobs);
       setSortNewest(state.sortNewest);
       setNewlyAdded(state.newlyAdded);
-      setServerFilters({ deadlineDays: state.deadlineDays, newlyAdded: state.newlyAdded });
+      setSelectedCompanyNames(state.selectedCompanyNames);
+      setSelectedEducationLevels(state.selectedEducationLevels);
+      setEducationField(state.educationField);
+      // The API expands grouped organization names before querying source rows.
+      const sourceNames = state.selectedCompanyNames;
+      setServerFilters({ deadlineDays: state.deadlineDays, newlyAdded: state.newlyAdded, sourceNames, educationLevels: state.selectedEducationLevels, educationField: state.educationField });
     };
 
     const handlePopState = (shouldRefresh: boolean) => {
@@ -327,8 +388,11 @@ function App() {
       showStudentJobs,
       sortNewest,
       newlyAdded,
+      selectedCompanyNames,
+      selectedEducationLevels,
+      educationField,
     });
-  }, [currentView, selectedJob, searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded]);
+  }, [currentView, selectedJob, searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField]);
 
   useEffect(() => {
     if (!selectedJob) return;
@@ -431,8 +495,8 @@ function App() {
 
   const reset = () => {
     setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setSelectedLanguages([]); setVehicleRequired(false); setMinSalary(null); setDeadlineDays(null); setListingTypeFilter(null); setSortNewest(false); setNewlyAdded(false);
-    setLocationTerm(''); setShowStudentJobs(false); setSelectedCompanyTypes([]); setCompanyTitleFilter(null);
-    setServerFilters({ deadlineDays: null, newlyAdded: false });
+    setLocationTerm(''); setShowStudentJobs(false); setSelectedCompanyTypes([]); setCompanyTitleFilter(null); setSelectedCompanyNames([]); setSelectedEducationLevels([]); setEducationField('');
+    setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], educationLevels: [], educationField: '' });
     window.history.pushState(null, '', '/');
     refresh();
   };
@@ -441,7 +505,7 @@ function App() {
     setSortNewest(true);
     setDeadlineDays(null);
     setNewlyAdded(false);
-    setServerFilters({ deadlineDays: null, newlyAdded: false });
+    setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: selectedCompanySources, educationLevels: selectedEducationLevels, educationField });
     if (navigateToJobs) handleNavigate('jobs');
     else refresh();
   };
@@ -449,7 +513,7 @@ function App() {
     setSortNewest(false);
     setDeadlineDays(14);
     setNewlyAdded(false);
-    setServerFilters({ deadlineDays: 14, newlyAdded: false });
+    setServerFilters({ deadlineDays: 14, newlyAdded: false, sourceNames: selectedCompanySources, educationLevels: selectedEducationLevels, educationField });
     if (navigateToJobs) handleNavigate('jobs');
     else refresh();
   };
@@ -457,7 +521,7 @@ function App() {
     setSortNewest(false);
     setDeadlineDays(null);
     setNewlyAdded(true);
-    setServerFilters({ deadlineDays: null, newlyAdded: true });
+    setServerFilters({ deadlineDays: null, newlyAdded: true, sourceNames: selectedCompanySources, educationLevels: selectedEducationLevels, educationField });
     if (navigateToJobs) handleNavigate('jobs');
     else refresh();
   };
@@ -484,7 +548,10 @@ function App() {
                     setSortNewest(false);
                     setDeadlineDays(null);
                     setNewlyAdded(false);
-                    setServerFilters({ deadlineDays: null, newlyAdded: false });
+                    setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], educationLevels: [], educationField: '' });
+                    setSelectedCompanyNames([]);
+                    setSelectedEducationLevels([]);
+                    setEducationField('');
                     handleNavigate('jobs');
                   }}
                   className={`app-nav-link ${(currentView === 'jobs' && !selectedJob) ? 'active' : ''}`}
@@ -585,6 +652,10 @@ function App() {
               ) : (
                 <JobFiltersSidebar
                   headerHeight={headerHeight}
+                  companyOptions={companySummaries.filter(company => Number(company.active_job_count) > 0)}
+                  selectedCompanyNames={selectedCompanyNames}
+                  selectedEducationLevels={selectedEducationLevels}
+                  educationField={educationField}
                   minSalary={minSalary}
                   locationTerm={locationTerm}
                   selectedModes={selectedModes}
@@ -601,6 +672,9 @@ function App() {
                   onDeadlineChange={handleDeadlineChange}
                   onListingTypeChange={setListingTypeFilter}
                   onStudentJobsChange={() => setShowStudentJobs(!showStudentJobs)}
+                  onCompanyChange={toggleCompanyFilter}
+                  onEducationLevelChange={toggleEducationLevel}
+                  onEducationFieldChange={changeEducationField}
                   onReset={reset}
                 />
               )}
@@ -608,11 +682,13 @@ function App() {
               <div style={{ minWidth: 0 }}>
                 <div className="list-heading-row" style={{ top: `${headerHeight}px` }}>
                   <div className="list-count-label">
-                  {currentView === 'companies' ? `${visibleCompanySummaries.length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${filteredJobs.length.toLocaleString()} saved jobs` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
+                  {currentView === 'companies' ? `${visibleCompanySummaries.length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${educationFilteredJobs.length.toLocaleString()} saved jobs` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
                   </div>
                   {currentView === 'companies' && <div className="company-sort-options"><button className={companySort === 'alphabetical' ? 'active' : ''} onClick={() => setCompanySort('alphabetical')}>A–Z</button><button className={companySort === 'mostJobs' ? 'active' : ''} onClick={() => setCompanySort('mostJobs')}>Most jobs</button><button className={companySort === 'recent' ? 'active' : ''} onClick={() => setCompanySort('recent')}>Recently added</button></div>}
                   {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => applyMostRecentSort(false)} onClosingSoon={() => applyClosingSoonSort(false)} onNewlyAdded={() => applyNewlyAddedSort(false)} />}
+                  {(currentView === 'jobs' || currentView === 'saved') && <CopyLinkButton label="Copy results link" />}
                 </div>
+                {(currentView === 'jobs' || currentView === 'saved') && <p className="filter-summary" aria-live="polite">{buildFilterSummary({ searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField })}</p>}
                 {isCompanyPage && (
                   <div className="company-page-header">
                     <div>
@@ -637,7 +713,9 @@ function App() {
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {(currentView === 'jobs' || currentView === 'saved') ? (
                     <>
-                      {companyFilteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
+                      {educationFilteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
+                      {currentView === 'saved' && <p className="saved-filter-note">Filters apply to saved jobs only. Recently viewed jobs stay separate.</p>}
+                      {educationFilteredJobs.length === 0 && <p className="saved-empty-state">{currentView === 'saved' ? (hasJobFilters ? 'No saved jobs match these filters.' : 'No saved jobs yet.') : 'No jobs match these filters.'}</p>}
                       {currentView === 'saved' && <section className="recently-viewed-section">
                         <div className="recently-viewed-heading-row">
                           <h2 className="list-count-label recently-viewed-heading">Recently viewed</h2>
@@ -658,7 +736,10 @@ function App() {
                         setSelectedModes([]);
                         setDeadlineDays(null);
                         setNewlyAdded(false);
-                        setServerFilters({ deadlineDays: null, newlyAdded: false });
+                        setSelectedCompanyNames([]);
+                        setSelectedEducationLevels([]);
+                        setEducationField('');
+                        setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], educationLevels: [], educationField: '' });
                         handleNavigate('jobs', company.name, company.organizationSlug);
                       }}
                     />
