@@ -69,6 +69,15 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeJobTitle('Facility Attendant - Services - Part-Time'), 'Facility Attendant - Services');
   });
 
+  it('moves parenthetical union markers out of the display title', () => {
+    assert.equal(
+      normalizeJobTitle('TA (CUPE) - SED3115 A - Fall 2026'),
+      'TA - SED3115 A - Fall 2026',
+    );
+    assert.equal(normalizeJobTitle('Research Assistant (OPSEU 1)'), 'Research Assistant');
+    assert.equal(normalizeJobTitle('Coordinator (ACCE)'), 'Coordinator (ACCE)');
+  });
+
   it('strips Temporary+FT/PT and leading FT/PT prefixes', () => {
     assert.equal(
       normalizeJobTitle('Temporary Part-Time Dance Instructor - Fall 2026'),

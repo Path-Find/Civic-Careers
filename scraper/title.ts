@@ -39,6 +39,11 @@ export function isEmploymentOrDurationParen(inner: string): boolean {
   return false;
 }
 
+/** Parenthetical bargaining-unit markers that already belong in union_name. */
+function isUnionMarkerParen(inner: string): boolean {
+  return /^(?:CUPE(?:\s+\d+)?|OPSEU(?:\s+\d+)?|USW(?:\s+\d+)?|ONA(?:\s+\d+)?|UNIFOR(?:\s+\d+)?|SEIU(?:\s+\d+)?|PSAC(?:\s+\d+)?|NAPE(?:\s+\d+)?|ATU(?:\s+\d+)?|IAM(?:\s+\d+)?|CAW(?:\s+\d+)?|unionized)$/i.test(inner.replace(/\s+/g, ' ').trim());
+}
+
 /**
  * Normalize a job title for display/storage.
  * Never returns empty when the input had content (falls back to original trimmed).
@@ -52,7 +57,7 @@ export function normalizeJobTitle(title: string | null | undefined): string {
 
   // Meta parentheticals anywhere: (Part-Time), (2 Year Contract), (Casual), …
   t = t.replace(/\s*\(([^)]*)\)/g, (full, inner: string) => (
-    isEmploymentOrDurationParen(inner) ? '' : full
+    isEmploymentOrDurationParen(inner) || isUnionMarkerParen(inner) ? '' : full
   ));
   t = t.replace(/\s{2,}/g, ' ').trim();
 
