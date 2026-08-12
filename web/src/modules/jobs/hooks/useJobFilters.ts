@@ -3,6 +3,17 @@ import { daysUntilClose } from '../../../utils';
 import type { Job, ListingTypeFilter, View } from '../../../types/jobs';
 import { CLOSING_SOON_DAYS, groupJobsByCompany, isExpired, jobFreshnessTimestamp, parseJobDetails, parseTagList } from '../jobUtils';
 
+export function parseLocationTerms(value: string): string[] {
+  return [...new Set(value.split(/[,;]+/).map(term => term.trim().toLowerCase()).filter(Boolean))];
+}
+
+export function matchesLocation(location: string | null | undefined, filter: string): boolean {
+  const terms = parseLocationTerms(filter);
+  if (terms.length === 0) return true;
+  const normalizedLocation = (location || '').toLowerCase();
+  return terms.some(term => normalizedLocation.includes(term));
+}
+
 export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string) {
   const [minSalary, setMinSalary] = useState<number | null>(null);
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
@@ -15,6 +26,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
   const [sortNewest, setSortNewest] = useState(false);
   const [newlyAdded, setNewlyAdded] = useState(false);
   const [now] = useState(() => Date.now());
+  const locationTerms = parseLocationTerms(locationTerm);
 
   const filteredJobs = useMemo(() => {
     const pool = currentView === 'saved' ? jobs.filter(job => job.is_saved) : jobs.filter(job => !isExpired(job));
@@ -26,7 +38,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
       const query = searchTerm.toLowerCase();
       const matchesSearch = [job.job_title, job.department, job.source]
         .some(value => (value || '').toLowerCase().includes(query));
-      const matchesLocation = !locationTerm || (job.location || '').toLowerCase().includes(locationTerm.toLowerCase());
+      const matchesLocation = locationTerms.length === 0 || locationTerms.some(term => (job.location || '').toLowerCase().includes(term));
       const details = parseJobDetails(job);
       const matchesMode = selectedModes.length === 0 || (details.mode !== null && selectedModes.includes(details.mode));
       const matchesSalary = !minSalary || (job.salary_min !== null && job.salary_min >= minSalary);
@@ -53,7 +65,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
       if (aUrgent && bUrgent) return (aDays ?? 0) - (bDays ?? 0);
       return jobFreshnessTimestamp(b, now) - jobFreshnessTimestamp(a, now);
     });
-  }, [jobs, currentView, searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, now]);
+  }, [jobs, currentView, searchTerm, locationTerms, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, now]);
 
   const jobsByCompany = useMemo(() => groupJobsByCompany(jobs), [jobs]);
   const activeJobsByCompany = useMemo(() => Object.fromEntries(

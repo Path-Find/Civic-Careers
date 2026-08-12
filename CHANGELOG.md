@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Location filters now support multiple cities** — enter comma-separated locations to combine matches while keeping the filtered result count and shareable URL in sync.
 - **Company pages now support maintained organization metadata and navigation** — source-backed organization types, official careers destinations, title suggestions, and location precision help people move from an employer to the right jobs and job board without inferred categories or addresses.
 - **Trial source coverage expanded** — validated federal, crown, provincial, and British Columbia municipal job boards are now included in isolated recurring source checks before promotion.
 - **Homepage quick filters** — ending within 14 days, added in the last 7 days, and city-based Near me with browser-location permission, manual fallback, and a matching count when a city is already known.
