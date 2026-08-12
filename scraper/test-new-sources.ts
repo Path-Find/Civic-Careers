@@ -222,6 +222,22 @@ const SOURCES = {
       'https://edmonton.taleo.net/careersection/epl-ext/jobsearch.ftl',
       'Edmonton Public Library',
     ),
+  TransLink: (db: Client, context: BrowserContext) =>
+    scrapePeopleSoft(
+      db,
+      context,
+      'https://careersconnect.translink.bc.ca/psc/EXT/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U&FOCUS=Applicant&SiteId=2',
+      'TransLink',
+    ),
+  'BC Transit': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://jobs.bctransit.com/search/', 'BC Transit'),
+  'VIA Rail Canada': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(
+      db,
+      context,
+      'https://careers.viarail.ca/search/?locale=en_US&previewLink=true&referrerSave=false',
+      'VIA Rail Canada',
+    ),
   'VIA TGF Inc.': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://carrieres-careers.altotrain.ca/search/', 'VIA TGF Inc.'),
   'Toronto Hydro': (db: Client, context: BrowserContext) =>
