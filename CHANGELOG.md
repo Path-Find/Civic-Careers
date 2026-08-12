@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Academic job titles no longer repeat parenthetical union markers** — bargaining-unit details stay available in the structured Union field instead of cluttering titles.
 - **Explicit hiring pools and eligibility lists now get the right listing status** — future-vacancy postings no longer appear as ordinary single-job vacancies.
 - **Government of Canada postings delegated to the National Arts Centre now keep their direct application pages** — box-office and coat-check applicants no longer land on generic GC listing pages.
+- **The CSIS Government of Canada posting keeps its official Canada.ca destination** — applicants no longer land on the generic GC listing page.
 - **Pending salary ranges now retain bi-weekly pay periods** — listings awaiting full parsing no longer show an unexplained pair of salary amounts.
 - **Government of Canada listings now keep stable employer application links** — postings delegated to an employer board no longer send applicants through a generic or session-bound destination.
 - **Location metadata now has a source-text fallback** — compact job-board labels such as Hamilton’s `Location...Department` block no longer leave a known workplace blank when the AI parser misses it.

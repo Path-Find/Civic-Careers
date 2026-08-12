@@ -36,6 +36,12 @@ test('keeps the GC Jobs box-office posting on the NAC application page', () => {
   assert.equal(GOVERNMENT_OF_CANADA_FIXES['2451359']?.applicationUrl, url);
 });
 
+test('keeps the GC Jobs CSIS posting on its official Canada.ca page', () => {
+  const url = 'https://www.canada.ca/en/security-intelligence-service/corporate/csis-jobs/available-jobs/deputy-chief-of-procurement-and-acquisitions.html';
+  assert.equal(APPLICATION_URL_FIXES['2451297'], url);
+  assert.equal(GOVERNMENT_OF_CANADA_FIXES['2451297']?.applicationUrl, url);
+});
+
 test('extracts and deduplicates St. Lawrence College job links', () => {
   const html = `<a href="/jobs/admn-pt-26-27-052" title="Talent Management Consultant">Talent Management Consultant</a>
     <a href="/jobs/supp-26/27-051" title="International Admissions Coordinator">International Admissions Coordinator</a>
