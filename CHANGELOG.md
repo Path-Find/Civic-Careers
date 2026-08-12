@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Explicit hiring pools and eligibility lists now get the right listing status** — future-vacancy postings no longer appear as ordinary single-job vacancies.
 - **Government of Canada postings delegated to the National Arts Centre now keep their direct application pages** — box-office and coat-check applicants no longer land on generic GC listing pages.
 - **Pending salary ranges now retain bi-weekly pay periods** — listings awaiting full parsing no longer show an unexplained pair of salary amounts.
 - **Government of Canada listings now keep stable employer application links** — postings delegated to an employer board no longer send applicants through a generic or session-bound destination.

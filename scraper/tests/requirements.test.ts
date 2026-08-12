@@ -840,6 +840,7 @@ test('classifies recruitment programs separately from regular postings', () => {
   assert.equal(extractListingType('Applications will be accepted until filled.', 'Project Coordinator'), 'regular');
   assert.equal(extractListingType('Apply by August 15 for this specific vacancy.', 'Program Coordinator'), 'regular');
   assert.equal(extractListingType('Any role may be considered for the candidate pool.', 'Analyst', true), 'inventory');
+  assert.equal(extractListingType('A hiring pool will be used for upcoming vacancies.', 'Child Protection Social Worker (Hiring Pool)'), 'ongoing_recruitment');
 });
 
 test('does not classify ordinary uses of annual or future-work language as recruitment', () => {
@@ -856,6 +857,7 @@ test('classifies a source-labelled recruitment pool as ongoing recruitment', () 
 test('classifies applicant pools as candidate inventory', () => {
   assert.equal(extractListingType('Carleton University is building a pool of candidates for temporary casual assignments.', 'Applicant Pool'), 'inventory');
   assert.equal(extractListingType('Vacancy Type: This is for all current and future permanent part-time vacancies.', 'Recreation Assistant - RE-POST (Periodic Posting)'), 'inventory');
+  assert.equal(extractListingType('The City is establishing an eligibility list of qualified applicants in anticipation of future vacancies.', 'Firefighter (Eligibility List)'), 'inventory');
 });
 
 test('classifies an explicit future-vacancy inventory separately', () => {

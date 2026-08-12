@@ -553,7 +553,7 @@ export function normalizeBenefits(values: string[]): string[] {
   });
 }
 
-const ONGOING_TITLE_SIGNAL = /\b(?:ongoing recruitment|recruitment program|student employment program|talent pool|candidate pool|future opportunities|expression of interest|co-?op students?\s*[-–—:]\s*(?:various|multiple))\b/i;
+const ONGOING_TITLE_SIGNAL = /\b(?:ongoing recruitment|recruitment program|student employment program|talent pool|candidate pool|hiring pool|future opportunities|expression of interest|co-?op students?\s*[-–—:]\s*(?:various|multiple))\b/i;
 // Federal "inventory" / talent-pool postings — flexible wording; do not require
 // the exact phrase "inventory for future vacancies" (many say "but to an inventory;").
 const INVENTORY_TEXT_SIGNALS: RegExp[] = [
@@ -570,7 +570,7 @@ const INVENTORY_TEXT_SIGNALS: RegExp[] = [
   /\b(?:all|both)\s+current\s+and\s+future\s+(?:permanent\s+)?(?:part[- ]time\s+)?vacancies?\b/i,
   /\bvacancy\s+type\s*:\s*this\s+is\s+for\s+all\s+current\s+and\s+future\b/i,
 ];
-const INVENTORY_TITLE_SIGNAL = /\b(?:applicant\s+pool|inventory|talent\s+pool|periodic(?:\s+posting|\s+post)?)\b/i;
+const INVENTORY_TITLE_SIGNAL = /\b(?:applicant\s+pool|eligibility\s+list|inventory|talent\s+pool|periodic(?:\s+posting|\s+post)?)\b/i;
 const ONGOING_TEXT_SIGNALS: RegExp[] = [
   /\b(?:candidate|talent)\s+pool\b/i,
   /\bopen\s+(?:till|until)\s+filled\b/i,
