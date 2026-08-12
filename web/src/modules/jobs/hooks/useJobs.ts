@@ -242,9 +242,10 @@ export function useJobs() {
     try {
       const response = await fetch(`${API}/api/jobs?id=${job.id}`);
       const data = await response.json();
-      if (data.description || data.academic_schedule) {
+      if (data.description || data.academic_course || data.academic_schedule) {
         updateJob(job.id, {
           ...(data.description ? { description: data.description } : {}),
+          ...(data.academic_course ? { academic_course: data.academic_course } : {}),
           ...(data.academic_schedule ? { academic_schedule: data.academic_schedule } : {}),
         });
       }

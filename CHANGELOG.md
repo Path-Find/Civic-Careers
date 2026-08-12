@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Academic job pages now show explicitly labelled course schedules** — bilingual class times remain visible even while the rest of a posting is still pending.
 - **Academic context now remains visible when structured role metadata is missing** — explicit source-title wording identifies teaching-assistant and other academic roles without inferring student status.
+- **Academic course details and short-term co-op terms remain visible before full parsing** — source-backed course names, class times, and placement lengths are preserved in the job page context.
 - **Jobs can now be filtered and shared by exact employer and source-backed education** — employer, degree level, and education-field selections stay in the URL and apply across the full catalogue.
 - **Job and results links can be copied directly** — shared URLs reopen the same posting or filter state without relying on local browser data.
 - **Active job filters now explain themselves** — a deterministic summary states the selected criteria in plain language.

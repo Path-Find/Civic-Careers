@@ -3,18 +3,45 @@ import { createDb } from './_db.js';
 import { ORGANIZATION_GROUPS, organizationGroupForSlug, organizationGroupForSources } from '../src/modules/jobs/organizationMetadata.js';
 
 const PUBLIC_CACHE = 's-maxage=86400, stale-while-revalidate=86400';
-function extractSourceAcademicSchedule(value: unknown): string | null {
-  const text = value == null ? '' : String(value).replace(/\s+/g, ' ').trim();
-  const label = text.search(/(?:course|class)\s+schedule\s*:/i);
-  if (label < 0) return null;
-  const start = text.indexOf(':', label) + 1;
-  const remainder = text.slice(start).trim();
-  const end = remainder.search(/\s+-\s+-?\s*(?:requirements|work hours|course (?:title|code)|posting limited to|salary|location)\s*:/i);
-  const schedule = (end < 0 ? remainder : remainder.slice(0, end)).trim();
-  return schedule || null;
+function sourceTextValue(value: unknown): string {
+  return value == null ? '' : String(value).replace(/\s+/g, ' ').trim();
 }
+
+function extractSourceAcademicCourse(value: unknown): string | null {
+  const text = sourceTextValue(value);
+  const match = text.match(/\b([A-Z]{2,8}-\d{3,4})\s*:\s*([^()]{2,120}?)\s*\(\s*\d+(?:\.\d+)?\s*credit/i);
+  return match ? `${match[1]}: ${match[2].trim()}` : null;
+}
+
+function extractSourceAcademicSchedule(value: unknown): string | null {
+  const text = sourceTextValue(value);
+  const label = text.search(/(?:course|class)\s+schedule\s*:/i);
+  if (label >= 0) {
+    const start = text.indexOf(':', label) + 1;
+    const remainder = text.slice(start).trim();
+    const end = remainder.search(/\s+-\s+-?\s*(?:requirements|work hours|course (?:title|code)|posting limited to|salary|location)\s*:/i);
+    const schedule = (end < 0 ? remainder : remainder.slice(0, end)).trim();
+    if (schedule) return schedule;
+  }
+  const semester = text.match(/\(((?:Fall|Winter|Spring|Summer)\s+Semester:\s*[^)]+)\)/i)?.[1]?.trim();
+  return semester || null;
+}
+
 const closingDate = `COALESCE(NULLIF(TRIM(jd.closing_date), ''), NULLIF(TRIM(raw.pending_closing_date), ''))`;
 const sourceText = `LOWER(COALESCE(raw.title, '') || ' ' || COALESCE(raw.raw_text, ''))`;
+const effectiveEmploymentType = `COALESCE(jd.employment_type,
+  CASE
+    WHEN ${sourceText} LIKE '%full-time%' OR ${sourceText} LIKE '%full time%' THEN 'Full-time'
+    WHEN ${sourceText} LIKE '%part-time%' OR ${sourceText} LIKE '%part time%' THEN 'Part-time'
+    WHEN ${sourceText} LIKE '%temporary%' OR ${sourceText} LIKE '%contract%' THEN 'Contract'
+  END)`;
+const effectiveDuration = `COALESCE(jd.duration,
+  CASE
+    WHEN ${sourceText} LIKE '%16-week%' OR ${sourceText} LIKE '%16 week%' THEN '16 weeks'
+    WHEN ${sourceText} LIKE '%up to two years%' THEN 'Training up to 2 years'
+    WHEN raw.pending_duration IS NOT NULL THEN raw.pending_duration
+    WHEN ${sourceText} LIKE '%fixed-term%' OR ${sourceText} LIKE '%fixed term%' THEN 'Term'
+  END)`;
 const effectiveListingType = `COALESCE(jd.listing_type,
   CASE
     WHEN jd.id IS NOT NULL THEN 'regular'
@@ -28,8 +55,6 @@ const effectiveListingType = `COALESCE(jd.listing_type,
     ELSE 'regular'
   END)`;
 const effectiveInventory = `CASE WHEN COALESCE(jd.is_inventory, 0) = 1 OR ${effectiveListingType} = 'inventory' THEN 1 ELSE 0 END`;
-const effectiveDuration = `COALESCE(jd.duration, raw.pending_duration,
-  CASE WHEN jd.id IS NULL AND (${sourceText} LIKE '% term%' OR ${sourceText} LIKE '%-term%') THEN 'Term' END)`;
 const closingDateStatus = `CASE
   WHEN ${closingDate} IS NOT NULL THEN 'known'
   WHEN jd.id IS NULL THEN COALESCE(raw.pending_closing_date_status, 'not_checked')
@@ -56,7 +81,7 @@ const jobColumns = `
   ${effectiveInventory} AS is_inventory, ${effectiveListingType} AS listing_type, COALESCE(jd.is_student, raw.pending_is_student, 0) AS is_student,
   CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending,
   jd.salary_min, jd.salary_max, jd.salary_period,
-  jd.work_model, jd.employment_type, ${effectiveDuration} AS duration,
+  jd.work_model, ${effectiveEmploymentType} AS employment_type, ${effectiveDuration} AS duration,
   jd.hours, jd.availability,
   jd.academic_role_type, jd.academic_course, jd.academic_workload, jd.academic_office_hours,
   jd.academic_supervisor, jd.academic_appointment_type, NULL AS academic_schedule,
@@ -138,6 +163,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       res.setHeader('Cache-Control', 'no-store');
       res.end(JSON.stringify({
         description: result.rows[0].description ?? null,
+        academic_course: extractSourceAcademicCourse(result.rows[0].raw_text),
         academic_schedule: extractSourceAcademicSchedule(result.rows[0].raw_text),
         details_pending: Number(result.rows[0].details_pending ?? 0),
       }));
