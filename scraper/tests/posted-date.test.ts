@@ -101,6 +101,10 @@ test('classifies pending closing-date status when no date is available', () => {
     date: null,
     status: 'open_until_filled',
   });
+  assert.deepEqual(extractClosingDateStatus('This is an ongoing recruitment program for future opportunities.'), {
+    date: null,
+    status: 'not_checked',
+  });
   assert.deepEqual(extractClosingDateStatus('Closing Date:Open Until FilledTo Apply:'), {
     date: null,
     status: 'open_until_filled',

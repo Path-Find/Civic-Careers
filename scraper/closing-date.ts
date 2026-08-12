@@ -32,7 +32,6 @@ const OPEN_UNTIL_FILLED = new RegExp([
   `\\b(?:closing|external|job|posting)\\s+date\\s*[:\\-]?\\s*(?:ongoing(?=\\b|to\\s+apply)|open\\s+until\\s+filled(?=\\b|to\\s+apply))`,
   `\\b(?:open|ongoing|accepting applications?|applications?\\s+(?:are\\s+)?accepted|(?:will\\s+)?remain\\s+open)\\s+(?:until|through)\\s+(?:(?:all\\s+)?positions?\\s+(?:are|is)\\s+|(?:the\\s+)?position\\s+(?:is|has\\s+been)\\s+|it\\s+(?:is|has\\s+been)\\s+)?filled(?=\\b|job\\s+description|to\\s+apply)`,
   `\\buntil\\s+(?:(?:all\\s+)?positions?\\s+(?:are|is)\\s+|(?:the\\s+)?position\\s+(?:is|has\\s+been)\\s+|it\\s+(?:is|has\\s+been)\\s+)?filled(?=\\b|job\\s+description|to\\s+apply)`,
-  `\\bongoing\\s+(?:recruitment|opportunity)\\b`,
   `\\b(?:open|ongoing)\\s+until\\s+(?:a\\s+)?suitable\\s+candidate\\s+found\\b`,
 ].join('|'), 'i');
 const NO_DEADLINE = /\b(?:no|without)\s+(?:application\s+)?(?:closing\s+)?deadline\b|\b(?:no|without)\s+(?:closing|application)\s+date\b|\bdeadline\s+(?:is\s+)?(?:not\s+(?:listed|specified)|unavailable)\b|\bno\s+deadline\s+listed\b|\b(?:external|job|posting)?\s*closing\s+date(?:\s*\([^)]*\))?\s*:?\s*(?=(?:job\s+description|application\s+posted|pcc#|openings|back|share|apply\s+now|all\s+qualified\s+candidates|experience\s+the|take\s+on|imagine|days\s+of\s+work|standard\s+hours))/i;

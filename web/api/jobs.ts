@@ -51,7 +51,11 @@ const effectiveListingType = `COALESCE(jd.listing_type,
       OR ${sourceText} LIKE '%not applying for a specific job%' THEN 'inventory'
     WHEN ${sourceText} LIKE '%hiring pool%'
       OR ${sourceText} LIKE '%candidate pool%'
-      OR ${sourceText} LIKE '%talent pool%' THEN 'ongoing_recruitment'
+      OR ${sourceText} LIKE '%talent pool%'
+      OR ${sourceText} LIKE '%open until filled%'
+      OR ${sourceText} LIKE '%open till filled%'
+      OR ${sourceText} LIKE '%ongoing recruitment%'
+      OR ${sourceText} LIKE '%accepting applications until filled%' THEN 'ongoing_recruitment'
     ELSE 'regular'
   END)`;
 const effectiveInventory = `CASE WHEN COALESCE(jd.is_inventory, 0) = 1 OR ${effectiveListingType} = 'inventory' THEN 1 ELSE 0 END`;
@@ -59,7 +63,7 @@ const closingDateStatus = `CASE
   WHEN ${closingDate} IS NOT NULL THEN 'known'
   WHEN jd.id IS NULL THEN COALESCE(raw.pending_closing_date_status, 'not_checked')
   WHEN ${sourceText} LIKE '%open until filled%'
-    OR ${sourceText} LIKE '%ongoing recruitment%'
+    OR ${sourceText} LIKE '%open till filled%'
     OR ${sourceText} LIKE '%accepting applications until filled%' THEN 'open_until_filled'
   WHEN ${sourceText} LIKE '%no deadline%'
     OR ${sourceText} LIKE '%without a deadline%'

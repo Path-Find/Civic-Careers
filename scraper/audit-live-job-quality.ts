@@ -22,6 +22,7 @@ type Row = {
   duration: string;
   listingType: string;
   isInventory: number;
+  detailsPending: boolean;
   rawText: string;
 };
 
@@ -35,13 +36,13 @@ function countBySource(rows: Row[], predicate: (row: Row) => boolean): Record<st
 async function main() {
   const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
   const result = await db.execute(`
-    SELECT j.id, j.source, j.is_active,
+    SELECT j.id, j.source, j.is_active, jd.id AS details_id,
            COALESCE(jd.job_title, raw.title, '') AS title,
            COALESCE(jd.description, '') AS description,
            COALESCE(jd.location, '') AS location,
            COALESCE(jd.closing_date, '') AS closing_date,
            COALESCE(jd.duration, raw.pending_duration, '') AS duration,
-           COALESCE(jd.listing_type, '') AS listing_type,
+           jd.listing_type,
            COALESCE(jd.is_inventory, 0) AS is_inventory,
            COALESCE(raw.raw_text, '') AS raw_text
     FROM jobs j
@@ -60,6 +61,7 @@ async function main() {
     duration: String(row.duration ?? '').trim(),
     listingType: String(row.listing_type ?? '').trim(),
     isInventory: Number(row.is_inventory ?? 0),
+    detailsPending: row.details_id == null,
     rawText: String(row.raw_text ?? ''),
   }));
 
@@ -67,10 +69,23 @@ async function main() {
   const missingDescription = rows.filter(row => !row.description);
   const termWithoutDuration = rows.filter(row => /\bterm\b/i.test(row.title) && !row.duration);
   const explicitInventoryMismatch = rows.filter(row => {
+    if (row.detailsPending) return false;
     const derived = extractListingType(`${row.rawText}\n${row.description}`, row.title, row.isInventory === 1);
     return derived !== 'regular' && row.listingType !== derived && row.isInventory !== 1;
   });
+  const pendingListingTypeFallback = rows.filter(row => {
+    if (!row.detailsPending) return false;
+    const derived = extractListingType(`${row.rawText}\n${row.description}`, row.title, row.isInventory === 1);
+    return derived !== 'regular';
+  });
   const missingClosingDate = rows.filter(row => !row.closingDate);
+  const statusCounts = rows.reduce<Record<string, number>>((counts, row) => {
+    if (!row.closingDate) {
+      const status = extractClosingDateStatus(row.rawText).status;
+      counts[status] = (counts[status] ?? 0) + 1;
+    }
+    return counts;
+  }, {});
   const statusBySource = countBySource(rows, row => !row.closingDate && extractClosingDateStatus(row.rawText).status !== 'not_checked');
 
   console.log(JSON.stringify({
@@ -80,12 +95,15 @@ async function main() {
     missingDescription: missingDescription.length,
     termWithoutDuration: termWithoutDuration.length,
     explicitInventoryMismatch: explicitInventoryMismatch.length,
+    pendingListingTypeFallback: pendingListingTypeFallback.length,
     missingClosingDate: missingClosingDate.length,
+    missingClosingDateStatus: statusCounts,
     sourceWithExplicitNoDateStatus: statusBySource,
     samples: {
       missingLocation: missingLocation.slice(0, 10).map(row => ({ id: row.id, source: row.source, title: row.title })),
       termWithoutDuration: termWithoutDuration.slice(0, 10).map(row => ({ id: row.id, source: row.source, title: row.title })),
       explicitInventoryMismatch: explicitInventoryMismatch.slice(0, 10).map(row => ({ id: row.id, source: row.source, title: row.title })),
+      pendingListingTypeFallback: pendingListingTypeFallback.slice(0, 10).map(row => ({ id: row.id, source: row.source, title: row.title })),
     },
   }, null, 2));
 }

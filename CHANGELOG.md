@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Recruitment labels no longer masquerade as closing dates** — ongoing-recruitment listings now show an unknown deadline unless the source explicitly says applications remain open until filled.
 - **Jobs filters now work on narrow screens** — the filter controls remain reachable without forcing a second scrolling panel, and Saved clearly keeps its filters separate from Recently viewed.
 - **Conservation Halton pending listings now stay visible before full parsing** — source titles are recovered from the posting text so valid jobs keep their Details pending state.
 - **Academic job titles no longer repeat parenthetical union markers** — bargaining-unit details stay available in the structured Union field instead of cluttering titles.
