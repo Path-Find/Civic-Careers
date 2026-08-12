@@ -24,6 +24,12 @@ test('keeps the legacy Toronto posting ID when its canonical URL is found', () =
   assert.equal(APPLICATION_URL_FIXES['8bcafdef991f'], 'https://jobs.toronto.ca/jobsatcity/job/TORONTO-Solid-Waste-Collection-Operator-%28DZ-Licence-Required%29-ON-M9C-2Y2/598508217/');
 });
 
+test('keeps the GC Jobs coat-check posting on the NAC application page', () => {
+  const url = 'https://nac.njoyn.com/CL4/XWEB/Xweb.asp?page=jobdetails&CLID=74526&JobID=J0726-0690&lang=1';
+  assert.equal(APPLICATION_URL_FIXES['2451362'], url);
+  assert.equal(GOVERNMENT_OF_CANADA_FIXES['2451362']?.applicationUrl, url);
+});
+
 test('extracts and deduplicates St. Lawrence College job links', () => {
   const html = `<a href="/jobs/admn-pt-26-27-052" title="Talent Management Consultant">Talent Management Consultant</a>
     <a href="/jobs/supp-26/27-051" title="International Admissions Coordinator">International Admissions Coordinator</a>
