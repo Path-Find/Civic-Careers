@@ -303,10 +303,12 @@ function App() {
       if (shouldRefresh && path === '/jobs') refresh();
       urlHydratedRef.current = true;
     };
-    const onPopState = () => handlePopState(true);
+    const onPopState = () => {
+      window.scrollTo(0, 0);
+      handlePopState(true);
+    };
     window.addEventListener('popstate', onPopState);
     handlePopState(!urlHydratedRef.current);
-    window.scrollTo(0, 0);
     return () => window.removeEventListener('popstate', onPopState);
   }, [jobs, refresh, setDeadlineDays, setListingTypeFilter, setLocationTerm, setMinSalary, setNewlyAdded, setSelectedLanguages, setSelectedModes, setServerFilters, setShowStudentJobs, setSortNewest, setVehicleRequired]);
 
