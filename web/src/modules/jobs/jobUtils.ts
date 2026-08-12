@@ -17,6 +17,19 @@ export function formatAcademicRole(value: AcademicRoleType | null | undefined): 
   return value ? ACADEMIC_ROLE_LABELS[value] : null;
 }
 
+/** Use only explicit source-title wording when stored academic metadata is absent. */
+function academicRoleFromTitle(value: string | null | undefined): AcademicRoleType | null {
+  const title = value || '';
+  if (/\bteaching assistant\b|\bacademic assistant\b|\bgraduate assistant\b|\binstructional assistant\b|\bcourse assistant\b|\bmarker\b|\bdemonstrator\b|\btutor\b/i.test(title)) return 'teaching_assistant';
+  if (/\bresearch assistant\b/i.test(title)) return 'research_assistant';
+  if (/\bresearch associate\b/i.test(title)) return 'research_associate';
+  if (/\bpost[- ]?doc(?:toral)?\b/i.test(title)) return 'postdoctoral';
+  if (/\bprofessor\b|\blecturer\b|\bsessional instructor\b|\bfaculty member\b/i.test(title)) return 'faculty';
+  if (/\bacademic instructor\b|\bcourse instructor\b|\bteaching fellow\b/i.test(title)) return 'academic_instructor';
+  if (/\bcourse coordinator\b|\bcourse staff\b/i.test(title)) return 'course_staff';
+  return null;
+}
+
 /** Extract a source-labelled course/class schedule without guessing missing details. */
 export function extractAcademicSchedule(value: unknown): string | null {
   const text = value == null ? '' : String(value).replace(/\s+/g, ' ').trim();
@@ -359,7 +372,7 @@ export function parseJobDetails(job: Job): JobDetails {
     startDate: formatStartDate(job.start_date),
     hours: job.hours || null,
     availability: job.availability || null,
-    academicRole: formatAcademicRole(job.academic_role_type),
+    academicRole: formatAcademicRole(job.academic_role_type) || formatAcademicRole(academicRoleFromTitle(job.job_title)),
     academicCourse: formatAcademicCourse(job.academic_course),
     academicWorkload: formatAcademicWorkload(job.academic_workload) || formatAcademicWorkload(job.hours),
     academicOfficeHours: formatAcademicOfficeHours(job.academic_office_hours),
