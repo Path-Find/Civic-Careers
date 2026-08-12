@@ -242,7 +242,12 @@ export function useJobs() {
     try {
       const response = await fetch(`${API}/api/jobs?id=${job.id}`);
       const data = await response.json();
-      if (data.description) updateJob(job.id, { description: data.description });
+      if (data.description || data.academic_schedule) {
+        updateJob(job.id, {
+          ...(data.description ? { description: data.description } : {}),
+          ...(data.academic_schedule ? { academic_schedule: data.academic_schedule } : {}),
+        });
+      }
       return data.description as string | undefined;
     } catch (error) {
       console.error('Error fetching job description:', error);

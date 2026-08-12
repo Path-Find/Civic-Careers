@@ -17,6 +17,15 @@ export function formatAcademicRole(value: AcademicRoleType | null | undefined): 
   return value ? ACADEMIC_ROLE_LABELS[value] : null;
 }
 
+/** Extract a source-labelled course/class schedule without guessing missing details. */
+export function extractAcademicSchedule(value: unknown): string | null {
+  const text = value == null ? '' : String(value).replace(/\s+/g, ' ').trim();
+  if (!text) return null;
+  const match = text.match(/\b(?:course|class)\s+schedule\s*:\s*(.*)$/i);
+  const schedule = match?.[1]?.split(/\s+-\s+-?\s*(?:requirements|work hours|course (?:title|code)|posting limited to|salary|location)\s*:/i)[0].trim() ?? '';
+  return schedule || null;
+}
+
 const ACADEMIC_PLACEHOLDER = /^(?:n\/?a|none|null|not applicable|not specified|unknown)$/i;
 const GENERIC_APPOINTMENT = /^(?:(?:full|part)[- ]?time|temporary|contract|permanent|casual|seasonal|occasional|on[- ]?call)$/i;
 
@@ -356,6 +365,7 @@ export function parseJobDetails(job: Job): JobDetails {
     academicOfficeHours: formatAcademicOfficeHours(job.academic_office_hours),
     academicSupervisor: formatAcademicSupervisor(job.academic_supervisor),
     academicAppointmentType: formatAcademicAppointmentType(job.academic_appointment_type),
+    academicSchedule: cleanAcademicCardValue(job.academic_schedule) || null,
     union: formatUnionLabel(job.is_unionized, job.union_name),
     listingType: job.listing_type === 'ongoing_recruitment' ? 'Ongoing recruitment' : job.listing_type === 'inventory' || job.is_inventory === 1 ? 'Candidate inventory' : null,
     studentRequirement: job.is_student === 1 ? 'Yes' : null,

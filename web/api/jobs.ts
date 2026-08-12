@@ -3,6 +3,16 @@ import { createDb } from './_db.js';
 import { ORGANIZATION_GROUPS, organizationGroupForSlug, organizationGroupForSources } from '../src/modules/jobs/organizationMetadata.js';
 
 const PUBLIC_CACHE = 's-maxage=86400, stale-while-revalidate=86400';
+function extractSourceAcademicSchedule(value: unknown): string | null {
+  const text = value == null ? '' : String(value).replace(/\s+/g, ' ').trim();
+  const label = text.search(/(?:course|class)\s+schedule\s*:/i);
+  if (label < 0) return null;
+  const start = text.indexOf(':', label) + 1;
+  const remainder = text.slice(start).trim();
+  const end = remainder.search(/\s+-\s+-?\s*(?:requirements|work hours|course (?:title|code)|posting limited to|salary|location)\s*:/i);
+  const schedule = (end < 0 ? remainder : remainder.slice(0, end)).trim();
+  return schedule || null;
+}
 const closingDate = `COALESCE(NULLIF(TRIM(jd.closing_date), ''), NULLIF(TRIM(raw.pending_closing_date), ''))`;
 const sourceText = `LOWER(COALESCE(raw.title, '') || ' ' || COALESCE(raw.raw_text, ''))`;
 const effectiveListingType = `COALESCE(jd.listing_type,
@@ -49,7 +59,7 @@ const jobColumns = `
   jd.work_model, jd.employment_type, ${effectiveDuration} AS duration,
   jd.hours, jd.availability,
   jd.academic_role_type, jd.academic_course, jd.academic_workload, jd.academic_office_hours,
-  jd.academic_supervisor, jd.academic_appointment_type,
+  jd.academic_supervisor, jd.academic_appointment_type, NULL AS academic_schedule,
   jd.is_unionized, jd.union_name, jd.benefits, jd.required_skills,
   jd.experience_requirements, jd.education_requirements, jd.license_requirements, jd.vehicle_required,
   jd.language_requirements, jd.security_check_required, jd.certification_requirements,
@@ -114,8 +124,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     if (id) {
       const result = await db.execute({
-        sql: `SELECT jd.description, CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending
-              FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id WHERE j.id = ?`,
+        sql: `SELECT jd.description, raw.raw_text,
+                CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending
+              FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
+              LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ?`,
         args: [id]
       });
       if (result.rows.length === 0) {
@@ -123,9 +135,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         res.end(JSON.stringify({ error: 'Job not found' }));
         return;
       }
-      res.setHeader('Cache-Control', PUBLIC_CACHE);
+      res.setHeader('Cache-Control', 'no-store');
       res.end(JSON.stringify({
         description: result.rows[0].description ?? null,
+        academic_schedule: extractSourceAcademicSchedule(result.rows[0].raw_text),
         details_pending: Number(result.rows[0].details_pending ?? 0),
       }));
       return;

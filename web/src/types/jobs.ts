@@ -31,6 +31,7 @@ export interface Job {
   academic_office_hours: string | null;
   academic_supervisor: string | null;
   academic_appointment_type: string | null;
+  academic_schedule: string | null;
   is_unionized: number | null;
   union_name: string | null;
   benefits: string | null;
@@ -124,6 +125,7 @@ export interface JobDetails {
   academicOfficeHours: string | null;
   academicSupervisor: string | null;
   academicAppointmentType: string | null;
+  academicSchedule: string | null;
 }
 
 export interface JobFilters {

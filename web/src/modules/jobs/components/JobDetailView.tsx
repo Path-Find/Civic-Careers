@@ -134,6 +134,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Course / project', value: details.academicCourse },
     { label: 'Workload', value: details.academicWorkload || details.hours },
     { label: 'Office hours', value: details.academicOfficeHours },
+    { label: 'Schedule', value: details.academicSchedule },
     { label: 'Appointment type', value: details.academicAppointmentType },
     { label: 'Supervisor', value: details.academicSupervisor },
   ].filter(item => item.value);
@@ -159,10 +160,10 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           </div>
           <h1 className="detail-title" title={job.job_title || undefined}>{job.job_title}</h1>
           <JobLocationMap location={job.location} />
-          {details.academicRole && <section className="detail-academic-card" aria-labelledby="academic-heading">
+          {(details.academicRole || academicMetadata.length > 0) && <section className="detail-academic-card" aria-labelledby="academic-heading">
             <div className="detail-academic-header">
-              <h2 id="academic-heading" className="detail-academic-heading">Academic role</h2>
-              <span className="detail-academic-role">{details.academicRole}</span>
+              <h2 id="academic-heading" className="detail-academic-heading">Academic context</h2>
+              {details.academicRole && <span className="detail-academic-role">{details.academicRole}</span>}
             </div>
             {academicMetadata.length > 0 && <div className="detail-academic-grid">
               {academicMetadata.map(item => <div key={item.label} className="detail-requirement-item">
