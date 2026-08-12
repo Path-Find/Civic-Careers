@@ -146,7 +146,8 @@
 
 .company-row { padding: 0.6rem 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 .company-row.archived { opacity: 0.6; }
-.company-name { font-size: 1rem; font-weight: 700; }
+.company-name { display: block; font-size: 1rem; font-weight: 700; }
+.company-child-summary { display: block; margin-top: 0.15rem; color: #64748b; font-size: 0.72rem; font-weight: 600; }
 .company-count { font-size: 0.8125rem; color: #94a3b8; font-weight: 700; }
 .company-section-label { margin-top: 1rem; margin-bottom: 0.25rem; font-size: 0.65rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
 .company-sort-options { display: flex; gap: 0.75rem; }
@@ -156,6 +157,9 @@
 .company-page-title { margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
 .company-page-portal { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.4rem; color: #2563eb; font-size: 0.8125rem; font-weight: 600; text-decoration: none; }
 .company-page-portal-missing { margin: 0.4rem 0 0; color: #94a3b8; font-size: 0.75rem; }
+.company-child-links { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem 0.75rem; margin-top: 0.8rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; }
+.company-child-links-label { color: #64748b; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.company-child-links a { display: inline-flex; align-items: center; gap: 0.25rem; color: #2563eb; font-size: 0.75rem; font-weight: 600; text-decoration: none; }
 .company-title-suggestions { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; }
 .company-title-suggestions-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.55rem; }
 .company-title-suggestions h3 { margin: 0; color: #64748b; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }

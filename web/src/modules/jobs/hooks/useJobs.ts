@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CompanySummary, HomeData, Job } from '../../../types/jobs';
+import type { CompanySummary, HomeData, Job, OrganizationGroup } from '../../../types/jobs';
 import { normalizeJob } from '../jobUtils';
 import { jobIdFromPath } from '../../../utils';
 
@@ -60,21 +60,24 @@ export function useJobs() {
   const [jobsTotal, setJobsTotal] = useState(0);
   const [jobsAvailableTotal, setJobsAvailableTotal] = useState(0);
   const [companyTitleSuggestions, setCompanyTitleSuggestions] = useState<string[]>([]);
-  /** Exact source name when the jobs list is scoped to one employer (company page). */
+  /** Canonical employer name when the jobs list is scoped to one employer. */
   const [jobsSource, setJobsSource] = useState<string | null>(null);
+  const [jobsOrganization, setJobsOrganization] = useState<OrganizationGroup | null>(null);
   const loadingMoreRef = useRef(false);
-  const jobsSourceRef = useRef<string | null>(null);
+  const jobsSourcesRef = useRef<string[]>([]);
   /** Read by refresh/loadMore — update via setServerFilters before calling refresh. */
   const serverFiltersRef = useRef<JobsListServerFilters>(EMPTY_SERVER_FILTERS);
 
   const clearSourceScope = () => {
     setJobsSource(null);
-    jobsSourceRef.current = null;
+    setJobsOrganization(null);
+    jobsSourcesRef.current = [];
   };
 
-  const setSourceScope = (source: string | null) => {
+  const setSourceScope = (source: string | null, sources: string[], organization: OrganizationGroup | null) => {
     setJobsSource(source);
-    jobsSourceRef.current = source;
+    setJobsOrganization(organization);
+    jobsSourcesRef.current = sources;
   };
 
   /** Sync server-backed list filters (deadline / newly added). Call before refresh(). */
@@ -170,7 +173,7 @@ export function useJobs() {
         setJobsTotal(Number(data.total ?? list.length));
         setJobsAvailableTotal(Number(data.availableTotal ?? data.total ?? list.length));
         setCompanyTitleSuggestions(Array.isArray(data.titleSuggestions) ? data.titleSuggestions : []);
-        setSourceScope(data.source ?? null);
+        setSourceScope(data.source ?? null, Array.isArray(data.sources) ? data.sources : [], data.organization ?? null);
       })
       .catch(error => console.error('Error fetching jobs:', error))
       .finally(() => setLoading(false));
@@ -181,13 +184,13 @@ export function useJobs() {
     loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
-      const source = jobsSourceRef.current;
+      const sources = jobsSourcesRef.current;
       const params = new URLSearchParams({
         view: 'jobs',
         limit: '50',
         offset: String(jobs.length),
       });
-      if (source) params.set('source', source);
+      if (sources.length > 0) params.set('sources', sources.join(','));
       appendServerFilters(params, serverFiltersRef.current);
       const response = await fetch(`${API}/api/jobs?${params}`);
       const data = await response.json();
@@ -239,6 +242,7 @@ export function useJobs() {
     jobsTotal,
     jobsAvailableTotal,
     jobsSource,
+    jobsOrganization,
     companyTitleSuggestions,
     setServerFilters,
     loadMore,

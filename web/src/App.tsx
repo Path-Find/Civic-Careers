@@ -142,7 +142,7 @@ function replaceJobFiltersInUrl(state: JobUrlState) {
 }
 
 function App() {
-  const { jobs, homeData, companySummaries, companyTitleSuggestions, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
+  const { jobs, homeData, companySummaries, companyTitleSuggestions, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, jobsOrganization, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -181,6 +181,7 @@ function App() {
   const companyTitleOptions = [...new Set(companyTitleSuggestions.map(normalizeJobTitle).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
     .slice(0, 20);
+  const companyCareersPortal = jobsOrganization?.portal ?? (jobsSource ? companyPortal(jobsSource) : null);
   const companyFilteredJobs = isCompanyPage && companyTitleFilter
     ? filteredJobs.filter(job => normalizeJobTitle(job.job_title) === companyTitleFilter)
     : filteredJobs;
@@ -336,14 +337,14 @@ function App() {
     });
   }, [selectedJob, loadDescription, recordViewed]);
 
-  const handleNavigate = (view: View, companyFilter?: string) => {
+  const handleNavigate = (view: View, companyFilter?: string, companySlug?: string) => {
     setCurrentView(view);
     setSelectedJob(null);
     setCompanyTitleFilter(null);
     window.scrollTo(0, 0);
     if (companyFilter) {
       setSearchTerm(companyFilter);
-      window.history.pushState(null, '', `/companies/${slugify(companyFilter)}`);
+      window.history.pushState(null, '', `/companies/${companySlug ?? slugify(companyFilter)}`);
     } else {
       window.history.pushState(null, '', `/${view === 'home' ? '' : view}`);
     }
@@ -614,10 +615,14 @@ function App() {
                   <div className="company-page-header">
                     <div>
                       <h2 className="company-page-title">{jobsSource}</h2>
-                      {jobsSource && companyPortal(jobsSource) ? <a className="company-page-portal" href={companyPortal(jobsSource)!} target="_blank" rel="noopener noreferrer">
+                      {companyCareersPortal ? <a className="company-page-portal" href={companyCareersPortal} target="_blank" rel="noopener noreferrer">
                           <ExternalLink size={14} />
                           Visit Official Careers Site
                         </a> : <p className="company-page-portal-missing">Official careers link not recorded</p>}
+                      {jobsOrganization && jobsOrganization.children.length > 0 && <div className="company-child-links">
+                        <span className="company-child-links-label">Includes</span>
+                        {jobsOrganization.children.map(child => <a key={child.name} href={child.portal} target="_blank" rel="noopener noreferrer">{child.name} <ExternalLink size={12} /></a>)}
+                      </div>}
                     </div>
                     <CompanyTitleSuggestions
                       titles={companyTitleOptions}
@@ -646,13 +651,13 @@ function App() {
                       companies={filteredCompanySummaries}
                       sort={companySort}
                       showArchived={companyStatus === 'all'}
-                      onSelectCompany={name => {
+                      onSelectCompany={company => {
                         setMinSalary(null);
                         setSelectedModes([]);
                         setDeadlineDays(null);
                         setNewlyAdded(false);
                         setServerFilters({ deadlineDays: null, newlyAdded: false });
-                        handleNavigate('jobs', name);
+                        handleNavigate('jobs', company.name, company.organizationSlug);
                       }}
                     />
                   </>}

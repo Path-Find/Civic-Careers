@@ -14,7 +14,7 @@ export function CompanyDirectory({ companies, sort, showArchived, onSelectCompan
   companies: CompanySummary[];
   sort: 'alphabetical' | 'mostJobs' | 'recent';
   showArchived: boolean;
-  onSelectCompany: (name: string) => void;
+  onSelectCompany: (company: CompanySummary) => void;
 }) {
   // Sort by what the user sees (display name), not the internal source key
   // (CMHC / TTC), so A–Z is real alphabetical order.
@@ -27,10 +27,10 @@ export function CompanyDirectory({ companies, sort, showArchived, onSelectCompan
   const activeCompanies = sortCompanies(companies.filter(company => Number(company.active_job_count) > 0));
   const inactiveCompanies = sortCompanies(companies.filter(company => Number(company.active_job_count) === 0));
   return <>
-    {activeCompanies.map(company => <div className="company-row" key={company.name} onClick={() => onSelectCompany(company.name)}><span className="company-name">{companyDisplayName(company.name)}</span><span className="company-count">{company.active_job_count} positions</span></div>)}
+    {activeCompanies.map(company => <div className="company-row" key={company.name} onClick={() => onSelectCompany(company)}><div><span className="company-name">{companyDisplayName(company.name)}</span>{company.children && company.children.length > 0 && <span className="company-child-summary">Includes {company.children.map(child => child.name).join(', ')}</span>}</div><span className="company-count">{company.active_job_count} positions</span></div>)}
     {showArchived && inactiveCompanies.length > 0 && <>
       <div className="company-section-label">Not currently hiring</div>
-      {inactiveCompanies.map(company => <div className="company-row archived" key={company.name} onClick={() => onSelectCompany(company.name)}><span className="company-name">{companyDisplayName(company.name)}</span><span className="company-count">{company.total_job_count} positions (archived)</span></div>)}
+      {inactiveCompanies.map(company => <div className="company-row archived" key={company.name} onClick={() => onSelectCompany(company)}><div><span className="company-name">{companyDisplayName(company.name)}</span>{company.children && company.children.length > 0 && <span className="company-child-summary">Includes {company.children.map(child => child.name).join(', ')}</span>}</div><span className="company-count">{company.total_job_count} positions (archived)</span></div>)}
     </>}
   </>;
 }

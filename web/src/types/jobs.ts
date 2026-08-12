@@ -1,3 +1,5 @@
+import type { OrganizationChild, OrganizationGroup } from '../modules/jobs/organizationMetadata';
+
 export type AcademicRoleType =
   | 'faculty'
   | 'teaching_assistant'
@@ -82,7 +84,13 @@ export interface CompanySummary {
   recent_job_count: number;
   latest_job_added_at: string | null;
   last_checked_at: string | null;
+  organizationSlug?: string;
+  sourceNames?: string[];
+  portal?: string | null;
+  children?: OrganizationChild[];
 }
+
+export type { OrganizationChild, OrganizationGroup };
 
 export type View = 'home' | 'jobs' | 'saved' | 'companies' | 'about';
 export type ListingTypeFilter = 'ongoing_recruitment' | 'inventory' | null;

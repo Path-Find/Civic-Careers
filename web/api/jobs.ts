@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createDb } from './_db.js';
+import { ORGANIZATION_GROUPS, organizationGroupForSlug, organizationGroupForSources } from '../src/modules/jobs/organizationMetadata.js';
 
 const PUBLIC_CACHE = 's-maxage=86400, stale-while-revalidate=86400';
 const closingDate = `COALESCE(NULLIF(TRIM(jd.closing_date), ''), NULLIF(TRIM(raw.pending_closing_date), ''))`;
@@ -61,6 +62,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   const rid = parsed.searchParams.get('rid');
   const view = parsed.searchParams.get('view');
   const sourceParam = parsed.searchParams.get('source');
+  const sourceNamesParam = parsed.searchParams.get('sources');
   const sourceSlug = parsed.searchParams.get('sourceSlug');
   const limit = Math.min(Math.max(Number(parsed.searchParams.get('limit') ?? 50), 1), 100);
   const offset = Math.max(Number(parsed.searchParams.get('offset') ?? 0), 0);
@@ -201,22 +203,66 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         ${jobJoins}
         GROUP BY j.source
         ORDER BY active_job_count DESC, name ASC`);
+      const rowsBySource = new Map(result.rows.map(row => [String(row.name ?? ''), row]));
+      const groupedSources = new Set<string>();
+      const groupedRows = ORGANIZATION_GROUPS.flatMap(group => {
+        const matchingRows = group.sourceNames
+          .map(source => rowsBySource.get(source))
+          .filter((row): row is Record<string, unknown> => Boolean(row));
+        if (matchingRows.length === 0) return [];
+        group.sourceNames.forEach(source => groupedSources.add(source));
+        return [{
+          name: group.name,
+          organizationSlug: group.slug,
+          sourceNames: group.sourceNames,
+          portal: group.portal,
+          children: group.children,
+          active_job_count: matchingRows.reduce((sum, row) => sum + Number(row.active_job_count ?? 0), 0),
+          total_job_count: matchingRows.reduce((sum, row) => sum + Number(row.total_job_count ?? 0), 0),
+          recent_job_count: matchingRows.reduce((sum, row) => sum + Number(row.recent_job_count ?? 0), 0),
+          latest_job_added_at: matchingRows.map(row => String(row.latest_job_added_at ?? '')).sort().at(-1) || null,
+          last_checked_at: matchingRows.map(row => String(row.last_checked_at ?? '')).sort().at(-1) || null,
+        }];
+      });
+      const standaloneRows = result.rows
+        .filter(row => !groupedSources.has(String(row.name ?? '')))
+        .map(row => ({
+          ...row,
+          organizationSlug: slugifySource(String(row.name ?? '')),
+          sourceNames: [String(row.name ?? '')],
+          portal: null,
+          children: [],
+        }));
       res.setHeader('Cache-Control', PUBLIC_CACHE);
-      res.end(JSON.stringify(result.rows));
+      res.end(JSON.stringify([...groupedRows, ...standaloneRows]));
       return;
     }
 
     if (view === 'jobs') {
-      let sourceFilter: string | null = sourceParam;
+      let sourceFilters = sourceParam ? [sourceParam] : [];
+      let sourceGroup = sourceParam ? organizationGroupForSources([sourceParam]) : null;
+      if (sourceGroup) sourceFilters = sourceGroup.sourceNames;
+
+      if (sourceNamesParam) {
+        sourceFilters = [...new Set(sourceNamesParam.split(',').map(value => value.trim()).filter(Boolean))];
+        sourceGroup = organizationGroupForSources(sourceFilters);
+      }
 
       // Company pages: /companies/university-of-ottawa → sourceSlug=university-of-ottawa
-      if (!sourceFilter && sourceSlug) {
-        const sources = await db.execute('SELECT DISTINCT j.source AS source FROM jobs j');
-        const match = sources.rows.find(row => slugifySource(String(row.source ?? '')) === sourceSlug);
-        sourceFilter = match?.source != null ? String(match.source) : null;
-        if (!sourceFilter) {
+      if (sourceSlug) {
+        sourceGroup = organizationGroupForSlug(sourceSlug);
+        if (sourceGroup) {
+          sourceFilters = sourceGroup.sourceNames;
+        } else {
+          const sources = await db.execute('SELECT DISTINCT j.source AS source FROM jobs j');
+          const match = sources.rows.find(row => slugifySource(String(row.source ?? '')) === sourceSlug);
+          sourceFilters = match?.source != null ? [String(match.source)] : [];
+          sourceGroup = organizationGroupForSources(sourceFilters);
+          if (sourceGroup) sourceFilters = sourceGroup.sourceNames;
+        }
+        if (sourceFilters.length === 0) {
           res.setHeader('Cache-Control', PUBLIC_CACHE);
-          res.end(JSON.stringify({ jobs: [], total: 0, availableTotal: 0, source: null }));
+          res.end(JSON.stringify({ jobs: [], total: 0, availableTotal: 0, source: null, sources: [], organization: null }));
           return;
         }
       }
@@ -233,9 +279,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       const filterArgs: Array<string | number> = [];
       let filterClause = '';
 
-      if (sourceFilter) {
-        filterClause += ' AND j.source = ?';
-        filterArgs.push(sourceFilter);
+      if (sourceFilters.length > 0) {
+        filterClause += ` AND j.source IN (${sourceFilters.map(() => '?').join(', ')})`;
+        filterArgs.push(...sourceFilters);
       }
 
       if (deadlineDays !== null && Number.isFinite(deadlineDays)) {
@@ -272,11 +318,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       const listArgs = [...filterArgs, limit, offset];
       const countArgs = [...filterArgs];
-      const titleSuggestions = sourceFilter
+      const titleSuggestions = sourceFilters.length > 0
         ? db.execute({
           sql: `SELECT DISTINCT COALESCE(jd.job_title, raw.title) AS title
             ${jobJoins}
-            WHERE j.source = ?
+            WHERE j.source IN (${sourceFilters.map(() => '?').join(', ')})
               AND j.is_active = 1
               ${visiblePending}
               AND COALESCE(jd.is_inventory, 0) = 0
@@ -284,7 +330,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
               AND TRIM(COALESCE(jd.job_title, raw.title, '')) <> ''
             ORDER BY title COLLATE NOCASE
             LIMIT 50`,
-          args: [sourceFilter],
+          args: sourceFilters,
         })
         : Promise.resolve({ rows: [] as Array<Record<string, unknown>> });
       const [result, count] = await Promise.all([
@@ -305,7 +351,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         jobs: result.rows,
         total: Number(count.rows[0]?.total ?? 0),
         availableTotal: Number(count.rows[0]?.available_total ?? 0),
-        source: sourceFilter,
+        source: sourceGroup?.name ?? (sourceFilters.length === 1 ? sourceFilters[0] : null),
+        sources: sourceFilters,
+        organization: sourceGroup,
         titleSuggestions: (await titleSuggestions).rows
           .map(row => String(row.title ?? '').trim())
           .filter(Boolean),
