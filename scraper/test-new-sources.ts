@@ -201,6 +201,27 @@ const SOURCES = {
       'Shared Health Manitoba',
       'https://careers.wrha.mb.ca',
     ),
+  'London Public Library': (db: Client, context: BrowserContext) =>
+    scrapeUltiPro(
+      db,
+      context,
+      'https://recruiting.ultipro.ca/LON5100LPLY/JobBoard/5a8bb7ac-1f7b-4aae-9db8-37f3df5b9940/?o=postedDateDesc&q=',
+      'London Public Library',
+    ),
+  'Richmond Public Library': (db: Client, context: BrowserContext) =>
+    scrapeTaleo(
+      db,
+      context,
+      'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?cws=44&org=TRQS8M',
+      'Richmond Public Library',
+    ),
+  'Edmonton Public Library': (db: Client, context: BrowserContext) =>
+    scrapeTaleo(
+      db,
+      context,
+      'https://edmonton.taleo.net/careersection/epl-ext/jobsearch.ftl',
+      'Edmonton Public Library',
+    ),
   'VIA TGF Inc.': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://carrieres-careers.altotrain.ca/search/', 'VIA TGF Inc.'),
   'Toronto Hydro': (db: Client, context: BrowserContext) =>

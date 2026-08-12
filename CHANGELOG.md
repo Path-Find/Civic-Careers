@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Library filtering now includes Pickering Public Library** — its current or empty job state is visible with the other public-library sources.
 - **Company-page status and location states are now consistent** — Candidate Inventory uses the shared status-pill treatment, while exact, area-only, and unavailable workplace locations are shown without implying a precise address where the source does not provide one.
 - **PeopleSoft sources no longer save search shells as jobs** — default-search dialogs and redundant resubmissions no longer block or replace real detail-page captures.
 - **Pending listings now show accurate deadline status** — source dates, open-until-filled postings, missing deadlines, and malformed values are handled consistently for both new and existing listings.

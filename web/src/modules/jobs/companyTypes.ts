@@ -105,6 +105,7 @@ export const COMPANY_TYPES: Record<string, CompanyType[]> = {
   'London Public Library': ['library'],
   'Oakville Public Library': ['library'],
   'Richmond Public Library': ['library'],
+  'Pickering Public Library': ['library'],
   'Ontario Health': ['health', 'publicAgency'],
   'Ontario Health atHome': ['health', 'publicAgency'],
   'Public Health Ontario': ['health', 'publicAgency'],
@@ -202,6 +203,10 @@ export const COMPANY_PORTALS: Record<string, string> = {
   'Toronto District School Board': 'https://www.tdsb.on.ca/About-Us/Employment',
   'City of Winnipeg': 'https://careers.winnipeg.ca/psc/cgext/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U',
   'Vaughan Public Library': 'https://www.vaughanpl.info/about/careers',
+  'London Public Library': 'https://www.lpl.ca/about-us/jobs-library',
+  'Richmond Public Library': 'https://www.yourlibrary.ca/careers-at-rpl/',
+  'Edmonton Public Library': 'https://www.epl.ca/careers/',
+  'Pickering Public Library': 'https://www.pickering.ca/council-city-administration/employment-opportunities/',
   'Durham Region': 'https://www.durham.ca/en/doing-business/careers.aspx',
   'Town of Halton Hills': 'https://www.haltonhills.ca/en/your-government/careers.aspx',
 };
