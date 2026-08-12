@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Academic job titles no longer repeat parenthetical union markers** — bargaining-unit details stay available in the structured Union field instead of cluttering titles.
+- **Salary filters now compare yearly pay only** — hourly, monthly, and flat compensation is never misrepresented as an annual salary.
 - **Explicit hiring pools and eligibility lists now get the right listing status** — future-vacancy postings no longer appear as ordinary single-job vacancies.
 - **Government of Canada postings delegated to the National Arts Centre now keep their direct application pages** — box-office and coat-check applicants no longer land on generic GC listing pages.
 - **The CSIS Government of Canada posting keeps its official Canada.ca destination** — applicants no longer land on the generic GC listing page.

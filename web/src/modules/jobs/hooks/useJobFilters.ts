@@ -14,6 +14,16 @@ export function matchesLocation(location: string | null | undefined, filter: str
   return terms.some(term => normalizedLocation.includes(term));
 }
 
+/** Salary thresholds are yearly dollars; never compare them to another pay period. */
+export function matchesSalaryMinimum(
+  salaryMin: number | null | undefined,
+  salaryPeriod: string | null | undefined,
+  minimum: number | null,
+): boolean {
+  if (minimum === null) return true;
+  return salaryPeriod === 'yearly' && salaryMin !== null && salaryMin !== undefined && salaryMin >= minimum;
+}
+
 export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string) {
   const [minSalary, setMinSalary] = useState<number | null>(null);
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
@@ -41,7 +51,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
       const matchesLocation = locationTerms.length === 0 || locationTerms.some(term => (job.location || '').toLowerCase().includes(term));
       const details = parseJobDetails(job);
       const matchesMode = selectedModes.length === 0 || (details.mode !== null && selectedModes.includes(details.mode));
-      const matchesSalary = !minSalary || (job.salary_min !== null && job.salary_min >= minSalary);
+      const matchesSalary = matchesSalaryMinimum(job.salary_min, job.salary_period, minSalary);
       const languageRequirements = parseTagList(job.language_requirements);
       const matchesLanguage = selectedLanguages.length === 0 || selectedLanguages.every(language => languageRequirements.some(value => {
         const normalized = value.toLowerCase();

@@ -43,7 +43,10 @@ export function JobFiltersSidebar({
   return <aside className="listing-sidebar" style={{ top: `${headerHeight + 20}px`, maxHeight: `calc(100vh - ${headerHeight + 40}px)` }}>
     <div className="filter-heading"><span className="filter-heading-label">Filters</span></div>
     <div className="filter-section"><label className="filter-title" htmlFor="location-filter">Locations</label><input id="location-filter" className="location-filter-input" value={locationTerm} onChange={event => onLocationChange(event.target.value)} placeholder="e.g. Toronto, Ottawa" aria-describedby="location-filter-note" /><p id="location-filter-note" className="filter-note">Separate cities with commas. Matches any listed location.</p></div>
-    <FilterSection title="Salary Min">{[50000, 75000, 100000, 125000].map(value => <FilterButton key={value} label={`$${value / 1000}k+`} active={minSalary === value} onClick={() => onMinSalaryChange(minSalary === value ? null : value)} />)}</FilterSection>
+    <FilterSection title="Salary Min (yearly)">
+      {[50000, 75000, 100000, 125000].map(value => <FilterButton key={value} label={`$${value / 1000}k+`} active={minSalary === value} onClick={() => onMinSalaryChange(minSalary === value ? null : value)} />)}
+      <p className="filter-note">Only yearly salaries are compared. Other pay periods are not converted.</p>
+    </FilterSection>
     <FilterSection title="Work Mode">{['In-person', 'Hybrid', 'Remote'].map(mode => <FilterButton key={mode} label={mode} active={selectedModes.includes(mode)} onClick={() => onModesChange(mode)} />)}</FilterSection>
     <FilterSection title="Language">{['English', 'French'].map(language => <FilterButton key={language} label={language} active={selectedLanguages.includes(language)} onClick={() => onLanguageChange(language)} />)}</FilterSection>
     <FilterSection title="Vehicle"><FilterButton label="Vehicle required" active={vehicleRequired} onClick={onVehicleRequiredChange} /></FilterSection>
