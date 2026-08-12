@@ -22,6 +22,7 @@ export const APPLICATION_URL_FIXES: Record<string, string> = {
   '8bcafdef991f': 'https://jobs.toronto.ca/jobsatcity/job/TORONTO-Solid-Waste-Collection-Operator-%28DZ-Licence-Required%29-ON-M9C-2Y2/598508217/',
   // GC Jobs delegates this posting to the National Arts Centre's stable Njoyn page.
   '2451362': 'https://nac.njoyn.com/CL4/XWEB/Xweb.asp?page=jobdetails&CLID=74526&JobID=J0726-0690&lang=1',
+  '2451359': 'https://nac.njoyn.com/CL4/XWEB/Xweb.asp?page=jobdetails&CLID=74526&JobID=J0726-0854&lang=1',
 };
 
 export const LEGACY_JOB_IDS_BY_APPLICATION_URL: Record<string, string> = Object.fromEntries(
@@ -35,6 +36,9 @@ export const LEGACY_JOB_IDS_BY_APPLICATION_URL: Record<string, string> = Object.
 export const GOVERNMENT_OF_CANADA_FIXES: Record<string, GovernmentOfCanadaFix> = {
   '2451362': {
     applicationUrl: APPLICATION_URL_FIXES['2451362'],
+  },
+  '2451359': {
+    applicationUrl: APPLICATION_URL_FIXES['2451359'],
   },
   '2434700': {
     applicationUrl: 'https://careers-carrieres.cra-arc.gc.ca/gol-ged/wcis/pub/rtrvjbpst.action?pi=8EB30FC0002E1FD18383F97AB53463CE',
