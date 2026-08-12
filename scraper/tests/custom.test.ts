@@ -42,6 +42,15 @@ test('keeps the GC Jobs CSIS posting on its official Canada.ca page', () => {
   assert.equal(GOVERNMENT_OF_CANADA_FIXES['2451297']?.applicationUrl, url);
 });
 
+test('keeps delegated GC postings on the reported official employer pages', () => {
+  const bankOfCanada = 'https://careers.bankofcanada.ca/job/Ottawa-%28Downtown%29-Senior-AI-Platform-Specialist%2C-Microsoft-Azure-ON/604815517/';
+  const defenceConstruction = 'https://phh.tbe.taleo.net/phh04/ats/careers/v2/viewRequisition?org=DEFENCECONSTRUCTIONCANADA&cws=47&rid=8053';
+  assert.equal(APPLICATION_URL_FIXES['2450663'], bankOfCanada);
+  assert.equal(GOVERNMENT_OF_CANADA_FIXES['2450663']?.applicationUrl, bankOfCanada);
+  assert.equal(APPLICATION_URL_FIXES['2451565'], defenceConstruction);
+  assert.equal(GOVERNMENT_OF_CANADA_FIXES['2451565']?.applicationUrl, defenceConstruction);
+});
+
 test('extracts and deduplicates St. Lawrence College job links', () => {
   const html = `<a href="/jobs/admn-pt-26-27-052" title="Talent Management Consultant">Talent Management Consultant</a>
     <a href="/jobs/supp-26/27-051" title="International Admissions Coordinator">International Admissions Coordinator</a>

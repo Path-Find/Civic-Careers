@@ -24,6 +24,8 @@ export const APPLICATION_URL_FIXES: Record<string, string> = {
   '2451362': 'https://nac.njoyn.com/CL4/XWEB/Xweb.asp?page=jobdetails&CLID=74526&JobID=J0726-0690&lang=1',
   '2451359': 'https://nac.njoyn.com/CL4/XWEB/Xweb.asp?page=jobdetails&CLID=74526&JobID=J0726-0854&lang=1',
   '2451297': 'https://www.canada.ca/en/security-intelligence-service/corporate/csis-jobs/available-jobs/deputy-chief-of-procurement-and-acquisitions.html',
+  '2450663': 'https://careers.bankofcanada.ca/job/Ottawa-%28Downtown%29-Senior-AI-Platform-Specialist%2C-Microsoft-Azure-ON/604815517/',
+  '2451565': 'https://phh.tbe.taleo.net/phh04/ats/careers/v2/viewRequisition?org=DEFENCECONSTRUCTIONCANADA&cws=47&rid=8053',
 };
 
 export const LEGACY_JOB_IDS_BY_APPLICATION_URL: Record<string, string> = Object.fromEntries(
@@ -43,6 +45,12 @@ export const GOVERNMENT_OF_CANADA_FIXES: Record<string, GovernmentOfCanadaFix> =
   },
   '2451297': {
     applicationUrl: APPLICATION_URL_FIXES['2451297'],
+  },
+  '2450663': {
+    applicationUrl: APPLICATION_URL_FIXES['2450663'],
+  },
+  '2451565': {
+    applicationUrl: APPLICATION_URL_FIXES['2451565'],
   },
   '2434700': {
     applicationUrl: 'https://careers-carrieres.cra-arc.gc.ca/gol-ged/wcis/pub/rtrvjbpst.action?pi=8EB30FC0002E1FD18383F97AB53463CE',
