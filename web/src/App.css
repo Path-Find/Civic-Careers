@@ -79,6 +79,8 @@
 .report-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .report-dialog h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.03em; }
 .report-dialog p { margin: 0.5rem 0 1rem; color: #64748b; font-size: 0.8125rem; }
+.report-dialog-status { color: #166534 !important; font-weight: 700; }
+.report-dialog-status-error { color: #b91c1c !important; }
 .report-dialog-close { border: 0; background: transparent; color: #64748b; font-size: 1.5rem; line-height: 1; cursor: pointer; }
 .report-reasons { display: flex; flex-direction: column; gap: 0.55rem; }
 .report-reason { display: flex; align-items: flex-start; gap: 0.55rem; color: #334155; font-size: 0.8125rem; line-height: 1.35; cursor: pointer; }

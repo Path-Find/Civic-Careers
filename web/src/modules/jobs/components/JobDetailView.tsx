@@ -20,6 +20,7 @@ const REPORT_REASONS = [
 function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
   const [note, setNote] = useState('');
+  const [reportStatus, setReportStatus] = useState<'idle' | 'opened' | 'blocked'>('idle');
   const toggleReason = (reason: string) => setSelectedReasons(previous => previous.includes(reason)
     ? previous.filter(value => value !== reason)
     : [...previous, reason]);
@@ -32,13 +33,14 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
       note.trim() ? `\nAdditional details:\n${note.trim()}` : '',
       '',
       `Job title: ${job.job_title}`,
-      `Company: ${job.source}`,
-      `Source job ID: ${job.id}`,
-      `URL: ${job.url}`,
+      `Source: ${job.source}`,
+      `Civic Careers job ID: ${job.id}`,
+      `Apply URL: ${job.url}`,
+      `Original posting URL: ${job.details_url ?? 'Not available'}`,
     ].filter(Boolean).join('\n');
-    const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.job_title}`)}&labels=data-quality,frontend,user-reported&body=${encodeURIComponent(body)}`;
-    window.open(reportUrl, '_blank', 'noopener,noreferrer');
-    onClose();
+    const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.source} — ${job.job_title}`)}&labels=data-quality,frontend,user-reported&body=${encodeURIComponent(body)}`;
+    const reportWindow = window.open(reportUrl, '_blank', 'noopener,noreferrer');
+    setReportStatus(reportWindow ? 'opened' : 'blocked');
   };
 
   return <div className="report-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
@@ -48,6 +50,8 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
         <button type="button" className="report-dialog-close" onClick={onClose} aria-label="Close report dialog">×</button>
       </div>
       <p>Select all reasons that apply, or describe another problem below.</p>
+      {reportStatus === 'opened' && <p className="report-dialog-status" role="status">GitHub opened in a new tab. Review the prefilled report and submit it there.</p>}
+      {reportStatus === 'blocked' && <p className="report-dialog-status report-dialog-status-error" role="alert">GitHub could not open. Allow pop-ups for Civic Careers, then try again.</p>}
       <div className="report-reasons">
         {REPORT_REASONS.map(reason => <label key={reason} className="report-reason">
           <input type="checkbox" checked={selectedReasons.includes(reason)} onChange={() => toggleReason(reason)} />
