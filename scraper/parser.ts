@@ -2,7 +2,7 @@ import { deactivateExpiredJobs, discardRawJob, initDb, getUnparsedJobs, saveJob,
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, looksUnrendered, notifyDiscord } from './utils';
 import { normalizeDuration } from './duration';
-import { normalizeLocation } from './location';
+import { extractLabeledLocation, normalizeLocation } from './location';
 import { normalizeJobTitle } from './title';
 import { normalizeEmploymentType, normalizeSalaryPeriod, normalizeUnionFields, normalizeWorkModel } from './validate';
 import {
@@ -107,6 +107,8 @@ async function main() {
         const securityCheckRequired = sourceFix?.securityCheckRequired
           ?? normalizeSecurityCheckRequired(aiResult.security_check_required)
           ?? securityFromLabel;
+        const parsedLocation = normalizeLocation(aiResult.location);
+        const location = parsedLocation || extractLabeledLocation(raw.raw_text);
         const listingType = normalizeListingType(
           extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory),
           aiResult.is_inventory,
@@ -117,7 +119,7 @@ async function main() {
           id: raw.id,
           job_title: normalizeJobTitle(aiResult.job_title),
           department: aiResult.department,
-          location: normalizeLocation(aiResult.location),
+          location,
           salary_range: (aiResult.salary_min || aiResult.salary_max)
             ? `${aiResult.salary_min ?? ''} - ${aiResult.salary_max ?? ''} (${aiResult.salary_period})`
             : '',

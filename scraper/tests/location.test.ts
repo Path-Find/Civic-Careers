@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeLocation } from '../location';
+import { extractLabeledLocation, normalizeLocation } from '../location';
 
 test('bare Canadian cities get province codes', () => {
   assert.equal(normalizeLocation('Guelph'), 'Guelph, ON');
@@ -92,4 +92,13 @@ test('unmapped bare place does not invent a province', () => {
 
 test('dedupes repeated cities', () => {
   assert.equal(normalizeLocation('Toronto; Toronto, ON'), 'Toronto, ON');
+});
+
+test('recovers compact labelled source locations', () => {
+  assert.equal(
+    extractLabeledLocation('Job ID #32166: Process Supervisor LocationHamilton, OntarioDepartmentPublic WorksEmployment TypePermanent, Full-Time'),
+    'Hamilton, ON',
+  );
+  assert.equal(extractLabeledLocation('Location: Toronto, Ontario\nDepartment: Public Works'), 'Toronto, ON');
+  assert.equal(extractLabeledLocation('Department: Public Works\nEmployment Type: Full-Time'), '');
 });

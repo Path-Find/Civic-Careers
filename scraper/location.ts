@@ -556,6 +556,13 @@ export function normalizeLocation(raw: string | null | undefined): string {
   return dedupeJoin(normalized);
 }
 
+/** Recover a labelled source location when the AI parser leaves it empty. */
+export function extractLabeledLocation(rawText: string | null | undefined): string {
+  if (!rawText) return '';
+  const match = rawText.replace(/\s+/g, ' ').match(/\b(?:job\s+)?locations?\s*[:\-]?\s*(.+?)(?=\b(?:department|employment(?:\s+type)?|job\s+(?:type|category)|close(?:\s+date)?|posting\s+date|salary|compensation|work\s+model|full\/part\s+time)\b|$)/i);
+  return normalizeLocation(match?.[1] ?? '');
+}
+
 /** Exposed for tests / backfill diagnostics */
 export function locationCityProvinceMapSize(): number {
   return Object.keys(CITY_PROVINCE).length;

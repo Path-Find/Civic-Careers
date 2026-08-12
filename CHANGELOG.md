@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Location metadata now has a source-text fallback** — compact job-board labels such as Hamilton’s `Location...Department` block no longer leave a known workplace blank when the AI parser misses it.
 - **Job reports now identify the source and stable job ID** — duplicate reports are easier to recognize, and the dialog explains whether GitHub opened successfully.
 - **Transit filtering now includes VIA Rail Canada, BC Transit, and TransLink** — their company pages link to the maintained official career boards instead of leaving independent transit sources uncategorized.
 - **Library filtering now includes Pickering Public Library** — its current or empty job state is visible with the other public-library sources.
