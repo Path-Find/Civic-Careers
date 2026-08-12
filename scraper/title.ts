@@ -124,6 +124,11 @@ export function extractRawJobTitle(source: string, rawText: string | null | unde
   } else if (source === 'City of Cornwall') {
     candidate = rawText.match(/(?:Stay Connected|Log Out)\s+(.+?)(?=City of Cornwall\b)/i)?.[1] ?? '';
     candidate = candidate.replace(/\s*\(\d{2}-\d{3}\)\s*$/, '');
+  } else if (source === 'Conservation Halton') {
+    // The employment page captures each posting as a detail section whose
+    // first line is the job title. The scraper's link metadata does not carry
+    // that title, so recover only that first source line for pending shells.
+    candidate = rawText.match(/^\s*([^\r\n]+)/)?.[1] ?? '';
   }
 
   const title = normalizeJobTitle(candidate);

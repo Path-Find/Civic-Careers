@@ -150,6 +150,10 @@ describe('extractRawJobTitle', () => {
       extractRawJobTitle('City of Cornwall', 'Stay Connected\nCoordinator II, Arts & Culture (26-199)City of Cornwall 159 Pitt Street'),
       'Coordinator II, Arts & Culture',
     );
+    assert.equal(
+      extractRawJobTitle('Conservation Halton', 'Snow School Instructor (GE)\n\nType of Contract: Contract, Seasonal\nPosting End Date: March 6, 2027'),
+      'Snow School Instructor (GE)',
+    );
   });
 
   it('does not turn a portal shell into a fake title', () => {
