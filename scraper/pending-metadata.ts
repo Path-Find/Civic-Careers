@@ -5,7 +5,7 @@ export type PendingMetadata = {
 
 const NUMBER = String.raw`\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?`;
 const AMOUNT = String.raw`\$\s*${NUMBER}`;
-const RANGE = new RegExp(String.raw`${AMOUNT}(?:\s*[-–—]\s*\$?\s*${NUMBER})?(?:\s*(?:/|per)\s*(?:hour|hr|year|yr|month|mo|week|day)|\s*(?:hourly|annual|yearly))?`, 'gi');
+const RANGE = new RegExp(String.raw`${AMOUNT}(?:\s*[-–—]\s*\$?\s*${NUMBER})?(?:\s*(?:/|per)\s*(?:hour|hr|year|yr|month|mo|week|day)|\s*(?:hourly|annual|yearly|bi[- ]weekly|biweekly))?`, 'gi');
 
 /** Recover only obvious source text for the pending listing sidebar. */
 export function extractPendingMetadata(title: string | null | undefined, rawText: string): PendingMetadata {

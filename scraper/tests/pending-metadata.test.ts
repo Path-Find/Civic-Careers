@@ -15,3 +15,10 @@ test('does not classify incidental student wording as a student job', () => {
     { salaryText: null, isStudent: null },
   );
 });
+
+test('preserves bi-weekly salary periods for pending listings', () => {
+  assert.deepEqual(
+    extractPendingMetadata('Motor Vehicle Officer 3', 'Salary Range: $2,495.64 - $2,944.94 Bi-Weekly'),
+    { salaryText: '$2,495.64 - $2,944.94 Bi-Weekly', isStudent: null },
+  );
+});
