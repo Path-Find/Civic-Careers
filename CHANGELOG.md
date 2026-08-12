@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Conservation Halton pending listings now stay visible before full parsing** — source titles are recovered from the posting text so valid jobs keep their Details pending state.
 - **Academic job titles no longer repeat parenthetical union markers** — bargaining-unit details stay available in the structured Union field instead of cluttering titles.
+- **Pending listings now expose source-backed status metadata** — hiring pools, candidate inventories, fixed-term postings, and deadline states remain visible before full details are parsed.
 - **Jobs pages now keep their scroll position while loading more results** — appending another page no longer sends people back to the top of the list.
 - **Salary filters now compare yearly pay only** — hourly, monthly, and flat compensation is never misrepresented as an annual salary.
 - **Explicit hiring pools and eligibility lists now get the right listing status** — future-vacancy postings no longer appear as ordinary single-job vacancies.

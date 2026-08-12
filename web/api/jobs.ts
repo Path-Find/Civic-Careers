@@ -4,10 +4,35 @@ import { ORGANIZATION_GROUPS, organizationGroupForSlug, organizationGroupForSour
 
 const PUBLIC_CACHE = 's-maxage=86400, stale-while-revalidate=86400';
 const closingDate = `COALESCE(NULLIF(TRIM(jd.closing_date), ''), NULLIF(TRIM(raw.pending_closing_date), ''))`;
+const sourceText = `LOWER(COALESCE(raw.title, '') || ' ' || COALESCE(raw.raw_text, ''))`;
+const effectiveListingType = `COALESCE(jd.listing_type,
+  CASE
+    WHEN jd.id IS NOT NULL THEN 'regular'
+    WHEN ${sourceText} LIKE '%eligibility list%'
+      OR ${sourceText} LIKE '%candidate inventory%'
+      OR ${sourceText} LIKE '%inventory for future%'
+      OR ${sourceText} LIKE '%not applying for a specific job%' THEN 'inventory'
+    WHEN ${sourceText} LIKE '%hiring pool%'
+      OR ${sourceText} LIKE '%candidate pool%'
+      OR ${sourceText} LIKE '%talent pool%' THEN 'ongoing_recruitment'
+    ELSE 'regular'
+  END)`;
+const effectiveInventory = `CASE WHEN COALESCE(jd.is_inventory, 0) = 1 OR ${effectiveListingType} = 'inventory' THEN 1 ELSE 0 END`;
+const effectiveDuration = `COALESCE(jd.duration, raw.pending_duration,
+  CASE WHEN jd.id IS NULL AND (${sourceText} LIKE '% term%' OR ${sourceText} LIKE '%-term%') THEN 'Term' END)`;
 const closingDateStatus = `CASE
   WHEN ${closingDate} IS NOT NULL THEN 'known'
   WHEN jd.id IS NULL THEN COALESCE(raw.pending_closing_date_status, 'not_checked')
-  ELSE NULL
+  WHEN ${sourceText} LIKE '%open until filled%'
+    OR ${sourceText} LIKE '%ongoing recruitment%'
+    OR ${sourceText} LIKE '%accepting applications until filled%' THEN 'open_until_filled'
+  WHEN ${sourceText} LIKE '%no deadline%'
+    OR ${sourceText} LIKE '%without a deadline%'
+    OR ${sourceText} LIKE '%deadline not listed%' THEN 'not_listed'
+  WHEN ${sourceText} LIKE '%closing date: tbd%'
+    OR ${sourceText} LIKE '%closing date: n/a%'
+    OR ${sourceText} LIKE '%closing date: none%' THEN 'invalid'
+  ELSE 'not_checked'
 END`;
 
 const jobColumns = `
@@ -18,10 +43,10 @@ const jobColumns = `
   COALESCE(jd.salary_range, raw.pending_salary_text) AS salary_range,
   ${closingDate} AS closing_date, ${closingDateStatus} AS closing_date_status,
   COALESCE(jd.posted_at, raw.posted_at) AS posted_at, jd.start_date,
-  jd.is_inventory, jd.listing_type, COALESCE(jd.is_student, raw.pending_is_student, 0) AS is_student,
+  ${effectiveInventory} AS is_inventory, ${effectiveListingType} AS listing_type, COALESCE(jd.is_student, raw.pending_is_student, 0) AS is_student,
   CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending,
   jd.salary_min, jd.salary_max, jd.salary_period,
-  jd.work_model, jd.employment_type, jd.duration,
+  jd.work_model, jd.employment_type, ${effectiveDuration} AS duration,
   jd.hours, jd.availability,
   jd.academic_role_type, jd.academic_course, jd.academic_workload, jd.academic_office_hours,
   jd.academic_supervisor, jd.academic_appointment_type,
@@ -147,7 +172,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       const activeJobWhere = `
         WHERE j.is_active = 1
           ${visiblePending}
-          AND COALESCE(jd.is_inventory, 0) = 0
+          AND ${effectiveInventory} = 0
           AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))`;
       const nearbyCount = locationParam
         ? db.execute({
@@ -193,7 +218,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           j.source AS name,
           SUM(CASE WHEN j.is_active = 1
             ${visiblePending}
-            AND COALESCE(jd.is_inventory, 0) = 0
+            AND ${effectiveInventory} = 0
             AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))
             THEN 1 ELSE 0 END) AS active_job_count,
           COUNT(*) AS total_job_count,
@@ -325,7 +350,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
             WHERE j.source IN (${sourceFilters.map(() => '?').join(', ')})
               AND j.is_active = 1
               ${visiblePending}
-              AND COALESCE(jd.is_inventory, 0) = 0
+              AND ${effectiveInventory} = 0
               AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))
               AND TRIM(COALESCE(jd.job_title, raw.title, '')) <> ''
             ORDER BY title COLLATE NOCASE
@@ -341,7 +366,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         db.execute({
           sql: `SELECT
             COUNT(*) AS total,
-            SUM(CASE WHEN COALESCE(jd.is_inventory, 0) = 0 THEN 1 ELSE 0 END) AS available_total
+            SUM(CASE WHEN ${effectiveInventory} = 0 THEN 1 ELSE 0 END) AS available_total
             ${jobJoins} ${activeJobWhere}`,
           args: countArgs,
         }),
@@ -386,7 +411,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       }),
       db.execute(`SELECT
         COUNT(*) AS total,
-        SUM(CASE WHEN COALESCE(jd.is_inventory, 0) = 0 THEN 1 ELSE 0 END) AS available_total
+        SUM(CASE WHEN ${effectiveInventory} = 0 THEN 1 ELSE 0 END) AS available_total
         ${jobJoins}
         WHERE j.is_active = 1
           ${visiblePending}

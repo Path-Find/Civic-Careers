@@ -873,6 +873,13 @@ test('classifies an explicit future-vacancy inventory separately', () => {
   assert.equal(extractListingType('Various administrative roles.', 'Casual Inventory - STREAM 1 CR-04'), 'inventory');
   assert.equal(
     extractListingType(
+      'Candidates will be placed in an inventory for future heavy-equipment-operator hiring at participating airports.',
+      'Various positions related to airport maintenance',
+    ),
+    'inventory',
+  );
+  assert.equal(
+    extractListingType(
       'Intent of the process A pool of qualified candidates will be established to staff positions in Quebec City, Quebec. This pool may be used to staff positions with similar qualifications.',
       'Veterinarian – Animal Health',
     ),

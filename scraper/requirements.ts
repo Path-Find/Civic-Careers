@@ -560,6 +560,7 @@ const INVENTORY_TEXT_SIGNALS: RegExp[] = [
   /\bnot\s+applying\s+for\s+a\s+specific\s+(?:job|position)\b[^.\n]{0,120}\binventory\b/i,
   /\bto\s+an\s+inventory(?:\s+for\s+future\s+vacancies)?\b/i,
   /\binventory\s+for\s+future\s+vacancies\b/i,
+  /\binventory\s+for\s+future\s+[^.\n]{0,100}\b(?:hiring|vacancies|opportunities)\b/i,
   /\bstaff\s+current\s+and\s+future\s+vacancies\b[^.\n]{0,200}\binventory\b/i,
   /\bthis\s+(?:is\s+an?\s+)?(?:anticipatory\s+)?(?:staffing\s+)?process\b[^.\n]{0,160}\binventory\b/i,
   /\bselection\s+process\b[^.\n]{0,120}\binventory\b/i,
