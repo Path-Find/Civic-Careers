@@ -6,7 +6,7 @@ A listing fails review if it violates any of these. "Looks basically right" is n
 
 ## Reference contract and audit
 
-Use [`docs/job-field-format.md`](docs/job-field-format.md) for the complete
+Use [`job-field-format.md`](../job-field-format.md) for the complete
 field contract, controlled vocabularies, date rules, and Academic role card
 mapping. To check the live database for values outside that contract, run the
 read-only report from `scraper/`:
