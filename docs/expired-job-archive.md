@@ -26,13 +26,14 @@ data or become a second paid long-term database.
 
 - the complete parsed `job_details` fields;
 - stable identifiers, source, URLs, first/last-seen dates, and closing date;
-- saved state if the archived-jobs view supports saved history;
+- saved state for saved-job history;
 - the raw capture needed for archive inspection during the retention window;
   a later blob-storage change can move only this large field without changing
   the parsed archive contract.
 
-The archive database must not be joined into normal current-job requests. Its
-data is read only by explicit history/admin paths.
+The archive database is queried separately and is never joined into active-job
+search results. It is used for explicit old-URL lookups, saved-job history,
+and aggregate company counts.
 
 ## Archive lifecycle
 
