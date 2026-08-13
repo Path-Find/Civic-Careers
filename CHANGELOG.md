@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
-- **Soft-parsed listings now recover more source-backed details** — safe locations are filled and readable descriptions are published when the captured source page supports deterministic extraction, while incomplete captures remain pending.
+- **Soft-parsed listings now recover more source-backed details** — safe locations and readable descriptions are recovered across more portal formats when the captured source page supports deterministic extraction, while incomplete captures remain pending.
 - **Soft-parsed titles now stay clean while their source terms remain visible** — employment, on-call, contract, talent-pool, repost, and duration text moves out of titles into pending duration metadata before full parsing.
 - **Job pages no longer show a workplace map card** — location mapping is reserved for a future Jobs near me view instead of appearing on every posting.
 - **Scheduled scrapes now preserve jobs when a source is externally blocked** — CAPTCHA and provider outages are recorded as blocked sources instead of failing the entire feed run, while genuine scraper errors still fail normally.

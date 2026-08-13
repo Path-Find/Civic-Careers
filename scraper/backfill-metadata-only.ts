@@ -21,7 +21,7 @@ import { normalizeJobTitle } from './title';
 import { extractListingType } from './requirements';
 import { normalizeLocation } from './location';
 import { looksUnrendered } from './utils';
-import { formatWorkdayFallbackDescription } from './fallback-description';
+import { formatCapturedDescription } from './fallback-description';
 
 dotenv.config({ quiet: true });
 
@@ -119,7 +119,7 @@ async function main() {
   let hidden = 0;
   for (const row of genuine) {
     const details = buildDetails(row);
-    const description = formatWorkdayFallbackDescription(row.raw_text);
+    const description = formatCapturedDescription(row.raw_text);
     if (!description) {
       await db.execute({ sql: `UPDATE jobs SET is_active = 0 WHERE id = ?`, args: [row.id] });
       hidden += 1;
