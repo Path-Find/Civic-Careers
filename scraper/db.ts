@@ -529,7 +529,7 @@ export async function saveRawJob(client: Client, job: {
             WHEN excluded.pending_closing_date IS NOT NULL AND TRIM(excluded.pending_closing_date) <> '' THEN 'known'
             WHEN raw_jobs.pending_closing_date IS NOT NULL AND TRIM(raw_jobs.pending_closing_date) <> '' THEN 'known'
             WHEN raw_jobs.pending_closing_date_status = 'known' THEN 'known'
-            WHEN raw_jobs.pending_closing_date_status IN ('not_listed', 'open_until_filled', 'invalid') THEN raw_jobs.pending_closing_date_status
+            WHEN raw_jobs.pending_closing_date_status IN ('not_listed', 'open_until_filled', 'invalid', 'blocked') THEN raw_jobs.pending_closing_date_status
             ELSE 'not_checked'
           END,
           scraped_at = CURRENT_TIMESTAMP,

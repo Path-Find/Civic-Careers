@@ -10,7 +10,7 @@ export type AcademicRoleType =
   | 'academic_instructor'
   | 'course_staff';
 
-export type ClosingDateStatus = 'known' | 'not_checked' | 'not_listed' | 'open_until_filled' | 'invalid';
+export type ClosingDateStatus = 'known' | 'not_checked' | 'not_listed' | 'open_until_filled' | 'invalid' | 'blocked';
 
 export interface Job {
   id: string;

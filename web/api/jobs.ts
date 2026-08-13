@@ -62,6 +62,7 @@ const effectiveListingType = `COALESCE(jd.listing_type,
 const effectiveInventory = `CASE WHEN COALESCE(jd.is_inventory, 0) = 1 OR ${effectiveListingType} = 'inventory' THEN 1 ELSE 0 END`;
 const closingDateStatus = `CASE
   WHEN ${closingDate} IS NOT NULL THEN 'known'
+  WHEN raw.pending_closing_date_status = 'blocked' THEN 'blocked'
   WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN COALESCE(raw.pending_closing_date_status, 'not_checked')
   WHEN ${sourceText} LIKE '%open until filled%'
     OR ${sourceText} LIKE '%open till filled%'

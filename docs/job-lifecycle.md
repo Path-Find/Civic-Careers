@@ -30,9 +30,11 @@ These statuses apply to details-pending listings in
 | `not_listed` | The source posting does not provide a last date to apply | Empty; do not infer that the job is ongoing |
 | `invalid` | A closing-date field exists, but its value is unusable or malformed | Empty; needs review if the posting matters |
 | `not_checked` | No source check has been completed yet | Empty; this is an internal review queue, not a public conclusion |
+| `blocked` | A source page could not be captured after a retry, such as a bot challenge, expired page, or non-rendering portal | Empty; hidden from public listings and excluded from automatic retries until deliberately reopened |
 
 The target after a review pass is zero `not_checked` rows among active,
-details-pending listings.
+details-pending listings. `blocked` is tracked separately so a known source
+access problem does not create an endless retry loop.
 
 ## Which date is which
 

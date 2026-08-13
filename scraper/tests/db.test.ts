@@ -125,6 +125,7 @@ test('saveRawJob creates a shell listing without marking it parsed', async () =>
   assert.match(statements[0].sql, /pending_closing_date_status/i);
   assert.match(statements[0].sql, /pending_closing_date = COALESCE\(NULLIF\(TRIM\(excluded\.pending_closing_date\), ''\), raw_jobs\.pending_closing_date\)/i);
   assert.match(statements[0].sql, /raw_jobs\.pending_closing_date_status = 'known'/i);
+  assert.match(statements[0].sql, /'blocked'/i);
   assert.match(statements[0].sql, /NULL/i);
   assert.equal(statements[0].args?.[11], 'not_checked');
   assert.match(statements[1].sql, /INSERT INTO jobs/i);
