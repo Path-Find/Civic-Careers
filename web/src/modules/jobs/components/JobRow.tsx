@@ -7,6 +7,8 @@ import { careerStageLabel } from '../careerStage';
 export function JobRow({ job, onClick }: { job: Job; onClick: () => void }) {
   const days = daysUntilClose(job.closing_date);
   const urgent = days !== null && days >= 0 && days <= 7;
+  const formattedDeadline = formatDate(job.closing_date);
+  const deadlineText = formattedDeadline || (job.closing_date_status === 'open_until_filled' ? 'Until filled' : '');
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
@@ -29,8 +31,8 @@ export function JobRow({ job, onClick }: { job: Job; onClick: () => void }) {
       </div>
     </div>
     <div className="job-row-actions">
-      {job.closing_date && <div className="job-row-deadline" style={{ color: urgent ? '#dc2626' : '#94a3b8' }}>
-        {urgent ? (days === 0 ? 'Closes today' : days === 1 ? '1 day left' : `${days}d left`) : formatDate(job.closing_date)}
+      {deadlineText && <div className="job-row-deadline" style={{ color: urgent ? '#dc2626' : '#94a3b8' }}>
+        {urgent ? (days === 0 ? 'Closes today' : days === 1 ? '1 day left' : `${days}d left`) : deadlineText}
       </div>}
       <ChevronRight size={16} className="job-row-chevron" />
     </div>

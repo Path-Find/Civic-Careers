@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Public job listings now require a usable closing date** — genuinely unknown deadlines stay hidden, while open-until-filled postings say “Until filled” instead of looking unverified or displaying placeholder text.
+- **Job detail metadata stays as plain text** — benefits, licences, skills, and other requirements no longer render as unsolicited bubbles.
+- **Job headers no longer repeat title-like role categories as departments** — Canada Post delivery roles no longer show the same role twice.
 - **Non-job source captures no longer become visible job shells** — expired pages, bot challenges, portal errors, and empty detail captures are rejected before pending listings are created.
 - **Verified quality-audit samples now remove source-page artifacts** — 20 listings had titles, structured fields, and job-only descriptions corrected from their live source text.
 - **Pending source captures now promote deterministically when their role content is present** — portal-specific headings recover titles, descriptions, salary, hours, and employment type without an AI-provider call, while expired talent-pool and cookie shells are discarded.

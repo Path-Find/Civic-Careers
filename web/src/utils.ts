@@ -284,6 +284,7 @@ export const slugify = (text: string): string => {
 export const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return '';
   const cleanDate = dateStr.split('T')[0].trim();
+  if (/^(?:null|n\/a|unknown|not verified)$/i.test(cleanDate)) return '';
   const parts = cleanDate.split('-');
   if (parts.length === 3) {
     const [year, month, day] = parts.map(Number);

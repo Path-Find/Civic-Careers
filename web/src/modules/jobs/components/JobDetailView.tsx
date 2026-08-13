@@ -1,7 +1,7 @@
 import { Bookmark, ExternalLink } from 'lucide-react';
 import { useState, type MouseEvent } from 'react';
 import { compactOverview, formatDate, getQuickScanLabels, isPlaceholderSection, isRedundantCompensation, parseMarkdownSections, reclassifyMandatoryNiceToHave, renderMarkdown } from '../../../utils';
-import { compactLicenseLabel, parseTagList } from '../jobUtils';
+import { parseTagList } from '../jobUtils';
 import { CopyLinkButton } from './CopyLinkButton';
 import { pendingDetailAction } from '../pendingDetailAction';
 import type { Job, JobDetails, View } from '../../../types/jobs';
@@ -70,29 +70,20 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
   </div>;
 }
 
-type DetailMetadata = { label: string; value: string | null; values?: string[]; highlight?: boolean };
-
-function metadataValues(raw: string | null, mapItem?: (value: string) => string): string[] {
-  return parseTagList(raw)
-    .map(value => (mapItem ? mapItem(value) : value).trim())
-    .filter(Boolean);
-}
+type DetailMetadata = { label: string; value: string | null; highlight?: boolean };
 
 function MetadataValue({ item }: { item: DetailMetadata }) {
-  if (item.values && item.values.length > 1) {
-    return <div className="metadata-tags">{item.values.map(value => <span className="metadata-tag" key={value}>{value}</span>)}</div>;
-  }
   return <div className={`metadata-value ${item.highlight ? 'highlight' : ''}`}>{item.value}</div>;
 }
 
 const HIDDEN_SOURCE_SECTION = /^(?:the opportunity|corporate culture|our culture and qualifications of the job|knowledge\/skill\/ability)$/i;
 
-function deadlineStatusLabel(status: Job['closing_date_status']): string | null {
-  if (status === 'not_listed') return 'No deadline listed';
-  if (status === 'open_until_filled') return 'Open until filled';
-  if (status === 'invalid') return 'Deadline unavailable';
-  if (status === 'not_checked') return 'Deadline not verified';
-  return null;
+function isTitleLikeDepartment(title: string | null, department: string | null): boolean {
+  if (!title || !department) return false;
+  const words = (value: string) => value.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  const titleWords = new Set(words(title));
+  const departmentWords = words(department).filter(word => !['a', 'and', 'of', 'or', 'the'].includes(word));
+  return departmentWords.length > 1 && departmentWords.every(word => titleWords.has(word));
 }
 
 export function JobDetailView({ job, details, headerHeight, onNavigate, onToggleSave }: {
@@ -132,17 +123,17 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Hours', value: details.hours },
     { label: 'Listing type', value: details.listingType }, { label: 'Student requirement', value: details.studentRequirement },
     { label: 'Career stage', value: careerStageLabel(job.career_stage) },
-    { label: 'Benefits', value: details.benefits, values: metadataValues(job.benefits) }, { label: 'Union', value: details.union },
+    { label: 'Benefits', value: details.benefits }, { label: 'Union', value: details.union },
   ];
   const requirementMetadata: DetailMetadata[] = [
     { label: 'Experience', value: details.experience },
     { label: 'Education', value: details.education },
     { label: 'Availability', value: details.availability },
-    { label: 'Licences', value: details.licenses, values: metadataValues(job.license_requirements, compactLicenseLabel) }, { label: 'Languages', value: details.language, values: metadataValues(job.language_requirements) },
+    { label: 'Licences', value: details.licenses }, { label: 'Languages', value: details.language },
     { label: 'Vehicle', value: details.vehicle }, { label: 'Security check', value: details.securityCheck },
-    { label: 'Certifications', value: details.certifications, values: metadataValues(job.certification_requirements) },
-    { label: 'Medical', value: details.medical, values: metadataValues(job.medical_requirements) },
-    { label: 'Software', value: details.software, values: metadataValues(job.software_requirements) }, { label: 'Skills / Programs', value: details.skills, values: metadataValues(job.required_skills) },
+    { label: 'Certifications', value: details.certifications },
+    { label: 'Medical', value: details.medical },
+    { label: 'Software', value: details.software }, { label: 'Skills / Programs', value: details.skills },
     { label: 'Eligibility', value: details.future, highlight: true },
   ].filter(item => item.value);
   const hasRequirementsCard = requirementMetadata.length > 0 || Boolean(otherInformation);
@@ -158,8 +149,8 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   return <main className="detail-main">
     <div className="detail-grid">
       <div className="detail-sidebar" style={{ top: `${headerHeight + 20}px` }}>
-        {job.closing_date && <div className="deadline-card"><div className="deadline-label">Apply By</div><div className="deadline-value">{formatDate(job.closing_date)}</div></div>}
-        {!job.closing_date && deadlineStatusLabel(job.closing_date_status) && <div className="deadline-card"><div className="deadline-label">Apply By</div><div className="deadline-value">{deadlineStatusLabel(job.closing_date_status)}</div></div>}
+        {job.closing_date && formatDate(job.closing_date) && <div className="deadline-card"><div className="deadline-label">Apply By</div><div className="deadline-value">{formatDate(job.closing_date)}</div></div>}
+        {!job.closing_date && job.closing_date_status === 'open_until_filled' && <div className="deadline-card"><div className="deadline-label">Apply By</div><div className="deadline-value">Until filled</div></div>}
         <div className="detail-actions">
           <a className="detail-action apply-button" href={job.url} target="_blank" rel="noopener noreferrer" onClick={recordApplyClick}><ExternalLink size={14} /> Apply</a>
           <button className="detail-action save-button" onClick={event => onToggleSave(job, event)}><Bookmark size={14} fill={job.is_saved ? '#0f172a' : 'transparent'} />{job.is_saved ? 'Saved' : 'Save'}</button>
@@ -172,7 +163,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
         <div className="detail-card">
           <div className="detail-source-row">
             <span className="detail-source" onClick={() => onNavigate('jobs', job.source)}>{job.source}</span>
-            {job.department && job.department !== job.source && <span className="detail-department"> · {job.department}</span>}
+            {job.department && job.department !== job.source && !isTitleLikeDepartment(job.job_title, job.department) && <span className="detail-department"> · {job.department}</span>}
           </div>
           <h1 className="detail-title" title={job.job_title || undefined}>{job.job_title}</h1>
           {(details.academicRole || academicMetadata.length > 0) && <section className="detail-academic-card" aria-labelledby="academic-heading">
