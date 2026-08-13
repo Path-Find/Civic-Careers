@@ -299,7 +299,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         })
         : Promise.resolve({ rows: [] as Array<Record<string, unknown>> });
       const [recent, closingSoon, counts, nearby] = await Promise.all([
-        db.execute(`SELECT * FROM (SELECT ${jobColumns}, ${freshnessDate} AS freshness_date, ROW_NUMBER() OVER (PARTITION BY j.source ORDER BY ${freshnessDate} DESC, j.first_seen_at DESC) AS source_rank ${jobJoins} ${activeJobWhere}) recent_by_source WHERE source_rank = 1 ORDER BY freshness_date DESC LIMIT 10`),
+        db.execute(`SELECT * FROM (SELECT ${jobColumns}, ${freshnessDate} AS freshness_date, ROW_NUMBER() OVER (PARTITION BY j.source ORDER BY ${freshnessDate} DESC, j.first_seen_at DESC, j.public_id DESC) AS source_rank ${jobJoins} ${activeJobWhere}) recent_by_source WHERE source_rank = 1 ORDER BY freshness_date DESC, rid DESC LIMIT 10`),
         db.execute(`SELECT ${jobColumns} ${jobJoins}
           ${activeJobWhere}
           AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
@@ -497,8 +497,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       // Closing-soon: earliest deadline first. Otherwise freshest first.
       const orderBy = deadlineDays !== null && Number.isFinite(deadlineDays) && deadlineDays >= 0
-        ? `LEFT(${closingDate}, 10) ASC, ${freshnessDate} DESC, j.first_seen_at DESC`
-        : `${freshnessDate} DESC, j.first_seen_at DESC`;
+        ? `LEFT(${closingDate}, 10) ASC, ${freshnessDate} DESC, j.first_seen_at DESC, j.public_id DESC`
+        : `${freshnessDate} DESC, j.first_seen_at DESC, j.public_id DESC`;
 
       const listArgs = [...filterArgs, limit, offset];
       const countArgs = [...filterArgs];
