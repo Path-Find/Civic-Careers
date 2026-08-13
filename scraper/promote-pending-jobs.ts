@@ -4,19 +4,15 @@
  *   npx tsx promote-pending-jobs.ts           # dry-run
  *   npx tsx promote-pending-jobs.ts --apply
  */
-import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
-import { promotePendingJobs } from './db';
+import { initDb, promotePendingJobs } from './db';
 
 dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const pending = await db.execute(`
     SELECT COUNT(*) AS count

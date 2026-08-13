@@ -4,6 +4,7 @@ import { extractRawJobTitle, normalizeJobTitle } from './title';
 import { extractPendingMetadata } from './pending-metadata';
 import { extractClosingDateStatus } from './closing-date';
 import { classifyRawCapture } from './capture-quality';
+import { createNeonDatabaseClient, NeonDatabaseClient } from './neon-db';
 dotenv.config({ quiet: true });
 
 // After this many failed parse attempts, a job is excluded from getUnparsedJobs
@@ -42,6 +43,10 @@ export async function initDb(): Promise<Client> {
 }
 
 async function initializeDbOnce(): Promise<Client> {
+  if (process.env.NEON_CURRENT_DATABASE_URL) {
+    return await createNeonDatabaseClient() as unknown as Client;
+  }
+
   const client = createClient({
     url: process.env.TURSO_URL!,
     authToken: process.env.TURSO_AUTH_TOKEN!,
@@ -331,6 +336,10 @@ async function initializeDbOnce(): Promise<Client> {
   return client;
 }
 
+function asNeonClient(client: Client): NeonDatabaseClient | null {
+  return client instanceof NeonDatabaseClient ? client : null;
+}
+
 // Called by parser — writes base job row so job_details FK is satisfiable
 export async function saveJob(client: Client, job: { id: string; url: string; source: string; first_seen_at: string }) {
   await client.execute({
@@ -425,15 +434,15 @@ export async function saveJobDetails(client: Client, job: {
       work_model = excluded.work_model,
       employment_type = excluded.employment_type,
       duration = excluded.duration,
-      hours = COALESCE(NULLIF(excluded.hours, ''), hours),
-      availability = COALESCE(NULLIF(excluded.availability, ''), availability),
-      academic_role_type = COALESCE(NULLIF(excluded.academic_role_type, ''), academic_role_type),
-      academic_course = COALESCE(NULLIF(excluded.academic_course, ''), academic_course),
-      academic_workload = COALESCE(NULLIF(excluded.academic_workload, ''), academic_workload),
-      academic_office_hours = COALESCE(NULLIF(excluded.academic_office_hours, ''), academic_office_hours),
-      academic_supervisor = COALESCE(NULLIF(excluded.academic_supervisor, ''), academic_supervisor),
-      academic_appointment_type = COALESCE(NULLIF(excluded.academic_appointment_type, ''), academic_appointment_type),
-      academic_schedule = COALESCE(NULLIF(excluded.academic_schedule, ''), academic_schedule),
+      hours = COALESCE(NULLIF(excluded.hours, ''), job_details.hours),
+      availability = COALESCE(NULLIF(excluded.availability, ''), job_details.availability),
+      academic_role_type = COALESCE(NULLIF(excluded.academic_role_type, ''), job_details.academic_role_type),
+      academic_course = COALESCE(NULLIF(excluded.academic_course, ''), job_details.academic_course),
+      academic_workload = COALESCE(NULLIF(excluded.academic_workload, ''), job_details.academic_workload),
+      academic_office_hours = COALESCE(NULLIF(excluded.academic_office_hours, ''), job_details.academic_office_hours),
+      academic_supervisor = COALESCE(NULLIF(excluded.academic_supervisor, ''), job_details.academic_supervisor),
+      academic_appointment_type = COALESCE(NULLIF(excluded.academic_appointment_type, ''), job_details.academic_appointment_type),
+      academic_schedule = COALESCE(NULLIF(excluded.academic_schedule, ''), job_details.academic_schedule),
       experience_requirements = excluded.experience_requirements,
       is_unionized = excluded.is_unionized,
       union_name = excluded.union_name,
@@ -486,6 +495,7 @@ export async function saveRawJob(client: Client, job: {
   title?: string | undefined;
   posted_at?: string | null;
 }): Promise<boolean> {
+  await asNeonClient(client)?.restoreIfArchived(job.id);
   const captureQuality = classifyRawCapture(job.source, job.raw_text);
   if (!captureQuality.valid) {
     await discardRawJob(client, job.id);
@@ -543,6 +553,7 @@ export async function savePendingJob(client: Client, job: {
   closing_date?: string | null;
   posted_at?: string | null;
 }) {
+  await asNeonClient(client)?.restoreIfArchived(job.id);
   const sourceTitle = job.title?.trim() || null;
   const title = sourceTitle ? normalizeJobTitle(sourceTitle) : null;
   const pending = extractPendingMetadata(sourceTitle, '');
@@ -601,6 +612,11 @@ export async function promotePendingJobs(client: Client): Promise<number> {
 }
 
 export async function retireJob(client: Client, id: string): Promise<void> {
+  const neon = asNeonClient(client);
+  if (neon) {
+    await neon.moveJobsToArchive([id]);
+    return;
+  }
   await client.batch([
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
@@ -617,6 +633,21 @@ export async function retireJob(client: Client, id: string): Promise<void> {
 // A detail page that never renders usable content must not remain queued for
 // parsing forever. The next scrape can recreate the row if the source recovers.
 export async function discardRawJob(client: Client, id: string) {
+  const neon = asNeonClient(client);
+  if (neon) {
+    const existing = await client.execute({
+      sql: `SELECT j.id FROM jobs j
+            JOIN raw_jobs r ON r.id = j.id
+            WHERE j.id = ? AND r.parsed_at IS NULL`,
+      args: [id],
+    });
+    await client.batch([
+      { sql: `DELETE FROM raw_jobs WHERE id = ? AND parsed_at IS NULL`, args: [id] },
+      { sql: `DELETE FROM parse_failures WHERE id = ?`, args: [id] },
+    ], 'write');
+    await neon.moveJobsToArchive(existing.rows.map(row => String(row.id)));
+    return;
+  }
   await client.batch([
     { sql: `UPDATE jobs SET is_active = 0, scraped_at = CURRENT_TIMESTAMP
             WHERE id = ? AND EXISTS (SELECT 1 FROM raw_jobs WHERE id = ? AND parsed_at IS NULL)`, args: [id, id] },
@@ -767,6 +798,20 @@ export async function cleanupExpiredJobsForSource(
   source: string,
   runStartedAt: string,
 ): Promise<void> {
+  const neon = asNeonClient(client);
+  if (neon) {
+    const result = await client.execute({
+      sql: `SELECT id FROM jobs
+            WHERE source = ?
+              AND is_active = 1
+              AND id NOT IN (
+                SELECT id FROM raw_jobs WHERE source = ? AND scraped_at >= ?
+              )`,
+      args: [source, source, runStartedAt],
+    });
+    await neon.moveJobsToArchive(result.rows.map(row => String(row.id)));
+    return;
+  }
   await client.execute({
     sql: `UPDATE jobs SET is_active = 0
           WHERE source = ?
@@ -808,6 +853,21 @@ export async function deactivateExpiredJobs(
     day: '2-digit',
   }).format(new Date()),
 ): Promise<number> {
+  const neon = asNeonClient(client);
+  if (neon) {
+    const expired = await client.execute({
+      sql: `SELECT j.id FROM jobs j
+            JOIN job_details d ON d.id = j.id
+            WHERE j.is_active = 1
+              AND d.closing_date IS NOT NULL
+              AND TRIM(d.closing_date) <> ''
+              AND SUBSTR(d.closing_date, 1, 10) < ?`,
+      args: [today],
+    });
+    const ids = expired.rows.map(row => String(row.id));
+    await neon.moveJobsToArchive(ids);
+    return ids.length;
+  }
   const result = await client.execute({
     sql: `UPDATE jobs
           SET is_active = 0, scraped_at = CURRENT_TIMESTAMP

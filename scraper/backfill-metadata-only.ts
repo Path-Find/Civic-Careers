@@ -8,10 +8,10 @@
  *   npx tsx backfill-metadata-only.ts           # dry-run
  *   npx tsx backfill-metadata-only.ts --apply
  */
-import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import {
   discardRawJob,
+  initDb,
   markJobParsed,
   saveJob,
   saveJobDetails,
@@ -99,10 +99,7 @@ function buildDetails(row: RawRow) {
 }
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const sourceExclusion = EXCLUDED_SOURCES.size > 0
     ? ` AND r.source NOT IN (${[...EXCLUDED_SOURCES].map(() => '?').join(',')})`

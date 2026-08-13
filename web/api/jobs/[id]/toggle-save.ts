@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createDb } from '../../_db.js';
+import { createArchiveDb, createDb } from '../../_db.js';
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'POST') {
@@ -19,8 +19,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   }
 
   try {
-    const db = createDb();
-    await db.execute({ sql: 'UPDATE jobs SET is_saved = 1 - is_saved WHERE id = ?', args: [id] });
+    let db = createDb();
+    const updated = await db.execute({ sql: 'UPDATE jobs SET is_saved = 1 - is_saved WHERE id = ?', args: [id] });
+    if (updated.rowsAffected === 0) {
+      db = createArchiveDb();
+      await db.execute({ sql: 'UPDATE jobs SET is_saved = 1 - is_saved WHERE id = ?', args: [id] });
+    }
     const result = await db.execute({ sql: 'SELECT is_saved FROM jobs WHERE id = ?', args: [id] });
     if (result.rows.length === 0) {
       res.writeHead(404, { 'Content-Type': 'application/json' });

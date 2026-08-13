@@ -35,6 +35,8 @@
     "mark-verified": "npx tsx mark-verified.ts",
     "reparse-stale": "npx tsx reparse-stale.ts",
     "sample-parser": "npx tsx sample-parser.ts",
+    "migrate:turso-to-neon": "npx tsx migrate-turso-to-neon.ts",
+    "verify:migration": "npx tsx verify-turso-neon-migration.ts",
     "test": "node --require tsx/cjs --test tests/*.test.ts"
   },
   "keywords": [],
@@ -48,6 +50,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "openai": "^7.1.0",
+    "pg": "^8.23.0",
     "playwright": "^1.60.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^6.0.1"
@@ -56,6 +59,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.1.1",
+    "@types/pg": "^8.21.0",
     "@types/sqlite3": "^5.1.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.22.4",

@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createDb } from './_db.js';
+import { createArchiveDb, createDb } from './_db.js';
 import { ORGANIZATION_GROUPS, organizationGroupForSlug, organizationGroupForSources } from '../src/modules/jobs/organizationMetadata.js';
 
 const PUBLIC_CACHE = 's-maxage=86400, stale-while-revalidate=86400';
@@ -27,7 +27,10 @@ function extractSourceAcademicSchedule(value: unknown): string | null {
   return semester || null;
 }
 
-const closingDate = `COALESCE(NULLIF(TRIM(jd.closing_date), ''), NULLIF(TRIM(raw.pending_closing_date), ''))`;
+const closingDate = `COALESCE(
+  NULLIF(NULLIF(NULLIF(NULLIF(TRIM(jd.closing_date), ''), 'null'), 'NULL'), 'N/A'),
+  NULLIF(NULLIF(NULLIF(NULLIF(TRIM(raw.pending_closing_date), ''), 'null'), 'NULL'), 'N/A')
+)`;
 const sourceText = `LOWER(COALESCE(raw.title, '') || ' ' || COALESCE(raw.raw_text, ''))`;
 const effectiveEmploymentType = `COALESCE(jd.employment_type,
   CASE
@@ -71,9 +74,19 @@ const closingDateStatus = `CASE
     OR ${sourceText} LIKE '%closing date: none%' THEN 'invalid'
   ELSE 'not_checked'
 END`;
+const openUntilFilled = `(
+  COALESCE(raw.pending_closing_date_status, '') = 'open_until_filled'
+  OR ${sourceText} LIKE '%open until filled%'
+  OR ${sourceText} LIKE '%open till filled%'
+  OR ${sourceText} LIKE '%accepting applications until filled%'
+)`;
+const publicDeadline = `AND (
+  (${closingDate} IS NOT NULL AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text)
+  OR ${openUntilFilled}
+)`;
 
 const jobColumns = `
-  COALESCE(j.public_id, j.rowid) AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
+  j.public_id AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
   COALESCE(jd.job_title, raw.title) AS job_title, jd.department, COALESCE(jd.location, raw.pending_location) AS location,
   raw.url AS details_url,
@@ -98,7 +111,7 @@ const jobJoins = `
   LEFT JOIN job_details jd ON j.id = jd.id
   LEFT JOIN raw_jobs raw ON j.id = raw.id`;
 
-const freshnessDate = `date(CASE WHEN COALESCE(jd.posted_at, raw.posted_at) IS NOT NULL AND date(COALESCE(jd.posted_at, raw.posted_at)) <= date('now') THEN COALESCE(jd.posted_at, raw.posted_at) ELSE j.first_seen_at END)`;
+const freshnessDate = `CASE WHEN COALESCE(jd.posted_at, raw.posted_at) IS NOT NULL AND LEFT(COALESCE(jd.posted_at, raw.posted_at), 10) <= CURRENT_DATE::text THEN LEFT(COALESCE(jd.posted_at, raw.posted_at), 10)::date ELSE j.first_seen_at::date END`;
 const visiblePending = `AND (jd.id IS NOT NULL OR length(trim(COALESCE(raw.title, ''))) > 0)`;
 
 /** Match web/src/utils.ts slugify — company URLs are /companies/{slug}. */
@@ -108,6 +121,27 @@ function slugifySource(text: string): string {
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function mergeCompanyRows(rows: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
+  const bySource = new Map<string, Record<string, unknown>>();
+  for (const row of rows) {
+    const name = String(row.name ?? '');
+    const existing = bySource.get(name);
+    if (!existing) {
+      bySource.set(name, { ...row });
+      continue;
+    }
+    existing.active_job_count = Number(existing.active_job_count ?? 0) + Number(row.active_job_count ?? 0);
+    existing.total_job_count = Number(existing.total_job_count ?? 0) + Number(row.total_job_count ?? 0);
+    existing.recent_job_count = Number(existing.recent_job_count ?? 0) + Number(row.recent_job_count ?? 0);
+    for (const field of ['latest_job_added_at', 'last_checked_at']) {
+      const current = String(existing[field] ?? '');
+      const candidate = String(row[field] ?? '');
+      if (candidate > current) existing[field] = candidate || null;
+    }
+  }
+  return [...bySource.values()];
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
@@ -132,6 +166,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   try {
     const db = createDb();
+    const archiveDb = createArchiveDb();
 
     if (ids) {
       const requestedIds = [...new Set(ids.split(',').map(value => value.trim()).filter(Boolean))].slice(0, 20);
@@ -140,23 +175,38 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         return;
       }
       const placeholders = requestedIds.map(() => '?').join(', ');
-      const result = await db.execute({
-        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders})`,
-        args: requestedIds,
-      });
+      const [currentResult, archiveResult] = await Promise.all([
+        db.execute({
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders}) ${publicDeadline}`,
+          args: requestedIds,
+        }),
+        archiveDb.execute({
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders}) ${publicDeadline}`,
+          args: requestedIds,
+        }),
+      ]);
       res.setHeader('Cache-Control', 'no-store');
-      res.end(JSON.stringify(result.rows));
+      res.end(JSON.stringify([...currentResult.rows, ...archiveResult.rows]));
       return;
     }
 
     if (id) {
-      const result = await db.execute({
+      let result = await db.execute({
         sql: `SELECT jd.description, raw.raw_text,
                 CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending
               FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
-              LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ?`,
+              LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ? ${publicDeadline}`,
         args: [id]
       });
+      if (result.rows.length === 0) {
+        result = await archiveDb.execute({
+          sql: `SELECT jd.description, raw.raw_text,
+                  CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending
+                FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
+                LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ? ${publicDeadline}`,
+          args: [id]
+        });
+      }
       if (result.rows.length === 0) {
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'Job not found' }));
@@ -174,15 +224,27 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     if (jobId) {
       let result = await db.execute({
-        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
+        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ? ${publicDeadline}`,
         args: [jobId]
       });
+      if (result.rows.length === 0) {
+        result = await archiveDb.execute({
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ? ${publicDeadline}`,
+          args: [jobId]
+        });
+      }
       // Keep both old numeric and source-key URLs working during the URL migration.
       if (result.rows.length === 0 && /^\d+$/.test(jobId)) {
         result = await db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? OR j.rowid = ?`,
-          args: [jobId, jobId]
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${publicDeadline}`,
+          args: [jobId]
         });
+        if (result.rows.length === 0) {
+          result = await archiveDb.execute({
+            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${publicDeadline}`,
+            args: [jobId]
+          });
+        }
       }
       if (result.rows.length === 0) {
         res.writeHead(404);
@@ -195,10 +257,16 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     // Legacy API clients still send rid.
     if (rid) {
-      const result = await db.execute({
-        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? OR j.rowid = ?`,
-        args: [rid, rid]
+      let result = await db.execute({
+        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${publicDeadline}`,
+        args: [rid]
       });
+      if (result.rows.length === 0) {
+        result = await archiveDb.execute({
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${publicDeadline}`,
+          args: [rid]
+        });
+      }
       if (result.rows.length === 0) {
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'Job not found' }));
@@ -214,7 +282,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         WHERE j.is_active = 1
           ${visiblePending}
           AND ${effectiveInventory} = 0
-          AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))`;
+          ${publicDeadline}`;
       const nearbyCount = locationParam
         ? db.execute({
           sql: `SELECT COUNT(*) AS nearby_count ${jobJoins}
@@ -228,13 +296,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         db.execute(`SELECT ${jobColumns} ${jobJoins}
           ${activeJobWhere}
           AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
-          AND substr(${closingDate}, 1, 10) <= date('now', '+14 days')
-          ORDER BY substr(${closingDate}, 1, 10) ASC LIMIT 10`),
+          AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '14 days')::date)::text
+          ORDER BY LEFT(${closingDate}, 10) ASC LIMIT 10`),
         db.execute(`SELECT
           COUNT(*) AS available_job_count,
-          SUM(CASE WHEN ${freshnessDate} >= date('now', '-7 days') THEN 1 ELSE 0 END) AS recently_added_count,
+          SUM(CASE WHEN ${freshnessDate} >= (CURRENT_DATE - INTERVAL '7 days')::date THEN 1 ELSE 0 END) AS recently_added_count,
           SUM(CASE WHEN ${closingDate} IS NOT NULL AND ${closingDate} != ''
-            AND substr(${closingDate}, 1, 10) <= date('now', '+14 days') THEN 1 ELSE 0 END) AS closing_soon_count,
+            AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '14 days')::date)::text THEN 1 ELSE 0 END) AS closing_soon_count,
           MAX(j.scraped_at) AS last_checked_at
           ${jobJoins} ${activeJobWhere}`),
         nearbyCount,
@@ -254,21 +322,26 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (view === 'companies') {
-      const result = await db.execute(`
+      const companySql = `
         SELECT
           j.source AS name,
           SUM(CASE WHEN j.is_active = 1
             ${visiblePending}
             AND ${effectiveInventory} = 0
-            AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))
+            ${publicDeadline}
             THEN 1 ELSE 0 END) AS active_job_count,
           COUNT(*) AS total_job_count,
-          SUM(CASE WHEN ${freshnessDate} >= date('now', '-7 days') THEN 1 ELSE 0 END) AS recent_job_count,
+          SUM(CASE WHEN ${freshnessDate} >= (CURRENT_DATE - INTERVAL '7 days')::date THEN 1 ELSE 0 END) AS recent_job_count,
           MAX(${freshnessDate}) AS latest_job_added_at,
           MAX(j.scraped_at) AS last_checked_at
         ${jobJoins}
         GROUP BY j.source
-        ORDER BY active_job_count DESC, name ASC`);
+        ORDER BY active_job_count DESC, name ASC`;
+      const [currentCompanies, archiveCompanies] = await Promise.all([
+        db.execute(companySql),
+        archiveDb.execute(companySql),
+      ]);
+      const result = { rows: mergeCompanyRows([...currentCompanies.rows, ...archiveCompanies.rows]) };
       const rowsBySource = new Map(result.rows.map(row => [String(row.name ?? ''), row]));
       const groupedSources = new Set<string>();
       const groupedRows = ORGANIZATION_GROUPS.flatMap(group => {
@@ -325,8 +398,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         if (sourceGroup) {
           sourceFilters = sourceGroup.sourceNames;
         } else {
-          const sources = await db.execute('SELECT DISTINCT j.source AS source FROM jobs j');
-          const match = sources.rows.find(row => slugifySource(String(row.source ?? '')) === sourceSlug);
+          let sources = await db.execute('SELECT DISTINCT j.source AS source FROM jobs j');
+          let match = sources.rows.find(row => slugifySource(String(row.source ?? '')) === sourceSlug);
+          if (!match) {
+            sources = await archiveDb.execute('SELECT DISTINCT j.source AS source FROM jobs j');
+            match = sources.rows.find(row => slugifySource(String(row.source ?? '')) === sourceSlug);
+          }
           sourceFilters = match?.source != null ? [String(match.source)] : [];
           sourceGroup = organizationGroupForSources(sourceFilters);
           if (sourceGroup) sourceFilters = sourceGroup.sourceNames;
@@ -368,19 +445,19 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           filterClause += ` AND (${closingDate} IS NULL OR ${closingDate} = '')`;
         } else if (deadlineDays === 0) {
           filterClause += ` AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
-            AND substr(${closingDate}, 1, 10) = date('now')`;
+            AND LEFT(${closingDate}, 10) = CURRENT_DATE::text`;
         } else if (deadlineDays > 0) {
           // Inclusive: today through N days out (client: days >= 0 && days <= N).
           // Integer is floor-validated — safe to inline into SQLite date modifier.
           const days = Math.min(Math.floor(deadlineDays), 365);
           filterClause += ` AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
-            AND substr(${closingDate}, 1, 10) >= date('now')
-            AND substr(${closingDate}, 1, 10) <= date('now', '+${days} days')`;
+            AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text
+            AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '${days} days')::date)::text`;
         }
       }
 
       if (newlyAdded) {
-        filterClause += ` AND ${freshnessDate} >= date('now', '-7 days')`;
+        filterClause += ` AND ${freshnessDate} >= (CURRENT_DATE - INTERVAL '7 days')::date`;
       }
 
       const educationText = `LOWER(COALESCE(jd.education_requirements, ''))`;
@@ -408,12 +485,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       const activeJobWhere = `
         WHERE j.is_active = 1
           ${visiblePending}
-          AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))
+          ${publicDeadline}
           ${filterClause}`;
 
       // Closing-soon: earliest deadline first. Otherwise freshest first.
       const orderBy = deadlineDays !== null && Number.isFinite(deadlineDays) && deadlineDays >= 0
-        ? `substr(${closingDate}, 1, 10) ASC, ${freshnessDate} DESC, j.first_seen_at DESC`
+        ? `LEFT(${closingDate}, 10) ASC, ${freshnessDate} DESC, j.first_seen_at DESC`
         : `${freshnessDate} DESC, j.first_seen_at DESC`;
 
       const listArgs = [...filterArgs, limit, offset];
@@ -426,9 +503,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
               AND j.is_active = 1
               ${visiblePending}
               AND ${effectiveInventory} = 0
-              AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))
+              ${publicDeadline}
               AND TRIM(COALESCE(jd.job_title, raw.title, '')) <> ''
-            ORDER BY title COLLATE NOCASE
+            ORDER BY LOWER(title), title
             LIMIT 50`,
           args: sourceFilters,
         })
@@ -462,14 +539,23 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (view === 'saved') {
-      const result = await db.execute(`
+      const savedSql = `
         SELECT ${jobColumns}
         ${jobJoins}
         WHERE j.is_saved = 1
-        ORDER BY j.is_active DESC, ${freshnessDate} DESC, j.first_seen_at DESC
-      `);
+          ${publicDeadline}
+      `;
+      const [currentSaved, archiveSaved] = await Promise.all([
+        db.execute(savedSql),
+        archiveDb.execute(savedSql),
+      ]);
+      const rows = [...currentSaved.rows, ...archiveSaved.rows].sort((left, right) =>
+        Number(right.is_active ?? 0) - Number(left.is_active ?? 0)
+        || String(right.scraped_at ?? '').localeCompare(String(left.scraped_at ?? ''))
+        || String(right.first_seen_at ?? '').localeCompare(String(left.first_seen_at ?? ''))
+      );
       res.setHeader('Cache-Control', 'no-store');
-      res.end(JSON.stringify(result.rows));
+      res.end(JSON.stringify(rows));
       return;
     }
 
@@ -480,7 +566,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         sql: `SELECT ${jobColumns} ${jobJoins}
           WHERE j.is_active = 1
             ${visiblePending}
-            AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))
+            ${publicDeadline}
           ORDER BY ${freshnessDate} DESC, j.first_seen_at DESC LIMIT ? OFFSET ?`,
         args: [limit, offset],
       }),
@@ -490,7 +576,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         ${jobJoins}
         WHERE j.is_active = 1
           ${visiblePending}
-          AND (${closingDate} IS NULL OR ${closingDate} = '' OR substr(${closingDate}, 1, 10) >= date('now'))`),
+          ${publicDeadline}`),
     ]);
     res.setHeader('Cache-Control', PUBLIC_CACHE);
     res.end(JSON.stringify({

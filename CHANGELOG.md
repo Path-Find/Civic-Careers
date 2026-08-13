@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Active and expired jobs now have a tested Neon migration path** — current jobs stay in the live database while expired jobs move directly to a separate Neon archive database, reducing Turso reads without requiring an R2 handoff.
+
 ### Added
 - **Source-confirmed worksite addresses are stored for future map features** — street addresses stay hidden from public job responses and are only saved when the posting explicitly identifies the work location.
 - **Jobs can now be filtered by source-backed career stage** — explicit student, early-career, experienced, and senior signals are visible on postings while unclear roles remain uncategorized.
