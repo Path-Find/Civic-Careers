@@ -1,4 +1,4 @@
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import {
   appendExperienceQualificationBullets,
@@ -33,11 +33,11 @@ function parseList(value: unknown): string[] {
 }
 
 async function main() {
-  const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
+  const db = await initDb();
   try {
     await db.execute('ALTER TABLE job_details ADD COLUMN experience_requirements TEXT');
   } catch (error) {
-    if (!/duplicate column/i.test(String(error))) throw error;
+    if (!/duplicate column|already exists/i.test(String(error))) throw error;
   }
 
   const changes: Change[] = [];

@@ -5,7 +5,7 @@
  *   npx tsx backfill-department-casing.ts           # dry-run
  *   npx tsx backfill-department-casing.ts --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { normalizeDepartment } from './validate';
 
@@ -14,10 +14,7 @@ dotenv.config({ quiet: true });
 const APPLY = process.argv.includes('--apply');
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const result = await db.execute(`
     SELECT id, department

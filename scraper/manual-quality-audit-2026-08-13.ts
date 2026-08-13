@@ -3,7 +3,7 @@
  *
  * Usage: npx tsx manual-quality-audit-2026-08-13.ts [--apply]
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 
 dotenv.config({ quiet: true });
@@ -431,10 +431,7 @@ Provides client and facility support in the Women's Treatment and Community Serv
 ];
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   console.log(APPLY ? 'APPLY mode' : 'DRY-RUN mode (pass --apply to write)');
   console.log(`Patches: ${patches.length}`);

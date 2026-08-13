@@ -7,7 +7,7 @@
  *   npx tsx backfill-posted-dates.ts           # dry-run
  *   npx tsx backfill-posted-dates.ts --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { extractPostedDate, extractRecentRelativePostedDate, normalizePostedDate } from './posted-date';
 
@@ -25,10 +25,7 @@ type Candidate = {
 };
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const pageSize = 200;
   const rows: any[] = [];

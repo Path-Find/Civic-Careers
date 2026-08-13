@@ -12,7 +12,7 @@ async function main() {
       AND COALESCE(jd.is_inventory, 0) = 0
       AND jd.closing_date IS NOT NULL
       AND jd.closing_date != ''
-      AND substr(jd.closing_date, 1, 10) >= date('now')
+      AND substr(jd.closing_date, 1, 10) >= CURRENT_DATE::text
     ORDER BY j.source, substr(jd.closing_date, 1, 10), jd.job_title
   `);
 

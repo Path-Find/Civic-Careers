@@ -5,7 +5,7 @@
  *
  * Usage: npx tsx manual-quality-sample-fix.ts [--apply]
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
@@ -550,10 +550,7 @@ Crossing Guards for the school year (September 8, 2026 to June 29, 2027). Spare 
 ];
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   console.log(APPLY ? 'APPLY mode' : 'DRY-RUN mode (pass --apply to write)');
   console.log(`Patches: ${patches.length}\n`);

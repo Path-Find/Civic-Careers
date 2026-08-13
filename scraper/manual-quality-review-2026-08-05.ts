@@ -1,4 +1,4 @@
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 
 dotenv.config({ quiet: true });
@@ -259,7 +259,7 @@ const patches: Patch[] = [
 const allowed = new Set(['location', 'description', 'posted_at', 'employment_type', 'duration', 'hours', 'availability', 'required_skills', 'education_requirements', 'license_requirements', 'certification_requirements', 'software_requirements', 'medical_requirements', 'start_date']);
 
 async function main() {
-  const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
+  const db = await initDb();
   for (const patch of patches) {
     const exists = await db.execute({ sql: 'SELECT id FROM job_details WHERE id = ?', args: [patch.id] });
     if (!exists.rows.length) throw new Error('Missing job_details row: ' + patch.id);

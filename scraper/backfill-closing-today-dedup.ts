@@ -9,8 +9,8 @@
  *   npx tsx backfill-closing-today-dedup.ts --from-date=2026-08-19 --apply
  *   npx tsx backfill-closing-today-dedup.ts --from-date=2026-08-06 --to-date=2026-08-18 --apply
  */
-import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
+import { initDb } from './db';
 import { isRedundantCompensationSection, removePlaceholderSections, stripStructuredBenefitRestatements } from './cleanup_description';
 import {
   normalizeEducationRequirements,
@@ -68,10 +68,7 @@ function removeRedundantCompensationSections(description: string): string {
 }
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const result = await db.execute(`
     SELECT d.id, d.job_title, d.description, d.closing_date, j.source,

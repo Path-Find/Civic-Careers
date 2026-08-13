@@ -5,7 +5,7 @@
  *   npx tsx backfill-start-dates.ts           # dry-run
  *   npx tsx backfill-start-dates.ts --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -23,17 +23,14 @@ type Candidate = {
 };
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   // Ensure column exists (same as initDb migration).
   try {
     await db.execute(`ALTER TABLE job_details ADD COLUMN start_date TEXT`);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    if (!/duplicate column/i.test(message)) throw err;
+    if (!/duplicate column|already exists/i.test(message)) throw err;
   }
 
   const result = await db.execute(`

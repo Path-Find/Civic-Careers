@@ -5,7 +5,7 @@
  *
  *   npx tsx audit-live-job-quality.ts
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { extractClosingDateStatus } from './closing-date';
 import { extractListingType } from './requirements';
@@ -34,7 +34,7 @@ function countBySource(rows: Row[], predicate: (row: Row) => boolean): Record<st
 }
 
 async function main() {
-  const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
+  const db = await initDb();
   const result = await db.execute(`
     SELECT j.id, j.source, j.is_active, jd.id AS details_id,
            COALESCE(jd.job_title, raw.title, '') AS title,

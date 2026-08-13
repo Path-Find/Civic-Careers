@@ -1,4 +1,4 @@
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
 
@@ -154,7 +154,7 @@ async function main(): Promise<void> {
   const includeInactive = process.argv.includes('--include-inactive');
   const json = process.argv.includes('--json');
   const failOnInvalid = process.argv.includes('--fail-on-invalid');
-  const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
+  const db = await initDb();
   const result = await db.execute(`
     SELECT j.id, j.source, jd.job_title,
            jd.salary_period, jd.work_model, jd.employment_type, jd.listing_type,

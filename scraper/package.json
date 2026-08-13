@@ -36,6 +36,7 @@
     "reparse-stale": "npx tsx reparse-stale.ts",
     "sample-parser": "npx tsx sample-parser.ts",
     "migrate:turso-to-neon": "npx tsx migrate-turso-to-neon.ts",
+    "prepare:neon-schema": "npx tsx prepare-neon-schema.ts",
     "verify:migration": "npx tsx verify-turso-neon-migration.ts",
     "test": "node --require tsx/cjs --test tests/*.test.ts"
   },

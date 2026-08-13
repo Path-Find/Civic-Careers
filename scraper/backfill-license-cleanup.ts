@@ -6,7 +6,7 @@
  *   npx tsx backfill-license-cleanup.ts           # dry-run
  *   npx tsx backfill-license-cleanup.ts --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -38,10 +38,7 @@ function sameList(left: string[], right: string[]): boolean {
 }
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const query = await db.execute(`
     SELECT j.id, j.source, j.is_active, d.job_title, d.description,

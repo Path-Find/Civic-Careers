@@ -5,7 +5,7 @@
  *   npx tsx backfill-pending-closing-status.ts       # read-only dry run
  *   npx tsx backfill-pending-closing-status.ts --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { extractClosingDateStatus } from './closing-date';
 
@@ -25,7 +25,7 @@ type Row = {
 };
 
 async function main() {
-  const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
+  const db = await initDb();
   const result = await db.execute({
     sql: `
       SELECT r.id, r.source, r.title, r.raw_text,

@@ -1,4 +1,4 @@
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { stripStructuredBenefitRestatements } from './cleanup_description';
 
@@ -17,10 +17,7 @@ function parseList(value: unknown): string[] {
 }
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
   const result = await db.execute(`
     SELECT j.id, j.source, jd.job_title, jd.description, jd.benefits
     FROM jobs j

@@ -1,5 +1,5 @@
 /** QUALITY.md fixes for the second random sample selected 2026-08-13. */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 
 dotenv.config({ quiet: true });
@@ -166,7 +166,7 @@ Provides counter-service and mail-processing support at a Canada Post retail loc
 ];
 
 async function main() {
-  const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
+  const db = await initDb();
   console.log(APPLY ? 'APPLY mode' : 'DRY-RUN mode');
   for (const patch of patches) {
     const before = await db.execute({ sql: 'SELECT id, job_title, length(description) AS description_length FROM job_details WHERE id = ?', args: [patch.id] });

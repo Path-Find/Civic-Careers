@@ -7,7 +7,7 @@
  *   npx tsx backfill-grade12-firstaid.ts --apply
  *   npx tsx backfill-grade12-firstaid.ts --active-only
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import {
   extractCertificationRequirements,
@@ -82,10 +82,7 @@ type Change = {
 };
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const result = await db.execute(`
     SELECT j.id, j.source, j.is_active, d.job_title, d.description,

@@ -7,7 +7,7 @@
  *   npx tsx backfill-normalize-languages.ts --apply   # write
  *   npx tsx backfill-normalize-languages.ts --active-only
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -37,10 +37,7 @@ function parseField(raw: string | null): unknown {
 }
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const query = await db.execute(`
     SELECT j.id, j.source, j.is_active, d.job_title, d.language_requirements

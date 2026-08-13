@@ -6,7 +6,7 @@
  *   npx tsx backfill-reviewed-listing-types.ts       # read-only dry run
  *   npx tsx backfill-reviewed-listing-types.ts --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { extractListingType, type ListingType } from './requirements';
 
@@ -33,7 +33,7 @@ type Candidate = Row & {
 };
 
 async function main() {
-  const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
+  const db = await initDb();
   const result = await db.execute({
     sql: `
       SELECT j.id, j.source, jd.job_title AS title, jd.description, raw.raw_text,

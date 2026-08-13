@@ -5,7 +5,7 @@
  *   npx tsx backfill-skills-language-split.ts           # dry-run
  *   npx tsx backfill-skills-language-split.ts --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -29,10 +29,7 @@ function parseList(raw: string | null): string[] {
 }
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const query = await db.execute(`
     SELECT j.id, j.source, j.is_active, d.job_title, d.required_skills, d.language_requirements

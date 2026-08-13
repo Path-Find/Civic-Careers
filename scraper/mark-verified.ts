@@ -6,7 +6,7 @@
  *   npx tsx mark-verified.ts --clear <job_id> [job_id...]
  *   npx tsx mark-verified.ts --list   # show recently verified (limit 50)
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 
 dotenv.config({ quiet: true });
@@ -16,17 +16,14 @@ const LIST = process.argv.includes('--list');
 const ids = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   // Ensure column exists (idempotent).
   try {
-    await db.execute(`ALTER TABLE jobs ADD COLUMN verified_at DATETIME`);
+    await db.execute(`ALTER TABLE jobs ADD COLUMN verified_at TIMESTAMPTZ`);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    if (!/duplicate column/i.test(message)) throw err;
+    if (!/duplicate column|already exists/i.test(message)) throw err;
   }
 
   if (LIST) {

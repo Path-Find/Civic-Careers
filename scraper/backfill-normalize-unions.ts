@@ -5,7 +5,7 @@
  *   npx tsx backfill-normalize-unions.ts           # dry-run
  *   npx tsx backfill-normalize-unions.ts --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -16,10 +16,7 @@ dotenv.config({ quiet: true });
 const APPLY = process.argv.includes('--apply');
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const query = await db.execute(`
     SELECT j.id, j.source, d.job_title, d.union_name, d.is_unionized

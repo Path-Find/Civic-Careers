@@ -92,7 +92,7 @@ test('saveJobDetails refreshes parsed fields but preserves academic context on b
     'career_stage',
   ]) {
     if (['hours', 'availability', 'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours', 'academic_supervisor', 'academic_appointment_type', 'academic_schedule'].includes(field)) {
-      assert.match(upsert, new RegExp(`${field} = COALESCE\\(NULLIF\\(excluded\\.${field}, ''\\), ${field}\\)`));
+      assert.match(upsert, new RegExp(`${field} = COALESCE\\(NULLIF\\(excluded\\.${field}, ''\\), job_details\\.${field}\\)`));
     } else {
       assert.match(upsert, new RegExp(`${field} = excluded\\.${field}`));
     }

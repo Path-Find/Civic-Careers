@@ -5,9 +5,9 @@
  * Usage:
  *   npx tsx backfill-academic-context.ts --apply
  */
-import { createClient } from '@libsql/client';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import { initDb } from './db';
 import { normalizeAcademicRoleType } from './validate';
 import { splitHoursAndAvailability } from './hours-availability';
 import { normalizeAcademicAppointmentType, normalizeAcademicCourse, normalizeAcademicOfficeHours, normalizeAcademicSupervisor, normalizeAcademicWorkload } from './academic-context';
@@ -213,7 +213,11 @@ async function withRetry(candidate: Candidate): Promise<AcademicContext | null> 
   throw lastError;
 }
 
-async function ensureColumns(db: ReturnType<typeof createClient>) {
+type DbClient = {
+  execute: (statement: any, args?: any) => Promise<any>;
+};
+
+async function ensureColumns(db: DbClient) {
   for (const column of [
     'academic_role_type', 'academic_course', 'academic_workload',
     'academic_office_hours', 'academic_supervisor', 'academic_appointment_type',
@@ -221,12 +225,12 @@ async function ensureColumns(db: ReturnType<typeof createClient>) {
     try {
       await db.execute(`ALTER TABLE job_details ADD COLUMN ${column} TEXT`);
     } catch (error) {
-      if (!/duplicate column/i.test(String(error))) throw error;
+      if (!/duplicate column|already exists/i.test(String(error))) throw error;
     }
   }
 }
 
-async function updateAcademicContext(db: ReturnType<typeof createClient>, id: string, context: AcademicContext) {
+async function updateAcademicContext(db: DbClient, id: string, context: AcademicContext) {
   const normalized = normalizeContext(context);
   await db.execute({
     sql: `UPDATE job_details SET
@@ -248,7 +252,7 @@ async function updateAcademicContext(db: ReturnType<typeof createClient>, id: st
   });
 }
 
-async function sanitizeStoredContext(db: ReturnType<typeof createClient>) {
+async function sanitizeStoredContext(db: DbClient) {
   const result = await db.execute(`
     SELECT id, job_title, academic_role_type, academic_course, hours, availability, academic_workload, academic_office_hours, academic_appointment_type
     FROM job_details
@@ -304,10 +308,7 @@ async function sanitizeStoredContext(db: ReturnType<typeof createClient>) {
 }
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
   await ensureColumns(db);
   await sanitizeStoredContext(db);
 
@@ -320,7 +321,7 @@ async function main() {
     LEFT JOIN raw_jobs raw ON raw.id = j.id
     WHERE j.is_active = 1
       AND COALESCE(jd.is_inventory, 0) = 0
-      AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= date('now'))
+      AND (jd.closing_date IS NULL OR jd.closing_date = '' OR substr(jd.closing_date, 1, 10) >= CURRENT_DATE::text)
       AND NULLIF(trim(COALESCE(jd.academic_role_type, '')), '') IS NULL
     ORDER BY j.source, j.id
   `);
@@ -363,7 +364,7 @@ async function main() {
     for (const item of results) {
       completed += 1;
       if ('error' in item) {
-        failures.push({ id: item.candidate.id, title: item.candidate.job_title, error: item.error });
+        failures.push({ id: item.candidate.id, title: item.candidate.job_title, error: item.error ?? 'Unknown error' });
         continue;
       }
       if (!item.context) continue;

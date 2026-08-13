@@ -5,7 +5,7 @@
  *   npx tsx backfill-certification-normalize.ts --active-only       # dry-run
  *   npx tsx backfill-certification-normalize.ts --active-only --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -36,10 +36,7 @@ type Change = {
 };
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const result = await db.execute(`
     SELECT j.id, j.source, j.is_active, d.job_title, d.certification_requirements

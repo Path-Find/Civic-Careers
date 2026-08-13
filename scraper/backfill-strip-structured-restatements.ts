@@ -10,7 +10,7 @@
  *   npx tsx backfill-strip-structured-restatements.ts --certifications-only --apply
  *   npx tsx backfill-strip-structured-restatements.ts --languages-only --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { cleanJobDescription } from './cleanup_description';
 import {
@@ -41,10 +41,7 @@ function parseList(value: unknown): string[] {
 }
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
 
   const result = await db.execute(`
     SELECT d.id, d.job_title, d.description, j.source,

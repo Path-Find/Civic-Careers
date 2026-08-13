@@ -4,7 +4,7 @@
  *   npx tsx backfill-expired-jobs.ts          # dry-run
  *   npx tsx backfill-expired-jobs.ts --apply  # write
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { deactivateExpiredJobs } from './db';
 
@@ -19,10 +19,7 @@ const TODAY = new Intl.DateTimeFormat('en-CA', {
 }).format(new Date());
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
   const result = await db.execute({
     sql: `SELECT j.id, j.source, d.job_title, d.closing_date
           FROM jobs j

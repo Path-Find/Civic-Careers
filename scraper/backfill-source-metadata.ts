@@ -1,5 +1,5 @@
 /** Apply reviewed, source-backed metadata fixes without an AI call. */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { sourceMetadataFixFor } from './source-metadata-fixes';
 
@@ -11,7 +11,7 @@ const ids = (process.argv.find(argument => argument.startsWith('--ids='))?.slice
 
 async function main() {
   if (ids.length === 0) throw new Error('Pass --ids=... to select exact reviewed rows.');
-  const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
+  const db = await initDb();
   for (const id of ids) {
     const fix = sourceMetadataFixFor(id);
     if (!fix) throw new Error(`No reviewed source metadata fix exists for ${id}.`);

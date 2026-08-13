@@ -1,4 +1,4 @@
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { normalizeBenefits } from './requirements';
 import { BENEFIT_OVERRIDES } from './benefit-fixes';
@@ -26,10 +26,7 @@ function parseList(value: unknown): string[] {
 }
 
 async function main() {
-  const db = createClient({
-    url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
-  });
+  const db = await initDb();
   const idFilter = requestedIds.size > 0
     ? ` AND j.id IN (${[...requestedIds].map(() => '?').join(',')})`
     : '';

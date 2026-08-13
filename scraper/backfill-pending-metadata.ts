@@ -5,7 +5,7 @@
  *   npx tsx backfill-pending-metadata.ts           # dry-run
  *   npx tsx backfill-pending-metadata.ts --apply
  */
-import { createClient } from '@libsql/client';
+import { initDb } from './db';
 import dotenv from 'dotenv';
 import { extractPendingMetadata, isUsablePendingLocation } from './pending-metadata';
 import { extractClosingDateStatus } from './closing-date';
@@ -17,18 +17,18 @@ const APPLY = process.argv.includes('--apply');
 const INCLUDE_INACTIVE = process.argv.includes('--include-inactive');
 
 async function main() {
-  const db = createClient({ url: process.env.TURSO_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
+  const db = await initDb();
   await db.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_salary_text TEXT`).catch(error => {
-    if (!/duplicate column/i.test(String(error?.message ?? error))) throw error;
+    if (!/duplicate column|already exists/i.test(String(error?.message ?? error))) throw error;
   });
   await db.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_is_student INTEGER`).catch(error => {
-    if (!/duplicate column/i.test(String(error?.message ?? error))) throw error;
+    if (!/duplicate column|already exists/i.test(String(error?.message ?? error))) throw error;
   });
   await db.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_location TEXT`).catch(error => {
-    if (!/duplicate column/i.test(String(error?.message ?? error))) throw error;
+    if (!/duplicate column|already exists/i.test(String(error?.message ?? error))) throw error;
   });
   await db.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_closing_date_status TEXT DEFAULT 'not_checked'`).catch(error => {
-    if (!/duplicate column/i.test(String(error?.message ?? error))) throw error;
+    if (!/duplicate column|already exists/i.test(String(error?.message ?? error))) throw error;
   });
 
   const result = await db.execute(`

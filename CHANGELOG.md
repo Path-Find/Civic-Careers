@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Active and expired jobs now have a tested Neon migration path** — current jobs stay in the live database while expired jobs move directly to a separate Neon archive database, reducing Turso reads without requiring an R2 handoff.
+- **Operational backfills now use the Neon-aware database layer** — maintenance corrections follow the current/archive routing instead of silently writing to Turso.
 
 ### Added
 - **Source-confirmed worksite addresses are stored for future map features** — street addresses stay hidden from public job responses and are only saved when the posting explicitly identifies the work location.
