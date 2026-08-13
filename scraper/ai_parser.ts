@@ -10,6 +10,7 @@ const deepseekClient = new OpenAI({
 });
 
 const AI_MODEL = process.env.AI_MODEL || "deepseek-v4-flash";
+const ENABLE_DEEPSEEK_PARSER = process.env.ENABLE_DEEPSEEK_PARSER === 'true';
 
 // Bump whenever the prompt below (or AI_MODEL) changes meaningfully enough that
 // old parses may no longer match what the current prompt would produce. Stamped
@@ -82,6 +83,10 @@ export type ParseResult =
   | { data: null; error: string };
 
 export async function parseJobWithAI(description: string, titleHint?: string): Promise<ParseResult> {
+    if (!ENABLE_DEEPSEEK_PARSER) {
+        return { data: null, error: "DeepSeek parser is disabled; parse this job manually." };
+    }
+
     const wait = msUntilOffPeak();
     if (wait > 0) {
         console.log(`\n[Parser] DeepSeek peak hours — waiting ${Math.ceil(wait / 60000)} min until off-peak...`);

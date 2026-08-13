@@ -19,6 +19,7 @@ const DETERMINISTIC_ONLY = process.argv.includes('--deterministic-only');
 const CONCURRENCY = Number(process.env.ACADEMIC_BACKFILL_CONCURRENCY || 2);
 const BATCH_DELAY_MS = Number(process.env.ACADEMIC_BACKFILL_DELAY_MS || 2000);
 const AI_MODEL = process.env.AI_MODEL || 'deepseek-v4-flash';
+const ENABLE_DEEPSEEK_PARSER = process.env.ENABLE_DEEPSEEK_PARSER === 'true';
 const academicSourcePattern = /\b(?:university|college|institute|polytechnic|UBC)\b|school of/i;
 const academicRolePattern = /\b(professor|lecturer|instructor|teaching assistant|instructional assistant|research assistant|research associate|academic assistant|graduate assistant|post[- ]?doctoral|post[- ]?doc|postdoc|sessional|faculty member|course coordinator|course staff|course assistant|teaching fellow|research fellow|tutor|marker|demonstrator|lab demonstrator)\b/i;
 const facultyAppointmentPattern = /^(?:(?:bcgeu|flexible learning|contract|regular probationary|tenure[- ]track)\s+)?faculty(?:\s*[-,(]|$)|^tenure[- ]track faculty positions?\b/i;
@@ -308,6 +309,11 @@ async function sanitizeStoredContext(db: DbClient) {
 }
 
 async function main() {
+  if (!DETERMINISTIC_ONLY && !ENABLE_DEEPSEEK_PARSER) {
+    console.log('[academic-context] DeepSeek backfill is paused. Use --deterministic-only or explicitly opt in with ENABLE_DEEPSEEK_PARSER=true.');
+    return;
+  }
+
   const db = await initDb();
   await ensureColumns(db);
   await sanitizeStoredContext(db);

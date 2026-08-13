@@ -1,9 +1,8 @@
-name: Job Feed Parse
+name: Job Feed Parse (Paused)
 
 on:
-  # schedule trigger paused while the parser/prompt is being actively tuned —
-  # an automatic run would parse under a version about to be replaced anyway.
-  # Re-enable once PARSER_VERSION has stabilized:
+  # Deliberately manual-only while jobs are being parsed in Codex.
+  # parser.ts exits before opening the database unless ENABLE_DEEPSEEK_PARSER=true.
   # schedule:
   #   - cron: '30 10 * * 1,4' # Run Mon and Thu at 6:30 AM EDT (10:30 AM UTC) — off-peak for DeepSeek pricing, and after the 3 AM scrape has had time to finish
   workflow_dispatch: # Allow manual runs
@@ -27,11 +26,5 @@ jobs:
 
       - name: Run Parser
         env:
-          NEON_CURRENT_DATABASE_URL: ${{ secrets.NEON_CURRENT_DATABASE_URL }}
-          NEON_ARCHIVE_DATABASE_URL: ${{ secrets.NEON_ARCHIVE_DATABASE_URL }}
-          TURSO_URL: ${{ secrets.TURSO_URL }}
-          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          AI_MODEL: "deepseek-chat"
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ENABLE_DEEPSEEK_PARSER: "false"
         run: cd scraper && npx tsx parser.ts

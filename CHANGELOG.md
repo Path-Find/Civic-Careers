@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Automated DeepSeek parsing and AI backfills are paused by default** — jobs can be parsed manually in Codex without an accidental provider call.
 - **Active and expired jobs now have a tested Neon migration path** — current jobs stay in the live database while expired jobs move directly to a separate Neon archive database, reducing Turso reads without requiring an R2 handoff.
 - **Operational backfills now use the Neon-aware database layer** — maintenance corrections follow the current/archive routing instead of silently writing to Turso.
 - **Archived jobs now restore by live lookup before parser writes** — concurrent re-scrapes cannot rely on a stale startup cache and recreate a second copy in the current database.

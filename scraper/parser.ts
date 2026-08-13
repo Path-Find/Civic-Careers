@@ -33,6 +33,7 @@ import { sourceMetadataFixFor } from './source-metadata-fixes';
 import { classifyCareerStage } from './career-stage';
 
 const CONCURRENCY = Number(process.env.PARSER_CONCURRENCY ?? 2);
+const ENABLE_DEEPSEEK_PARSER = process.env.ENABLE_DEEPSEEK_PARSER === 'true';
 
 const EXCLUDED_SOURCES = (process.env.PARSE_EXCLUDE_SOURCES ?? '')
   .split(',')
@@ -47,6 +48,11 @@ const REQUESTED_IDS = new Set(
 );
 
 async function main() {
+  if (!ENABLE_DEEPSEEK_PARSER) {
+    console.log('[Parser] Automated DeepSeek parsing is paused. Parse jobs manually in Codex; set ENABLE_DEEPSEEK_PARSER=true only for an intentional provider run.');
+    return;
+  }
+
   const db = await initDb();
   const expiredBeforeParse = await deactivateExpiredJobs(db);
   if (expiredBeforeParse > 0) console.log(`[Expiry] Deactivated ${expiredBeforeParse} job(s) past their closing date.`);
