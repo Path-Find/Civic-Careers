@@ -4,6 +4,9 @@ import { Client } from '@libsql/client';
 import { discardRawJob, refreshClosingDate, retireJob, savePendingJob, saveRawJob } from './db';
 import { extractPostedDate, extractRecentRelativePostedDate, normalizePostedDate } from './posted-date';
 import { extractClosingDate } from './closing-date';
+import { classifyRawCapture, looksUnrendered } from './capture-quality';
+
+export { looksUnrendered } from './capture-quality';
 
 export function urlId(url: string): string {
   return createHash('sha256').update(url).digest('hex').substring(0, 12);
@@ -110,21 +113,6 @@ export async function handleRedirections(page: Page, depth = 0): Promise<boolean
     }
   }
   return depth > 0;
-}
-
-// Some SPA job-detail pages (confirmed on Workday — University of Ottawa,
-// University of Waterloo) return their nav/footer chrome before the real
-// content has hydrated: "Skip to main content...Loading...Follow Us...".
-// That shell is ~136 chars — over the naive length-only cutoff below — so it
-// was slipping through as if it were a real posting, then silently failing
-// AI parsing (no job_title to extract) on every single parse run forever.
-export function looksUnrendered(text: string): boolean {
-  return (/skip to main content/i.test(text) && text.length < 400)
-    || /skip to (?:main )?content\s*loading(?:\.{3})?/i.test(text)
-    || /^loading\.\.\.\s+skip to (?:main )?content/i.test(text.trim())
-    // Technomedia session/expiry dead-end (seen mid-scrape on York University).
-    || /resource you have requested is not available/i.test(text)
-    || /La ressource que vous avez demandée n'est pas disponible/i.test(text);
 }
 
 export async function scrapeRawAndStage(db: Client, context: BrowserContext, job: JobSummary, sourceName: string): Promise<boolean> {
@@ -255,6 +243,13 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
 
     if (sourceName === 'York University') {
       rawText = rawText.replace(/The University welcomes applications from all qualified individuals,[\s\S]*?(?=#LI-DNI\b|Click here for more details)/i, '').trim();
+    }
+
+    const captureQuality = classifyRawCapture(sourceName, rawText);
+    if (!captureQuality.valid) {
+      console.warn(`\n   ⚠️  [${sourceName}] Rejected ${captureQuality.issue} capture: ${descriptionUrl}`);
+      await discardRawJob(db, job.id!);
+      return false;
     }
 
     const labeledPostedAt = extractPostedDate(rawText) || extractRecentRelativePostedDate(rawText);

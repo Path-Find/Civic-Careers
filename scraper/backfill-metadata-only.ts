@@ -20,7 +20,7 @@ import { extractRecentRelativePostedDate, extractPostedDate, normalizePostedDate
 import { normalizeJobTitle } from './title';
 import { extractListingType } from './requirements';
 import { normalizeLocation } from './location';
-import { looksUnrendered } from './utils';
+import { classifyRawCapture } from './capture-quality';
 import { formatCapturedDescription } from './fallback-description';
 
 dotenv.config({ quiet: true });
@@ -39,15 +39,12 @@ type RawRow = {
   posted_at: string | null;
 };
 
-const EXPIRED_PAGE = /already expired|no longer available|position has been filled|job has moved/i;
-const BOT_OR_SHELL = /(?:checking your browser|enable javascript|captcha|cloudflare|access denied|security verification)/i;
-const NON_JOB_PAGE = /candidate profile|sign-in partner|allows you to apply for job opportunities/i;
 const DATE_VALUE = '(?:[A-Za-z]{3,9}\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s*\\d{2,4}|\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}|\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})';
 const CLOSING_DATE = new RegExp(`(?:posting\\s+end\\s+date|closing\\s+date|application\\s+deadline|apply\\s+by|deadline|applications?\\s+must\\s+be\\s+received[^:]{0,80})\\s*[:\\-]?\\s*(${DATE_VALUE})`, 'i');
 
-function invalidRaw(rawText: string): boolean {
+function invalidRaw(source: string, rawText: string): boolean {
   const text = rawText.trim();
-  return text.length < 100 || looksUnrendered(text) || EXPIRED_PAGE.test(text) || BOT_OR_SHELL.test(text) || NON_JOB_PAGE.test(text);
+  return text.length < 100 || !classifyRawCapture(source, text).valid;
 }
 
 function extractLocation(rawText: string): string {

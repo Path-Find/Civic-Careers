@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { extractRawJobTitle, normalizeJobTitle } from './title';
 import { extractPendingMetadata } from './pending-metadata';
 import { extractClosingDateStatus } from './closing-date';
+import { classifyRawCapture } from './capture-quality';
 dotenv.config({ quiet: true });
 
 // After this many failed parse attempts, a job is excluded from getUnparsedJobs
@@ -470,7 +471,13 @@ export async function saveRawJob(client: Client, job: {
   raw_text: string;
   title?: string | undefined;
   posted_at?: string | null;
-}) {
+}): Promise<boolean> {
+  const captureQuality = classifyRawCapture(job.source, job.raw_text);
+  if (!captureQuality.valid) {
+    await discardRawJob(client, job.id);
+    return false;
+  }
+
   const sourceTitle = job.title?.trim() || extractRawJobTitle(job.source, job.raw_text) || null;
   const title = sourceTitle ? normalizeJobTitle(sourceTitle) : null;
   const pending = extractPendingMetadata(sourceTitle, job.raw_text);
@@ -509,6 +516,7 @@ export async function saveRawJob(client: Client, job: {
       args: [job.id],
     },
   ], 'write');
+  return true;
 }
 
 /** Publish a listing whose source detail document is intentionally not parsed. */
@@ -596,7 +604,8 @@ export async function retireJob(client: Client, id: string): Promise<void> {
 // parsing forever. The next scrape can recreate the row if the source recovers.
 export async function discardRawJob(client: Client, id: string) {
   await client.batch([
-    { sql: `UPDATE jobs SET is_active = 0, scraped_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [id] },
+    { sql: `UPDATE jobs SET is_active = 0, scraped_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND EXISTS (SELECT 1 FROM raw_jobs WHERE id = ? AND parsed_at IS NULL)`, args: [id, id] },
     { sql: `DELETE FROM raw_jobs WHERE id = ? AND parsed_at IS NULL`, args: [id] },
     { sql: `DELETE FROM parse_failures WHERE id = ?`, args: [id] },
   ], 'write');
