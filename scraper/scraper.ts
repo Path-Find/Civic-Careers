@@ -1,7 +1,7 @@
 import { chromium, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import { cleanupExpiredJobsForSource, deactivateExpiredJobs, initDb } from './db';
-import { BASE_CONFIG, githubRunUrl, notifyDiscord } from './utils';
+import { BASE_CONFIG, githubRunUrl, isExternalSourceBlock, notifyDiscord } from './utils';
 
 import { scrapeSuccessFactors } from './engines/successfactors';
 import { scrapeWorkday } from './engines/workday';
@@ -195,7 +195,7 @@ async function main() {
   };
   const beforeCount = labels.length > 0 ? await countForLabels() : 0;
 
-  const results: { label: string; ok: boolean; error?: string }[] = [];
+  const results: { label: string; status: 'success' | 'blocked' | 'failed'; error?: string }[] = [];
   for (const task of tasks) {
     try {
       const taskStartedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -209,16 +209,18 @@ async function main() {
                 last_status = 'success'`,
         args: [task.label],
       });
-      results.push({ label: task.label, ok: true });
+      results.push({ label: task.label, status: 'success' });
     } catch (err: any) {
-      console.error(`[${task.label}] Scrape failed:`, err?.message || err);
+      const errorMessage = err?.message || String(err);
+      const externallyBlocked = isExternalSourceBlock(err);
+      console.error(`[${task.label}] ${externallyBlocked ? 'Source blocked externally' : 'Scrape failed'}:`, errorMessage);
       await db.execute({
         sql: `INSERT INTO source_scrape_status (source, last_successful_scrape_at, last_status)
-              VALUES (?, NULL, 'failed')
-              ON CONFLICT(source) DO UPDATE SET last_status = 'failed'`,
-        args: [task.label],
+              VALUES (?, NULL, ?)
+              ON CONFLICT(source) DO UPDATE SET last_status = excluded.last_status`,
+        args: [task.label, externallyBlocked ? 'blocked' : 'failed'],
       }).catch(statusErr => console.error(`[${task.label}] Failed to record status:`, statusErr));
-      results.push({ label: task.label, ok: false, error: err.message });
+      results.push({ label: task.label, status: externallyBlocked ? 'blocked' : 'failed', error: errorMessage });
     }
   }
 
@@ -238,22 +240,20 @@ async function main() {
 
     const engineLabel = engineFilter ? `${engineFilter} scrape` : 'Full scrape';
     const postingWord = touched === 1 ? 'posting' : 'postings';
-    const okLabels = results.filter(r => r.ok).map(r => r.label);
-    const failLabels = results.filter(r => !r.ok).map(r => r.label);
-    const statusLines = [
-      ...(okLabels.length > 0 ? [`OK     ${okLabels.join(', ')}`] : []),
-      ...(failLabels.length > 0 ? [`FAILED ${failLabels.join(', ')}`] : []),
-    ].join('\n');
+    const blockedLabels = results.filter(r => r.status === 'blocked').map(r => r.label);
+    const failLabels = results.filter(r => r.status === 'failed').map(r => r.label);
 
     const runLink = githubRunUrl();
     const content = failLabels.length > 0
       ? `🚨 GovJobs scraper needs attention\nFailed sites: ${failLabels.join(', ')}.\nStart a conversation with Codex to investigate and fix the scraper.${runLink ? `\nRun: ${runLink}` : ''}`
+      : blockedLabels.length > 0
+      ? `⚠️ ${engineLabel} completed with externally blocked sites: ${blockedLabels.join(', ')}. Existing jobs were preserved; source access needs review.${runLink ? `\nRun: ${runLink}` : ''}`
       : `✅ ${engineLabel} complete — ${touched} job ${postingWord} touched (${netNew >= 0 ? '+' : ''}${netNew} new).${runLink ? `\nRun: ${runLink}` : ''}`;
 
     await notifyDiscord(content);
   }
 
-  if (results.some(result => !result.ok)) process.exitCode = 1;
+  if (results.some(result => result.status === 'failed')) process.exitCode = 1;
 }
 
 if (require.main === module) {

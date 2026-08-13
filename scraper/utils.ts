@@ -44,6 +44,21 @@ export function githubRunUrl(): string | null {
   return server && repository && runId ? `${server}/${repository}/actions/runs/${runId}` : null;
 }
 
+/**
+ * A source can be unavailable without the scraper being broken. Keep these
+ * cases visible in source status while allowing the rest of a scheduled run
+ * to finish and preserve the source's existing jobs.
+ */
+export function isExternalSourceBlock(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return [
+    /Njoyn board blocked by Radware CAPTCHA/i,
+    /official board blocked by Radware\/hCaptcha challenge/i,
+    /Workday board blocked by an external browser challenge/i,
+    /Alongside widget returned HTTP (?:403|429|526)\b/i,
+  ].some(pattern => pattern.test(message));
+}
+
 export async function notifyDiscord(content: string): Promise<void> {
   const webhook = process.env.DISCORD_WEBHOOK_URL;
   if (!webhook) return;

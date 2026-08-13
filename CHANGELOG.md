@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Scheduled scrapes now preserve jobs when a source is externally blocked** — CAPTCHA and provider outages are recorded as blocked sources instead of failing the entire feed run, while genuine scraper errors still fail normally.
 - **Pending Workday listings now show source-derived city locations** — unparsed postings can display a safe city/province such as Vancouver, BC without inventing a street address.
 - **Ontario Health atHome postings now retain their source-backed job facts** — the reported Care Coordinator listing includes location, hourly salary, permanent part-time status, hours, benefits, requirements, and a structured description.
 - **Ontario Health atHome benefit labels now use the public vocabulary** — the reported posting no longer exposes legacy lowercase pension, health, and dental values.

@@ -33,6 +33,7 @@ import { scrapeSapWebDynpro } from './engines/sap-webdynpro';
 import { scrapeAlongside } from './engines/alongside';
 import { scrapeSuccessFactors } from './engines/successfactors';
 import { scrapeBrassRing, scrapeCollingwood, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNanaimo, scrapeNipissing, scrapeNorthBay, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
+import { isExternalSourceBlock } from './utils';
 
 const REQUIRED_SUCCESSFUL_RUNS = 3;
 type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
@@ -284,6 +285,19 @@ async function main() {
       });
       console.log(`[${source}] Trial success (${jobCount} stored jobs).`);
     } catch (err: any) {
+      if (isExternalSourceBlock(err)) {
+        await db.execute({
+          sql: `INSERT INTO trial_source_results
+                  (source, consecutive_successes, last_status, last_job_count, last_run_at)
+                VALUES (?, 0, 'blocked', 0, CURRENT_TIMESTAMP)
+                ON CONFLICT(source) DO UPDATE SET
+                  last_status = 'blocked',
+                  last_run_at = CURRENT_TIMESTAMP`,
+          args: [source],
+        });
+        console.warn(`[${source}] Trial blocked by external source access: ${err.message}`);
+        return;
+      }
       failed = true;
       await db.execute({
         sql: `INSERT INTO trial_source_results
@@ -329,6 +343,8 @@ async function main() {
   for (const row of results.rows) {
     const status = row.last_status === 'success' && Number(row.consecutive_successes) >= REQUIRED_SUCCESSFUL_RUNS
       ? 'READY FOR PROMOTION'
+      : row.last_status === 'blocked'
+      ? 'WAITING FOR SOURCE ACCESS'
       : 'KEEP IN TRIAL';
     console.log(`${row.source}: ${row.last_status}, ${row.consecutive_successes}/${REQUIRED_SUCCESSFUL_RUNS} consecutive passes, ${row.last_job_count} stored jobs — ${status}`);
   }
