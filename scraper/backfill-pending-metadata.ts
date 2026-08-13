@@ -37,6 +37,7 @@ async function main() {
     JOIN jobs j ON j.id = r.id
     LEFT JOIN job_details d ON d.id = r.id
     WHERE r.parsed_at IS NULL AND d.id IS NULL
+      AND COALESCE(r.pending_closing_date_status, 'not_checked') <> 'blocked'
       ${INCLUDE_INACTIVE ? '' : 'AND j.is_active = 1'}
   `);
   const updates = result.rows.map(row => {
@@ -68,7 +69,9 @@ async function main() {
   await db.batch(updates.map(row => ({
     sql: `UPDATE raw_jobs
           SET title = COALESCE(NULLIF(?, ''), title), pending_salary_text = ?, pending_is_student = ?, pending_duration = COALESCE(NULLIF(TRIM(pending_duration), ''), ?), pending_location = ?, pending_closing_date = COALESCE(NULLIF(TRIM(pending_closing_date), ''), ?), pending_closing_date_status = ?
-          WHERE id = ? AND parsed_at IS NULL AND NOT EXISTS (SELECT 1 FROM job_details WHERE job_details.id = raw_jobs.id)`,
+          WHERE id = ? AND parsed_at IS NULL
+            AND COALESCE(pending_closing_date_status, 'not_checked') <> 'blocked'
+            AND NOT EXISTS (SELECT 1 FROM job_details WHERE job_details.id = raw_jobs.id)`,
     args: [row.title, row.salaryText, row.isStudent, row.duration, row.location ?? null, row.closingDate, row.closingDateStatus, row.id],
   })), 'write');
   console.log(`[Pending metadata] Updated ${updates.length} pending rows; all remain unparsed.`);
