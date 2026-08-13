@@ -11,6 +11,7 @@
     "backfill-posted-dates": "npx tsx backfill-posted-dates.ts",
     "backfill-metadata-only": "npx tsx backfill-metadata-only.ts",
     "backfill-benefits": "npx tsx backfill-benefits.ts",
+    "backfill-source-metadata": "npx tsx backfill-source-metadata.ts",
     "promote-pending-jobs": "npx tsx promote-pending-jobs.ts",
     "backfill-pending-titles": "npx tsx backfill-pending-titles.ts",
     "backfill-pending-metadata": "npx tsx backfill-pending-metadata.ts",

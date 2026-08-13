@@ -27,6 +27,7 @@ import { cleanJobDescription, removePlaceholderSections, stripStructuredBenefitR
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 import { BENEFIT_OVERRIDES } from './benefit-fixes';
 import { extractStartDate } from './start-date';
+import { sourceMetadataFixFor } from './source-metadata-fixes';
 
 const CONCURRENCY = 5;
 
@@ -70,7 +71,8 @@ async function main() {
       const { data: aiResult, error } = await parseJobWithAI(raw.raw_text, raw.title ?? undefined);
       if (aiResult) {
         const sourceFix = GOVERNMENT_OF_CANADA_FIXES[raw.id];
-        let description = sourceFix?.description ?? cleanJobDescription(aiResult.clean_description, aiResult.job_title, raw.source);
+        const sourceMetadataFix = sourceMetadataFixFor(raw.id, raw.raw_text);
+        let description = sourceMetadataFix?.description || sourceFix?.description || cleanJobDescription(aiResult.clean_description, aiResult.job_title, raw.source);
         const structuredRequirements = reconcileStructuredRequirements(description, {
           experience_requirements: aiResult.experience_requirements,
           education_requirements: aiResult.education_requirements,
@@ -78,7 +80,7 @@ async function main() {
           benefits: aiResult.benefits,
           required_skills: aiResult.required_skills,
         }, raw.raw_text);
-        const finalBenefits = BENEFIT_OVERRIDES[raw.id] ?? structuredRequirements.benefits;
+        const finalBenefits = sourceMetadataFix?.benefits ?? BENEFIT_OVERRIDES[raw.id] ?? structuredRequirements.benefits;
         description = stripStructuredBenefitRestatements(description, finalBenefits);
         description = appendExperienceQualificationBullets(description, aiResult.experience_requirements ?? []);
         const certificationRequirements = (() => {
@@ -118,7 +120,7 @@ async function main() {
           ?? normalizeSecurityCheckRequired(aiResult.security_check_required)
           ?? securityFromLabel;
         const parsedLocation = normalizeLocation(aiResult.location);
-        const location = parsedLocation || extractLabeledLocation(raw.raw_text);
+        const location = sourceMetadataFix?.location || parsedLocation || extractLabeledLocation(raw.raw_text);
         const listingType = normalizeListingType(
           extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory),
           aiResult.is_inventory,
@@ -128,23 +130,23 @@ async function main() {
         await saveJobDetails(db, {
           id: raw.id,
           job_title: normalizeJobTitle(aiResult.job_title),
-          department: aiResult.department,
+          department: sourceMetadataFix?.department ?? aiResult.department,
           location,
-          salary_range: (aiResult.salary_min || aiResult.salary_max)
+          salary_range: sourceMetadataFix?.salaryRange ?? ((aiResult.salary_min || aiResult.salary_max)
             ? `${aiResult.salary_min ?? ''} - ${aiResult.salary_max ?? ''} (${aiResult.salary_period})`
-            : '',
+            : ''),
           description,
           closing_date: aiResult.closing_date || '',
           is_inventory: isInventory ? 1 : 0,
           listing_type: listingType,
           is_student: isStudent,
-          salary_min: aiResult.salary_min,
-          salary_max: aiResult.salary_max,
-          salary_period: normalizeSalaryPeriod(aiResult.salary_period),
+          salary_min: sourceMetadataFix?.salaryMin ?? aiResult.salary_min,
+          salary_max: sourceMetadataFix?.salaryMax ?? aiResult.salary_max,
+          salary_period: sourceMetadataFix?.salaryPeriod ?? normalizeSalaryPeriod(aiResult.salary_period),
           work_model: normalizeWorkModel(aiResult.work_model, aiResult.job_title),
-          employment_type: normalizeEmploymentType(aiResult.employment_type),
-          duration: normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || ''),
-          hours: aiResult.hours,
+          employment_type: sourceMetadataFix?.employmentType ?? normalizeEmploymentType(aiResult.employment_type),
+          duration: sourceMetadataFix?.duration ?? normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || ''),
+          hours: sourceMetadataFix?.hours ?? aiResult.hours,
           availability: aiResult.availability,
           academic_role_type: aiResult.academic_role_type,
           academic_course: aiResult.academic_course,
@@ -152,19 +154,19 @@ async function main() {
           academic_office_hours: aiResult.academic_office_hours,
           academic_supervisor: aiResult.academic_supervisor,
           academic_appointment_type: aiResult.academic_appointment_type,
-          experience_requirements: JSON.stringify(structuredRequirements.experience_requirements),
+          experience_requirements: JSON.stringify(sourceMetadataFix?.experienceRequirements ?? structuredRequirements.experience_requirements),
           ...(() => {
             const u = normalizeUnionFields(aiResult.union_name, aiResult.is_unionized);
             return { is_unionized: u.is_unionized ? 1 : 0, union_name: u.union_name };
           })(),
           benefits: JSON.stringify(finalBenefits),
           required_skills: JSON.stringify(finalSkills),
-          education_requirements: JSON.stringify(sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
-          license_requirements: JSON.stringify(structuredRequirements.license_requirements),
+          education_requirements: JSON.stringify(sourceMetadataFix?.educationRequirements ?? sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
+          license_requirements: JSON.stringify(sourceMetadataFix?.licenseRequirements ?? structuredRequirements.license_requirements),
           vehicle_required: requirementFlagToDb(vehicleRequired),
-          language_requirements: JSON.stringify(finalLanguages),
-          security_check_required: requirementFlagToDb(securityCheckRequired),
-          certification_requirements: JSON.stringify(certificationRequirements.length ? certificationRequirements : aiResult.certification_requirements),
+          language_requirements: JSON.stringify(sourceMetadataFix?.languageRequirements ?? finalLanguages),
+          security_check_required: sourceMetadataFix?.securityCheckRequired ?? requirementFlagToDb(securityCheckRequired),
+          certification_requirements: JSON.stringify(sourceMetadataFix?.certificationRequirements ?? (certificationRequirements.length ? certificationRequirements : aiResult.certification_requirements)),
           software_requirements: JSON.stringify(finalSoftwareRequirements),
           medical_requirements: JSON.stringify(sourceFix?.medicalRequirements ?? aiResult.medical_requirements),
           responsibility_tags: JSON.stringify(aiResult.responsibility_tags),
