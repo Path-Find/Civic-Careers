@@ -4,6 +4,7 @@ import { compactOverview, formatDate, getQuickScanLabels, isPlaceholderSection, 
 import { compactLicenseLabel, parseTagList } from '../jobUtils';
 import { JobLocationMap } from './JobLocationMap';
 import { CopyLinkButton } from './CopyLinkButton';
+import { pendingDetailAction } from '../pendingDetailAction';
 import type { Job, JobDetails, View } from '../../../types/jobs';
 
 const REPORT_REASONS = [
@@ -103,6 +104,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
 }) {
   const API = import.meta.env.VITE_API_URL ?? '';
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const pendingAction = pendingDetailAction(job.details_url);
   const recordApplyClick = () => {
     void fetch(`${API}/api/jobs/${encodeURIComponent(job.id)}/apply-click`, { method: 'POST', keepalive: true }).catch(() => {});
   };
@@ -201,8 +203,8 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           {job.details_pending === 1 ? <section className="detail-pending" role="status" aria-labelledby="details-pending-heading">
             <h2 id="details-pending-heading">Details pending</h2>
             <p>The job was found, but its details are still being prepared.</p>
-            {job.details_url && <a className="detail-pending-link" href={job.details_url} target="_blank" rel="noopener noreferrer">
-              {/\.pdf(?:[?#]|$)/i.test(job.details_url) ? 'View full posting (PDF)' : 'Open original posting'} <ExternalLink size={14} />
+            {pendingAction && <a className="detail-pending-link" href={pendingAction.href} target="_blank" rel="noopener noreferrer">
+              {pendingAction.label} <ExternalLink size={14} />
             </a>}
           </section> : job.description ? <div className="detail-description">
             {overview && <div className="detail-overview" dangerouslySetInnerHTML={{ __html: renderMarkdown(`## ${overview.heading}\n${compactOverview(overview.body)}`) }} />}

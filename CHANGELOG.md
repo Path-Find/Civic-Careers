@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Pending PeopleSoft listings now explain how to find the source posting** — the official board opens without a misleading fragment deep link and includes the source job ID to search.
 - **Requirement lists were flattened into hard-to-scan paragraphs** — licences, skills, benefits, certifications, software, and language values now stay visibly separated in the job details UI.
 - **Blocked OPS and Workday boards now fail clearly** — external browser challenges are recorded as source-access failures instead of hanging on page state or looking like ordinary zero-result changes.
 - **Recruitment and eligibility classifications were corrected from official source text** — candidate inventories, hiring pools, and ordinary open-until-filled jobs now stay in the right listing category across parsed and pending records.
