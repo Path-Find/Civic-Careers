@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Deadline extraction now handles competition-close times and internal/external closing labels** — refreshed source captures can become pending-visible instead of remaining hidden when the date is wrapped in time text or split by audience.
 - **Soft-parsed deadlines now survive scraper refreshes** — a temporary extractor miss cannot erase a previously confirmed application closing date before full parsing.
 - **Source-backed hidden jobs can be re-queued with recovered application deadlines** — bounded Neon batches retain their parsed data, show the pending-details state, and remain ready for the normal parser queue.
 - **Automated DeepSeek parsing and AI backfills are paused by default** — jobs can be parsed manually in Codex without an accidental provider call.
