@@ -1,5 +1,6 @@
 import type { ListingTypeFilter } from '../../types/jobs';
 import { EDUCATION_LEVELS } from './educationFilters';
+import { CAREER_STAGES } from './careerStage';
 
 type SummaryFilters = {
   searchTerm: string;
@@ -16,6 +17,7 @@ type SummaryFilters = {
   selectedCompanyNames: string[];
   selectedEducationLevels: string[];
   educationField: string;
+  selectedCareerStages: string[];
 };
 
 export function buildFilterSummary(filters: SummaryFilters): string {
@@ -29,6 +31,10 @@ export function buildFilterSummary(filters: SummaryFilters): string {
     parts.push(`requiring ${labels.join(' or ')}`);
   }
   if (filters.educationField.trim()) parts.push(`in ${filters.educationField.trim()}`);
+  if (filters.selectedCareerStages.length > 0) {
+    const labels = filters.selectedCareerStages.map(value => CAREER_STAGES.find(stage => stage.value === value)?.label ?? value);
+    parts.push(`for ${labels.join(' or ').toLowerCase()} roles`);
+  }
   if (filters.selectedModes.length > 0) parts.push(`with ${filters.selectedModes.join(' or ').toLowerCase()} work`);
   if (filters.selectedLanguages.length > 0) parts.push(`${filters.selectedLanguages.join(' and ')} language requirements`);
   if (filters.vehicleRequired) parts.push('requiring a vehicle');

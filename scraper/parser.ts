@@ -27,6 +27,7 @@ import { cleanJobDescription, removePlaceholderSections, stripStructuredBenefitR
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 import { BENEFIT_OVERRIDES } from './benefit-fixes';
 import { extractStartDate } from './start-date';
+import { classifyCareerStage } from './career-stage';
 import { sourceMetadataFixFor } from './source-metadata-fixes';
 
 const CONCURRENCY = 5;
@@ -102,6 +103,7 @@ async function main() {
           ? true
           : (vehicleFromAI ?? vehicleFromDescription);
         const isStudent = sourceFix?.isStudent ?? (aiResult.is_student ? 1 : 0);
+        const careerStage = classifyCareerStage({ title: aiResult.job_title, rawText: raw.raw_text, isStudent });
         description = stripStructuredQualBullets(description, {
           licenses: structuredRequirements.license_requirements,
           education: structuredRequirements.education_requirements,
@@ -174,6 +176,7 @@ async function main() {
           posted_at: raw.posted_at,
           start_date: extractStartDate(`${raw.raw_text}\n${description}`),
           parser_version: PARSER_VERSION,
+          career_stage: careerStage,
         });
         await markJobParsed(db, raw.id);
         await clearParseFailure(db, raw.id);

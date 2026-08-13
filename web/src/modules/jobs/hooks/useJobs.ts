@@ -12,6 +12,7 @@ export type JobsListServerFilters = {
   sourceNames: string[];
   educationLevels: string[];
   educationField: string;
+  careerStages: string[];
 };
 
 const EMPTY_SERVER_FILTERS: JobsListServerFilters = {
@@ -20,6 +21,7 @@ const EMPTY_SERVER_FILTERS: JobsListServerFilters = {
   sourceNames: [],
   educationLevels: [],
   educationField: '',
+  careerStages: [],
 };
 
 function fetchJson(endpoint: string) {
@@ -55,7 +57,10 @@ function appendServerFilters(params: URLSearchParams, filters: JobsListServerFil
   if (filters.educationField.trim()) {
     params.set('educationField', filters.educationField.trim());
   }
-  if (filters.sourceNames.length > 0 || filters.educationLevels.length > 0 || filters.educationField.trim()) {
+  if (filters.careerStages.length > 0) {
+    params.set('careerStages', filters.careerStages.join(','));
+  }
+  if (filters.sourceNames.length > 0 || filters.educationLevels.length > 0 || filters.educationField.trim() || filters.careerStages.length > 0) {
     params.set('filtersVersion', '2');
   }
 }

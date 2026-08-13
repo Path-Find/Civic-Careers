@@ -80,7 +80,7 @@ const jobColumns = `
   COALESCE(jd.salary_range, raw.pending_salary_text) AS salary_range,
   ${closingDate} AS closing_date, ${closingDateStatus} AS closing_date_status,
   COALESCE(jd.posted_at, raw.posted_at) AS posted_at, jd.start_date,
-  ${effectiveInventory} AS is_inventory, ${effectiveListingType} AS listing_type, COALESCE(jd.is_student, raw.pending_is_student, 0) AS is_student,
+  ${effectiveInventory} AS is_inventory, ${effectiveListingType} AS listing_type, COALESCE(jd.is_student, raw.pending_is_student, 0) AS is_student, jd.career_stage,
   CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending,
   jd.salary_min, jd.salary_max, jd.salary_period,
   jd.work_model, ${effectiveEmploymentType} AS employment_type, ${effectiveDuration} AS duration,
@@ -350,6 +350,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         ['high_school', 'diploma', 'bachelors', 'masters', 'doctorate', 'student'].includes(value)
       ) ?? [])];
       const educationField = parsed.searchParams.get('educationField')?.trim().toLowerCase() ?? '';
+      const careerStages = [...new Set(parsed.searchParams.get('careerStages')?.split(',').map(value => value.trim()).filter(value =>
+        ['student', 'early-career', 'experienced', 'senior'].includes(value)
+      ) ?? [])];
 
       const filterArgs: Array<string | number> = [];
       let filterClause = '';
@@ -396,6 +399,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       if (educationField) {
         filterClause += ` AND ${educationText} LIKE ?`;
         filterArgs.push(`%${educationField}%`);
+      }
+      if (careerStages.length > 0) {
+        filterClause += ` AND jd.career_stage IN (${careerStages.map(() => '?').join(', ')})`;
+        filterArgs.push(...careerStages);
       }
 
       const activeJobWhere = `

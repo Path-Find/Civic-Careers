@@ -1,4 +1,5 @@
 import type { OrganizationChild, OrganizationGroup } from '../modules/jobs/organizationMetadata';
+import type { CareerStage } from '../modules/jobs/careerStage';
 
 export type AcademicRoleType =
   | 'faculty'
@@ -64,6 +65,7 @@ export interface Job {
   is_inventory: number;
   listing_type: 'regular' | 'ongoing_recruitment' | 'inventory' | null;
   is_student: number;
+  career_stage: CareerStage | null;
   details_pending: number;
   rid: number;
 }

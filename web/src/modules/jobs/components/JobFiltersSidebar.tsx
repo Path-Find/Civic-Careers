@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { ListingTypeFilter } from '../../../types/jobs';
 import type { CompanySummary } from '../../../types/jobs';
 import { EDUCATION_LEVELS, type EducationLevel } from '../educationFilters';
+import { CAREER_STAGES, type CareerStage } from '../careerStage';
 
 function FilterSection({ title, children }: { title: string; children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -20,14 +21,15 @@ function FilterButton({ label, active, onClick }: { label: string; active: boole
 }
 
 export function JobFiltersSidebar({
-  headerHeight, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs,
-  onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onCompanyChange, onEducationLevelChange, onEducationFieldChange, onReset,
+  headerHeight, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs,
+  onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onCareerStageChange, onCompanyChange, onEducationLevelChange, onEducationFieldChange, onReset,
 }: {
   headerHeight: number;
   companyOptions: CompanySummary[];
   selectedCompanyNames: string[];
   selectedEducationLevels: EducationLevel[];
   educationField: string;
+  selectedCareerStages: CareerStage[];
   minSalary: number | null;
   locationTerm: string;
   selectedModes: string[];
@@ -44,6 +46,7 @@ export function JobFiltersSidebar({
   onDeadlineChange: (days: number | null) => void;
   onListingTypeChange: (value: ListingTypeFilter) => void;
   onStudentJobsChange: () => void;
+  onCareerStageChange: (stage: CareerStage) => void;
   onCompanyChange: (name: string) => void;
   onEducationLevelChange: (level: EducationLevel) => void;
   onEducationFieldChange: (value: string) => void;
@@ -75,6 +78,10 @@ export function JobFiltersSidebar({
       <FilterButton label="Ongoing recruitment" active={listingTypeFilter === 'ongoing_recruitment'} onClick={() => onListingTypeChange(listingTypeFilter === 'ongoing_recruitment' ? null : 'ongoing_recruitment')} />
       <FilterButton label="Candidate inventory" active={listingTypeFilter === 'inventory'} onClick={() => onListingTypeChange(listingTypeFilter === 'inventory' ? null : 'inventory')} />
       {!listingTypeFilter && <p className="filter-note">Candidate inventory listings are hidden by default.</p>}
+    </FilterSection>
+    <FilterSection title="Career stage">
+      {CAREER_STAGES.map(stage => <FilterButton key={stage.value} label={stage.label} active={selectedCareerStages.includes(stage.value)} onClick={() => onCareerStageChange(stage.value)} />)}
+      <p className="filter-note">Only explicit source signals are classified. Unclear postings stay uncategorized.</p>
     </FilterSection>
     <div className="filter-reset-wrap"><button className="filter-reset" onClick={onReset}>Reset filters</button></div>
   </aside>;

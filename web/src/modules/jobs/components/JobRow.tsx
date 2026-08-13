@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import type { MouseEvent } from 'react';
 import { daysUntilClose, formatDate, jobRoute } from '../../../utils';
 import type { Job } from '../../../types/jobs';
+import { careerStageLabel } from '../careerStage';
 
 export function JobRow({ job, onClick }: { job: Job; onClick: () => void }) {
   const days = daysUntilClose(job.closing_date);
@@ -20,6 +21,7 @@ export function JobRow({ job, onClick }: { job: Job; onClick: () => void }) {
         {job.listing_type === 'ongoing_recruitment' && <span className="job-badge job-badge-status" data-status="ongoing-recruitment">Ongoing recruitment</span>}
         {(job.listing_type === 'inventory' || job.is_inventory === 1) && <span className="job-badge job-badge-status" data-status="candidate-inventory">Candidate inventory</span>}
         {job.is_student === 1 && <span className="job-badge job-badge-student">Student/Co-op</span>}
+        {job.career_stage && <span className="job-badge job-badge-status" data-status="career-stage">{careerStageLabel(job.career_stage)}</span>}
       </div>
       <div className="job-row-meta">
         <span className="job-row-source">{job.source}</span>

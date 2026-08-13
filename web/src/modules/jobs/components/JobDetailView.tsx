@@ -6,6 +6,7 @@ import { JobLocationMap } from './JobLocationMap';
 import { CopyLinkButton } from './CopyLinkButton';
 import { pendingDetailAction } from '../pendingDetailAction';
 import type { Job, JobDetails, View } from '../../../types/jobs';
+import { careerStageLabel } from '../careerStage';
 
 const REPORT_REASONS = [
   'This is a student job',
@@ -131,6 +132,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Start date', value: details.startDate },
     { label: 'Hours', value: details.hours },
     { label: 'Listing type', value: details.listingType }, { label: 'Student requirement', value: details.studentRequirement },
+    { label: 'Career stage', value: careerStageLabel(job.career_stage) },
     { label: 'Benefits', value: details.benefits, values: metadataValues(job.benefits) }, { label: 'Union', value: details.union },
   ];
   const requirementMetadata: DetailMetadata[] = [
