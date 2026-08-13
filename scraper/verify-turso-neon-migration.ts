@@ -39,6 +39,22 @@ async function targetCount(pool: Pool, table: string): Promise<number> {
   return Number(result.rows[0]?.count ?? 0);
 }
 
+async function sourceColumns(table: string): Promise<string[]> {
+  const result = await source.execute(`PRAGMA table_info(${table})`);
+  return result.rows.map(row => String(row.name));
+}
+
+async function targetColumns(pool: Pool, table: string): Promise<string[]> {
+  const result = await pool.query<{ column_name: string }>(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = $1
+     ORDER BY ordinal_position`,
+    [table],
+  );
+  return result.rows.map(row => row.column_name);
+}
+
 async function main() {
   let failures = 0;
   const check = (label: string, actual: number, expected: number) => {
@@ -70,6 +86,18 @@ async function main() {
     const expectedArchive = table === 'source_scrape_status' || table === 'trial_source_results' ? 0 : undefined;
     check(`${table} total`, currentRows + archiveRows, sourceRows);
     if (expectedArchive !== undefined) check(`${table} archive`, archiveRows, expectedArchive);
+  }
+
+  for (const table of ['jobs', 'raw_jobs', 'job_details', 'parse_failures', 'job_apply_clicks', 'manual_review_changes', 'source_scrape_status', 'trial_source_results']) {
+    const expected = await sourceColumns(table);
+    for (const [label, pool] of [['current', current], ['archive', archive]] as const) {
+      const actual = await targetColumns(pool, table);
+      const missing = expected.filter(column => !actual.includes(column));
+      const extra = actual.filter(column => !expected.includes(column));
+      const same = missing.length === 0 && extra.length === 0;
+      console.log(`${same ? 'PASS' : 'FAIL'} ${label} ${table} schema: ${same ? 'columns match' : `missing=${missing.join(',') || 'none'} extra=${extra.join(',') || 'none'}`}`);
+      if (!same) failures += 1;
+    }
   }
 
   for (const [label, pool] of [['current', current], ['archive', archive]] as const) {

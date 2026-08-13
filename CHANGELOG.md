@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Neon now has a dry-run-first rollback export** — an emergency Turso restore can upsert both Neon databases without deleting the existing rollback copy.
 - **Neon writes now share an advisory lock across scraper, parser, and API** — archive moves cannot race simultaneous job updates.
 - **Archived job links and saved jobs remain readable after expiry** — explicit history lookups can use the Neon archive without putting expired listings back into active search results.
+- **Migration verification now checks table columns as well as row parity** — schema drift is caught before cutover.
 
 ### Added
 - **Source-confirmed worksite addresses are stored for future map features** — street addresses stay hidden from public job responses and are only saved when the posting explicitly identifies the work location.
