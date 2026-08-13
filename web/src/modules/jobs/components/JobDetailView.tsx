@@ -1,7 +1,7 @@
 import { Bookmark, ExternalLink } from 'lucide-react';
 import { useState, type MouseEvent } from 'react';
 import { compactOverview, formatDate, getQuickScanLabels, isPlaceholderSection, isRedundantCompensation, parseMarkdownSections, reclassifyMandatoryNiceToHave, renderMarkdown } from '../../../utils';
-import { parseTagList } from '../jobUtils';
+import { compactLicenseLabel, parseTagList } from '../jobUtils';
 import { JobLocationMap } from './JobLocationMap';
 import { CopyLinkButton } from './CopyLinkButton';
 import type { Job, JobDetails, View } from '../../../types/jobs';
@@ -69,7 +69,20 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
   </div>;
 }
 
-type DetailMetadata = { label: string; value: string | null; highlight?: boolean };
+type DetailMetadata = { label: string; value: string | null; values?: string[]; highlight?: boolean };
+
+function metadataValues(raw: string | null, mapItem?: (value: string) => string): string[] {
+  return parseTagList(raw)
+    .map(value => (mapItem ? mapItem(value) : value).trim())
+    .filter(Boolean);
+}
+
+function MetadataValue({ item }: { item: DetailMetadata }) {
+  if (item.values && item.values.length > 1) {
+    return <div className="metadata-tags">{item.values.map(value => <span className="metadata-tag" key={value}>{value}</span>)}</div>;
+  }
+  return <div className={`metadata-value ${item.highlight ? 'highlight' : ''}`}>{item.value}</div>;
+}
 
 const HIDDEN_SOURCE_SECTION = /^(?:the opportunity|corporate culture|our culture and qualifications of the job|knowledge\/skill\/ability)$/i;
 
@@ -116,17 +129,17 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Start date', value: details.startDate },
     { label: 'Hours', value: details.hours },
     { label: 'Listing type', value: details.listingType }, { label: 'Student requirement', value: details.studentRequirement },
-    { label: 'Benefits', value: details.benefits }, { label: 'Union', value: details.union },
+    { label: 'Benefits', value: details.benefits, values: metadataValues(job.benefits) }, { label: 'Union', value: details.union },
   ];
   const requirementMetadata: DetailMetadata[] = [
     { label: 'Experience', value: details.experience },
     { label: 'Education', value: details.education },
     { label: 'Availability', value: details.availability },
-    { label: 'Licences', value: details.licenses }, { label: 'Languages', value: details.language },
+    { label: 'Licences', value: details.licenses, values: metadataValues(job.license_requirements, compactLicenseLabel) }, { label: 'Languages', value: details.language, values: metadataValues(job.language_requirements) },
     { label: 'Vehicle', value: details.vehicle }, { label: 'Security check', value: details.securityCheck },
-    { label: 'Certifications', value: details.certifications },
-    { label: 'Medical', value: details.medical },
-    { label: 'Software', value: details.software }, { label: 'Skills / Programs', value: details.skills },
+    { label: 'Certifications', value: details.certifications, values: metadataValues(job.certification_requirements) },
+    { label: 'Medical', value: details.medical, values: metadataValues(job.medical_requirements) },
+    { label: 'Software', value: details.software, values: metadataValues(job.software_requirements) }, { label: 'Skills / Programs', value: details.skills, values: metadataValues(job.required_skills) },
     { label: 'Eligibility', value: details.future, highlight: true },
   ].filter(item => item.value);
   const hasRequirementsCard = requirementMetadata.length > 0 || Boolean(otherInformation);
@@ -149,7 +162,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           <button className="detail-action save-button" onClick={event => onToggleSave(job, event)}><Bookmark size={14} fill={job.is_saved ? '#0f172a' : 'transparent'} />{job.is_saved ? 'Saved' : 'Save'}</button>
         </div>
         <CopyLinkButton label="Copy job link" />
-        <div className="detail-metadata">{metadata.filter(item => item.value).map(item => <div key={item.label}><div className="metadata-label">{item.label}</div><div className={`metadata-value ${item.highlight ? 'highlight' : ''}`}>{item.value}</div></div>)}</div>
+        <div className="detail-metadata">{metadata.filter(item => item.value).map(item => <div key={item.label}><div className="metadata-label">{item.label}</div><MetadataValue item={item} /></div>)}</div>
         <button className="detail-action report-button" onClick={() => setShowReportDialog(true)}>Report a problem</button>
       </div>
       <div className="detail-content">
@@ -168,7 +181,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
             {academicMetadata.length > 0 && <div className="detail-academic-grid">
               {academicMetadata.map(item => <div key={item.label} className="detail-requirement-item">
                 <div className="metadata-label">{item.label}</div>
-                <div className="metadata-value">{item.value}</div>
+                <MetadataValue item={item} />
               </div>)}
             </div>}
           </section>}
@@ -177,7 +190,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
             {requirementMetadata.length > 0 && <div className="detail-requirements-grid">
               {requirementMetadata.map(item => <div key={item.label} className="detail-requirement-item">
                 <div className="metadata-label">{item.label}</div>
-                <div className={`metadata-value ${item.highlight ? 'highlight' : ''}`}>{item.value}</div>
+                <MetadataValue item={item} />
               </div>)}
             </div>}
             {otherInformation && <div className="detail-other-information">

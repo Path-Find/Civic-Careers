@@ -105,6 +105,8 @@
 .metadata-label { font-size: 0.55rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.15rem; }
 .metadata-value { font-size: 0.875rem; font-weight: 600; color: #1e293b; overflow-wrap: break-word; word-break: break-word; }
 .metadata-value.highlight { color: #9a3412; }
+.metadata-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.metadata-tag { padding: 0.25rem 0.5rem; border: 1px solid #e2e8f0; border-radius: 999px; background: #f8fafc; color: #475569; font-size: 0.72rem; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .detail-content { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; }
 .detail-card { background: white; }
 .detail-source-row { margin-bottom: 0.5rem; }
