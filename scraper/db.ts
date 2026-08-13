@@ -1,6 +1,6 @@
 import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
-import { extractRawJobTitle } from './title';
+import { extractRawJobTitle, normalizeJobTitle } from './title';
 import { extractPendingMetadata } from './pending-metadata';
 import { extractClosingDateStatus } from './closing-date';
 dotenv.config({ quiet: true });
@@ -471,15 +471,16 @@ export async function saveRawJob(client: Client, job: {
   title?: string | undefined;
   posted_at?: string | null;
 }) {
-  const title = job.title?.trim() || extractRawJobTitle(job.source, job.raw_text) || null;
-  const pending = extractPendingMetadata(title, job.raw_text);
+  const sourceTitle = job.title?.trim() || extractRawJobTitle(job.source, job.raw_text) || null;
+  const title = sourceTitle ? normalizeJobTitle(sourceTitle) : null;
+  const pending = extractPendingMetadata(sourceTitle, job.raw_text);
   const pendingClosing = extractClosingDateStatus(job.raw_text);
   const pendingClosingDate = pendingClosing.date;
   const pendingClosingDateStatus = pendingClosing.status;
   await client.batch([
     {
       sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_location, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
           url = excluded.url,
           application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
@@ -489,7 +490,7 @@ export async function saveRawJob(client: Client, job: {
           pending_salary_text = COALESCE(excluded.pending_salary_text, raw_jobs.pending_salary_text),
           pending_is_student = COALESCE(excluded.pending_is_student, raw_jobs.pending_is_student),
           pending_location = COALESCE(excluded.pending_location, raw_jobs.pending_location),
-          pending_duration = NULL,
+          pending_duration = COALESCE(excluded.pending_duration, raw_jobs.pending_duration),
           pending_closing_date = excluded.pending_closing_date,
           pending_closing_date_status = CASE
             WHEN excluded.pending_closing_date IS NOT NULL AND TRIM(excluded.pending_closing_date) <> '' THEN 'known'
@@ -498,7 +499,7 @@ export async function saveRawJob(client: Client, job: {
           END,
           scraped_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
+      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location, pending.duration, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
     },
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
@@ -520,13 +521,14 @@ export async function savePendingJob(client: Client, job: {
   closing_date?: string | null;
   posted_at?: string | null;
 }) {
-  const title = job.title?.trim() || null;
-  const pending = extractPendingMetadata(title, '');
+  const sourceTitle = job.title?.trim() || null;
+  const title = sourceTitle ? normalizeJobTitle(sourceTitle) : null;
+  const pending = extractPendingMetadata(sourceTitle, '');
   const pendingClosingDateStatus = job.closing_date ? 'known' : 'not_checked';
   await client.batch([
     {
       sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
-        VALUES (?, ?, ?, ?, '', ?, ?, ?, NULL, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+        VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
         ON CONFLICT(id) DO UPDATE SET
           url = excluded.url,
           application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
@@ -535,7 +537,7 @@ export async function savePendingJob(client: Client, job: {
           title = COALESCE(excluded.title, raw_jobs.title),
           pending_salary_text = COALESCE(excluded.pending_salary_text, raw_jobs.pending_salary_text),
           pending_is_student = COALESCE(excluded.pending_is_student, raw_jobs.pending_is_student),
-          pending_duration = NULL,
+          pending_duration = COALESCE(excluded.pending_duration, raw_jobs.pending_duration),
           pending_closing_date = COALESCE(excluded.pending_closing_date, raw_jobs.pending_closing_date),
           pending_closing_date_status = CASE
             WHEN excluded.pending_closing_date IS NOT NULL AND TRIM(excluded.pending_closing_date) <> '' THEN 'known'
@@ -544,7 +546,7 @@ export async function savePendingJob(client: Client, job: {
           scraped_at = CURRENT_TIMESTAMP,
           parsed_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-      args: [job.id, job.url, job.application_url ?? null, job.source, title, pending.salaryText, pending.isStudent, job.closing_date ?? null, pendingClosingDateStatus, job.posted_at ?? null],
+      args: [job.id, job.url, job.application_url ?? null, job.source, title, pending.salaryText, pending.isStudent, pending.duration, job.closing_date ?? null, pendingClosingDateStatus, job.posted_at ?? null],
     },
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)

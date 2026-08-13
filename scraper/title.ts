@@ -17,12 +17,12 @@ export function isEmploymentOrDurationParen(inner: string): boolean {
   const s = inner.replace(/\s+/g, ' ').trim();
   if (!s) return false;
 
-  if (/^(?:part[-\s]?time|full[-\s]?time|temporary|temp|casual|seasonal|permanent|term|contract|inventory|re[-\s]?post|periodic(?:\s+posting)?)$/i.test(s)) {
+  if (/^(?:part[-\s]?time|full[-\s]?time|temporary|temp|casual|seasonal|permanent|term|contract|on[-\s]?call|inventory|re[-\s]?post|periodic(?:\s+posting)?)$/i.test(s)) {
     return true;
   }
 
-  // "Approximately 2-year contract", "approx. 18 month term"
-  if (/^approx(?:imately|\.)?\s+.+$/i.test(s) && /(?:contract|term|month|year|assignment|position)/i.test(s)) {
+  // "Approximately 2-year contract", "up to 6 months", "18 months"
+  if (/^(?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?)\b(?:\s+(?:contract|term|assignment|position))?$/i.test(s)) {
     return true;
   }
 
@@ -36,7 +36,24 @@ export function isEmploymentOrDurationParen(inner: string): boolean {
     return true;
   }
 
+  if (/^(?:temporary\s+part[-\s]?time|temporary\s+full[-\s]?time|regular\s+part[-\s]?time|regular\s+full[-\s]?time|extended\s+contract\s+full[-\s]?time|part[-\s]?time\s+contract|fixed\s+term\s+contract|limited\s+term\s+contract|acting\/contract)$/i.test(s)) {
+    return true;
+  }
+
+  // Compound metadata such as "Permanent, On-Call" or
+  // "Temporary, up to 6 months".
+  const pieces = s.split(/\s*(?:,|;|&)\s*/).filter(Boolean);
+  if (pieces.length > 1 && pieces.every(piece => isEmploymentOrDurationPiece(piece))) {
+    return true;
+  }
+
   return false;
+}
+
+function isEmploymentOrDurationPiece(value: string): boolean {
+  const s = value.replace(/\s+/g, ' ').trim();
+  return /^(?:part[-\s]?time|full[-\s]?time|temporary|temp|casual|seasonal|permanent|term|contract|continuing|on[-\s]?call|inventory|re[-\s]?post|periodic(?:\s+posting)?|fixed[-\s]?term)$/i.test(s)
+    || /^(?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?)\b(?:\s+(?:contract|term|assignment|position))?$/i.test(s);
 }
 
 /** Parenthetical bargaining-unit markers that already belong in union_name. */
@@ -65,9 +82,13 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   t = t.replace(/\s*[-–—]\s*inventory\s*$/i, '').trim();
   t = t.replace(/\s*[-–—]\s*(?:re[-\s]?post(?:ing)?|periodic(?:\s+posting|\s+post)?)\s*$/i, '').trim();
   t = t.replace(
-    /\s*[-–—]\s*(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent)\s*$/i,
+    /\s*[-–—]\s*(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term|fixed[-\s]?term(?:\s+contract)?|limited\s+term\s+contract)\s*$/i,
     '',
   ).trim();
+
+  // Some boards put the metadata before the role with a comma, e.g.
+  // "Contract, Community Relations Specialist".
+  t = t.replace(/^(?:(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term)\s*[,;]\s*)+/i, '').trim();
 
   // Leading "Temporary Part-Time/Full-Time" (combo only — not bare Temporary)
   t = t.replace(/^(?:temporary\s+)+(?:part[-\s]?time|full[-\s]?time)\s+/i, '');
@@ -75,6 +96,8 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   t = t.replace(/^(?:part[-\s]?time|full[-\s]?time)\s+/i, '');
   // Leading Casual after the above (e.g. "Part-Time Casual …")
   t = t.replace(/^(?:casual\s+)+/i, '');
+  t = t.replace(/^talent\s+pool\s*[-–—:]\s*/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*talent\s+pool\s*$/i, '').trim();
   // "Part Time - Food Services Worker" left a leading dash after prefix strip
   t = t.replace(/^[-–—,:;]+\s*/, '').trim();
 
@@ -84,8 +107,31 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   // "Technician  Creative" already collapsed; fix "Word -  - Word" style
   t = t.replace(/\s*[-–—]\s*[-–—]+/g, ' - ').trim();
   t = t.replace(/\s{2,}/g, ' ').trim();
+  t = t.replace(/\s*[-–—]\s*(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term|fixed[-\s]?term(?:\s+contract)?|limited\s+term\s+contract)\s*$/i, '').trim();
 
   return t || original;
+}
+
+/** Extract a source-provided employment term from title metadata. */
+export function extractTitleDuration(title: string | null | undefined): string | null {
+  const original = String(title ?? '').replace(/\s+/g, ' ').trim();
+  if (!original) return null;
+
+  const metadata = [
+    ...[...original.matchAll(/\(([^()]*)\)/g)].map(match => match[1]),
+    original.match(/(?:^|\s[-–—,;]\s)([^-–—,;]+)$/)?.[1] ?? '',
+    original.match(/^(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term)\s*[,;]\s*(.+)$/i)?.[0] ?? '',
+    original.match(/\b(?:term|permanent|temporary|contract)\s*$/i)?.[0] ?? '',
+  ].join(' ');
+
+  const duration = metadata.match(/(?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?)(?:\s+(?:contract|term|assignment|position))?/i)?.[0];
+  if (duration) return duration.replace(/\s+/g, ' ').trim();
+  if (/\bterm\b/i.test(metadata)) return 'Term';
+  if (/\bpermanent\b/i.test(metadata)) return 'Permanent';
+  if (/\bcontinuing\b/i.test(metadata)) return 'Continuing';
+  if (/\btemporary\b/i.test(metadata)) return 'Temporary';
+  if (/\bcontract\b/i.test(metadata)) return 'Contract';
+  return null;
 }
 
 const PEOPLE_SOFT_SOURCES = new Set([

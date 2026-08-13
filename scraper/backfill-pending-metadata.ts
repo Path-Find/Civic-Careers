@@ -9,6 +9,7 @@ import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import { extractPendingMetadata } from './pending-metadata';
 import { extractClosingDateStatus } from './closing-date';
+import { normalizeJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
@@ -35,13 +36,16 @@ async function main() {
     WHERE r.parsed_at IS NULL AND j.is_active = 1
   `);
   const updates = result.rows.map(row => {
+    const title = String(row.title ?? '');
+    const pending = extractPendingMetadata(title, String(row.raw_text ?? ''));
     const closing = extractClosingDateStatus(String(row.raw_text ?? ''));
     const existingClosingDate = String(row.pending_closing_date ?? '').trim();
     return {
       id: String(row.id),
-      ...extractPendingMetadata(String(row.title ?? ''), String(row.raw_text ?? '')),
+      title: normalizeJobTitle(title),
+      ...pending,
       closingDate: existingClosingDate || closing.date,
-      location: extractPendingMetadata(String(row.title ?? ''), String(row.raw_text ?? '')).location,
+      location: pending.location,
       closingDateStatus: existingClosingDate || closing.date ? 'known' : closing.status,
     };
   });
@@ -59,9 +63,9 @@ async function main() {
 
   await db.batch(updates.map(row => ({
     sql: `UPDATE raw_jobs
-          SET pending_salary_text = ?, pending_is_student = ?, pending_location = COALESCE(NULLIF(TRIM(pending_location), ''), ?), pending_closing_date = COALESCE(NULLIF(TRIM(pending_closing_date), ''), ?), pending_closing_date_status = ?
+          SET title = COALESCE(NULLIF(?, ''), title), pending_salary_text = ?, pending_is_student = ?, pending_duration = COALESCE(NULLIF(TRIM(pending_duration), ''), ?), pending_location = COALESCE(NULLIF(TRIM(pending_location), ''), ?), pending_closing_date = COALESCE(NULLIF(TRIM(pending_closing_date), ''), ?), pending_closing_date_status = ?
           WHERE id = ? AND parsed_at IS NULL`,
-    args: [row.salaryText, row.isStudent, row.location ?? null, row.closingDate, row.closingDateStatus, row.id],
+    args: [row.title, row.salaryText, row.isStudent, row.duration, row.location ?? null, row.closingDate, row.closingDateStatus, row.id],
   })), 'write');
   console.log(`[Pending metadata] Updated ${updates.length} pending rows; all remain unparsed.`);
 }

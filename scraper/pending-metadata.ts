@@ -1,8 +1,10 @@
 import { normalizeLocation } from './location';
+import { extractTitleDuration } from './title';
 
 export type PendingMetadata = {
   salaryText: string | null;
   isStudent: number | null;
+  duration: string | null;
   location?: string;
 };
 
@@ -36,5 +38,7 @@ export function extractPendingMetadata(title: string | null | undefined, rawText
   const cityProvince = locationCandidate.match(/([A-Za-z][A-Za-z .'-]+,\s*(?:ON|QC|NS|NB|MB|SK|AB|BC|PE|NL|NT|NU|YT|Canada|Ontario|Quebec|British Columbia|Alberta|Manitoba|Saskatchewan|Nova Scotia|New Brunswick|Newfoundland and Labrador|Prince Edward Island|Northwest Territories|Nunavut|Yukon)(?:,\s*Canada)?)/i)?.[1] ?? '';
   const location = normalizeLocation(cityProvince) || null;
 
-  return location ? { salaryText, isStudent, location } : { salaryText, isStudent };
+  return location
+    ? { salaryText, isStudent, duration: extractTitleDuration(title), location }
+    : { salaryText, isStudent, duration: extractTitleDuration(title) };
 }

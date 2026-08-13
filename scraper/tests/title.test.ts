@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractRawJobTitle, isEmploymentOrDurationParen, normalizeJobTitle } from '../title';
+import { extractRawJobTitle, extractTitleDuration, isEmploymentOrDurationParen, normalizeJobTitle } from '../title';
 
 describe('isEmploymentOrDurationParen', () => {
   it('matches employment and duration parentheticals', () => {
@@ -22,6 +22,12 @@ describe('isEmploymentOrDurationParen', () => {
       '18-months contract',
       '3 Year Contract',
       'fixed-term',
+      'Permanent, On-Call',
+      'Temporary, up to 6 months',
+      'PART-TIME, TERM',
+      'Regular Part-Time',
+      'Fixed Term Contract',
+      'On-Call',
     ]) {
       assert.equal(isEmploymentOrDurationParen(s), true, s);
     }
@@ -54,6 +60,12 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeJobTitle('Animal Services Officer (2 Year Contract)'), 'Animal Services Officer');
     assert.equal(normalizeJobTitle('Coordinator, Commercial Management (9 Month Contract)'), 'Coordinator, Commercial Management');
     assert.equal(normalizeJobTitle('Building Inspector I (18-months contract)'), 'Building Inspector I');
+    assert.equal(normalizeJobTitle('House Technician II (Temporary, up to 6 months)'), 'House Technician II');
+    assert.equal(normalizeJobTitle('Recreation Facilities Attendant I - Arenas (Permanent, On-Call)'), 'Recreation Facilities Attendant I - Arenas');
+    assert.equal(normalizeJobTitle('Contract, Community Relations Specialist (18 Months)'), 'Community Relations Specialist');
+    assert.equal(normalizeJobTitle('Financial Specialist (GIS) - Fixed Term Contract'), 'Financial Specialist (GIS)');
+    assert.equal(normalizeJobTitle('Cleaner (On-Call)'), 'Cleaner');
+    assert.equal(normalizeJobTitle('Talent Pool - Journeyed Trade, Industrial Mechanic'), 'Journeyed Trade, Industrial Mechanic');
     assert.equal(normalizeJobTitle('Personal Support Worker (Casual)'), 'Personal Support Worker');
     assert.equal(normalizeJobTitle('Building Servicer 1 - Aquatics (Seasonal)'), 'Building Servicer 1 - Aquatics');
     assert.equal(
@@ -121,6 +133,12 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeJobTitle('Change Management Lead'), 'Change Management Lead');
     assert.equal(normalizeJobTitle('Utility Student'), 'Utility Student');
     assert.equal(normalizeJobTitle(''), '');
+  });
+
+  it('extracts source terms for pending listings', () => {
+    assert.equal(extractTitleDuration('House Technician II (Temporary, up to 6 months)'), 'up to 6 months');
+    assert.equal(extractTitleDuration('Recreation Facilities Attendant I - Arenas (Permanent, On-Call)'), 'Permanent');
+    assert.equal(extractTitleDuration('Senior Copywriter Specialist (12 months contract)'), '12 months contract');
   });
 });
 
