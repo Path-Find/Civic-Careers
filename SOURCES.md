@@ -2,9 +2,7 @@
 
 This document tracks **all active** job portals currently scraped by Civic Careers, grouped by scraping engine (see `scraper/engines/`) rather than by region — that's the axis that actually matters for maintenance, since a bug in one engine (e.g. Workday pagination) affects every source in that group at once.
 
-The active list below is derived from `scraper/scraper.ts`'s `TASKS` array and should be re-synced whenever sources are added or removed there. First sources outside Ontario/Quebec as of 2026-07-12 (City of Vancouver, City of Brandon MB, City of Red Deer AB).
-
-Toronto Public Library is currently disabled (blocked by Radware bot protection).
+The active list below is derived from `scraper/scraper.ts`'s `TASKS` array and should be re-synced whenever sources are added or removed there.
 
 ## ADP WorkforceNow (4)
 
