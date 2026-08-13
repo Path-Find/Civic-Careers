@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Blocked OPS and Workday boards now fail clearly** — external browser challenges are recorded as source-access failures instead of hanging on page state or looking like ordinary zero-result changes.
 - **Recruitment and eligibility classifications were corrected from official source text** — candidate inventories, hiring pools, and ordinary open-until-filled jobs now stay in the right listing category across parsed and pending records.
 - **Recruitment labels no longer masquerade as closing dates** — generic ongoing-recruitment wording no longer creates a false deadline, and “open until filled” remains a deadline state rather than changing a specific job into a recruitment pool.
 - **Jobs filters now work on narrow screens** — the filter controls remain reachable without forcing a second scrolling panel, and Saved clearly keeps its filters separate from Recently viewed.

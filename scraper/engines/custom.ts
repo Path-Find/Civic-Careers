@@ -4,6 +4,10 @@ import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 import { saveRawJob } from '../db';
 import { EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES, isRetiredGovernmentOfCanadaPage } from '../source-fixes';
 
+export function isOntarioPublicServiceBotChallenge(text: string): boolean {
+  return /(?:radware|hcaptcha|captcha|validate\.perfdrive\.com|security verification)/i.test(text);
+}
+
 // These federal postings are listed in GC Jobs but the employer's own page is
 // the real application destination. Keep stable canonical URLs here so a
 // routine scrape does not overwrite them with the generic GC detail page.
@@ -13,12 +17,15 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
   const page = await context.newPage();
   try {
     await safeGoto(page, 'https://www.gojobs.gov.on.ca/Search.aspx');
+    const initialText = await page.locator('body').innerText().catch(() => '');
+    if (isOntarioPublicServiceBotChallenge(`${page.url()}\n${initialText}`)) {
+      throw new Error(`${sourceName}: official board blocked by Radware/hCaptcha challenge`);
+    }
     const searchInput = await page.$('input[type="text"]');
     if (searchInput) await searchInput.type(' ', { delay: 100 });
     const btn = await page.$('#btnSearch');
     if (btn) {
       await btn.click();
-      await page.waitForLoadState('networkidle');
       await page.waitForTimeout(5000);
     }
 
@@ -48,7 +55,6 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
       const nextLink = await page.$('#dgSearchResults tr:last-child a:has-text("Next")');
       if (nextLink) {
         await nextLink.click();
-        await page.waitForLoadState('networkidle');
         await page.waitForTimeout(7000);
         pageNum++;
       } else {

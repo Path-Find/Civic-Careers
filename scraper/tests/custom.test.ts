@@ -1,12 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractNanaimoJobs, extractPeterboroughJobs, extractPhenomJobs, extractStLawrenceJobs, isPeterboroughUnavailablePage, shouldScrapeGovernmentOfCanadaListing } from '../engines/custom';
+import { extractBrassRingJobs, extractCustomHtmlJobs, extractHaltonHillsJobs, extractNanaimoJobs, extractPeterboroughJobs, extractPhenomJobs, extractStLawrenceJobs, isOntarioPublicServiceBotChallenge, isPeterboroughUnavailablePage, shouldScrapeGovernmentOfCanadaListing } from '../engines/custom';
+import { isWorkdayBotChallenge } from '../engines/workday';
 import { APPLICATION_URL_FIXES, EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES, isRetiredGovernmentOfCanadaPage } from '../source-fixes';
 
 test('ignores the Government of Canada candidate profile page as a job', () => {
   assert.equal(shouldScrapeGovernmentOfCanadaListing('Candidate profile', 'Candidate profile'), false);
   assert.equal(shouldScrapeGovernmentOfCanadaListing('Clerical and Administrative Positions', 'Pool to be created Yes'), true);
   assert.equal(shouldScrapeGovernmentOfCanadaListing('Internal posting', 'Internal to the public service'), false);
+});
+
+test('recognizes the OPS external bot challenge without attempting a bypass', () => {
+  assert.equal(isOntarioPublicServiceBotChallenge('Radware Bot Manager\nhCaptcha'), true);
+  assert.equal(isOntarioPublicServiceBotChallenge('Ontario Public Service jobs\nSearch results'), false);
+});
+
+test('recognizes a Workday external browser challenge before treating it as zero jobs', () => {
+  assert.equal(isWorkdayBotChallenge('Cloudflare\nChecking your browser'), true);
+  assert.equal(isWorkdayBotChallenge('Job opportunities\nSearch jobs'), false);
 });
 
 test('keeps the CRA recruitment posting on its official application page', () => {

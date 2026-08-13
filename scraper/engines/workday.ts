@@ -2,6 +2,10 @@ import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import { urlId, scrapeRawAndStage, safeGoto } from '../utils';
 
+export function isWorkdayBotChallenge(text: string): boolean {
+  return /(?:cloudflare|checking your browser|verify you are human|security verification)/i.test(text);
+}
+
 export async function scrapeWorkday(db: Client, context: BrowserContext, url: string, sourceName: string) {
   console.log(`Scraping ${sourceName} (Workday)...`);
   const page = await context.newPage();
@@ -13,6 +17,10 @@ export async function scrapeWorkday(db: Client, context: BrowserContext, url: st
       await page.waitForTimeout(1000);
     }
     await page.waitForTimeout(10000);
+    const initialText = await page.locator('body').innerText().catch(() => '');
+    if (isWorkdayBotChallenge(`${page.url()}\n${initialText}`)) {
+      throw new Error(`${sourceName}: Workday board blocked by an external browser challenge`);
+    }
 
     // Pattern 1: infinite-scroll "Load More" button (appends results to the DOM)
     let loadMore = true;
