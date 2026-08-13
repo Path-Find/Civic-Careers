@@ -2,7 +2,6 @@ import { Bookmark, ExternalLink } from 'lucide-react';
 import { useState, type MouseEvent } from 'react';
 import { compactOverview, formatDate, getQuickScanLabels, isPlaceholderSection, isRedundantCompensation, parseMarkdownSections, reclassifyMandatoryNiceToHave, renderMarkdown } from '../../../utils';
 import { compactLicenseLabel, parseTagList } from '../jobUtils';
-import { JobLocationMap } from './JobLocationMap';
 import { CopyLinkButton } from './CopyLinkButton';
 import { pendingDetailAction } from '../pendingDetailAction';
 import type { Job, JobDetails, View } from '../../../types/jobs';
@@ -176,7 +175,6 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
             {job.department && job.department !== job.source && <span className="detail-department"> · {job.department}</span>}
           </div>
           <h1 className="detail-title" title={job.job_title || undefined}>{job.job_title}</h1>
-          <JobLocationMap location={job.location} />
           {(details.academicRole || academicMetadata.length > 0) && <section className="detail-academic-card" aria-labelledby="academic-heading">
             <div className="detail-academic-header">
               <h2 id="academic-heading" className="detail-academic-heading">Academic context</h2>
