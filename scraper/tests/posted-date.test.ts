@@ -68,6 +68,9 @@ test('extracts source closing dates without treating Job End Date as a deadline'
   assert.equal(extractClosingDate('Close date: apply online by August 12, 2026'), '2026-08-12');
   assert.equal(extractClosingDate('Closing Date: 11:59 p.m. on Wednesday, August 19, 2026'), '2026-08-19');
   assert.equal(extractClosingDate('Closing date of August 31, 2026 at 11:59 p.m.'), '2026-08-31');
+  assert.equal(extractClosingDate('The deadline for this position is July 16, 2026, at 11:59 PM'), '2026-07-16');
+  assert.equal(extractClosingDate('Applications must be submitted by August 14, 2026'), '2026-08-14');
+  assert.equal(extractClosingDate('This competition will close on September 2, 2026'), '2026-09-02');
   assert.equal(extractClosingDate('Closing Date: August, 23, 2026 23:59 EST'), '2026-08-23');
   assert.equal(extractClosingDate('Apply online at careers.example.ca by Monday, August 10, 2026'), '2026-08-10');
   assert.equal(extractClosingDate('Apply By: $127,855 per year 11:59 p.m. on Thursday, August 27, 2026'), '2026-08-27');

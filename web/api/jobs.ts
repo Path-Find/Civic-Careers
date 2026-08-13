@@ -62,7 +62,7 @@ const effectiveListingType = `COALESCE(jd.listing_type,
 const effectiveInventory = `CASE WHEN COALESCE(jd.is_inventory, 0) = 1 OR ${effectiveListingType} = 'inventory' THEN 1 ELSE 0 END`;
 const closingDateStatus = `CASE
   WHEN ${closingDate} IS NOT NULL THEN 'known'
-  WHEN jd.id IS NULL THEN COALESCE(raw.pending_closing_date_status, 'not_checked')
+  WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN COALESCE(raw.pending_closing_date_status, 'not_checked')
   WHEN ${sourceText} LIKE '%open until filled%'
     OR ${sourceText} LIKE '%open till filled%'
     OR ${sourceText} LIKE '%accepting applications until filled%' THEN 'open_until_filled'
@@ -89,7 +89,7 @@ const jobColumns = `
   ${closingDate} AS closing_date, ${closingDateStatus} AS closing_date_status,
   COALESCE(jd.posted_at, raw.posted_at) AS posted_at, jd.start_date,
   ${effectiveInventory} AS is_inventory, ${effectiveListingType} AS listing_type, COALESCE(jd.is_student, raw.pending_is_student, 0) AS is_student, jd.career_stage,
-  CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending,
+  CASE WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN 1 ELSE 0 END AS details_pending,
   jd.salary_min, jd.salary_max, jd.salary_period,
   jd.work_model, ${effectiveEmploymentType} AS employment_type, ${effectiveDuration} AS duration,
   jd.hours, jd.availability,
@@ -188,7 +188,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     if (id) {
       let result = await db.execute({
         sql: `SELECT jd.description, raw.raw_text,
-                CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending
+                CASE WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN 1 ELSE 0 END AS details_pending
               FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
               LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ?`,
         args: [id]
@@ -196,7 +196,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       if (result.rows.length === 0) {
         result = await archiveDb.execute({
           sql: `SELECT jd.description, raw.raw_text,
-                  CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending
+                  CASE WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN 1 ELSE 0 END AS details_pending
                 FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
                 LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ?`,
           args: [id]

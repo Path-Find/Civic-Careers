@@ -16,6 +16,10 @@ const CONTEXTUAL_CLOSING = [
   new RegExp(`posting\\s+(?:start\\s+date\\s*[/]\\s*)?posting\\s+end\\s+date[\\s\\S]{0,80}?\\b(?:to|through)\\s+(${DATE_VALUE})`, 'gi'),
   new RegExp(`(?:close|closing)\\s+date[\\s\\S]{0,160}?\\bon\\s+(${DATE_VALUE})`, 'gi'),
   new RegExp(`closing\\s+date\\s+(?:of|:)?\\s*(${DATE_VALUE})`, 'gi'),
+  new RegExp(`(?:application\\s+)?deadline(?:\\s+(?:for|to\\s+apply))?[\\s\\S]{0,100}?\\b(?:is|on|by|of)\\b\\s*(${DATE_VALUE})`, 'gi'),
+  new RegExp(`(?:applications?|resumes?|submissions?)\\s+(?:must\\s+be\\s+)?(?:received|submitted|sent)\\s+(?:by|before)\\s*(${DATE_VALUE})`, 'gi'),
+  new RegExp(`(?:submit|send)\\s+(?:your\\s+)?(?:application|resume|submission)[\\s\\S]{0,100}?\\bby\\b\\s*(${DATE_VALUE})`, 'gi'),
+  new RegExp(`(?:posting|position|competition|job)\\s+(?:will\\s+)?(?:close|end|expire)(?:s|d)?\\s+(?:on|by)\\s*(${DATE_VALUE})`, 'gi'),
   new RegExp(`apply(?:\\s+online)?[\\s\\S]{0,100}?\\bby\\s+(${DATE_VALUE})`, 'gi'),
   new RegExp(`apply\\s+by[\\s\\S]{0,160}?\\bon\\s+(${DATE_VALUE})`, 'gi'),
 ];

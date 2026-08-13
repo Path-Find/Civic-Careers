@@ -9,13 +9,14 @@ job details from being treated as the same thing.
 | Layer | Stored in | Meaning | Public behavior |
 | --- | --- | --- | --- |
 | Source capture | `raw_jobs` | The latest source URL, source text, title, and scrape timestamps | Evidence only; not a full Civic Careers job |
-| Soft-published listing | `jobs` + `raw_jobs` with `raw_jobs.parsed_at IS NULL` | A searchable job shell exists, but `job_details` has not been produced | Show the title, employer, link, and safe pending metadata; keep the body as **Details pending** |
+| Soft-published listing | `jobs` + `raw_jobs` with `raw_jobs.parsed_at IS NULL` | A searchable job shell exists and the full parse is queued or being prepared; an older detail row may remain available for recovery | Show the title, employer, link, and safe pending metadata; keep the body as **Details pending** |
 | Pending application metadata | `raw_jobs.pending_*` | High-confidence facts extracted or manually checked without full parsing | Show only facts with clear source support |
 | Fully parsed listing | `job_details` and `raw_jobs.parsed_at IS NOT NULL` | The normal structured Civic Careers record exists | Show the complete parsed job |
 
-The API exposes `details_pending = 1` when the job has no `job_details` row. A
-soft-published listing is still a real public listing; “pending” describes the
-depth of our processing, not whether the source job is valid.
+The API exposes `details_pending = 1` when `raw_jobs.parsed_at IS NULL` or the
+job has no `job_details` row. A soft-published listing is still a real public
+listing; “pending” describes the depth of our processing, not whether the
+source job is valid.
 
 ## Pending application-deadline statuses
 
@@ -49,9 +50,9 @@ An employment end date must never be used as the application deadline.
 
 For a fully parsed listing, `job_details.closing_date` is authoritative. For a
 details-pending listing, the API falls back to
-`raw_jobs.pending_closing_date`. The API exposes a pending status only while
-the listing has no `job_details` row; once a parsed closing date exists, the
-status is effectively `known`.
+`raw_jobs.pending_closing_date`. The API exposes a pending status while
+`raw_jobs.parsed_at IS NULL`; once the parser completes and sets `parsed_at`,
+the listing is treated as fully parsed again.
 
 The source URL remains available on pending listings so a person can open the
 original posting when the source does not provide a deadline or when the
