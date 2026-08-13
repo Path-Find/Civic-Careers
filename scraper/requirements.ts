@@ -574,7 +574,6 @@ const INVENTORY_TEXT_SIGNALS: RegExp[] = [
 const INVENTORY_TITLE_SIGNAL = /\b(?:applicant\s+pool|eligibility\s+list|inventory|talent\s+pool|periodic(?:\s+posting|\s+post)?)\b/i;
 const ONGOING_TEXT_SIGNALS: RegExp[] = [
   /\b(?:candidate|talent)\s+pool\b/i,
-  /\bopen\s+(?:till|until)\s+filled\b/i,
   /\b(?:general recruitment call|standing job posting)\b/i,
   /\b(?:pool of (?:qualified )?candidates?)\b[^.\n]{0,120}\b(?:future opportunities|future vacancies|future openings)\b/i,
   /\b(?:applications?|applicants?|posting|position|role)\b[^.\n]{0,180}\b(?:kept on file|future opportunities|future vacancies|future openings)\b/i,

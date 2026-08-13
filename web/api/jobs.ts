@@ -52,10 +52,8 @@ const effectiveListingType = `COALESCE(jd.listing_type,
     WHEN ${sourceText} LIKE '%hiring pool%'
       OR ${sourceText} LIKE '%candidate pool%'
       OR ${sourceText} LIKE '%talent pool%'
-      OR ${sourceText} LIKE '%open until filled%'
-      OR ${sourceText} LIKE '%open till filled%'
       OR ${sourceText} LIKE '%ongoing recruitment%'
-      OR ${sourceText} LIKE '%accepting applications until filled%' THEN 'ongoing_recruitment'
+      THEN 'ongoing_recruitment'
     ELSE 'regular'
   END)`;
 const effectiveInventory = `CASE WHEN COALESCE(jd.is_inventory, 0) = 1 OR ${effectiveListingType} = 'inventory' THEN 1 ELSE 0 END`;

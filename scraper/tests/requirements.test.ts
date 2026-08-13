@@ -838,6 +838,7 @@ test('classifies recruitment programs separately from regular postings', () => {
   assert.equal(extractListingType('We are looking to fill two positions and establish a pool of qualified candidates for future opportunities.', 'Contract Coordinator'), 'ongoing_recruitment');
   assert.equal(extractListingType('The role may require requests for expression of interest and other procurement methods.', 'Corporate Buyer'), 'regular');
   assert.equal(extractListingType('Applications will be accepted until filled.', 'Project Coordinator'), 'regular');
+  assert.equal(extractListingType('The position will remain open until filled.', 'Project Coordinator'), 'regular');
   assert.equal(extractListingType('Apply by August 15 for this specific vacancy.', 'Program Coordinator'), 'regular');
   assert.equal(extractListingType('Any role may be considered for the candidate pool.', 'Analyst', true), 'inventory');
   assert.equal(extractListingType('A hiring pool will be used for upcoming vacancies.', 'Child Protection Social Worker (Hiring Pool)'), 'ongoing_recruitment');
