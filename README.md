@@ -8,7 +8,7 @@ Government job postings are scattered across dozens of incompatible portals — 
 
 ## Features
 
-- **Multi-Portal Scraping**: Automated collection across municipal, provincial, federal, college, and university career systems. See the maintained [source inventory](./SOURCES.md) for the current active set.
+- **Multi-Portal Scraping**: Automated collection across municipal, provincial, federal, college, and university career systems.
 - **Structured Job Details**: Parsing extracts useful fields such as salary, work model, employment type, location, benefits, requirements, and closing date while keeping the source description available.
 - **Jobs, Companies, and Saved Views**: Browse the unified feed, discover organizations, and save listings for follow-up.
 - **Source-Backed Links and Dates**: Listings link back to official employer pages and distinguish known, missing, open-ended, and pending deadline information.
@@ -27,7 +27,6 @@ Government job postings are scattered across dozens of incompatible portals — 
 
 ---
 
-- [Sources](./SOURCES.md)
 - [Roadmap](./ROADMAP.md)
 - [Changelog](./CHANGELOG.md)
 
