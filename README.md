@@ -1,24 +1,26 @@
 # Civic Careers
 
-A government job discovery feed that scrapes and unifies postings from across the GTHA into a single searchable interface.
+A Canadian public-sector job discovery feed that collects official postings into a single searchable interface. Ontario is the core coverage area, with additional employers elsewhere in Canada.
 
 ## Problem
 
-Government job postings are scattered across dozens of incompatible portals — SuccessFactors, Oracle Cloud, Workday, Njoyn, and bespoke municipal sites. There is no single place to browse public sector opportunities across the region without checking each organization individually.
+Government job postings are scattered across dozens of incompatible portals — SuccessFactors, Oracle Cloud, Workday, Njoyn, PeopleSoft, and bespoke municipal sites. Civic Careers brings those official listings together while retaining the source organization, original posting link, and source-backed dates.
 
 ## Features
 
-- **Multi-Portal Scraping**: Automated collection from City of Toronto, TTC, Metrolinx, Toronto Public Library, Waterfront Toronto, Government of Canada, and 15+ additional GTHA sources.
-- **AI-Powered Parsing**: DeepSeek V4-Flash extracts structured fields (salary range, work model, employment type, closing date) from raw job page text with no brittle selectors.
-- **Unified Feed**: Filter by student eligibility, work model, salary, union status, and source across all scraped postings in one view.
+- **Multi-Portal Scraping**: Automated collection across municipal, provincial, federal, college, and university career systems. See the maintained [source inventory](./SOURCES.md) for the current active set.
+- **Structured Job Details**: Parsing extracts useful fields such as salary, work model, employment type, location, benefits, requirements, and closing date while keeping the source description available.
+- **Jobs, Companies, and Saved Views**: Browse the unified feed, discover organizations, and save listings for follow-up.
+- **Source-Backed Links and Dates**: Listings link back to official employer pages and distinguish known, missing, open-ended, and pending deadline information.
+- **Useful Filters**: Narrow results by organization, location, student eligibility, work model, salary, employment type, education, and other structured fields.
 - **Soft-Delete Retention**: Expired postings are flagged rather than deleted, preserving a searchable history of past opportunities.
-- **Scheduled Runs**: GitHub Actions triggers bi-weekly scrapes (Mon/Thu) with secure secret management — no manual execution required.
+- **Scheduled Runs**: GitHub Actions runs the production scrape twice weekly (Monday and Thursday) with secure secret management. Parsing is a separate pipeline step while extraction quality is being tuned.
 
 ## Stack
 
 - **Scraper**: Playwright, TypeScript
 - **AI**: DeepSeek V4-Flash
-- **Database**: SQLite
+- **Database**: Turso/libSQL (with SQLite-compatible local tooling)
 - **API**: Express
 - **Frontend**: React, Vite, TypeScript
 - **Automation**: GitHub Actions
