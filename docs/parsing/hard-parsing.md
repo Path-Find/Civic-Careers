@@ -16,6 +16,8 @@ A hard-parsed job has:
 Before hard parsing, the job can already be visible if it has a valid title,
 source link, and source-backed closing date. While `parsed_at IS NULL`, it must
 show **Details pending**.
+Jobs marked `blocked` remain hidden until their source page can be captured and
+the status is deliberately reopened.
 
 ## Procedure
 

@@ -21,6 +21,8 @@ The job may retain an older `job_details` row for recovery. Because
 
 Select active jobs with no effective closing date. The effective date is
 `job_details.closing_date`, falling back to `raw_jobs.pending_closing_date`.
+Skip rows whose `pending_closing_date_status = 'blocked'`; those source pages
+could not be captured and must be deliberately reopened before retrying.
 
 Search `raw_jobs.raw_text` for direct evidence near phrases such as:
 
@@ -92,5 +94,6 @@ Verify against Neon and the deployed API/UI:
 - every selected job has `parsed_at IS NULL` and API `details_pending = 1`;
 - every selected job is included publicly and shows **Details pending**;
 - no no-date or past-date job became public;
+- blocked source captures remain excluded from recovery batches and public listings;
 - every change has an audit record;
 - a later hard parse can preserve the confirmed date.
