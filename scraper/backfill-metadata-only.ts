@@ -17,7 +17,7 @@ import {
   saveJobDetails,
 } from './db';
 import { extractRecentRelativePostedDate, extractPostedDate, normalizePostedDate } from './posted-date';
-import { normalizeJobTitle } from './title';
+import { extractRawJobTitle, normalizeJobTitle } from './title';
 import { extractListingType } from './requirements';
 import { normalizeLocation } from './location';
 import { classifyRawCapture } from './capture-quality';
@@ -26,7 +26,19 @@ import { formatCapturedDescription } from './fallback-description';
 dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
+// Safe by default: do not rewrite any row that already has parsed details.
+// --include-soft-parsed is an explicit maintenance escape hatch for a reviewed
+// re-run of deterministic metadata, never the normal queue path.
+const INCLUDE_SOFT_PARSED = process.argv.includes('--include-soft-parsed');
+const UNPARSED_ONLY = !INCLUDE_SOFT_PARSED;
+const EXCLUDED_SOURCES = new Set(
+  (process.env.EXCLUDE_SOURCES ?? '')
+    .split(',')
+    .map(source => source.trim())
+    .filter(Boolean),
+);
 const DETERMINISTIC_PARSER_VERSION = 0;
+const CONCURRENCY = 10;
 
 type RawRow = {
   id: string;
@@ -65,10 +77,13 @@ function extractPostedAt(row: RawRow): string | null {
 }
 
 function buildDetails(row: RawRow) {
-  const title = normalizeJobTitle(row.title || row.raw_text.match(/^[^\n]{3,160}/)?.[0] || row.id);
+  const title = normalizeJobTitle(row.title || extractRawJobTitle(row.source, row.raw_text) || row.raw_text.match(/^[^\n]{3,160}/)?.[0] || row.id);
   const listingType = extractListingType(row.raw_text, title, false);
   const postedAt = extractPostedAt(row);
   const isStudent = /\b(?:student|co-?op)\b/i.test(`${title}\n${row.raw_text}`) ? 1 : 0;
+  const salary = row.raw_text.match(/(?:salary\s*(?:range)?|pay\s*rate?s?|hourly\s*rate|compensation)\s*[:\-]?\s*([^.!]{3,100}(?:\$|per\s+(?:hour|annum|year)|annual|hourly)[^.!]{0,40})/i)?.[1]?.trim() || '';
+  const employmentType = row.raw_text.match(/\b(permanent\s+(?:full[- ]time|part[- ]time)|temporary\s+(?:full[- ]time|part[- ]time)|full[- ]time|part[- ]time|casual|contract)\b/i)?.[1] || '';
+  const hours = row.raw_text.match(/(?:hours?\s+of\s+work|hours?\s+per\s+week|weekly\s+hours?\s+of\s+work|fte)\s*[:\-]?\s*([^.;]{3,100})/i)?.[1]?.trim() || '';
 
   return {
     title,
@@ -77,6 +92,9 @@ function buildDetails(row: RawRow) {
     isStudent,
     location: extractLocation(row.raw_text),
     closingDate: extractClosingDate(row.raw_text),
+    salary,
+    employmentType,
+    hours,
   };
 }
 
@@ -86,20 +104,35 @@ async function main() {
     authToken: process.env.TURSO_AUTH_TOKEN!,
   });
 
-  const result = await db.execute(`
+  const sourceExclusion = EXCLUDED_SOURCES.size > 0
+    ? ` AND r.source NOT IN (${[...EXCLUDED_SOURCES].map(() => '?').join(',')})`
+    : '';
+  const parseScope = UNPARSED_ONLY
+    ? 'r.parsed_at IS NULL'
+    : '(r.parsed_at IS NULL OR d.parser_version = 0)';
+  const safeRowGuard = UNPARSED_ONLY
+    ? 'AND d.id IS NULL AND j.verified_at IS NULL'
+    : 'AND j.verified_at IS NULL';
+  const result = await db.execute({
+    sql: `
     SELECT r.id, r.url, r.application_url, r.source, r.raw_text, r.title, r.first_seen_at, r.posted_at,
            d.parser_version
     FROM raw_jobs r
     LEFT JOIN job_details d ON d.id = r.id
-    WHERE (r.parsed_at IS NULL OR d.parser_version = 0)
+    LEFT JOIN jobs j ON j.id = r.id
+    WHERE ${parseScope}
       AND (r.raw_text IS NOT NULL AND r.raw_text != '')
+      ${safeRowGuard}
+      ${sourceExclusion}
     ORDER BY r.scraped_at ASC
-  `);
+  `,
+    args: [...EXCLUDED_SOURCES],
+  });
 
   const rows = result.rows as unknown as RawRow[];
-  const invalid = rows.filter(row => invalidRaw(row.raw_text));
-  const genuine = rows.filter(row => !invalidRaw(row.raw_text));
-  console.log(`[Metadata backfill] ${APPLY ? 'Applying' : 'Dry run'}: ${genuine.length} genuine row(s), ${invalid.length} invalid row(s).`);
+  const invalid = rows.filter(row => invalidRaw(row.source, row.raw_text));
+  const genuine = rows.filter(row => !invalidRaw(row.source, row.raw_text));
+  console.log(`[Metadata backfill] ${APPLY ? 'Applying' : 'Dry run'}${UNPARSED_ONLY ? ' (safe unparsed-only)' : ' (including existing soft parses)'}: ${genuine.length} genuine row(s), ${invalid.length} invalid row(s).`);
 
   const bySource = new Map<string, number>();
   for (const row of genuine) bySource.set(row.source, (bySource.get(row.source) ?? 0) + 1);
@@ -113,14 +146,16 @@ async function main() {
   for (const row of invalid) await discardRawJob(db, row.id);
 
   let promoted = 0;
-  let hidden = 0;
-  for (const row of genuine) {
+  let leftPending = 0;
+  async function processRow(row: RawRow) {
     const details = buildDetails(row);
-    const description = formatCapturedDescription(row.raw_text);
+    const description = formatCapturedDescription(row.raw_text, details.title);
     if (!description) {
-      await db.execute({ sql: `UPDATE jobs SET is_active = 0 WHERE id = ?`, args: [row.id] });
-      hidden += 1;
-      continue;
+      // Non-Workday captures remain safe pending shells. Never hide a valid
+      // source capture merely because this deterministic fallback does not
+      // know how to turn it into a full description.
+      leftPending += 1;
+      return;
     }
     await saveJob(db, {
       id: row.id,
@@ -133,9 +168,11 @@ async function main() {
       job_title: details.title,
       department: '',
       location: details.location,
-      salary_range: '',
+      salary_range: details.salary,
       description,
       closing_date: details.closingDate,
+      employment_type: details.employmentType,
+      hours: details.hours,
       is_inventory: details.listingType === 'inventory' ? 1 : 0,
       listing_type: details.listingType,
       is_student: details.isStudent,
@@ -163,7 +200,12 @@ async function main() {
     promoted += 1;
   }
 
-  console.log(`[Metadata backfill] Promoted ${promoted}; hidden ${hidden}; discarded ${invalid.length}.`);
+  for (let i = 0; i < genuine.length; i += CONCURRENCY) {
+    await Promise.all(genuine.slice(i, i + CONCURRENCY).map(processRow));
+    console.log(`[Metadata backfill] Progress: ${Math.min(i + CONCURRENCY, genuine.length)}/${genuine.length}`);
+  }
+
+  console.log(`[Metadata backfill] Promoted ${promoted}; left pending ${leftPending}; discarded ${invalid.length}.`);
 }
 
 main().catch(error => {

@@ -70,3 +70,28 @@ test('formats role-specific University of Toronto sections', () => {
     'Bachelor degree and five years of experience. The successful candidate communicates clearly and works independently with internal stakeholders.',
   ].join('\n'));
 });
+
+test('formats direct ICBC role sections without portal chrome', () => {
+  const result = formatCapturedDescription(
+    'Intersection Safety Camera Program Rep Position Highlights '
+      + 'Be an integral member of the customer service team and process safety camera tickets while supporting the public. '
+      + 'Position Requirements Strong attention to detail, customer service experience, and proficiency with office applications. '
+      + 'About us: employer information and benefits.',
+    'Intersection Safety Camera Program Rep',
+  );
+
+  assert.match(result ?? '', /^## Overview\n/);
+  assert.match(result ?? '', /## Qualifications\n/);
+  assert.doesNotMatch(result ?? '', /About us:/i);
+});
+
+test('formats concise structured course postings deterministically', () => {
+  const result = formatCapturedDescription(
+    'Course Proctor Description of tasks (hours): Monitor students during examinations and report issues. '
+      + 'Number of positions: 1 Work Start Date: September 16, 2026 Work End Date: December 31, 2026 '
+      + 'Requirements and Nature of Work: Fluency in English and French. All University of Ottawa employees complete training.',
+    'Course Proctor',
+  );
+
+  assert.match(result ?? '', /## Qualifications\n/);
+});

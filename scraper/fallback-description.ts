@@ -74,10 +74,9 @@ function cleanCapturedBody(value: string): string {
 
 function capturedSection(body: string, heading: CapturedSection['heading']): CapturedSection | null {
   const cleaned = cleanCapturedBody(body);
-  if (cleaned.length < 80) return null;
+  if (cleaned.length < 40) return null;
   if (/^(?:include|as required|of the position|will include|compatible with|in operations|our people)\b/i.test(cleaned)) return null;
   if (/skip to main|search jobs|sign in|new user|previous job|next job|add to favorite|email this job|apply for job|select how often|no results to display|about western since|about the university|access full position posting|the university welcomes applications/i.test(cleaned)) return null;
-  if (/^[a-z]/.test(cleaned)) return null;
   return { heading, body: cleaned };
 }
 
@@ -115,7 +114,7 @@ function isSafeFallbackDescription(description: string): boolean {
  * used when the normal AI parser has not produced details; an unrecognised
  * page remains pending rather than being published as a fake description.
  */
-export function formatCapturedDescription(rawText: string): string | null {
+export function formatCapturedDescription(rawText: string, title?: string): string | null {
   const existing = formatWorkdayFallbackDescription(rawText);
   if (existing && isSafeFallbackDescription(existing)) return existing;
 
@@ -238,6 +237,231 @@ export function formatCapturedDescription(rawText: string): string | null {
       '## Qualifications',
     );
     if (needed) sections.push(needed);
+  }
+
+  const rendered = renderCapturedSections(sections);
+  if (rendered && isSafeFallbackDescription(rendered)) return rendered;
+
+  return formatGenericRoleCapture(rawText, title);
+}
+
+const GENERIC_FOOTER = /(?:about\s+us\s*:|find\s+similar\s+jobs:|apply\s+now\s*»|previous\s*next|add\s+to\s+my\s+favorites|send\s+by\s+email|the\s+search\s+committee\s+would\s+like\s+to\s+thank|only\s+those\s+(?:candidates|chosen)\s+for\s+an\s+interview|thank\s+you\s+for\s+your\s+interest|follow\s+us©|#li-dni|legal\s+disclaimer|accessibility\s+statement|©\s*20\d{2})/i;
+const GENERIC_RESPONSIBILITIES = /(?:what\s+you\s+will\s+do(?:\s+in\s+this\s+role)?|what\s+you['’]ll\s+do|the\s+work\s+you\s+will\s+be\s+involved\s+in|job\s+duties\s+include|duties\s*(?:-|:)|responsibilities\s*(?:-|:)|position\s+highlights|what\s+this\s+position\s+is\s+about|au\s+sujet\s+de\s+cet\s+emploi|à\s+titre\s+d['’]agent|purpose\s+of\s+your\s+position\s*-\s*non\s+union)/i;
+const GENERIC_QUALIFICATIONS = /(?:what\s+we\s+are\s+looking\s+for|what\s+you\s+need|position\s+requirements|qualifications?\s*(?:-|:)|selection\s+criteria|à\s+votre\s+sujet|essential\s+qualifications?|job\s+requirements|education\s*(?:-|:)|the\s+successful\s+candidate\s+will|what\s+we\s+are\s+looking\s+for)/i;
+
+function genericText(rawText: string): string {
+  return rawText
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/(?:cookie|consent|provider description|search by keyword|select how often)[^:]{0,240}(?:accept|close|create alert|enabled)/gi, ' ')
+    .trim();
+}
+
+function formatGenericRoleCapture(rawText: string, title?: string): string | null {
+  const text = genericText(rawText);
+  if (text.length < 300) return null;
+
+  let body = text;
+  if (title) {
+    const titleNeedle = title.trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const titleMatches = [...text.matchAll(new RegExp(titleNeedle, 'ig'))];
+    const candidate = titleMatches.find(match => /(?:description|position|reference\s+number|posted|apply|job\s+details)/i.test(text.slice(match.index ?? 0, (match.index ?? 0) + 450)))
+      ?? titleMatches.at(-1);
+    if (candidate?.index != null) body = text.slice(candidate.index + candidate[0].length);
+  }
+
+  // These boards expose stable role-content markers but also prepend a large
+  // amount of portal navigation. Prefer the marker over guessing where the
+  // description begins.
+  const directSections: CapturedSection[] = [];
+  const icbcOverview = capturedSection(
+    capturedBetween(text, /position\s+highlights\s*/i, /position\s+requirements\s*/i),
+    '## Overview',
+  );
+  const icbcQualifications = capturedSection(
+    capturedBetween(text, /position\s+requirements\s*/i, /about\s+us\s*:/i),
+    '## Qualifications',
+  );
+  if (icbcOverview && icbcQualifications) {
+    directSections.push(icbcOverview, icbcQualifications);
+  }
+
+  const yorkOverview = capturedSection(
+    capturedBetween(text, /purpose\s*:/i, /education\s*:/i),
+    '## Overview',
+  );
+  const yorkQualifications = capturedSection(
+    capturedBetween(text, /education\s*:/i, /(?:#li-dni|legal\s+disclaimer|accessibility\s+statement|$)/i),
+    '## Qualifications',
+  );
+  if (yorkOverview && yorkQualifications) {
+    directSections.push(yorkOverview, yorkQualifications);
+  }
+
+  const flemingOverview = capturedSection(
+    capturedBetween(text, /what\s+this\s+position\s+is\s+about\s*:?/i, /what\s+we\s+are\s+looking\s+for\s*:?/i),
+    '## Overview',
+  );
+  const flemingQualifications = capturedSection(
+    capturedBetween(text, /what\s+we\s+are\s+looking\s+for\s*:?/i, /(?:what\s+we\s+offer|how\s+to\s+apply|application\s+process|about\s+fleming|$)/i),
+    '## Qualifications',
+  );
+  if (flemingOverview && flemingQualifications) {
+    directSections.push(flemingOverview, flemingQualifications);
+  }
+
+  const careerBeaconDuties = capturedSection(
+    capturedBetween(text, /your\s+focus\s*/i, /what\s+you\s+bring/i),
+    '## Responsibilities',
+  );
+  const careerBeaconQualifications = capturedSection(
+    capturedBetween(text, /what\s+you\s+bring\s*/i, /(?:work\s+with\s+us|why\s+choose\s+unb|$)/i),
+    '## Qualifications',
+  );
+  if (careerBeaconDuties && careerBeaconQualifications) {
+    directSections.push(careerBeaconDuties, careerBeaconQualifications);
+  }
+
+  const whitbyStart = /what\s+you\s+will\s+get\s+to\s+do/i.exec(text);
+  const whitbyQualificationsStart = /who\s+you\s+are/i.exec(text);
+  if (whitbyStart && whitbyQualificationsStart && whitbyQualificationsStart.index! > whitbyStart.index!) {
+    const whitbyOverview = capturedSection(
+      text.slice(whitbyStart.index! + whitbyStart[0].length, whitbyQualificationsStart.index),
+      '## Overview',
+    );
+    const whitbyQualifications = capturedSection(
+      text.slice(whitbyQualificationsStart.index! + whitbyQualificationsStart[0].length),
+      '## Qualifications',
+    );
+    if (whitbyOverview && whitbyQualifications) {
+      directSections.push(whitbyOverview, whitbyQualifications);
+    }
+  }
+
+  const uOttawaDescription = capturedSection(
+    capturedBetween(text, /description\s+of\s+tasks\s*\(hours\)\s*:/i, /requirements\s+and\s+nature\s+of\s+work\s*:/i),
+    '## Overview',
+  );
+  const uOttawaRequirements = capturedSection(
+    capturedBetween(text, /requirements\s+and\s+nature\s+of\s+work\s*:/i, /all\s+university\s+of\s+ottawa\s+employees/i),
+    '## Qualifications',
+  );
+  if (uOttawaDescription && uOttawaRequirements) {
+    directSections.push(uOttawaDescription, uOttawaRequirements);
+  }
+
+  const northernResponsibilities = capturedSection(
+    capturedBetween(text, /what\s+you\s+will\s+be\s+doing\s*:/i, /what\s+you\s+will\s+need\s+to\s+be\s+considered\s*:/i),
+    '## Responsibilities',
+  );
+  const northernQualifications = capturedSection(
+    capturedBetween(text, /what\s+you\s+will\s+need\s+to\s+be\s+considered\s*:/i, /what\s+northern\s+has\s+to\s+offer\s*:/i),
+    '## Qualifications',
+  );
+  if (northernResponsibilities && northernQualifications) {
+    directSections.push(northernResponsibilities, northernQualifications);
+  }
+
+  const thunderbayMarkers = [...text.matchAll(/job\s+description\s+keep\s+our\s+streets\s+connected\./ig)];
+  const thunderbayStart = thunderbayMarkers.at(-1)?.index;
+  if (thunderbayStart != null) {
+    const thunderbayBody = text.slice(thunderbayStart);
+    const thunderbayOverview = capturedSection(
+      capturedBetween(thunderbayBody, /keep\s+our\s+streets\s+connected\./i, /where\s+you['’]?ll\s+make\s+a\s+difference/i),
+      '## Overview',
+    );
+    const thunderbayResponsibilities = capturedSection(
+      capturedBetween(thunderbayBody, /how\s+you['’]?ll\s+support\s+the\s+team|accountabilities\s*:/i, /what\s+you\s+can\s+count\s+on\s+with\s+us|what\s+you['’]?ll\s+bring/i),
+      '## Responsibilities',
+    );
+    const thunderbayQualifications = capturedSection(
+      capturedBetween(thunderbayBody, /what\s+you['’]?ll\s+bring\s+to\s+the\s+team/i, /for\s+a\s+detailed\s+job\s+description|keep\s+our\s+city\s+moving/i),
+      '## Qualifications',
+    );
+    if (thunderbayOverview && thunderbayResponsibilities && thunderbayQualifications) {
+      directSections.push(thunderbayOverview, thunderbayResponsibilities, thunderbayQualifications);
+    }
+  }
+
+  if (title) {
+    const titlePattern = title.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const westernStart = new RegExp(`the\\s+${titlePattern},?\\s+is\\s+accountable`, 'i');
+    const westernMatch = westernStart.exec(text);
+    if (westernMatch) {
+      const westernBody = text.slice(westernMatch.index ?? 0);
+      const westernOverview = capturedSection(
+        westernBody.slice(0, westernBody.search(/the\s+ideal\s+candidate/i)),
+        '## Overview',
+      );
+      const westernQualifications = capturedSection(
+        capturedBetween(westernBody, /the\s+ideal\s+candidate/i, /salary\s*&\s*benefits|about\s+western/i),
+        '## Qualifications',
+      );
+      if (westernOverview && westernQualifications) {
+        directSections.push(westernOverview, westernQualifications);
+      }
+    }
+  }
+
+  if (!directSections.some(section => section.heading === '## Overview')
+    && /the\s+director,\s*capital\s+projects,\s+is\s+accountable/i.test(text)) {
+    const westernMatch = /the\s+director,\s*capital\s+projects,\s+is\s+accountable/i.exec(text);
+    const westernBody = text.slice(westernMatch?.index ?? 0);
+    const westernOverview = capturedSection(
+      westernBody.slice(0, westernBody.search(/the\s+ideal\s+candidate/i)),
+      '## Overview',
+    );
+    const westernQualifications = capturedSection(
+      capturedBetween(westernBody, /the\s+ideal\s+candidate/i, /salary\s*&\s*benefits|about\s+western/i),
+      '## Qualifications',
+    );
+    if (westernOverview && westernQualifications) directSections.push(westernOverview, westernQualifications);
+    if (!westernOverview || !westernQualifications) {
+      const westernNarrative = capturedSection(
+        capturedBetween(text, /the\s+director,\s*capital\s+projects,\s+is\s+accountable/i, /salary\s*&\s*benefits/i),
+        '## Overview',
+      );
+      if (westernNarrative) directSections.push(westernNarrative);
+    }
+  }
+
+  const directRendered = renderCapturedSections(directSections);
+  if (directRendered && isSafeFallbackDescription(directRendered)) return directRendered;
+
+  const descriptionStart = /(?:job\s+description|description\s*:|position\s+description)\s*/i.exec(body);
+  if (descriptionStart) body = body.slice(descriptionStart.index + descriptionStart[0].length);
+
+  const footer = GENERIC_FOOTER.exec(body);
+  if (footer?.index && footer.index > 220) body = body.slice(0, footer.index);
+  body = body.replace(/^(?:next\s+job|apply\s+for\s+job|back\s+share|job\s+details)\s*/i, '').trim();
+  if (PORTAL_CHROME.test(body) || /sorry,\s+this\s+posting\s+is\s+no\s+longer\s+available/i.test(body)) return null;
+
+  const sections: CapturedSection[] = [];
+  const responsibilities = GENERIC_RESPONSIBILITIES.exec(body);
+  const qualifications = GENERIC_QUALIFICATIONS.exec(body);
+  if (responsibilities && qualifications && qualifications.index > responsibilities.index!) {
+    const overviewBody = body.slice(0, responsibilities.index).trim();
+    const responsibilityBody = body.slice(responsibilities.index! + responsibilities[0].length, qualifications.index).trim();
+    const qualificationBody = body.slice(qualifications.index! + qualifications[0].length).trim();
+    const overview = capturedSection(overviewBody, '## Overview');
+    const duties = capturedSection(responsibilityBody, '## Responsibilities');
+    const requirements = capturedSection(qualificationBody, '## Qualifications');
+    if (overview) sections.push(overview);
+    if (duties) sections.push(duties);
+    if (requirements) sections.push(requirements);
+  } else if (responsibilities) {
+    const overview = capturedSection(body.slice(0, responsibilities.index).trim(), '## Overview');
+    const duties = capturedSection(body.slice(responsibilities.index! + responsibilities[0].length), '## Responsibilities');
+    if (overview) sections.push(overview);
+    if (duties) sections.push(duties);
+  } else if (qualifications) {
+    const overview = capturedSection(body.slice(0, qualifications.index).trim(), '## Overview');
+    const requirements = capturedSection(body.slice(qualifications.index! + qualifications[0].length), '## Qualifications');
+    if (overview) sections.push(overview);
+    if (requirements) sections.push(requirements);
+  } else {
+    const overview = capturedSection(body, '## Overview');
+    if (overview) sections.push(overview);
   }
 
   const rendered = renderCapturedSections(sections);
