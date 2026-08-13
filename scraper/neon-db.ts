@@ -30,6 +30,10 @@ const TABLES = {
   },
 } as const;
 
+// The scraper, parser, and web API use this same advisory-lock key. It keeps
+// current/archive moves from racing normal Neon writes within a database.
+const ROUTING_LOCK_KEY = 817563421;
+
 type MovableTable = keyof typeof TABLES;
 
 function postgresPlaceholders(sql: string): string {
@@ -49,17 +53,13 @@ function resultSet(result: { rows: Row[]; rowCount: number | null }): { rows: Ro
 export class NeonDatabaseClient {
   readonly currentPool: Pool;
   readonly archivePool: Pool;
-  private readonly archiveIds = new Set<string>();
 
   constructor(currentUrl: string, archiveUrl: string) {
-    this.currentPool = new Pool({ connectionString: currentUrl, max: 2 });
-    this.archivePool = new Pool({ connectionString: archiveUrl, max: 2 });
+    this.currentPool = new Pool({ connectionString: currentUrl, max: 3 });
+    this.archivePool = new Pool({ connectionString: archiveUrl, max: 3 });
   }
 
   async initialize(): Promise<void> {
-    const archiveJobs = await this.archivePool.query<{ id: string }>('SELECT id FROM jobs');
-    for (const row of archiveJobs.rows) this.archiveIds.add(row.id);
-
     const archiveMax = await this.archivePool.query<{ max: string | null }>('SELECT MAX(public_id)::text AS max FROM jobs');
     const currentMax = await this.currentPool.query<{ max: string | null }>('SELECT MAX(public_id)::text AS max FROM jobs');
     const maxPublicId = Math.max(Number(archiveMax.rows[0]?.max ?? 0), Number(currentMax.rows[0]?.max ?? 0));
@@ -72,21 +72,79 @@ export class NeonDatabaseClient {
   }
 
   async execute(statement: Statement) {
-    const { sql, args } = statementParts(statement);
-    return resultSet(await this.currentPool.query<Row>(postgresPlaceholders(sql), args));
+    return this.withCurrentLock(async client => {
+      const { sql, args } = statementParts(statement);
+      return resultSet(await client.query<Row>(postgresPlaceholders(sql), args));
+    });
   }
 
   async batch(statements: Statement[]) {
-    const client = await this.currentPool.connect();
-    try {
-      await client.query('BEGIN');
+    return this.withCurrentLock(async client => {
       const results = [];
       for (const statement of statements) {
         const { sql, args } = statementParts(statement);
         results.push(resultSet(await client.query<Row>(postgresPlaceholders(sql), args)));
       }
-      await client.query('COMMIT');
       return results;
+    });
+  }
+
+  async restoreIfArchived(id: string): Promise<void> {
+    await this.withRoutingLocks(async () => {
+      const archived = await this.archivePool.query<{ id: string }>(
+        'SELECT id FROM jobs WHERE id = $1 LIMIT 1',
+        [id],
+      );
+      if (archived.rowCount) await this.moveIds('archive', 'current', [id]);
+    });
+  }
+
+  async moveJobsToArchive(ids: string[]): Promise<void> {
+    await this.withRoutingLocks(async () => {
+      await this.moveIds('current', 'archive', ids);
+    });
+  }
+
+  async moveSourceMissingJobsToArchive(source: string, runStartedAt: string): Promise<number> {
+    return this.withRoutingLocks(async () => {
+      const result = await this.currentPool.query<{ id: string }>(
+        `SELECT j.id FROM jobs j
+         WHERE j.source = $1
+           AND j.is_active = 1
+           AND j.id NOT IN (
+             SELECT id FROM raw_jobs WHERE source = $1 AND scraped_at >= $2
+           )`,
+        [source, runStartedAt],
+      );
+      await this.moveIds('current', 'archive', result.rows.map(row => row.id));
+      return result.rowCount ?? 0;
+    });
+  }
+
+  async moveExpiredJobsToArchive(today: string): Promise<number> {
+    return this.withRoutingLocks(async () => {
+      const result = await this.currentPool.query<{ id: string }>(
+        `SELECT j.id FROM jobs j
+         JOIN job_details d ON d.id = j.id
+         WHERE j.is_active = 1
+           AND d.closing_date IS NOT NULL
+           AND TRIM(d.closing_date) <> ''
+           AND SUBSTR(d.closing_date, 1, 10) < $1`,
+        [today],
+      );
+      await this.moveIds('current', 'archive', result.rows.map(row => row.id));
+      return result.rowCount ?? 0;
+    });
+  }
+
+  private async withCurrentLock<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
+    const client = await this.currentPool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`SELECT pg_advisory_xact_lock(${ROUTING_LOCK_KEY})`);
+      const result = await callback(client);
+      await client.query('COMMIT');
+      return result;
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -95,12 +153,27 @@ export class NeonDatabaseClient {
     }
   }
 
-  async restoreIfArchived(id: string): Promise<void> {
-    if (this.archiveIds.has(id)) await this.moveIds('archive', 'current', [id]);
-  }
-
-  async moveJobsToArchive(ids: string[]): Promise<void> {
-    await this.moveIds('current', 'archive', ids);
+  private async withRoutingLocks<T>(callback: () => Promise<T>): Promise<T> {
+    const currentLock = await this.currentPool.connect();
+    let archiveLock: PoolClient | null = null;
+    try {
+      await currentLock.query('BEGIN');
+      await currentLock.query(`SELECT pg_advisory_xact_lock(${ROUTING_LOCK_KEY})`);
+      archiveLock = await this.archivePool.connect();
+      await archiveLock.query('BEGIN');
+      await archiveLock.query(`SELECT pg_advisory_xact_lock(${ROUTING_LOCK_KEY})`);
+      const result = await callback();
+      await archiveLock.query('COMMIT');
+      await currentLock.query('COMMIT');
+      return result;
+    } catch (error) {
+      await archiveLock?.query('ROLLBACK').catch(() => undefined);
+      await currentLock.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      archiveLock?.release();
+      currentLock.release();
+    }
   }
 
   private async moveIds(from: 'current' | 'archive', to: 'current' | 'archive', ids: string[]): Promise<void> {
@@ -156,6 +229,21 @@ export class NeonDatabaseClient {
       target.release();
     }
 
+    for (const table of Object.keys(TABLES) as MovableTable[]) {
+      const rows = rowsByTable.get(table) ?? [];
+      if (rows.length === 0) continue;
+      const plan = TABLES[table];
+      const keys = rows.map(row => String(row[plan.key]));
+      const placeholders = keys.map((_, index) => `$${index + 1}`).join(', ');
+      const verified = await targetPool.query(
+        `SELECT ${plan.key} FROM ${table} WHERE ${plan.key} IN (${placeholders})`,
+        keys,
+      );
+      if (verified.rowCount !== new Set(keys).size) {
+        throw new Error(`Archive move verification failed for ${table}: expected ${new Set(keys).size}, found ${verified.rowCount ?? 0}`);
+      }
+    }
+
     const source = await sourcePool.connect();
     try {
       await source.query('BEGIN');
@@ -171,11 +259,6 @@ export class NeonDatabaseClient {
       source.release();
     }
 
-    if (to === 'archive') {
-      for (const id of uniqueIds) this.archiveIds.add(id);
-    } else {
-      for (const id of uniqueIds) this.archiveIds.delete(id);
-    }
   }
 
   async close(): Promise<void> {

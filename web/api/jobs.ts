@@ -177,11 +177,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       const placeholders = requestedIds.map(() => '?').join(', ');
       const [currentResult, archiveResult] = await Promise.all([
         db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders}) ${publicDeadline}`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders})`,
           args: requestedIds,
         }),
         archiveDb.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders}) ${publicDeadline}`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders})`,
           args: requestedIds,
         }),
       ]);
@@ -195,7 +195,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         sql: `SELECT jd.description, raw.raw_text,
                 CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending
               FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
-              LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ? ${publicDeadline}`,
+              LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ?`,
         args: [id]
       });
       if (result.rows.length === 0) {
@@ -203,7 +203,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           sql: `SELECT jd.description, raw.raw_text,
                   CASE WHEN jd.id IS NULL THEN 1 ELSE 0 END AS details_pending
                 FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
-                LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ? ${publicDeadline}`,
+                LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ?`,
           args: [id]
         });
       }
@@ -223,25 +223,37 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (jobId) {
-      let result = await db.execute({
-        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ? ${publicDeadline}`,
-        args: [jobId]
-      });
-      if (result.rows.length === 0) {
-        result = await archiveDb.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ? ${publicDeadline}`,
+      // Numeric job URLs use the public_id/rid namespace. Check it first so
+      // a source whose internal id is "1" cannot shadow the public job 1.
+      let result = /^\d+$/.test(jobId)
+        ? await db.execute({
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ?`,
+          args: [jobId]
+        })
+        : await db.execute({
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
           args: [jobId]
         });
+      if (result.rows.length === 0) {
+        result = /^\d+$/.test(jobId)
+          ? await archiveDb.execute({
+            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ?`,
+            args: [jobId]
+          })
+          : await archiveDb.execute({
+            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
+            args: [jobId]
+          });
       }
-      // Keep both old numeric and source-key URLs working during the URL migration.
+      // Keep source-key URLs working during the public numeric URL migration.
       if (result.rows.length === 0 && /^\d+$/.test(jobId)) {
         result = await db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${publicDeadline}`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
           args: [jobId]
         });
         if (result.rows.length === 0) {
           result = await archiveDb.execute({
-            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${publicDeadline}`,
+            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
             args: [jobId]
           });
         }
@@ -258,12 +270,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     // Legacy API clients still send rid.
     if (rid) {
       let result = await db.execute({
-        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${publicDeadline}`,
+        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ?`,
         args: [rid]
       });
       if (result.rows.length === 0) {
         result = await archiveDb.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${publicDeadline}`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ?`,
           args: [rid]
         });
       }
@@ -543,7 +555,6 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         SELECT ${jobColumns}
         ${jobJoins}
         WHERE j.is_saved = 1
-          ${publicDeadline}
       `;
       const [currentSaved, archiveSaved] = await Promise.all([
         db.execute(savedSql),

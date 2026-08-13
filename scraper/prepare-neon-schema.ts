@@ -8,6 +8,7 @@
  *   NEON_CURRENT_DATABASE_URL, NEON_ARCHIVE_DATABASE_URL
  */
 import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 
@@ -83,7 +84,7 @@ async function prepare(pool: Pool, label: string, schema: string): Promise<void>
 }
 
 async function main() {
-  const schema = await readFile(new URL('./neon-schema.sql', import.meta.url), 'utf8');
+  const schema = await readFile(join(__dirname, 'neon-schema.sql'), 'utf8');
   const current = new Pool({ connectionString: requireEnvironment('NEON_CURRENT_DATABASE_URL'), max: 2 });
   const archive = new Pool({ connectionString: requireEnvironment('NEON_ARCHIVE_DATABASE_URL'), max: 2 });
 

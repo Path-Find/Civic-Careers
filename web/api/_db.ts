@@ -13,6 +13,7 @@ export interface DbClient {
 }
 
 const pools = new Map<string, Pool>();
+const ROUTING_LOCK_KEY = 817563421;
 
 function connectionStringFor(kind: 'current' | 'archive'): string {
   const variable = kind === 'current' ? 'NEON_CURRENT_DATABASE_URL' : 'NEON_ARCHIVE_DATABASE_URL';
@@ -44,7 +45,19 @@ function createDbFor(kind: 'current' | 'archive'): DbClient {
     async execute(query) {
       const { sql, args } = typeof query === 'string' ? { sql: query, args: [] as QueryArgs } : query;
       const pool = poolFor(kind);
-      const result = await pool.query(postgresPlaceholders(sql), args);
+      const client = await pool.connect();
+      let result;
+      try {
+        await client.query('BEGIN');
+        await client.query(`SELECT pg_advisory_xact_lock(${ROUTING_LOCK_KEY})`);
+        result = await client.query(postgresPlaceholders(sql), args);
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK').catch(() => undefined);
+        throw error;
+      } finally {
+        client.release();
+      }
       return {
         rows: (result.rows as Array<Record<string, unknown>>).map(row =>
           typeof row.rid === 'string' && /^\d+$/.test(row.rid)

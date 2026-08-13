@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Active and expired jobs now have a tested Neon migration path** — current jobs stay in the live database while expired jobs move directly to a separate Neon archive database, reducing Turso reads without requiring an R2 handoff.
 - **Operational backfills now use the Neon-aware database layer** — maintenance corrections follow the current/archive routing instead of silently writing to Turso.
+- **Archived jobs now restore by live lookup before parser writes** — concurrent re-scrapes cannot rely on a stale startup cache and recreate a second copy in the current database.
+- **Neon now has a dry-run-first rollback export** — an emergency Turso restore can upsert both Neon databases without deleting the existing rollback copy.
+- **Neon writes now share an advisory lock across scraper, parser, and API** — archive moves cannot race simultaneous job updates.
+- **Archived job links and saved jobs remain readable after expiry** — explicit history lookups can use the Neon archive without putting expired listings back into active search results.
 
 ### Added
 - **Source-confirmed worksite addresses are stored for future map features** — street addresses stay hidden from public job responses and are only saved when the posting explicitly identifies the work location.

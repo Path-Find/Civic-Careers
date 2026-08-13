@@ -342,6 +342,7 @@ function asNeonClient(client: Client): NeonDatabaseClient | null {
 
 // Called by parser — writes base job row so job_details FK is satisfiable
 export async function saveJob(client: Client, job: { id: string; url: string; source: string; first_seen_at: string }) {
+  await asNeonClient(client)?.restoreIfArchived(job.id);
   await client.execute({
     sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
           VALUES (?, ?, ?, 1, ?, CURRENT_TIMESTAMP)
@@ -400,6 +401,7 @@ export async function saveJobDetails(client: Client, job: {
   start_date?: string | null;
   career_stage?: string | null;
 }) {
+  await asNeonClient(client)?.restoreIfArchived(job.id);
   await client.execute({
     sql: `INSERT INTO job_details (
       id, job_title, department, location, workplace_address, salary_range, description, closing_date,
@@ -800,16 +802,7 @@ export async function cleanupExpiredJobsForSource(
 ): Promise<void> {
   const neon = asNeonClient(client);
   if (neon) {
-    const result = await client.execute({
-      sql: `SELECT id FROM jobs
-            WHERE source = ?
-              AND is_active = 1
-              AND id NOT IN (
-                SELECT id FROM raw_jobs WHERE source = ? AND scraped_at >= ?
-              )`,
-      args: [source, source, runStartedAt],
-    });
-    await neon.moveJobsToArchive(result.rows.map(row => String(row.id)));
+    await neon.moveSourceMissingJobsToArchive(source, runStartedAt);
     return;
   }
   await client.execute({
@@ -855,18 +848,7 @@ export async function deactivateExpiredJobs(
 ): Promise<number> {
   const neon = asNeonClient(client);
   if (neon) {
-    const expired = await client.execute({
-      sql: `SELECT j.id FROM jobs j
-            JOIN job_details d ON d.id = j.id
-            WHERE j.is_active = 1
-              AND d.closing_date IS NOT NULL
-              AND TRIM(d.closing_date) <> ''
-              AND SUBSTR(d.closing_date, 1, 10) < ?`,
-      args: [today],
-    });
-    const ids = expired.rows.map(row => String(row.id));
-    await neon.moveJobsToArchive(ids);
-    return ids.length;
+    return neon.moveExpiredJobsToArchive(today);
   }
   const result = await client.execute({
     sql: `UPDATE jobs
