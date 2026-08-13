@@ -30,18 +30,28 @@ import { extractStartDate } from './start-date';
 
 const CONCURRENCY = 5;
 
+const REQUESTED_IDS = new Set(
+  (process.env.PARSE_IDS ?? '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean),
+);
+
 async function main() {
   const db = await initDb();
   const expiredBeforeParse = await deactivateExpiredJobs(db);
   if (expiredBeforeParse > 0) console.log(`[Expiry] Deactivated ${expiredBeforeParse} job(s) past their closing date.`);
-  const rawJobs = await getUnparsedJobs(db);
+  const queuedRawJobs = await getUnparsedJobs(db);
+  const rawJobs = REQUESTED_IDS.size > 0
+    ? queuedRawJobs.filter(raw => REQUESTED_IDS.has(raw.id))
+    : queuedRawJobs;
 
   if (rawJobs.length === 0) {
     console.log('[Parser] Nothing to parse.');
     return;
   }
 
-  console.log(`[Parser] Parsing ${rawJobs.length} jobs (${CONCURRENCY} concurrent)...`);
+  console.log(`[Parser] Parsing ${rawJobs.length} jobs (${CONCURRENCY} concurrent)${REQUESTED_IDS.size ? `; selected IDs ${[...REQUESTED_IDS].join(', ')}` : ''}...`);
   let done = 0;
   const failedSources = new Set<string>();
 

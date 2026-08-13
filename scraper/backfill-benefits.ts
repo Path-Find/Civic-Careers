@@ -6,6 +6,12 @@ import { BENEFIT_OVERRIDES } from './benefit-fixes';
 dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
+const requestedIds = new Set(
+  (process.argv.find(argument => argument.startsWith('--ids='))?.slice('--ids='.length) ?? '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean),
+);
 
 function parseList(value: unknown): string[] {
   if (!value) return [];
@@ -24,6 +30,9 @@ async function main() {
     url: process.env.TURSO_URL!,
     authToken: process.env.TURSO_AUTH_TOKEN!,
   });
+  const idFilter = requestedIds.size > 0
+    ? ` AND j.id IN (${[...requestedIds].map(() => '?').join(',')})`
+    : '';
   const result = await db.execute(`
     SELECT j.id, j.source, jd.job_title, jd.benefits
     FROM jobs j
@@ -32,8 +41,9 @@ async function main() {
       AND jd.benefits IS NOT NULL
       AND jd.benefits != ''
       AND jd.benefits != '[]'
+      ${idFilter}
     ORDER BY j.source, j.id
-  `);
+  `, [...requestedIds]);
 
   const changes = result.rows.map(row => {
     const before = parseList(row.benefits);
@@ -47,7 +57,7 @@ async function main() {
     };
   }).filter(row => JSON.stringify(row.before) !== JSON.stringify(row.after));
 
-  console.log(`[Benefits] Scanned ${result.rows.length}; ${APPLY ? 'updating' : 'would update'} ${changes.length}.`);
+  console.log(`[Benefits] ${requestedIds.size > 0 ? `Selected ${[...requestedIds].join(', ')}; ` : ''}Scanned ${result.rows.length}; ${APPLY ? 'updating' : 'would update'} ${changes.length}.`);
   for (const change of changes.slice(0, 40)) {
     console.log(`- ${change.source} | ${change.title || change.id}`);
     console.log(`  BEFORE: ${JSON.stringify(change.before)}`);
