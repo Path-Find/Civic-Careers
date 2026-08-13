@@ -84,6 +84,7 @@ const publicDeadline = `AND (
   (${closingDate} IS NOT NULL AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text)
   OR ${openUntilFilled}
 )`;
+const currentPublicJobVisibility = `AND j.is_active = 1 ${publicDeadline}`;
 
 const jobColumns = `
   j.public_id AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
@@ -227,11 +228,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       // a source whose internal id is "1" cannot shadow the public job 1.
       let result = /^\d+$/.test(jobId)
         ? await db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ?`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${currentPublicJobVisibility}`,
           args: [jobId]
         })
         : await db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ? ${currentPublicJobVisibility}`,
           args: [jobId]
         });
       if (result.rows.length === 0) {
@@ -248,7 +249,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       // Keep source-key URLs working during the public numeric URL migration.
       if (result.rows.length === 0 && /^\d+$/.test(jobId)) {
         result = await db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ? ${currentPublicJobVisibility}`,
           args: [jobId]
         });
         if (result.rows.length === 0) {
@@ -270,7 +271,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     // Legacy API clients still send rid.
     if (rid) {
       let result = await db.execute({
-        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ?`,
+        sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${currentPublicJobVisibility}`,
         args: [rid]
       });
       if (result.rows.length === 0) {
