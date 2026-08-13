@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Non-job source captures no longer become visible job shells** — expired pages, bot challenges, portal errors, and empty detail captures are rejected before pending listings are created.
+- **Verified quality-audit samples now remove source-page artifacts** — 20 listings had titles, structured fields, and job-only descriptions corrected from their live source text.
 - **Pending source captures now promote deterministically when their role content is present** — portal-specific headings recover titles, descriptions, salary, hours, and employment type without an AI-provider call, while expired talent-pool and cookie shells are discarded.
 - **Empty trial boards no longer count toward source promotion** — a source that returns no jobs stays out of the 3-run promotion gate instead of being treated as a successful pass.
 - **Soft-parsed listings now recover more source-backed details** — safe locations and readable descriptions are recovered across more portal formats when the captured source page supports deterministic extraction, while incomplete captures remain pending.
