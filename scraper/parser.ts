@@ -28,10 +28,16 @@ import { cleanJobDescription, removePlaceholderSections, stripStructuredBenefitR
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 import { BENEFIT_OVERRIDES } from './benefit-fixes';
 import { extractStartDate } from './start-date';
-import { classifyCareerStage } from './career-stage';
+import { extractAcademicSchedule } from './academic-context';
 import { sourceMetadataFixFor } from './source-metadata-fixes';
+import { classifyCareerStage } from './career-stage';
 
-const CONCURRENCY = 5;
+const CONCURRENCY = Number(process.env.PARSER_CONCURRENCY ?? 2);
+
+const EXCLUDED_SOURCES = (process.env.PARSE_EXCLUDE_SOURCES ?? '')
+  .split(',')
+  .map(source => source.trim())
+  .filter(Boolean);
 
 const REQUESTED_IDS = new Set(
   (process.env.PARSE_IDS ?? '')
@@ -44,7 +50,7 @@ async function main() {
   const db = await initDb();
   const expiredBeforeParse = await deactivateExpiredJobs(db);
   if (expiredBeforeParse > 0) console.log(`[Expiry] Deactivated ${expiredBeforeParse} job(s) past their closing date.`);
-  const queuedRawJobs = await getUnparsedJobs(db);
+  const queuedRawJobs = await getUnparsedJobs(db, EXCLUDED_SOURCES);
   const rawJobs = REQUESTED_IDS.size > 0
     ? queuedRawJobs.filter(raw => REQUESTED_IDS.has(raw.id))
     : queuedRawJobs;
@@ -54,7 +60,7 @@ async function main() {
     return;
   }
 
-  console.log(`[Parser] Parsing ${rawJobs.length} jobs (${CONCURRENCY} concurrent)${REQUESTED_IDS.size ? `; selected IDs ${[...REQUESTED_IDS].join(', ')}` : ''}...`);
+  console.log(`[Parser] Parsing ${rawJobs.length} jobs (${CONCURRENCY} concurrent)${EXCLUDED_SOURCES.length ? `; excluding ${EXCLUDED_SOURCES.join(', ')}` : ''}${REQUESTED_IDS.size ? `; selected IDs ${[...REQUESTED_IDS].join(', ')}` : ''}...`);
   let done = 0;
   const failedSources = new Set<string>();
 
@@ -136,6 +142,7 @@ async function main() {
           job_title: normalizeJobTitle(aiResult.job_title),
           department: sourceMetadataFix?.department ?? aiResult.department,
           location,
+          workplace_address: aiResult.workplace_address,
           salary_range: sourceMetadataFix?.salaryRange ?? ((aiResult.salary_min || aiResult.salary_max)
             ? `${aiResult.salary_min ?? ''} - ${aiResult.salary_max ?? ''} (${aiResult.salary_period})`
             : ''),
@@ -158,6 +165,7 @@ async function main() {
           academic_office_hours: aiResult.academic_office_hours,
           academic_supervisor: aiResult.academic_supervisor,
           academic_appointment_type: aiResult.academic_appointment_type,
+          academic_schedule: extractAcademicSchedule(raw.raw_text) || aiResult.academic_schedule,
           experience_requirements: JSON.stringify(sourceMetadataFix?.experienceRequirements ?? structuredRequirements.experience_requirements),
           ...(() => {
             const u = normalizeUnionFields(aiResult.union_name, aiResult.is_unionized);

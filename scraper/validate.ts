@@ -398,6 +398,7 @@ export function validateParsedJob(obj: unknown, titleHint = ''): ParsedJob | nul
     job_title,
     department: normalizeDepartment(coerceString(o['department'])),
     location: normalizeLocation(coerceString(o['location'])),
+    workplace_address: normalizeOptionalText(o['workplace_address']),
     salary_min: coerceNumber(o['salary_min']),
     salary_max: coerceNumber(o['salary_max']),
     salary_period: normalizeSalaryPeriod(o['salary_period']),

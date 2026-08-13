@@ -20,10 +20,10 @@ test('deactivateExpiredJobs updates active jobs before the supplied date', async
 });
 
 test('saveJobDetails refreshes parsed fields but preserves academic context on blank reparse', async () => {
-  const statements: string[] = [];
+  const statements: Array<{ sql: string; args?: unknown[] }> = [];
   const client = {
-    execute: async (query: { sql: string }) => {
-      statements.push(query.sql);
+    execute: async (query: { sql: string; args?: unknown[] }) => {
+      statements.push(query);
       return { rows: [] };
     },
   };
@@ -33,6 +33,7 @@ test('saveJobDetails refreshes parsed fields but preserves academic context on b
     job_title: 'Updated title',
     department: 'Updated department',
     location: 'Updated location',
+    workplace_address: '123 Example Street, Toronto, ON',
     salary_range: '$80K',
     description: 'Updated description',
     closing_date: '2026-08-15',
@@ -53,6 +54,7 @@ test('saveJobDetails refreshes parsed fields but preserves academic context on b
     academic_office_hours: '',
     academic_supervisor: '',
     academic_appointment_type: 'Tenure-track',
+    academic_schedule: 'Monday 18:00-21:00',
     experience_requirements: '["3 years of experience"]',
     is_unionized: 0,
     union_name: '',
@@ -67,13 +69,21 @@ test('saveJobDetails refreshes parsed fields but preserves academic context on b
     software_requirements: '["Excel"]',
   });
 
-  const upsert = statements.find((s) => /INSERT INTO job_details/i.test(s)) ?? '';
+  const upsertStatement = statements.find((s) => /INSERT INTO job_details/i.test(s.sql));
+  const upsert = upsertStatement?.sql ?? '';
+  // Keep the INSERT values aligned with the column list. This catches silent
+  // field shifts that still produce syntactically valid rows.
+  assert.equal(upsertStatement?.args?.[18], 0); // is_unionized
+  assert.equal(upsertStatement?.args?.[22], '35 hours per week'); // hours
+  assert.equal(upsertStatement?.args?.[24], 'faculty'); // academic_role_type
+  assert.equal(upsertStatement?.args?.[26], '0.5 FTE'); // academic_workload
   for (const field of [
-    'job_title', 'department', 'location', 'salary_range', 'description',
+    'job_title', 'department', 'location', 'workplace_address', 'salary_range', 'description',
     'closing_date', 'is_inventory', 'listing_type', 'is_student', 'salary_min', 'salary_max',
     'salary_period', 'work_model', 'employment_type', 'duration',
     'hours', 'availability', 'academic_role_type', 'academic_course', 'academic_workload',
     'academic_office_hours', 'academic_supervisor', 'academic_appointment_type',
+    'academic_schedule',
     'experience_requirements',
     'is_unionized', 'union_name', 'benefits', 'required_skills',
     'education_requirements', 'license_requirements', 'vehicle_required',
@@ -81,14 +91,14 @@ test('saveJobDetails refreshes parsed fields but preserves academic context on b
     'software_requirements',
     'career_stage',
   ]) {
-    if (['hours', 'availability', 'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours', 'academic_supervisor', 'academic_appointment_type'].includes(field)) {
+    if (['hours', 'availability', 'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours', 'academic_supervisor', 'academic_appointment_type', 'academic_schedule'].includes(field)) {
       assert.match(upsert, new RegExp(`${field} = COALESCE\\(NULLIF\\(excluded\\.${field}, ''\\), ${field}\\)`));
     } else {
       assert.match(upsert, new RegExp(`${field} = excluded\\.${field}`));
     }
   }
   // Full details rewrite clears human verification.
-  assert.ok(statements.some((s) => /verified_at\s*=\s*NULL/i.test(s)));
+  assert.ok(statements.some((s) => /verified_at\s*=\s*NULL/i.test(s.sql)));
 });
 
 test('saveRawJob creates a shell listing without marking it parsed', async () => {

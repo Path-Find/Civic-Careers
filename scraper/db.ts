@@ -190,6 +190,7 @@ async function initializeDbOnce(): Promise<Client> {
       job_title TEXT,
       department TEXT,
       location TEXT,
+      workplace_address TEXT,
       salary_range TEXT,
       description TEXT,
       closing_date TEXT,
@@ -210,6 +211,7 @@ async function initializeDbOnce(): Promise<Client> {
       academic_office_hours TEXT,
       academic_supervisor TEXT,
       academic_appointment_type TEXT,
+      academic_schedule TEXT,
       is_unionized INTEGER,
       union_name TEXT,
       benefits TEXT,
@@ -257,7 +259,7 @@ async function initializeDbOnce(): Promise<Client> {
     'language_requirements', 'security_check_required', 'certification_requirements',
     'software_requirements', 'medical_requirements', 'hours', 'availability',
     'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours',
-    'academic_supervisor', 'academic_appointment_type',
+    'academic_supervisor', 'academic_appointment_type', 'academic_schedule',
   ]) {
     try {
       await client.execute(`ALTER TABLE job_details ADD COLUMN ${column} ${column.endsWith('_required') ? 'INTEGER' : 'TEXT'}`);
@@ -279,6 +281,11 @@ async function initializeDbOnce(): Promise<Client> {
   }
   try {
     await client.execute(`ALTER TABLE job_details ADD COLUMN career_stage TEXT`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  try {
+    await client.execute(`ALTER TABLE job_details ADD COLUMN workplace_address TEXT`);
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
@@ -342,6 +349,7 @@ export async function saveJobDetails(client: Client, job: {
   job_title: string;
   department: string;
   location: string;
+  workplace_address?: string | null;
   salary_range: string;
   description: string;
   closing_date: string;
@@ -362,6 +370,7 @@ export async function saveJobDetails(client: Client, job: {
   academic_office_hours?: string;
   academic_supervisor?: string;
   academic_appointment_type?: string;
+  academic_schedule?: string;
   experience_requirements?: string;
   is_unionized?: number;
   union_name?: string;
@@ -384,23 +393,26 @@ export async function saveJobDetails(client: Client, job: {
 }) {
   await client.execute({
     sql: `INSERT INTO job_details (
-      id, job_title, department, location, salary_range, description, closing_date,
+      id, job_title, department, location, workplace_address, salary_range, description, closing_date,
       is_inventory, listing_type, is_student, salary_min, salary_max, salary_period,
       work_model, employment_type, duration, experience_requirements, is_unionized, union_name, benefits, required_skills,
-      hours, availability, academic_role_type, academic_course, academic_workload, academic_office_hours, academic_supervisor, academic_appointment_type,
+      hours, availability, academic_role_type, academic_course, academic_workload, academic_office_hours, academic_supervisor, academic_appointment_type, academic_schedule,
       education_requirements, license_requirements, vehicle_required, language_requirements,
       security_check_required, certification_requirements, software_requirements, medical_requirements,
       responsibility_tags, qualification_tags, parser_version, posted_at, start_date, career_stage
     )
     VALUES (
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?
     )
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
       department = excluded.department,
       location = excluded.location,
+      workplace_address = excluded.workplace_address,
       salary_range = excluded.salary_range,
       description = excluded.description,
       closing_date = excluded.closing_date,
@@ -421,6 +433,7 @@ export async function saveJobDetails(client: Client, job: {
       academic_office_hours = COALESCE(NULLIF(excluded.academic_office_hours, ''), academic_office_hours),
       academic_supervisor = COALESCE(NULLIF(excluded.academic_supervisor, ''), academic_supervisor),
       academic_appointment_type = COALESCE(NULLIF(excluded.academic_appointment_type, ''), academic_appointment_type),
+      academic_schedule = COALESCE(NULLIF(excluded.academic_schedule, ''), academic_schedule),
       experience_requirements = excluded.experience_requirements,
       is_unionized = excluded.is_unionized,
       union_name = excluded.union_name,
@@ -441,15 +454,16 @@ export async function saveJobDetails(client: Client, job: {
       start_date = COALESCE(excluded.start_date, job_details.start_date),
       career_stage = excluded.career_stage`,
     args: [
-      job.id, job.job_title, job.department, job.location, job.salary_range,
+      job.id, job.job_title, job.department, job.location, job.workplace_address ?? null, job.salary_range,
       job.description, job.closing_date,
       job.is_inventory ?? 0, job.listing_type ?? 'regular', job.is_student ?? 0,
       job.salary_min ?? null, job.salary_max ?? null, job.salary_period ?? null,
       job.work_model ?? null, job.employment_type ?? null, job.duration ?? null, job.experience_requirements ?? null,
-      job.hours ?? null, job.availability ?? null, job.academic_role_type ?? null, job.academic_course ?? null,
-      job.academic_workload ?? null, job.academic_office_hours ?? null, job.academic_supervisor ?? null, job.academic_appointment_type ?? null,
       job.is_unionized ?? null, job.union_name ?? null, job.benefits ?? null,
-      job.required_skills ?? null, job.education_requirements ?? null, job.license_requirements ?? null,
+      job.required_skills ?? null,
+      job.hours ?? null, job.availability ?? null, job.academic_role_type ?? null, job.academic_course ?? null,
+      job.academic_workload ?? null, job.academic_office_hours ?? null, job.academic_supervisor ?? null, job.academic_appointment_type ?? null, job.academic_schedule ?? null,
+      job.education_requirements ?? null, job.license_requirements ?? null,
       job.vehicle_required ?? null, job.language_requirements ?? null, job.security_check_required ?? null,
       job.certification_requirements ?? null, job.software_requirements ?? null, job.medical_requirements ?? null,
       job.responsibility_tags ?? null, job.qualification_tags ?? null,
@@ -611,7 +625,10 @@ export async function discardRawJob(client: Client, id: string) {
   ], 'write');
 }
 
-export async function getUnparsedJobs(client: Client): Promise<Array<{ id: string; url: string; application_url: string | null; source: string; raw_text: string; title: string | null; first_seen_at: string; posted_at: string | null }>> {
+export async function getUnparsedJobs(client: Client, excludedSources: string[] = []): Promise<Array<{ id: string; url: string; application_url: string | null; source: string; raw_text: string; title: string | null; first_seen_at: string; posted_at: string | null }>> {
+  const sourceExclusion = excludedSources.length > 0
+    ? `AND r.source NOT IN (${excludedSources.map(() => '?').join(',')})`
+    : '';
   const result = await client.execute({
     sql: `
       SELECT r.id, r.url, r.application_url, r.source, r.raw_text, r.title, r.first_seen_at, r.posted_at
@@ -620,6 +637,8 @@ export async function getUnparsedJobs(client: Client): Promise<Array<{ id: strin
       LEFT JOIN parse_failures f ON r.id = f.id
       WHERE r.parsed_at IS NULL
         AND (j.is_active IS NULL OR j.is_active = 1)
+        AND (j.verified_at IS NULL)
+        ${sourceExclusion}
         AND (
           f.id IS NULL
           OR r.scraped_at > f.last_failed_at
@@ -632,7 +651,7 @@ export async function getUnparsedJobs(client: Client): Promise<Array<{ id: strin
         )
       ORDER BY r.scraped_at ASC
     `,
-    args: [MAX_PARSE_ATTEMPTS],
+    args: [...excludedSources, MAX_PARSE_ATTEMPTS],
   });
   return result.rows.map(row => ({
     id: row.id as string,
@@ -699,7 +718,9 @@ export async function countStaleParses(client: Client, currentVersion: number): 
     sql: `SELECT r.source as source, COUNT(*) as count
           FROM raw_jobs r
           JOIN job_details d ON r.id = d.id
+          JOIN jobs j ON j.id = r.id
           WHERE r.parsed_at IS NOT NULL
+            AND j.verified_at IS NULL
             AND (d.parser_version IS NULL OR d.parser_version < ?)
           GROUP BY r.source
           ORDER BY count DESC`,
@@ -716,7 +737,11 @@ export async function queueStaleParsesForReparse(client: Client, currentVersion:
     sql: `UPDATE raw_jobs SET parsed_at = NULL
           WHERE parsed_at IS NOT NULL
             AND id IN (
-              SELECT id FROM job_details WHERE parser_version IS NULL OR parser_version < ?
+              SELECT d.id
+              FROM job_details d
+              JOIN jobs j ON j.id = d.id
+              WHERE j.verified_at IS NULL
+                AND (d.parser_version IS NULL OR d.parser_version < ?)
             )`,
     args: [currentVersion],
   });

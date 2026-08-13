@@ -14,7 +14,7 @@ async function migrate() {
   await db.execute(`
     CREATE TABLE job_details_temp AS
     SELECT
-      id, job_title, department, location, salary_range, description, closing_date,
+      id, job_title, department, location, workplace_address, salary_range, description, closing_date,
       is_inventory, listing_type, is_student, salary_min, salary_max, salary_period,
       work_model, employment_type, duration, is_unionized, union_name, benefits
     FROM jobs
@@ -58,6 +58,7 @@ async function migrate() {
       job_title TEXT,
       department TEXT,
       location TEXT,
+      workplace_address TEXT,
       salary_range TEXT,
       description TEXT,
       closing_date TEXT,

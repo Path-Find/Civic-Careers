@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Source-confirmed worksite addresses are stored for future map features** — street addresses stay hidden from public job responses and are only saved when the posting explicitly identifies the work location.
 - **Jobs can now be filtered by source-backed career stage** — explicit student, early-career, experienced, and senior signals are visible on postings while unclear roles remain uncategorized.
 - **Academic job pages now show explicitly labelled course schedules** — bilingual class times remain visible even while the rest of a posting is still pending.
 - **Academic context now remains visible when structured role metadata is missing** — explicit source-title wording identifies teaching-assistant and other academic roles without inferring student status.

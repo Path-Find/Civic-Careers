@@ -73,6 +73,7 @@ not invent a taxonomy or turn a generic duty into a requirement:
 | `job_title` | Clean role title; remove posting IDs, employment type, duration, and inventory labels | Title only; do not repeat metadata in the title |
 | `department` | Employer's department, faculty, unit, or division as named by the source | Organizational unit; not the employer name unless it is genuinely the department |
 | `location` | `City, XX`; multiple locations separated by `; ` | City/province only, such as `Vancouver, BC`; remove campus, country, employer, remote-work, and commuting prose |
+| `workplace_address` | Full source-stated street address or semicolon-separated addresses, or empty | Hidden map-only property; use only an explicit job worksite address, never a mailing/contact/application address, and do not expose it in the public job response |
 | `salary_min` | Number with no currency symbol or commas | Lower compensation bound |
 | `salary_max` | Number with no currency symbol or commas | Upper compensation bound |
 | `salary_period` | One of `hourly`, `yearly`, `monthly`, or `flat` | Choose an existing pay-interval value; never put the interval in the job body |

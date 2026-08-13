@@ -31,6 +31,7 @@ export interface ParsedJob {
     job_title: string;
     department: string;
     location: string;
+    workplace_address: string;
     salary_min: number | null;
     salary_max: number | null;
     salary_period: 'yearly' | 'hourly' | 'monthly' | 'flat';
@@ -104,6 +105,7 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
       "job_title": "Cleaned title only — remove IDs/internal labels, and do NOT put employment type or duration in the title (no '(Part-Time)', '(2-year contract)', 'Temporary Part-Time …', ' - Inventory'). Those belong in employment_type / duration / is_inventory.",
       "department": "Department name",
       "location": "City",
+      "workplace_address": "Full street address or addresses only when the source explicitly identifies the job's work location. Empty string when only a city/campus is provided, or when the address is only a mailing/contact/application address. Never infer an address.",
       "salary_min": number | null,
       "salary_max": number | null,
       "salary_period": "yearly" | "hourly" | "monthly" | "flat" (flat = a single lump-sum payment for the whole assignment, not a recurring rate — use for per-course, per-assignment, stipend, honorarium, or one-time project fees. e.g. '$7,887.59 per half course' is flat, NOT yearly, even though it's the only pay mentioned),
