@@ -49,6 +49,8 @@ const SOURCES = {
     scrapePeopleSoft(db, context, 'https://careers.torontomu.ca/psc/hrcgprd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U', 'Toronto Metropolitan University'),
   'McMaster University': (db: Client, context: BrowserContext) =>
     scrapePeopleSoft(db, context, 'https://careers.mcmaster.ca/psp/prcsprd/EMPLOYEE/HRMS/c/HRS_HRAM.HRS_APP_SCHJOB.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1001&customTab=MCM_STAFF_POS&IgnoreParamTempl=customTab', 'McMaster University'),
+  'City of Greater Sudbury': (db: Client, context: BrowserContext) =>
+    scrapePeopleSoft(db, context, 'https://myjobs.greatersudbury.ca/psc/MYJOBS/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U', 'City of Greater Sudbury'),
   'City of Calgary': (db: Client, context: BrowserContext) =>
     scrapePeopleSoft(db, context, 'https://recruiting.calgary.ca/psc/hcm/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Page=HRS_APP_SCHJOB&SiteId=1', 'City of Calgary'),
   'Durham Region': (db: Client, context: BrowserContext) =>
@@ -272,6 +274,21 @@ async function main() {
         args: [source],
       });
       const jobCount = Number(count.rows[0]?.count ?? 0);
+      if (jobCount === 0) {
+        await db.execute({
+          sql: `INSERT INTO trial_source_results
+                  (source, consecutive_successes, last_status, last_job_count, last_run_at)
+                VALUES (?, 0, 'empty', 0, CURRENT_TIMESTAMP)
+                ON CONFLICT(source) DO UPDATE SET
+                  consecutive_successes = 0,
+                  last_status = 'empty',
+                  last_job_count = 0,
+                  last_run_at = CURRENT_TIMESTAMP`,
+          args: [source],
+        });
+        console.warn(`[${source}] Trial returned no jobs; it cannot count toward promotion.`);
+        return;
+      }
       await db.execute({
         sql: `INSERT INTO trial_source_results
                 (source, consecutive_successes, last_status, last_job_count, last_run_at)
