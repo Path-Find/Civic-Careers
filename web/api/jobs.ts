@@ -74,16 +74,10 @@ const closingDateStatus = `CASE
     OR ${sourceText} LIKE '%closing date: none%' THEN 'invalid'
   ELSE 'not_checked'
 END`;
-const openUntilFilled = `(
-  COALESCE(raw.pending_closing_date_status, '') = 'open_until_filled'
-  OR ${sourceText} LIKE '%open until filled%'
-  OR ${sourceText} LIKE '%open till filled%'
-  OR ${sourceText} LIKE '%accepting applications until filled%'
-)`;
-const publicDeadline = `AND (
-  (${closingDate} IS NOT NULL AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text)
-  OR ${openUntilFilled}
-)`;
+// Public listings require a concrete source-backed deadline. A parsed row with
+// no date remains in the database for manual review but must not reach the site.
+const publicDeadline = `AND ${closingDate} IS NOT NULL
+  AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text`;
 const currentPublicJobVisibility = `AND j.is_active = 1 ${publicDeadline}`;
 
 const jobColumns = `

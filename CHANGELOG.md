@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Direct job links now respect public deadline visibility** — active listings without a known closing date no longer open from a direct URL.
-- **Public job listings now require a usable closing date** — genuinely unknown deadlines stay hidden, while open-until-filled postings say “Until filled” instead of looking unverified or displaying placeholder text.
+- **Public job listings now require a concrete closing date** — parsed or soft-parsed rows without a source-backed date stay hidden until the deadline is known.
 - **Job detail metadata stays as plain text** — benefits, licences, skills, and other requirements no longer render as unsolicited bubbles.
 - **Job headers no longer repeat title-like role categories as departments** — Canada Post delivery roles no longer show the same role twice.
 - **Non-job source captures no longer become visible job shells** — expired pages, bot challenges, portal errors, and empty detail captures are rejected before pending listings are created.
