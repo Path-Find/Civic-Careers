@@ -1,4 +1,4 @@
-import { normalizeLocation } from './location';
+import { extractLabeledLocation, normalizeLocation } from './location';
 import { extractTitleDuration } from './title';
 
 export type PendingMetadata = {
@@ -7,6 +7,17 @@ export type PendingMetadata = {
   duration: string | null;
   location?: string;
 };
+
+const LOCATION_PROSE = /\b(?:apply\s+now|however|including|knowledge|experience|communities|community|persons?|peoples?|racialized|women|interview|comprehensive|dental|benefit|instructor|system|management|requirements?|supports?|position|program)\b|\b(?:st|rd|dr|ave|line)\.?[a-z]+/i;
+
+export function isUsablePendingLocation(value: string | null | undefined): boolean {
+  const normalized = String(value ?? '').replace(/\s+/g, ' ').trim();
+  if (!normalized) return false;
+  return normalized.split(';').every(part => {
+    const city = part.replace(/,\s*[A-Z]{2}$/, '').trim();
+    return city.length >= 3 && city.length <= 48 && !LOCATION_PROSE.test(city);
+  });
+}
 
 const NUMBER = String.raw`\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?`;
 const AMOUNT = String.raw`\$\s*${NUMBER}`;
@@ -33,10 +44,13 @@ export function extractPendingMetadata(title: string | null | undefined, rawText
     ? 1
     : null;
 
-  const workdayLocation = normalized.match(/locations?\s*(.+?)(?=(?:remote\s*type|time\s*type|posted\s*on|job\s*requisition)|$)/i)?.[1] ?? '';
-  const locationCandidate = workdayLocation.split(/\s+-\s+/).pop() ?? workdayLocation;
+  const workdayLocation = normalized.match(/\b(?:apply\s*)?locations(?=[A-Z0-9])\s*(.+?)(?=(?:remote\s*type|time\s*type|posted\s*on|job\s*requisition|category\s*type|position\s*type|college\/administrative|faculty\/department|job\s*schedule|about\s+the\s+job)(?:\b|[A-Z0-9]|\s|$)|$)/i)?.[1] ?? '';
+  const locationCandidate = (workdayLocation.split(/\s+-\s+/).pop() ?? workdayLocation)
+    .replace(/\s+campus\b/i, '')
+    .trim();
   const cityProvince = locationCandidate.match(/([A-Za-z][A-Za-z .'-]+,\s*(?:ON|QC|NS|NB|MB|SK|AB|BC|PE|NL|NT|NU|YT|Canada|Ontario|Quebec|British Columbia|Alberta|Manitoba|Saskatchewan|Nova Scotia|New Brunswick|Newfoundland and Labrador|Prince Edward Island|Northwest Territories|Nunavut|Yukon)(?:,\s*Canada)?)/i)?.[1] ?? '';
-  const location = normalizeLocation(cityProvince) || null;
+  const locationCandidateValue = normalizeLocation(cityProvince || locationCandidate) || extractLabeledLocation(rawText) || null;
+  const location = isUsablePendingLocation(locationCandidateValue) ? locationCandidateValue : null;
 
   return location
     ? { salaryText, isStudent, duration: extractTitleDuration(title), location }

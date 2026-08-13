@@ -102,8 +102,11 @@ test('recovers compact labelled source locations', () => {
   );
   assert.equal(extractLabeledLocation('Location: Toronto, Ontario\nDepartment: Public Works'), 'Toronto, ON');
   assert.equal(extractLabeledLocation('Department: Public Works\nEmployment Type: Full-Time'), '');
+  assert.equal(extractLabeledLocation('Location: Acton Vale, QC, CA Job Requisition Id: 197371'), 'Acton Vale, QC');
+  assert.equal(extractLabeledLocation('Locations 200 Front St W, Toronto, ON, M5V 3J1, CA 100 Stone Rd W, Guelph, ON, N1G 5L3, CA'), 'Toronto, ON; Guelph, ON');
 });
 
 test('recovers city-level location from a pending Workday capture', () => {
   assert.equal(extractPendingMetadata('Evidence & Impact Analyst', 'ApplylocationsUBC Vancouver Campus - Vancouver, BC, Canadatime typeFull timeposted onPosted Yesterday').location, 'Vancouver, BC');
+  assert.equal(extractPendingMetadata('Student Program Assistant', 'ApplylocationsOttawa Campustime typePart timeposted onPosted Yesterday').location, 'Ottawa, ON');
 });

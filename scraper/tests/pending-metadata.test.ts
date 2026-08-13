@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractPendingMetadata } from '../pending-metadata';
+import { extractPendingMetadata, isUsablePendingLocation } from '../pending-metadata';
 
 test('extracts obvious source salary text and high-confidence student flags', () => {
   assert.deepEqual(
@@ -26,4 +26,9 @@ test('preserves bi-weekly salary periods for pending listings', () => {
 test('extracts title terms into pending duration metadata', () => {
   assert.equal(extractPendingMetadata('House Technician II (Temporary, up to 6 months)', '').duration, 'up to 6 months');
   assert.equal(extractPendingMetadata('Recreation Facilities Attendant I - Arenas (Permanent, On-Call)', '').duration, 'Permanent');
+});
+
+test('rejects prose accidentally shaped like a location', () => {
+  assert.equal(isUsablePendingLocation('However, ON'), false);
+  assert.equal(isUsablePendingLocation('Toronto, ON; Ottawa, ON'), true);
 });

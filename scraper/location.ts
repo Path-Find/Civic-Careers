@@ -559,8 +559,27 @@ export function normalizeLocation(raw: string | null | undefined): string {
 /** Recover a labelled source location when the AI parser leaves it empty. */
 export function extractLabeledLocation(rawText: string | null | undefined): string {
   if (!rawText) return '';
-  const match = rawText.replace(/\s+/g, ' ').match(/\b(?:job\s+)?locations?\s*[:\-]?\s*(.+?)(?=\b(?:department|employment(?:\s+type)?|job\s+(?:type|category)|close(?:\s+date)?|posting\s+date|salary|compensation|work\s+model|full\/part\s+time)\b|$)/i);
-  return normalizeLocation(match?.[1] ?? '');
+  const text = rawText.replace(/\s+/g, ' ');
+  const end = String.raw`(?=\b(?:department|employment(?:\s+type)?|job\s+(?:type|category|requisition)|close(?:\s+date)?|posting\s+(?:start|end\s+)?date|salary|compensation|work\s+model|full\/part\s+time|primary\s+(?:category|city)|other\s+locations?|province|language\s+requirement|business\s+function|date\s+posted|number\s+of\s+persons|category\s+type|position\s+type|college\/administrative|job\s+schedule|apply\s+before|location\s*[-:])\b|$)`;
+  const patterns = [
+    new RegExp(String.raw`\b(?:job\s+)?location\s*:\s*(.+?)${end}`, 'i'),
+    new RegExp(String.raw`\bprimary\s+city\s*:\s*(.+?)${end}`, 'i'),
+    new RegExp(String.raw`\bjob\s+location\s+(.+?)${end}`, 'i'),
+    new RegExp(String.raw`\blocations\s+(.+?)${end}`, 'i'),
+    new RegExp(String.raw`\blocation(?=[A-Z])(.+?)${end}`, 'i'),
+  ];
+  for (const pattern of patterns) {
+    const rawValue = (text.match(pattern)?.[1] ?? '')
+      .replace(/\s+\((?:on-site|hybrid|remote)\).*$/i, '')
+      .trim();
+    const addressPairs = [...rawValue.matchAll(/\b([A-Za-z][A-Za-z.'-]*(?:\s+[A-Za-z][A-Za-z.'-]*)*),\s*(ON|QC|NS|NB|MB|SK|AB|BC|PE|NL|NT|NU|YT)\b/gi)]
+      .map(match => `${match[1]}, ${match[2]}`);
+    const value = addressPairs.length > 1 || (addressPairs.length === 1 && /\b(?:city|address)\s*:/i.test(rawValue))
+      ? normalizeLocation(addressPairs.join('; '))
+      : normalizeLocation(rawValue);
+    if (value) return value;
+  }
+  return '';
 }
 
 /** Exposed for tests / backfill diagnostics */
