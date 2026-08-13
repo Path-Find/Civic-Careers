@@ -524,9 +524,11 @@ export async function saveRawJob(client: Client, job: {
           pending_is_student = COALESCE(excluded.pending_is_student, raw_jobs.pending_is_student),
           pending_location = COALESCE(excluded.pending_location, raw_jobs.pending_location),
           pending_duration = COALESCE(excluded.pending_duration, raw_jobs.pending_duration),
-          pending_closing_date = excluded.pending_closing_date,
+          pending_closing_date = COALESCE(NULLIF(TRIM(excluded.pending_closing_date), ''), raw_jobs.pending_closing_date),
           pending_closing_date_status = CASE
             WHEN excluded.pending_closing_date IS NOT NULL AND TRIM(excluded.pending_closing_date) <> '' THEN 'known'
+            WHEN raw_jobs.pending_closing_date IS NOT NULL AND TRIM(raw_jobs.pending_closing_date) <> '' THEN 'known'
+            WHEN raw_jobs.pending_closing_date_status = 'known' THEN 'known'
             WHEN raw_jobs.pending_closing_date_status IN ('not_listed', 'open_until_filled', 'invalid') THEN raw_jobs.pending_closing_date_status
             ELSE 'not_checked'
           END,
