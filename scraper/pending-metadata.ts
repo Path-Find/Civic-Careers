@@ -1,6 +1,9 @@
+import { normalizeLocation } from './location';
+
 export type PendingMetadata = {
   salaryText: string | null;
   isStudent: number | null;
+  location?: string;
 };
 
 const NUMBER = String.raw`\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?`;
@@ -28,5 +31,10 @@ export function extractPendingMetadata(title: string | null | undefined, rawText
     ? 1
     : null;
 
-  return { salaryText, isStudent };
+  const workdayLocation = normalized.match(/locations?\s*(.+?)(?=(?:remote\s*type|time\s*type|posted\s*on|job\s*requisition)|$)/i)?.[1] ?? '';
+  const locationCandidate = workdayLocation.split(/\s+-\s+/).pop() ?? workdayLocation;
+  const cityProvince = locationCandidate.match(/([A-Za-z][A-Za-z .'-]+,\s*(?:ON|QC|NS|NB|MB|SK|AB|BC|PE|NL|NT|NU|YT|Canada|Ontario|Quebec|British Columbia|Alberta|Manitoba|Saskatchewan|Nova Scotia|New Brunswick|Newfoundland and Labrador|Prince Edward Island|Northwest Territories|Nunavut|Yukon)(?:,\s*Canada)?)/i)?.[1] ?? '';
+  const location = normalizeLocation(cityProvince) || null;
+
+  return location ? { salaryText, isStudent, location } : { salaryText, isStudent };
 }

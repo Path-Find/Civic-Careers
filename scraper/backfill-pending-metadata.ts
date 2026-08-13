@@ -22,6 +22,9 @@ async function main() {
   await db.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_is_student INTEGER`).catch(error => {
     if (!/duplicate column/i.test(String(error?.message ?? error))) throw error;
   });
+  await db.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_location TEXT`).catch(error => {
+    if (!/duplicate column/i.test(String(error?.message ?? error))) throw error;
+  });
   await db.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_closing_date_status TEXT DEFAULT 'not_checked'`).catch(error => {
     if (!/duplicate column/i.test(String(error?.message ?? error))) throw error;
   });
@@ -38,6 +41,7 @@ async function main() {
       id: String(row.id),
       ...extractPendingMetadata(String(row.title ?? ''), String(row.raw_text ?? '')),
       closingDate: existingClosingDate || closing.date,
+      location: extractPendingMetadata(String(row.title ?? ''), String(row.raw_text ?? '')).location,
       closingDateStatus: existingClosingDate || closing.date ? 'known' : closing.status,
     };
   });
@@ -55,9 +59,9 @@ async function main() {
 
   await db.batch(updates.map(row => ({
     sql: `UPDATE raw_jobs
-          SET pending_salary_text = ?, pending_is_student = ?, pending_closing_date = COALESCE(NULLIF(TRIM(pending_closing_date), ''), ?), pending_closing_date_status = ?
+          SET pending_salary_text = ?, pending_is_student = ?, pending_location = COALESCE(NULLIF(TRIM(pending_location), ''), ?), pending_closing_date = COALESCE(NULLIF(TRIM(pending_closing_date), ''), ?), pending_closing_date_status = ?
           WHERE id = ? AND parsed_at IS NULL`,
-    args: [row.salaryText, row.isStudent, row.closingDate, row.closingDateStatus, row.id],
+    args: [row.salaryText, row.isStudent, row.location ?? null, row.closingDate, row.closingDateStatus, row.id],
   })), 'write');
   console.log(`[Pending metadata] Updated ${updates.length} pending rows; all remain unparsed.`);
 }

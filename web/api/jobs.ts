@@ -75,7 +75,7 @@ END`;
 const jobColumns = `
   COALESCE(j.public_id, j.rowid) AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
-  COALESCE(jd.job_title, raw.title) AS job_title, jd.department, jd.location,
+  COALESCE(jd.job_title, raw.title) AS job_title, jd.department, COALESCE(jd.location, raw.pending_location) AS location,
   raw.url AS details_url,
   COALESCE(jd.salary_range, raw.pending_salary_text) AS salary_range,
   ${closingDate} AS closing_date, ${closingDateStatus} AS closing_date_status,

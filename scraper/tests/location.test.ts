@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { extractLabeledLocation, normalizeLocation } from '../location';
+import { extractPendingMetadata } from '../pending-metadata';
 
 test('bare Canadian cities get province codes', () => {
   assert.equal(normalizeLocation('Guelph'), 'Guelph, ON');
@@ -101,4 +102,8 @@ test('recovers compact labelled source locations', () => {
   );
   assert.equal(extractLabeledLocation('Location: Toronto, Ontario\nDepartment: Public Works'), 'Toronto, ON');
   assert.equal(extractLabeledLocation('Department: Public Works\nEmployment Type: Full-Time'), '');
+});
+
+test('recovers city-level location from a pending Workday capture', () => {
+  assert.equal(extractPendingMetadata('Evidence & Impact Analyst', 'ApplylocationsUBC Vancouver Campus - Vancouver, BC, Canadatime typeFull timeposted onPosted Yesterday').location, 'Vancouver, BC');
 });

@@ -55,6 +55,7 @@ async function initializeDbOnce(): Promise<Client> {
       title TEXT,
       pending_salary_text TEXT,
       pending_is_student INTEGER,
+      pending_location TEXT,
       pending_duration TEXT,
       pending_closing_date TEXT,
       pending_closing_date_status TEXT DEFAULT 'not_checked',
@@ -94,6 +95,11 @@ async function initializeDbOnce(): Promise<Client> {
   }
   try {
     await client.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_is_student INTEGER`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+  try {
+    await client.execute(`ALTER TABLE raw_jobs ADD COLUMN pending_location TEXT`);
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
@@ -464,8 +470,8 @@ export async function saveRawJob(client: Client, job: {
   const pendingClosingDateStatus = pendingClosing.status;
   await client.batch([
     {
-      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
+      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_location, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
           url = excluded.url,
           application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
@@ -474,6 +480,7 @@ export async function saveRawJob(client: Client, job: {
           title = COALESCE(excluded.title, raw_jobs.title),
           pending_salary_text = COALESCE(excluded.pending_salary_text, raw_jobs.pending_salary_text),
           pending_is_student = COALESCE(excluded.pending_is_student, raw_jobs.pending_is_student),
+          pending_location = COALESCE(excluded.pending_location, raw_jobs.pending_location),
           pending_duration = NULL,
           pending_closing_date = excluded.pending_closing_date,
           pending_closing_date_status = CASE
@@ -483,7 +490,7 @@ export async function saveRawJob(client: Client, job: {
           END,
           scraped_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
+      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
     },
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
