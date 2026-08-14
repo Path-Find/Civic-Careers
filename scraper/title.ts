@@ -172,7 +172,9 @@ export function extractTitleDuration(title: string | null | undefined): string |
 }
 
 const PEOPLE_SOFT_SOURCES = new Set([
+  'Fleming College',
   'Toronto Metropolitan University',
+  'TransLink',
   'Western University',
   'City of Calgary',
   'City of Winnipeg',
@@ -192,7 +194,10 @@ export function extractRawJobTitle(source: string, rawText: string | null | unde
   let candidate = '';
   if (PEOPLE_SOFT_SOURCES.has(source)) {
     candidate = rawText.match(
-      /Job Title\s*(?!Search|Job Description|$)(.+?)(?=\s*(?:Next Job|Job ID|Regular\/Temporary|Appointment Type|Faculty\/Unit|Department|Location|Open Date|Job Number|Full\/Part Time))/i,
+      /Job Title\s*(?!Search|Job Description|$)(.+?)(?=\s*(?:Next Job|Job ID|Regular\/Temporary|Appointment Type|Faculty\/Unit|Department|Location|Open Date|Job Number|Full\/Part Time|Descr(?:iption)?))/i,
+    )?.[1] ?? '';
+    candidate ||= rawText.match(
+      /Job Description\s+More Actions\s+(?:Previous Job\s+)?(.+?)\s+Next Job/i,
     )?.[1] ?? '';
   } else if (source === 'Toronto District School Board') {
     candidate = rawText.match(
