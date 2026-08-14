@@ -12,6 +12,15 @@ const PARENTHESIZED_CLOSING = new RegExp(
   'gi',
 );
 
+const APPLICATION_CLOSE_LABEL = new RegExp(
+  'application\\s+close(?:s|d)?\\s*[:\\-]?\\s*(' + DATE_VALUE + ')',
+  'gi',
+);
+const EXPIRES_LABEL = new RegExp(
+  'expires?(?:\\s+on)?\\s*[:\\-]?\\s*(' + DATE_VALUE + ')',
+  'gi',
+);
+
 const CONTEXTUAL_CLOSING = [
   new RegExp(`posting\\s+(?:start\\s+date\\s*[/]\\s*)?posting\\s+end\\s+date[\\s\\S]{0,80}?\\b(?:to|through)\\s+(${DATE_VALUE})`, 'gi'),
   new RegExp(`(?:close|closing)\\s+date[\\s\\S]{0,160}?\\bon\\s+(${DATE_VALUE})`, 'gi'),
@@ -38,6 +47,7 @@ const OPEN_UNTIL_FILLED = new RegExp([
   `\\buntil\\s+(?:(?:all\\s+)?positions?\\s+(?:are|is)\\s+|(?:the\\s+)?position\\s+(?:is|has\\s+been)\\s+|it\\s+(?:is|has\\s+been)\\s+)?filled(?=\\b|job\\s+description|to\\s+apply)`,
   `\\b(?:open|ongoing)\\s+until\\s+(?:a\\s+)?suitable\\s+candidate\\s+found\\b`,
 ].join('|'), 'i');
+const OPEN_EXPLICIT_VARIANT = /\b(?:open|ongoing)\s+(?:until|till|through)\s+(?:(?:all\s+)?(?:positions?|vacancies?|roles?|jobs?)\s+(?:are|is)\s+)?filled(?=\b|[A-Z]|to\s+apply)/i;
 const NO_DEADLINE = /\b(?:no|without)\s+(?:application\s+)?(?:closing\s+)?deadline\b|\b(?:no|without)\s+(?:closing|application)\s+date\b|\bdeadline\s+(?:is\s+)?(?:not\s+(?:listed|specified)|unavailable)\b|\bno\s+deadline\s+listed\b|\b(?:external|job|posting)?\s*closing\s+date(?:\s*\([^)]*\))?\s*:?\s*(?=(?:job\s+description|application\s+posted|pcc#|openings|back|share|apply\s+now|all\s+qualified\s+candidates|experience\s+the|take\s+on|imagine|days\s+of\s+work|standard\s+hours))/i;
 const INVALID_CLOSING_VALUE = /(?:posting\s+(?:end|closing)\s+date|external\s+closing\s+date|job\s+closing\s+date|closing\s+date|close\s+date|closing\s+deadline|application\s+deadline|apply\s+(?:by|before)|last\s+(?:date|day)\s+to\s+apply|posting\s+close(?:s|d)?|deadline(?:\s+to\s+apply|\s+expires)?|applications?\s+must\s+be\s+received)\b\s*[:\-]\s*(?:tbd|n\/?a|not\s+(?:available|listed|specified)|none|unknown|[-–—])/i;
 const INVALID_CLOSING_DATE = /(?:posting\s+(?:end|closing)\s+date|external\s+closing\s+date|job\s+closing\s+date|closing\s+date|close\s+date|closing\s+deadline|application\s+deadline|apply\s+(?:by|before)|last\s+(?:date|day)\s+to\s+apply|posting\s+close(?:s|d)?|deadline(?:\s+to\s+apply|\s+expires)?|applications?\s+must\s+be\s+received)\b(?:\s*\([^)]*\))?\s*[:\-]\s*\d{2,6}\s*[/-]\s*\d{1,2}\s*[/-]\s*\d{1,4}\b/i;
@@ -59,6 +69,14 @@ export function extractClosingDate(rawText: string): string | null {
     const normalized = normalizeClosingValue(value);
     if (normalized) return normalized;
   }
+  for (const match of text.matchAll(APPLICATION_CLOSE_LABEL)) {
+    const normalized = normalizeClosingValue(match[1]);
+    if (normalized) return normalized;
+  }
+  for (const match of text.matchAll(EXPIRES_LABEL)) {
+    const normalized = normalizeClosingValue(match[1]);
+    if (normalized) return normalized;
+  }
   for (const pattern of CONTEXTUAL_CLOSING) {
     for (const match of text.matchAll(pattern)) {
       const normalized = normalizeClosingValue(match[1]);
@@ -78,7 +96,7 @@ export function extractClosingDateStatus(rawText: string): { date: string | null
 
   const text = rawText.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, ' ').trim();
   if (!text) return { date: null, status: 'not_checked' };
-  if (OPEN_UNTIL_FILLED.test(text)) return { date: null, status: 'open_until_filled' };
+  if (OPEN_UNTIL_FILLED.test(text) || OPEN_EXPLICIT_VARIANT.test(text)) return { date: null, status: 'open_until_filled' };
   if (NO_DEADLINE.test(text)) return { date: null, status: 'not_listed' };
   if (INVALID_CLOSING_VALUE.test(text) || INVALID_CLOSING_DATE.test(text)) return { date: null, status: 'invalid' };
   return { date: null, status: 'not_checked' };

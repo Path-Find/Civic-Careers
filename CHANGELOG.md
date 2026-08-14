@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **More source deadline labels are recognized safely** — application-close and expiration labels now recover dated deadlines, while explicit “open until filled” variants remain date-free.
 - **Unreachable source pages can now be marked blocked** — bot challenges, expired pages, and non-rendering portals stop looping through the 100-job recovery and metadata batches while remaining hidden from public listings.
 - **Deadline extraction now handles competition-close times and internal/external closing labels** — refreshed source captures can become pending-visible instead of remaining hidden when the date is wrapped in time text or split by audience.
 - **Soft-parsed deadlines now survive scraper refreshes** — a temporary extractor miss cannot erase a previously confirmed application closing date before full parsing.

@@ -60,6 +60,8 @@ test('extracts source closing dates without treating Job End Date as a deadline'
   assert.equal(extractClosingDate('Closing Date: ​31-Aug-26'), '2026-08-31');
   assert.equal(extractClosingDate('Please apply by 09/04/2026'), '2026-09-04');
   assert.equal(extractClosingDate('Last Day to Apply: August 21, 2026'), '2026-08-21');
+  assert.equal(extractClosingDate('Application Close: August 25, 2026'), '2026-08-25');
+  assert.equal(extractClosingDate('Expires on: August 27, 2026'), '2026-08-27');
   assert.equal(extractClosingDate('Apply Before\n08/17/2026, 03:55 AM'), '2026-08-17');
   assert.equal(extractClosingDate('Job Closing Date (2026-08-20):'), '2026-08-20');
   assert.equal(extractClosingDate('Deadline to Apply: Monday, September 7th, 2026'), '2026-09-07');
@@ -103,6 +105,14 @@ test('classifies pending closing-date status when no date is available', () => {
     status: 'open_until_filled',
   });
   assert.deepEqual(extractClosingDateStatus('Closing Date: Open until suitable candidate found'), {
+    date: null,
+    status: 'open_until_filled',
+  });
+  assert.deepEqual(extractClosingDateStatus('Closing Date: Open till Filled'), {
+    date: null,
+    status: 'open_until_filled',
+  });
+  assert.deepEqual(extractClosingDateStatus('Closing Date: Open until vacancies are filled'), {
     date: null,
     status: 'open_until_filled',
   });
