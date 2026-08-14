@@ -72,6 +72,10 @@ export function normalizeJobTitle(title: string | null | undefined): string {
 
   let t = original;
 
+  // BambooHR job cards for the City of Hamilton prefix the actual role with
+  // the employer's internal posting number.
+  t = t.replace(/^job\s+id\s*#?\s*\d+\s*:\s*/i, '').trim();
+
   // Meta parentheticals anywhere: (Part-Time), (2 Year Contract), (Casual), …
   t = t.replace(/\s*\(([^)]*)\)/g, (full, inner: string) => (
     isEmploymentOrDurationParen(inner) || isUnionMarkerParen(inner) ? '' : full

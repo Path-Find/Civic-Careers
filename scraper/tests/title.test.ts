@@ -109,6 +109,14 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeJobTitle('Recreation Assistant - RE-POST (Periodic Posting)'), 'Recreation Assistant');
   });
 
+  it('strips employer posting-number prefixes', () => {
+    assert.equal(
+      normalizeJobTitle('Job ID #32177: Senior Financial Analyst-Utility Billing'),
+      'Senior Financial Analyst-Utility Billing',
+    );
+    assert.equal(normalizeJobTitle('JOB ID 32166: Process Supervisor'), 'Process Supervisor');
+  });
+
   it('does not strip bare Temporary proper-name prefixes', () => {
     assert.equal(
       normalizeJobTitle('Temporary Employment Services (TES), Office Assistant'),

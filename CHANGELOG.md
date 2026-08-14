@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- City of Hamilton titles now show the actual role name instead of BambooHR's internal `Job ID` prefix.
 - Hidden pending recovery now restores source-backed titles from captured PeopleSoft text, so jobs with valid dates are not left invisible.
 - The web build now uses the patched nanoid release, removing its open high-severity development dependency alert.
 
