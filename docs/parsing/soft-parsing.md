@@ -24,6 +24,10 @@ available; otherwise clear the fake title so the listing remains hidden until a
 real title is captured. Existing parsed rows with the same fake heading must be
 repaired during hidden-job deadline recovery as well.
 
+For a missing title, a human-readable URL slug is acceptable only when its
+words are confirmed in the captured source text. Numeric or generic portal URLs
+are not title evidence.
+
 The job may retain an older `job_details` row for recovery. Because
 `parsed_at IS NULL`, the API must treat it as pending and the UI must show
 **Details pending** instead of presenting the parsed body as complete.

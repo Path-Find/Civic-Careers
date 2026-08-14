@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractRawJobTitle, extractTitleDuration, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle } from '../title';
+import { extractRawJobTitle, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle } from '../title';
 
 describe('isEmploymentOrDurationParen', () => {
   it('matches employment and duration parentheticals', () => {
@@ -147,6 +147,29 @@ describe('isUsableJobTitle', () => {
     assert.equal(isUsableJobTitle('Skip to Main Content'), false);
     assert.equal(isUsableJobTitle('Skip To Job Description'), false);
     assert.equal(isUsableJobTitle('Associate Director, Finance and Administration'), true);
+  });
+});
+
+describe('extractUrlJobTitle', () => {
+  it('uses a human-readable URL slug only when the capture confirms it', () => {
+    assert.equal(
+      extractUrlJobTitle(
+        'https://cityofbelleville.applytojob.com/apply/abc/ByLaw-Enforcement-Officer',
+        'By-Law Enforcement Officer Belleville, ON, Canada',
+      ),
+      'By Law Enforcement Officer',
+    );
+    assert.equal(
+      extractUrlJobTitle(
+        'https://careers.example.ca/psc/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL#jobid=123',
+        'Skip to Main Content Search Jobs Job Description',
+      ),
+      '',
+    );
+    assert.equal(
+      extractUrlJobTitle('https://careers.example.ca/jobs/12345', 'Senior Planner'),
+      '',
+    );
   });
 });
 

@@ -22,7 +22,9 @@ Public search includes jobs with a usable title, a current or future exact
 application date, and jobs whose source explicitly says **Open Until Filled**.
 Portal navigation headings such as “Skip to Main Content” are not usable
 titles; the soft-metadata pass falls back to the source title or clears the fake
-title. Other missing, uncertain, invalid, or blocked closing statuses remain hidden.
+title. A human-readable URL slug may be used only when its words are confirmed
+in the captured source text. Other missing, uncertain, invalid, or blocked
+closing statuses remain hidden.
 
 ## Pending application-deadline statuses
 

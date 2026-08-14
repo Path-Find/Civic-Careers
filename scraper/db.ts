@@ -1,6 +1,6 @@
 import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
-import { extractRawJobTitle, isUsableJobTitle, normalizeJobTitle } from './title';
+import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle } from './title';
 import { extractPendingMetadata } from './pending-metadata';
 import { extractClosingDateStatus } from './closing-date';
 import { classifyRawCapture } from './capture-quality';
@@ -505,7 +505,7 @@ export async function saveRawJob(client: Client, job: {
   }
 
   const suppliedTitle = job.title?.trim() || '';
-  const sourceTitle = (isUsableJobTitle(suppliedTitle) ? suppliedTitle : extractRawJobTitle(job.source, job.raw_text)) || null;
+  const sourceTitle = (isUsableJobTitle(suppliedTitle) ? suppliedTitle : extractRawJobTitle(job.source, job.raw_text) || extractUrlJobTitle(job.application_url ?? job.url, job.raw_text)) || null;
   const title = sourceTitle ? normalizeJobTitle(sourceTitle) : null;
   const pending = extractPendingMetadata(sourceTitle, job.raw_text);
   const pendingClosing = extractClosingDateStatus(job.raw_text);

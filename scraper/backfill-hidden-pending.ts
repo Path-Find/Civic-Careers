@@ -12,7 +12,7 @@
 import dotenv from 'dotenv';
 import { initDb } from './db';
 import { extractClosingDateStatus } from './closing-date';
-import { isUsableJobTitle } from './title';
+import { extractUrlJobTitle, isUsableJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
@@ -44,6 +44,7 @@ type Row = {
   date_recovery_eligible: number;
   detail_title: string | null;
   display_title: string | null;
+  url_title: string | null;
   public_url: string | null;
 };
 
@@ -74,6 +75,7 @@ async function main() {
       AND COALESCE(NULLIF(TRIM(r.application_url), ''), NULLIF(TRIM(r.url), ''), NULLIF(TRIM(j.url), '')) IS NOT NULL
       AND (
         LOWER(TRIM(COALESCE(d.job_title, ''))) LIKE 'skip to%'
+        OR COALESCE(NULLIF(TRIM(d.job_title), ''), NULLIF(TRIM(r.title), '')) IS NULL
         OR ((d.closing_date IS NULL OR TRIM(d.closing_date) = '')
           AND (r.pending_closing_date IS NULL OR TRIM(r.pending_closing_date) = '')
           AND COALESCE(r.pending_closing_date_status, 'not_checked') = 'not_checked')
@@ -82,8 +84,12 @@ async function main() {
   `);
 
   const today = new Date().toISOString().slice(0, 10);
-  const titleFixes = (result.rows as unknown as Row[]).filter(row => row.detail_title != null && !isUsableJobTitle(row.detail_title));
-  const candidates = (result.rows as unknown as Row[]).flatMap(row => {
+  const rows = (result.rows as unknown as Row[]).map(row => {
+    const urlTitle = extractUrlJobTitle(String(row.public_url ?? ''), row.raw_text);
+    return { ...row, url_title: urlTitle || null, display_title: row.display_title || urlTitle || null };
+  });
+  const titleFixes = rows.filter(row => !isUsableJobTitle(row.detail_title) && isUsableJobTitle(row.display_title));
+  const candidates = rows.flatMap(row => {
     if (row.date_recovery_eligible !== 1) return [];
     const closing = extractClosingDateStatus(String(row.raw_text ?? ''));
     if (!closing.date || closing.date < today) return [];
@@ -112,14 +118,23 @@ async function main() {
     ...titleFixes.flatMap(row => {
       const before = JSON.stringify({ job_title: row.detail_title });
       const after = JSON.stringify({ job_title: row.display_title });
+      const note = row.url_title
+        ? 'Recovered source title from a validated human-readable URL slug during pending metadata recovery'
+        : 'Recovered source title from captured source text during pending metadata recovery';
       return [
       {
         sql: `INSERT INTO manual_review_changes (job_id, note, before_json, after_json)
               VALUES (?, ?, ?, ?)`,
-        args: [row.id, 'Removed portal navigation heading from job title during pending metadata recovery', before, after],
+        args: [row.id, note, before, after],
       },
       {
-        sql: `UPDATE job_details SET job_title = ? WHERE id = ? AND LOWER(TRIM(COALESCE(job_title, ''))) LIKE 'skip to%'`,
+        sql: `UPDATE raw_jobs SET title = ? WHERE id = ?
+              AND (title IS NULL OR TRIM(title) = '' OR LOWER(TRIM(title)) LIKE 'skip to%')`,
+        args: [row.display_title, row.id],
+      },
+      {
+        sql: `UPDATE job_details SET job_title = ? WHERE id = ?
+              AND (job_title IS NULL OR TRIM(job_title) = '' OR LOWER(TRIM(job_title)) LIKE 'skip to%')`,
         args: [row.display_title, row.id],
       },
       ];

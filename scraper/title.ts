@@ -119,6 +119,36 @@ export function isUsableJobTitle(title: string | null | undefined): boolean {
   return !/^(?:skip\s+to\b|search\s+jobs?\b|job\s+description\b|no\s+results?\b|frequently\s+asked\b)/i.test(normalized);
 }
 
+/**
+ * Recover a title from a human-readable job URL only when the same words also
+ * appear in the captured source text. Numeric IDs and generic portal paths do
+ * not provide enough evidence and return an empty result.
+ */
+export function extractUrlJobTitle(url: string | null | undefined, rawText: string | null | undefined): string {
+  if (!url || !rawText) return '';
+
+  let segment = '';
+  try {
+    const parsed = new URL(url);
+    segment = parsed.pathname.split('/').filter(Boolean).at(-1) ?? '';
+    segment = decodeURIComponent(segment).replace(/\.(?:html?|aspx?)$/i, '');
+  } catch {
+    return '';
+  }
+
+  if (!segment || /\.gbl$/i.test(segment) || /^(?:job|jobs|posting|postings|search|home)$/i.test(segment)) return '';
+  const candidate = normalizeJobTitle(segment.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' '));
+  if (!isUsableJobTitle(candidate)) return '';
+
+  const evidenceWords = (value: string): Set<string> => new Set(
+    value.toLowerCase().replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[^a-z0-9]+/g, ' ').split(/\s+/).filter(Boolean),
+  );
+  const candidateWords = [...evidenceWords(candidate)].filter(word => word.length > 1 && !/^\d+$/.test(word));
+  const sourceWords = evidenceWords(rawText);
+  if (candidateWords.length < 2 || !candidateWords.every(word => sourceWords.has(word))) return '';
+  return candidate;
+}
+
 /** Extract a source-provided employment term from title metadata. */
 export function extractTitleDuration(title: string | null | undefined): string | null {
   const original = String(title ?? '').replace(/\s+/g, ' ').trim();

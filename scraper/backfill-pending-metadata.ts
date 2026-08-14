@@ -9,7 +9,7 @@ import { initDb } from './db';
 import dotenv from 'dotenv';
 import { extractPendingMetadata, isUsablePendingLocation } from './pending-metadata';
 import { extractClosingDateStatus } from './closing-date';
-import { extractRawJobTitle, isUsableJobTitle, normalizeJobTitle } from './title';
+import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
@@ -32,7 +32,7 @@ async function main() {
   });
 
   const result = await db.execute(`
-    SELECT r.id, r.source, r.title, r.raw_text, r.pending_closing_date, r.pending_location
+    SELECT r.id, r.source, r.url, r.application_url, r.title, r.raw_text, r.pending_closing_date, r.pending_location
     FROM raw_jobs r
     JOIN jobs j ON j.id = r.id
     LEFT JOIN job_details d ON d.id = r.id
@@ -45,7 +45,8 @@ async function main() {
     const rawText = String(row.raw_text ?? '');
     const title = isUsableJobTitle(suppliedTitle)
       ? normalizeJobTitle(suppliedTitle)
-      : extractRawJobTitle(String(row.source ?? ''), rawText);
+      : extractRawJobTitle(String(row.source ?? ''), rawText)
+        || extractUrlJobTitle(String(row.application_url ?? row.url ?? ''), rawText);
     const pending = extractPendingMetadata(title, rawText);
     const closing = extractClosingDateStatus(rawText);
     const existingClosingDate = String(row.pending_closing_date ?? '').trim();
