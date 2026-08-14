@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Hidden pending recovery now restores source-backed titles from captured PeopleSoft text, so jobs with valid dates are not left invisible.
+
 - **Fake portal headings no longer publish as job titles** — source titles are used when available, otherwise the listing stays hidden until a real title is captured.
 - **Human-readable job URLs can recover missing titles safely** — URL slugs are used only when their words are confirmed in the captured source text.
 - **PeopleSoft detail captures now recover titles across tenant layouts** — Fleming and TransLink postings no longer remain titleless when their detail pages use different heading formats.
