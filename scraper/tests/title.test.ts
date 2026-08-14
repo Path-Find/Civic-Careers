@@ -180,6 +180,14 @@ describe('extractRawJobTitle', () => {
       'Administrative Assistant V',
     );
     assert.equal(
+      extractRawJobTitle('Fleming College', 'Job Description\nMore Actions\nPrevious Job\nProfessor, Police Foundations\nNext Job\nApply for Job\nJob TitleProfessor, Police Foundations\nDescrAcademic Full Time'),
+      'Professor, Police Foundations',
+    );
+    assert.equal(
+      extractRawJobTitle('TransLink', 'Job Description\nMore Actions\nPrevious Job\nLead Industrial Engineer, Maintenance Improvements (Lean Six Sigma)\nNext Job\nApply for Job\nJob ID20260599'),
+      'Lead Industrial Engineer, Maintenance Improvements (Lean Six Sigma)',
+    );
+    assert.equal(
       extractRawJobTitle('City of Calgary', 'Search JobsJob DescriptionJob TitleTechnical Documentation SpecialistNext JobJob ID315101'),
       'Technical Documentation Specialist',
     );

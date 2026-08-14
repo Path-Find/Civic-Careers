@@ -3,7 +3,7 @@ import { normalizePostedDate } from './posted-date';
 const WEEKDAY = '(?:Mon(?:day)?|Tue(?:s(?:day)?)?|Wed(?:nesday)?|Thu(?:rs(?:day)?)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)';
 const DATE_VALUE = `(?:${WEEKDAY},?\\s+)?(?:[A-Za-z]{3,9}\\s*,?\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s*\\d{2,4}|[A-Za-z]{3,9}\\s+\\d{1,2}(?:st|nd|rd|th)?|\\d{4}\\s*[/-]\\s*\\d{1,2}\\s*[/-]\\s*\\d{1,2}|\\d{1,2}\\s*[/-]\\s*\\d{1,2}\\s*[/-]\\s*\\d{2,4}|\\d{1,2}[-/][A-Za-z]{3,9}[-/]\\d{2,4})`;
 const CLOSING_LABEL = new RegExp(
-  `(?:posting\\s+end\\s+date|post\\s+end\\s+date|posting\\s+closing\\s+date|external\\s+closing\\s+date|job\\s+closing\\s+date(?:\\s*\\([^)]*\\))?|closing\\s+date(?:\\s+(?:internal|external))?(?:\\s*\\([^)]*\\))?|close\\s+date|closing\\s+deadline|application\\s+deadline|apply\\s+by|apply\\s+before|please\\s+apply\\s+by|last\\s+(?:date|day)\\s+to\\s+apply|posting\\s+close(?:s|d)?|deadline(?:\\s+to\\s+apply|\\s+expires)?\\s*[:\\-]?|applications?\\s+must\\s+be\\s+received(?:\\s+by)?|\\|\\s*expires?)\\s*[:\\-]?\\s*(${DATE_VALUE})`,
+  `(?:posting\\s+end\\s+date|post\\s+end\\s+date|posting\\s+closing\\s+date|external\\s+closing\\s+date|job\\s+closing\\s+date(?:\\s*\\([^)]*\\))?|closing\\s+date(?:\\s+(?:internal|external))?(?:\\s*\\([^)]*\\))?|date\\s+closed|close\\s+date|closing\\s+deadline|application\\s+deadline|apply\\s+by|apply\\s+before|please\\s+apply\\s+by|last\\s+(?:date|day)\\s+to\\s+apply|posting\\s+close(?:s|d)?|deadline(?:\\s+to\\s+apply|\\s+expires)?\\s*[:\\-]?|applications?\\s+must\\s+be\\s+received(?:\\s+by)?|\\|\\s*expires?)\\s*[:\\-]?\\s*(${DATE_VALUE})`,
   'gi',
 );
 

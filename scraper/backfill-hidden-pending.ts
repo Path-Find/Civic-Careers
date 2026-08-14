@@ -12,7 +12,7 @@
 import dotenv from 'dotenv';
 import { initDb } from './db';
 import { extractClosingDateStatus } from './closing-date';
-import { extractUrlJobTitle, isUsableJobTitle } from './title';
+import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
@@ -75,7 +75,7 @@ async function main() {
       AND COALESCE(NULLIF(TRIM(r.application_url), ''), NULLIF(TRIM(r.url), ''), NULLIF(TRIM(j.url), '')) IS NOT NULL
       AND (
         LOWER(TRIM(COALESCE(d.job_title, ''))) LIKE 'skip to%'
-        OR COALESCE(NULLIF(TRIM(d.job_title), ''), NULLIF(TRIM(r.title), '')) IS NULL
+        OR NULLIF(TRIM(d.job_title), '') IS NULL
         OR ((d.closing_date IS NULL OR TRIM(d.closing_date) = '')
           AND (r.pending_closing_date IS NULL OR TRIM(r.pending_closing_date) = '')
           AND COALESCE(r.pending_closing_date_status, 'not_checked') = 'not_checked')
@@ -85,8 +85,13 @@ async function main() {
 
   const today = new Date().toISOString().slice(0, 10);
   const rows = (result.rows as unknown as Row[]).map(row => {
+    const sourceTitle = extractRawJobTitle(row.source, row.raw_text);
     const urlTitle = extractUrlJobTitle(String(row.public_url ?? ''), row.raw_text);
-    return { ...row, url_title: urlTitle || null, display_title: row.display_title || urlTitle || null };
+    return {
+      ...row,
+      url_title: urlTitle || null,
+      display_title: row.display_title || sourceTitle || urlTitle || null,
+    };
   });
   const titleFixes = rows.filter(row => !isUsableJobTitle(row.detail_title) && isUsableJobTitle(row.display_title));
   const candidates: Array<Row & {
