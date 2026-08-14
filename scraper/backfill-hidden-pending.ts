@@ -89,14 +89,20 @@ async function main() {
     return { ...row, url_title: urlTitle || null, display_title: row.display_title || urlTitle || null };
   });
   const titleFixes = rows.filter(row => !isUsableJobTitle(row.detail_title) && isUsableJobTitle(row.display_title));
-  const candidates = rows.flatMap(row => {
+  const candidates: Array<Row & {
+    closingDate: string | null;
+    closingStatus: 'known' | 'open_until_filled';
+  }> = rows.flatMap(row => {
     if (row.date_recovery_eligible !== 1) return [];
     const closing = extractClosingDateStatus(String(row.raw_text ?? ''));
+    if (closing.status === 'open_until_filled') {
+      return [{ ...row, closingDate: null, closingStatus: 'open_until_filled' as const }];
+    }
     if (!closing.date || closing.date < today) return [];
-    return [{ ...row, closingDate: closing.date }];
+    return [{ ...row, closingDate: closing.date, closingStatus: 'known' as const }];
   }).slice(0, LIMIT);
 
-  console.log(`[Hidden deadline backfill] ${APPLY ? 'Applying' : 'Dry run'}: ${candidates.length}/${LIMIT} date candidate(s), ${titleFixes.length} title fix(es), today=${today}.`);
+  console.log(`[Hidden deadline backfill] ${APPLY ? 'Applying' : 'Dry run'}: ${candidates.length}/${LIMIT} pending metadata candidate(s), ${titleFixes.length} title fix(es), today=${today}.`);
   for (const row of candidates) {
     console.log(JSON.stringify({
       public_id: row.public_id,
@@ -104,6 +110,7 @@ async function main() {
       title: row.display_title,
       url: row.public_url,
       closing_date: row.closingDate,
+      closing_status: row.closingStatus,
       evidence: extractEvidence(String(row.raw_text ?? '')),
     }));
   }
@@ -149,7 +156,7 @@ async function main() {
       });
       const after = JSON.stringify({
         pending_closing_date: row.closingDate,
-        pending_closing_date_status: 'known',
+        pending_closing_date_status: row.closingStatus,
         parsed_at: null,
         verified_at: null,
         closing_date: row.closing_date,
@@ -158,15 +165,17 @@ async function main() {
         {
           sql: `INSERT INTO manual_review_changes (job_id, note, before_json, after_json)
                 VALUES (?, ?, ?, ?)`,
-          args: [row.id, 'Recovered source-backed application deadline and re-queued for pending-details visibility', before, after],
+          args: [row.id, row.closingStatus === 'open_until_filled'
+            ? 'Recovered explicit Open Until Filled status and re-queued for pending-details visibility'
+            : 'Recovered source-backed application deadline and re-queued for pending-details visibility', before, after],
         },
         {
           sql: `UPDATE raw_jobs
-                SET pending_closing_date = ?, pending_closing_date_status = 'known', parsed_at = NULL
+                SET pending_closing_date = ?, pending_closing_date_status = ?, parsed_at = NULL
                 WHERE id = ?
                   AND (pending_closing_date IS NULL OR TRIM(pending_closing_date) = '')
                   AND COALESCE(pending_closing_date_status, 'not_checked') = 'not_checked'`,
-          args: [row.closingDate, row.id],
+          args: [row.closingDate, row.closingStatus, row.id],
         },
         {
           sql: `UPDATE jobs SET verified_at = NULL WHERE id = ? AND is_active = 1`,
@@ -188,13 +197,15 @@ async function main() {
           JOIN raw_jobs r ON r.id = j.id
           WHERE j.is_active = 1
             AND j.id IN (${ids.map(() => '?').join(',')})
-            AND r.pending_closing_date_status = 'known'
-            AND r.pending_closing_date IS NOT NULL
+            AND (
+              (r.pending_closing_date_status = 'known' AND r.pending_closing_date IS NOT NULL)
+              OR r.pending_closing_date_status = 'open_until_filled'
+            )
             AND r.parsed_at IS NULL`,
     args: ids,
   });
   const verified = Number(verification.rows[0]?.count ?? 0);
-  if (verified !== candidates.length) throw new Error(`Verification failed: ${verified}/${candidates.length} rows are pending with known dates.`);
+  if (verified !== candidates.length) throw new Error(`Verification failed: ${verified}/${candidates.length} rows are pending with recovered metadata.`);
   console.log(`[Hidden deadline backfill] Applied and verified ${verified}/${candidates.length} row(s).`);
 }
 

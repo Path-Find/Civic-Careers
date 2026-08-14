@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unreachable source pages can now be marked blocked** — bot challenges, expired pages, and non-rendering portals stop looping through the 100-job recovery and metadata batches while remaining hidden from public listings.
 - **Deadline extraction now handles competition-close times and internal/external closing labels** — refreshed source captures can become pending-visible instead of remaining hidden when the date is wrapped in time text or split by audience.
 - **Soft-parsed deadlines now survive scraper refreshes** — a temporary extractor miss cannot erase a previously confirmed application closing date before full parsing.
-- **Source-backed hidden jobs can be re-queued with recovered application deadlines** — bounded Neon batches retain their parsed data, show the pending-details state, and remain ready for the normal parser queue.
+- **Source-backed hidden jobs can be re-queued with recovered deadlines or Open Until Filled status** — bounded Neon batches retain their parsed data, show the pending-details state, and remain ready for the normal parser queue.
 - **Automated DeepSeek parsing and AI backfills are paused by default** — jobs can be parsed manually in Codex without an accidental provider call.
 - **Active and expired jobs now have a tested Neon migration path** — current jobs stay in the live database while expired jobs move directly to a separate Neon archive database, reducing Turso reads without requiring an R2 handoff.
 - **Operational backfills now use the Neon-aware database layer** — maintenance corrections follow the current/archive routing instead of silently writing to Turso.
