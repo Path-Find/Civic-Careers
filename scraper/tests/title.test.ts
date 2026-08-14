@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractRawJobTitle, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle } from '../title';
+import { extractRawJobTitle, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from '../title';
 
 describe('isEmploymentOrDurationParen', () => {
   it('matches employment and duration parentheticals', () => {
@@ -115,6 +115,25 @@ describe('normalizeJobTitle', () => {
       'Senior Financial Analyst-Utility Billing',
     );
     assert.equal(normalizeJobTitle('JOB ID 32166: Process Supervisor'), 'Process Supervisor');
+  });
+
+  it('cleans source-specific title metadata', () => {
+    assert.equal(
+      normalizeSourceJobTitle('City of Waterloo', 'Wastewater Operator Employment StatusRegular Full-Time'),
+      'Wastewater Operator',
+    );
+    assert.equal(
+      normalizeSourceJobTitle('Humber College', 'Clinical Education Resources Manager - FHLS - FT Admin'),
+      'Clinical Education Resources Manager',
+    );
+    assert.equal(
+      normalizeSourceJobTitle('Humber College', 'Transportation and Parking Services Coordinator - CDFM - RPT'),
+      'Transportation and Parking Services Coordinator',
+    );
+    assert.equal(
+      normalizeSourceJobTitle('Humber College', 'Nursing Lab Specialist (2 Positions) - FHLS - FT Support'),
+      'Nursing Lab Specialist',
+    );
   });
 
   it('does not strip bare Temporary proper-name prefixes', () => {

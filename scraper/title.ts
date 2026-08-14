@@ -116,6 +116,30 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   return t || original;
 }
 
+/** Apply source-specific cleanup after the shared title normalization. */
+export function normalizeSourceJobTitle(source: string | null | undefined, title: string | null | undefined): string {
+  let normalized = normalizeJobTitle(title);
+  if (!normalized) return '';
+
+  if (source === 'City of Waterloo') {
+    // TalentPoolBuilder appends the employment-status field directly to the
+    // captured heading, sometimes without a separating space.
+    normalized = normalized.replace(/\s*employment\s+status.*$/i, '').trim();
+  }
+
+  if (source === 'Humber College') {
+    // Taleo includes Humber's faculty/department and employment classification
+    // in the same heading as the role title.
+    normalized = normalized.replace(/\s*\(\d+\s+positions?\)/i, '').trim();
+    normalized = normalized.replace(
+      /\s*(?:[-–—,]\s*)(?:(?:FHLS|CDFM|FMCAD|FAST|BCTI|UGH|SWEL|SSE|ITS|R&SM|RO|Office of the Registrar|Campus Services)(?:\s*[-–—]\s*(?:FT|PT)\s+(?:Admin|Support)|\s*[-–—]\s*(?:RPT|CPT|PC Prof|Clinical Contract|RPT Recurring))?|(?:FT|PT)\s+(?:Admin|Support)|(?:RPT|CPT|PC Prof|Clinical Contract|RPT Recurring))$/i,
+      '',
+    ).trim();
+  }
+
+  return normalized || normalizeJobTitle(title);
+}
+
 /** Return false for portal navigation headings that are not job titles. */
 export function isUsableJobTitle(title: string | null | undefined): boolean {
   const normalized = normalizeJobTitle(title);
