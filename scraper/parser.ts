@@ -4,7 +4,7 @@ import { githubRunUrl, notifyDiscord } from './utils';
 import { classifyRawCapture } from './capture-quality';
 import { normalizeDuration } from './duration';
 import { extractLabeledLocation, normalizeLocation } from './location';
-import { normalizeJobTitle } from './title';
+import { extractRawJobTitle, isUsableJobTitle, normalizeJobTitle } from './title';
 import { normalizeEmploymentType, normalizeSalaryPeriod, normalizeUnionFields, normalizeWorkModel } from './validate';
 import {
   dedupeSkillsAgainstSoftware,
@@ -85,6 +85,11 @@ async function main() {
       }
       const { data: aiResult, error } = await parseJobWithAI(raw.raw_text, raw.title ?? undefined);
       if (aiResult) {
+        const aiTitle = normalizeJobTitle(aiResult.job_title);
+        const sourceTitle = isUsableJobTitle(raw.title)
+          ? normalizeJobTitle(raw.title)
+          : extractRawJobTitle(raw.source, raw.raw_text);
+        const finalTitle = isUsableJobTitle(aiTitle) ? aiTitle : sourceTitle;
         const sourceFix = GOVERNMENT_OF_CANADA_FIXES[raw.id];
         const sourceMetadataFix = sourceMetadataFixFor(raw.id, raw.raw_text);
         let description = sourceMetadataFix?.description || sourceFix?.description || cleanJobDescription(aiResult.clean_description, aiResult.job_title, raw.source);
@@ -117,7 +122,7 @@ async function main() {
           ? true
           : (vehicleFromAI ?? vehicleFromDescription);
         const isStudent = sourceFix?.isStudent ?? (aiResult.is_student ? 1 : 0);
-        const careerStage = classifyCareerStage({ title: aiResult.job_title, rawText: raw.raw_text, isStudent });
+        const careerStage = classifyCareerStage({ title: finalTitle, rawText: raw.raw_text, isStudent });
         description = stripStructuredQualBullets(description, {
           licenses: structuredRequirements.license_requirements,
           education: structuredRequirements.education_requirements,
@@ -145,7 +150,7 @@ async function main() {
         await saveJob(db, { id: raw.id, url: raw.application_url ?? raw.url, source: raw.source, first_seen_at: raw.first_seen_at as string });
         await saveJobDetails(db, {
           id: raw.id,
-          job_title: normalizeJobTitle(aiResult.job_title),
+          job_title: finalTitle,
           department: sourceMetadataFix?.department ?? aiResult.department,
           location,
           workplace_address: aiResult.workplace_address,
@@ -160,7 +165,7 @@ async function main() {
           salary_min: sourceMetadataFix?.salaryMin ?? aiResult.salary_min,
           salary_max: sourceMetadataFix?.salaryMax ?? aiResult.salary_max,
           salary_period: sourceMetadataFix?.salaryPeriod ?? normalizeSalaryPeriod(aiResult.salary_period),
-          work_model: normalizeWorkModel(aiResult.work_model, aiResult.job_title),
+          work_model: normalizeWorkModel(aiResult.work_model, finalTitle),
           employment_type: sourceMetadataFix?.employmentType ?? normalizeEmploymentType(aiResult.employment_type),
           duration: sourceMetadataFix?.duration ?? normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || ''),
           hours: sourceMetadataFix?.hours ?? aiResult.hours,

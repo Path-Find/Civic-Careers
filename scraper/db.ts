@@ -1,6 +1,6 @@
 import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
-import { extractRawJobTitle, normalizeJobTitle } from './title';
+import { extractRawJobTitle, isUsableJobTitle, normalizeJobTitle } from './title';
 import { extractPendingMetadata } from './pending-metadata';
 import { extractClosingDateStatus } from './closing-date';
 import { classifyRawCapture } from './capture-quality';
@@ -504,7 +504,8 @@ export async function saveRawJob(client: Client, job: {
     return false;
   }
 
-  const sourceTitle = job.title?.trim() || extractRawJobTitle(job.source, job.raw_text) || null;
+  const suppliedTitle = job.title?.trim() || '';
+  const sourceTitle = (isUsableJobTitle(suppliedTitle) ? suppliedTitle : extractRawJobTitle(job.source, job.raw_text)) || null;
   const title = sourceTitle ? normalizeJobTitle(sourceTitle) : null;
   const pending = extractPendingMetadata(sourceTitle, job.raw_text);
   const pendingClosing = extractClosingDateStatus(job.raw_text);
@@ -558,7 +559,8 @@ export async function savePendingJob(client: Client, job: {
   posted_at?: string | null;
 }) {
   await asNeonClient(client)?.restoreIfArchived(job.id);
-  const sourceTitle = job.title?.trim() || null;
+  const suppliedTitle = job.title?.trim() || '';
+  const sourceTitle = isUsableJobTitle(suppliedTitle) ? suppliedTitle : null;
   const title = sourceTitle ? normalizeJobTitle(sourceTitle) : null;
   const pending = extractPendingMetadata(sourceTitle, '');
   const pendingClosingDateStatus = job.closing_date ? 'known' : 'not_checked';

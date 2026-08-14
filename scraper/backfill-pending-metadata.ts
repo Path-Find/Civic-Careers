@@ -9,7 +9,7 @@ import { initDb } from './db';
 import dotenv from 'dotenv';
 import { extractPendingMetadata, isUsablePendingLocation } from './pending-metadata';
 import { extractClosingDateStatus } from './closing-date';
-import { normalizeJobTitle } from './title';
+import { extractRawJobTitle, isUsableJobTitle, normalizeJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
@@ -32,7 +32,7 @@ async function main() {
   });
 
   const result = await db.execute(`
-    SELECT r.id, r.title, r.raw_text, r.pending_closing_date, r.pending_location
+    SELECT r.id, r.source, r.title, r.raw_text, r.pending_closing_date, r.pending_location
     FROM raw_jobs r
     JOIN jobs j ON j.id = r.id
     LEFT JOIN job_details d ON d.id = r.id
@@ -41,13 +41,17 @@ async function main() {
       ${INCLUDE_INACTIVE ? '' : 'AND j.is_active = 1'}
   `);
   const updates = result.rows.map(row => {
-    const title = String(row.title ?? '');
-    const pending = extractPendingMetadata(title, String(row.raw_text ?? ''));
-    const closing = extractClosingDateStatus(String(row.raw_text ?? ''));
+    const suppliedTitle = String(row.title ?? '');
+    const rawText = String(row.raw_text ?? '');
+    const title = isUsableJobTitle(suppliedTitle)
+      ? normalizeJobTitle(suppliedTitle)
+      : extractRawJobTitle(String(row.source ?? ''), rawText);
+    const pending = extractPendingMetadata(title, rawText);
+    const closing = extractClosingDateStatus(rawText);
     const existingClosingDate = String(row.pending_closing_date ?? '').trim();
     return {
       id: String(row.id),
-      title: normalizeJobTitle(title),
+      title: title || null,
       ...pending,
       closingDate: existingClosingDate || closing.date,
       location: pending.location || (isUsablePendingLocation(String(row.pending_location ?? '')) ? String(row.pending_location) : null),
@@ -68,7 +72,7 @@ async function main() {
 
   await db.batch(updates.map(row => ({
     sql: `UPDATE raw_jobs
-          SET title = COALESCE(NULLIF(?, ''), title), pending_salary_text = ?, pending_is_student = ?, pending_duration = COALESCE(NULLIF(TRIM(pending_duration), ''), ?), pending_location = ?, pending_closing_date = COALESCE(NULLIF(TRIM(pending_closing_date), ''), ?), pending_closing_date_status = ?
+          SET title = ?, pending_salary_text = ?, pending_is_student = ?, pending_duration = COALESCE(NULLIF(TRIM(pending_duration), ''), ?), pending_location = ?, pending_closing_date = COALESCE(NULLIF(TRIM(pending_closing_date), ''), ?), pending_closing_date_status = ?
           WHERE id = ? AND parsed_at IS NULL
             AND COALESCE(pending_closing_date_status, 'not_checked') <> 'blocked'
             AND NOT EXISTS (SELECT 1 FROM job_details WHERE job_details.id = raw_jobs.id)`,

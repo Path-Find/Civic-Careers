@@ -112,6 +112,13 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   return t || original;
 }
 
+/** Return false for portal navigation headings that are not job titles. */
+export function isUsableJobTitle(title: string | null | undefined): boolean {
+  const normalized = normalizeJobTitle(title);
+  if (!normalized) return false;
+  return !/^(?:skip\s+to\b|search\s+jobs?\b|job\s+description\b|no\s+results?\b|frequently\s+asked\b)/i.test(normalized);
+}
+
 /** Extract a source-provided employment term from title metadata. */
 export function extractTitleDuration(title: string | null | undefined): string | null {
   const original = String(title ?? '').replace(/\s+/g, ' ').trim();
@@ -178,7 +185,6 @@ export function extractRawJobTitle(source: string, rawText: string | null | unde
   }
 
   const title = normalizeJobTitle(candidate);
-  if (!title || /^(?:search|title|job description|jobs?)$/i.test(title)) return '';
-  if (/search jobs|job description|no results|frequently asked/i.test(title)) return '';
+  if (!isUsableJobTitle(title)) return '';
   return title;
 }

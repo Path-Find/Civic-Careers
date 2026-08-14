@@ -26,3 +26,4 @@ scraper/fix_*.ts
 scraper/list_*.ts
 scraper/backfill_*.ts
 scraper/clean_*.ts
+.vercel

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Fake portal headings no longer publish as job titles** — source titles are used when available, otherwise the listing stays hidden until a real title is captured.
+
 ### Changed
 - **Explicit open-until-filled jobs are now publicly visible** — valid source deadlines no longer require a calendar date when the employer says applications remain open until filled.
 - **More source deadline labels are recognized safely** — application-close and expiration labels now recover dated deadlines, while explicit “open until filled” variants remain date-free.

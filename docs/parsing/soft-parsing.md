@@ -18,6 +18,12 @@ application metadata. It stores `pending_closing_date_status =
 'open_until_filled'` with no calendar date. It is eligible for public listing;
 do not replace it with an invented date.
 
+The same soft-metadata pass must normalize titles. If a captured title is portal
+navigation text such as “Skip to Main Content,” use a source title when one is
+available; otherwise clear the fake title so the listing remains hidden until a
+real title is captured. Existing parsed rows with the same fake heading must be
+repaired during hidden-job deadline recovery as well.
+
 The job may retain an older `job_details` row for recovery. Because
 `parsed_at IS NULL`, the API must treat it as pending and the UI must show
 **Details pending** instead of presenting the parsed body as complete.

@@ -32,6 +32,11 @@ const closingDate = `COALESCE(
   NULLIF(NULLIF(NULLIF(NULLIF(TRIM(raw.pending_closing_date), ''), 'null'), 'NULL'), 'N/A')
 )`;
 const sourceText = `LOWER(COALESCE(raw.title, '') || ' ' || COALESCE(raw.raw_text, ''))`;
+const publicTitle = `COALESCE(
+  CASE WHEN LOWER(TRIM(COALESCE(jd.job_title, ''))) LIKE 'skip to%' THEN NULL ELSE NULLIF(TRIM(jd.job_title), '') END,
+  CASE WHEN LOWER(TRIM(COALESCE(raw.title, ''))) LIKE 'skip to%' THEN NULL ELSE NULLIF(TRIM(raw.title), '') END
+)`;
+const publicTitleVisibility = `AND ${publicTitle} IS NOT NULL`;
 const explicitOpenUntilFilled = `(
   (${sourceText} LIKE '%until filled%' AND (
     ${sourceText} LIKE '%closing date%'
@@ -99,12 +104,12 @@ END`;
 const publicDeadline = `AND ((${closingDate} IS NOT NULL
   AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text)
   OR ${closingDateStatus} = 'open_until_filled')`;
-const currentPublicJobVisibility = `AND j.is_active = 1 ${publicDeadline}`;
+const currentPublicJobVisibility = `AND j.is_active = 1 ${publicTitleVisibility} ${publicDeadline}`;
 
 const jobColumns = `
   j.public_id AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
-  COALESCE(jd.job_title, raw.title) AS job_title, jd.department, COALESCE(jd.location, raw.pending_location) AS location,
+  ${publicTitle} AS job_title, jd.department, COALESCE(jd.location, raw.pending_location) AS location,
   raw.url AS details_url,
   COALESCE(jd.salary_range, raw.pending_salary_text) AS salary_range,
   ${closingDate} AS closing_date, ${closingDateStatus} AS closing_date_status,
@@ -128,7 +133,7 @@ const jobJoins = `
   LEFT JOIN raw_jobs raw ON j.id = raw.id`;
 
 const freshnessDate = `CASE WHEN COALESCE(jd.posted_at, raw.posted_at) IS NOT NULL AND LEFT(COALESCE(jd.posted_at, raw.posted_at), 10) <= CURRENT_DATE::text THEN LEFT(COALESCE(jd.posted_at, raw.posted_at), 10)::date ELSE j.first_seen_at::date END`;
-const visiblePending = `AND (jd.id IS NOT NULL OR length(trim(COALESCE(raw.title, ''))) > 0)`;
+const visiblePending = publicTitleVisibility;
 
 /** Match web/src/utils.ts slugify — company URLs are /companies/{slug}. */
 function slugifySource(text: string): string {

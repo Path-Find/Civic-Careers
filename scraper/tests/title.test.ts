@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractRawJobTitle, extractTitleDuration, isEmploymentOrDurationParen, normalizeJobTitle } from '../title';
+import { extractRawJobTitle, extractTitleDuration, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle } from '../title';
 
 describe('isEmploymentOrDurationParen', () => {
   it('matches employment and duration parentheticals', () => {
@@ -139,6 +139,14 @@ describe('normalizeJobTitle', () => {
     assert.equal(extractTitleDuration('House Technician II (Temporary, up to 6 months)'), 'up to 6 months');
     assert.equal(extractTitleDuration('Recreation Facilities Attendant I - Arenas (Permanent, On-Call)'), 'Permanent');
     assert.equal(extractTitleDuration('Senior Copywriter Specialist (12 months contract)'), '12 months contract');
+  });
+});
+
+describe('isUsableJobTitle', () => {
+  it('rejects portal navigation headings but keeps real roles', () => {
+    assert.equal(isUsableJobTitle('Skip to Main Content'), false);
+    assert.equal(isUsableJobTitle('Skip To Job Description'), false);
+    assert.equal(isUsableJobTitle('Associate Director, Finance and Administration'), true);
   });
 });
 

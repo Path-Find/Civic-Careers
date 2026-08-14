@@ -12,12 +12,23 @@
 import dotenv from 'dotenv';
 import { initDb } from './db';
 import { extractClosingDateStatus } from './closing-date';
+import { isUsableJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
 const limitArgument = process.argv.find(value => value.startsWith('--limit='));
 const LIMIT = Math.max(1, Math.min(100, Number(limitArgument?.split('=')[1] ?? 100)));
+
+const EVIDENCE_PATTERN = /closing date|deadline|apply by|apply before|last day to apply|applications? must be received|expires|posting close|posting end date|close date|time left to apply|end date/i;
+
+function extractEvidence(rawText: string): string {
+  const text = rawText.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, ' ').trim();
+  const match = EVIDENCE_PATTERN.exec(text);
+  const index = match?.index ?? 0;
+  const start = Math.max(0, index - 24);
+  return text.slice(start, start + 180);
+}
 
 type Row = {
   id: string;
@@ -30,6 +41,8 @@ type Row = {
   parsed_at: string | null;
   verified_at: string | null;
   closing_date: string | null;
+  date_recovery_eligible: number;
+  detail_title: string | null;
   display_title: string | null;
   public_url: string | null;
 };
@@ -44,74 +57,114 @@ async function main() {
            r.title, r.raw_text, r.pending_closing_date,
            r.pending_closing_date_status, r.parsed_at,
            d.closing_date,
-           COALESCE(NULLIF(TRIM(d.job_title), ''), NULLIF(TRIM(r.title), '')) AS display_title,
+           CASE WHEN (d.closing_date IS NULL OR TRIM(d.closing_date) = '')
+                  AND (r.pending_closing_date IS NULL OR TRIM(r.pending_closing_date) = '')
+                  AND COALESCE(r.pending_closing_date_status, 'not_checked') = 'not_checked'
+                THEN 1 ELSE 0 END AS date_recovery_eligible,
+           d.job_title AS detail_title,
+           COALESCE(
+             CASE WHEN LOWER(TRIM(COALESCE(d.job_title, ''))) LIKE 'skip to%' THEN NULL ELSE NULLIF(TRIM(d.job_title), '') END,
+             CASE WHEN LOWER(TRIM(COALESCE(r.title, ''))) LIKE 'skip to%' THEN NULL ELSE NULLIF(TRIM(r.title), '') END
+           ) AS display_title,
            COALESCE(NULLIF(TRIM(r.application_url), ''), NULLIF(TRIM(r.url), ''), NULLIF(TRIM(j.url), '')) AS public_url
     FROM jobs j
     JOIN raw_jobs r ON r.id = j.id
     JOIN job_details d ON d.id = j.id
     WHERE j.is_active = 1
-      AND (d.closing_date IS NULL OR TRIM(d.closing_date) = '')
-      AND (r.pending_closing_date IS NULL OR TRIM(r.pending_closing_date) = '')
-      AND COALESCE(r.pending_closing_date_status, 'not_checked') = 'not_checked'
-      AND d.job_title <> 'Skip to Main Content'
-      AND COALESCE(NULLIF(TRIM(d.job_title), ''), NULLIF(TRIM(r.title), '')) IS NOT NULL
       AND COALESCE(NULLIF(TRIM(r.application_url), ''), NULLIF(TRIM(r.url), ''), NULLIF(TRIM(j.url), '')) IS NOT NULL
-      AND LOWER(COALESCE(NULLIF(TRIM(d.job_title), ''), NULLIF(TRIM(r.title), ''))) NOT LIKE 'skip to%'
+      AND (
+        LOWER(TRIM(COALESCE(d.job_title, ''))) LIKE 'skip to%'
+        OR ((d.closing_date IS NULL OR TRIM(d.closing_date) = '')
+          AND (r.pending_closing_date IS NULL OR TRIM(r.pending_closing_date) = '')
+          AND COALESCE(r.pending_closing_date_status, 'not_checked') = 'not_checked')
+      )
     ORDER BY j.public_id
   `);
 
   const today = new Date().toISOString().slice(0, 10);
+  const titleFixes = (result.rows as unknown as Row[]).filter(row => row.detail_title != null && !isUsableJobTitle(row.detail_title));
   const candidates = (result.rows as unknown as Row[]).flatMap(row => {
+    if (row.date_recovery_eligible !== 1) return [];
     const closing = extractClosingDateStatus(String(row.raw_text ?? ''));
     if (!closing.date || closing.date < today) return [];
     return [{ ...row, closingDate: closing.date }];
   }).slice(0, LIMIT);
 
-  console.log(`[Hidden deadline backfill] ${APPLY ? 'Applying' : 'Dry run'}: ${candidates.length}/${LIMIT} candidate(s), today=${today}.`);
-  for (const row of candidates.slice(0, 20)) {
-    console.log(JSON.stringify({ public_id: row.public_id, source: row.source, title: row.display_title, closing_date: row.closingDate }));
+  console.log(`[Hidden deadline backfill] ${APPLY ? 'Applying' : 'Dry run'}: ${candidates.length}/${LIMIT} date candidate(s), ${titleFixes.length} title fix(es), today=${today}.`);
+  for (const row of candidates) {
+    console.log(JSON.stringify({
+      public_id: row.public_id,
+      source: row.source,
+      title: row.display_title,
+      url: row.public_url,
+      closing_date: row.closingDate,
+      evidence: extractEvidence(String(row.raw_text ?? '')),
+    }));
   }
 
-  if (!APPLY || candidates.length === 0) {
-    if (!APPLY) console.log('Dry run only. Re-run with --apply to write.');
+  if (!APPLY) {
+    console.log('Dry run only. Re-run with --apply to write.');
     return;
   }
+  if (titleFixes.length === 0 && candidates.length === 0) return;
 
-  await db.batch(candidates.flatMap(row => {
-    const before = JSON.stringify({
-      pending_closing_date: row.pending_closing_date,
-      pending_closing_date_status: row.pending_closing_date_status,
-      parsed_at: row.parsed_at,
-      verified_at: row.verified_at,
-      closing_date: row.closing_date,
-    });
-    const after = JSON.stringify({
-      pending_closing_date: row.closingDate,
-      pending_closing_date_status: 'known',
-      parsed_at: null,
-      verified_at: null,
-      closing_date: row.closing_date,
-    });
-    return [
+  await db.batch([
+    ...titleFixes.flatMap(row => {
+      const before = JSON.stringify({ job_title: row.detail_title });
+      const after = JSON.stringify({ job_title: row.display_title });
+      return [
       {
         sql: `INSERT INTO manual_review_changes (job_id, note, before_json, after_json)
               VALUES (?, ?, ?, ?)`,
-        args: [row.id, 'Recovered source-backed application deadline and re-queued for pending-details visibility', before, after],
+        args: [row.id, 'Removed portal navigation heading from job title during pending metadata recovery', before, after],
       },
       {
-        sql: `UPDATE raw_jobs
-              SET pending_closing_date = ?, pending_closing_date_status = 'known', parsed_at = NULL
-              WHERE id = ?
-                AND (pending_closing_date IS NULL OR TRIM(pending_closing_date) = '')
-                AND COALESCE(pending_closing_date_status, 'not_checked') = 'not_checked'`,
-        args: [row.closingDate, row.id],
+        sql: `UPDATE job_details SET job_title = ? WHERE id = ? AND LOWER(TRIM(COALESCE(job_title, ''))) LIKE 'skip to%'`,
+        args: [row.display_title, row.id],
       },
-      {
-        sql: `UPDATE jobs SET verified_at = NULL WHERE id = ? AND is_active = 1`,
-        args: [row.id],
-      },
-    ];
-  }), 'write');
+      ];
+    }),
+    ...candidates.flatMap(row => {
+      const before = JSON.stringify({
+        pending_closing_date: row.pending_closing_date,
+        pending_closing_date_status: row.pending_closing_date_status,
+        parsed_at: row.parsed_at,
+        verified_at: row.verified_at,
+        closing_date: row.closing_date,
+      });
+      const after = JSON.stringify({
+        pending_closing_date: row.closingDate,
+        pending_closing_date_status: 'known',
+        parsed_at: null,
+        verified_at: null,
+        closing_date: row.closing_date,
+      });
+      return [
+        {
+          sql: `INSERT INTO manual_review_changes (job_id, note, before_json, after_json)
+                VALUES (?, ?, ?, ?)`,
+          args: [row.id, 'Recovered source-backed application deadline and re-queued for pending-details visibility', before, after],
+        },
+        {
+          sql: `UPDATE raw_jobs
+                SET pending_closing_date = ?, pending_closing_date_status = 'known', parsed_at = NULL
+                WHERE id = ?
+                  AND (pending_closing_date IS NULL OR TRIM(pending_closing_date) = '')
+                  AND COALESCE(pending_closing_date_status, 'not_checked') = 'not_checked'`,
+          args: [row.closingDate, row.id],
+        },
+        {
+          sql: `UPDATE jobs SET verified_at = NULL WHERE id = ? AND is_active = 1`,
+          args: [row.id],
+        },
+      ];
+    }),
+  ], 'write');
+
+  if (candidates.length === 0) {
+    console.log(`[Hidden deadline backfill] Applied and verified ${titleFixes.length} title fix(es).`);
+    return;
+  }
 
   const ids = candidates.map(row => row.id);
   const verification = await db.execute({
