@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending deadlines now show their review status** — listings distinguish a known deadline, no deadline listed, open until filled, and not-yet-checked source data without hiding the job.
 
 ### Fixed
+- **Concurrent Workday refreshes no longer deadlock Neon archive routing** — scheduled Workday scrapes can finish without an idle-transaction timeout.
 - **Direct job links now respect public deadline visibility** — active listings without a known closing date no longer open from a direct URL.
 - **Paginated job results now use a stable tie-breaker** — jobs with matching timestamps no longer repeat across “load more” pages.
 - **Public job listings now require a concrete closing date** — parsed or soft-parsed rows without a source-backed date stay hidden until the deadline is known.
