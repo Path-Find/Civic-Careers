@@ -18,6 +18,10 @@ job has no `job_details` row. A soft-published listing is still a real public
 listing; “pending” describes the depth of our processing, not whether the
 source job is valid.
 
+Public search includes jobs with a current or future exact application date
+and jobs whose source explicitly says **Open Until Filled**. Other missing,
+uncertain, invalid, or blocked closing statuses remain hidden.
+
 ## Pending application-deadline statuses
 
 These statuses apply to details-pending listings in

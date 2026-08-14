@@ -32,6 +32,25 @@ const closingDate = `COALESCE(
   NULLIF(NULLIF(NULLIF(NULLIF(TRIM(raw.pending_closing_date), ''), 'null'), 'NULL'), 'N/A')
 )`;
 const sourceText = `LOWER(COALESCE(raw.title, '') || ' ' || COALESCE(raw.raw_text, ''))`;
+const explicitOpenUntilFilled = `(
+  (${sourceText} LIKE '%until filled%' AND (
+    ${sourceText} LIKE '%closing date%'
+    OR ${sourceText} LIKE '%application deadline%'
+    OR ${sourceText} LIKE '%posting close%'
+    OR ${sourceText} LIKE '%competition close%'
+  ))
+  OR ${sourceText} LIKE '%open till filled%'
+  OR ${sourceText} LIKE '%open until filled%'
+  OR ${sourceText} LIKE '%posted until filled%'
+  OR ${sourceText} LIKE '%remains open until filled%'
+  OR ${sourceText} LIKE '%remains active until filled%'
+  OR ${sourceText} LIKE '%will be posted until filled%'
+  OR ${sourceText} LIKE '%open until suitable candidate found%'
+  OR ${sourceText} LIKE '%open until a suitable candidate found%'
+  OR ${sourceText} LIKE '%open until vacancies are filled%'
+  OR ${sourceText} LIKE '%remain posted until filled%'
+  OR ${sourceText} LIKE '%remain active until filled%'
+)`;
 const effectiveEmploymentType = `COALESCE(jd.employment_type,
   CASE
     WHEN ${sourceText} LIKE '%full-time%' OR ${sourceText} LIKE '%full time%' THEN 'Full-time'
@@ -64,8 +83,7 @@ const closingDateStatus = `CASE
   WHEN ${closingDate} IS NOT NULL THEN 'known'
   WHEN raw.pending_closing_date_status = 'blocked' THEN 'blocked'
   WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN COALESCE(raw.pending_closing_date_status, 'not_checked')
-  WHEN ${sourceText} LIKE '%open until filled%'
-    OR ${sourceText} LIKE '%open till filled%'
+  WHEN ${explicitOpenUntilFilled}
     OR ${sourceText} LIKE '%accepting applications until filled%' THEN 'open_until_filled'
   WHEN ${sourceText} LIKE '%no deadline%'
     OR ${sourceText} LIKE '%without a deadline%'
@@ -75,10 +93,12 @@ const closingDateStatus = `CASE
     OR ${sourceText} LIKE '%closing date: none%' THEN 'invalid'
   ELSE 'not_checked'
 END`;
-// Public listings require a concrete source-backed deadline. A parsed row with
-// no date remains in the database for manual review but must not reach the site.
-const publicDeadline = `AND ${closingDate} IS NOT NULL
-  AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text`;
+// Public listings require a current/future source-backed deadline or an
+// explicit open-until-filled status. Other missing/uncertain statuses remain
+// hidden from public listings.
+const publicDeadline = `AND ((${closingDate} IS NOT NULL
+  AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text)
+  OR ${closingDateStatus} = 'open_until_filled')`;
 const currentPublicJobVisibility = `AND j.is_active = 1 ${publicDeadline}`;
 
 const jobColumns = `

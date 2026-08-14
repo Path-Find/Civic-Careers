@@ -13,6 +13,11 @@ A soft-parsed job has:
 - `raw_jobs.pending_closing_date_status = 'known'`;
 - `raw_jobs.parsed_at IS NULL`.
 
+An explicit source status of **Open Until Filled** is also valid pending
+application metadata. It stores `pending_closing_date_status =
+'open_until_filled'` with no calendar date. It is eligible for public listing;
+do not replace it with an invented date.
+
 The job may retain an older `job_details` row for recovery. Because
 `parsed_at IS NULL`, the API must treat it as pending and the UI must show
 **Details pending** instead of presenting the parsed body as complete.
