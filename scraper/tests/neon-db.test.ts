@@ -63,3 +63,31 @@ test('restoring an archived job reuses both held routing connections', async () 
   assert.equal(currentPool.connections, 1);
   assert.equal(archivePool.connections, 1);
 });
+
+test('routing moves acquire the archive connection before opening a transaction', async () => {
+  const events: string[] = [];
+  const makeOrderedPool = (name: string) => ({
+    connect: async () => {
+      events.push(`${name}:connect`);
+      return {
+        query: async (text: string) => {
+          events.push(`${name}:${text}`);
+          return { rows: [], rowCount: 0 };
+        },
+        release: () => undefined,
+      } as unknown as PoolClient;
+    },
+    query: async () => {
+      throw new Error('Pool.query must not be used while routing locks are held');
+    },
+    end: async () => undefined,
+  });
+
+  const database = new NeonDatabaseClient('postgres://current', 'postgres://archive');
+  Object.defineProperty(database, 'currentPool', { value: makeOrderedPool('current') });
+  Object.defineProperty(database, 'archivePool', { value: makeOrderedPool('archive') });
+
+  await database.restoreIfArchived('job-not-archived');
+
+  assert.ok(events.indexOf('archive:connect') < events.indexOf('current:BEGIN'));
+});

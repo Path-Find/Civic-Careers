@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Trial source scrapes now preserve missing optional locations as database nulls instead of failing the run.
+- Workday scrapes no longer leave Neon transactions open while waiting for an archive connection.
 - City of Hamilton titles now show the actual role name instead of BambooHR's internal `Job ID` prefix.
 - Humber and Waterloo titles now drop source-specific department and employment-status metadata.
 - Hidden pending recovery now restores source-backed titles from captured PeopleSoft text, so jobs with valid dates are not left invisible.

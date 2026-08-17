@@ -161,9 +161,12 @@ export class NeonDatabaseClient {
     const currentLock = await this.currentPool.connect();
     let archiveLock: PoolClient | null = null;
     try {
+      // Acquire both pool connections before opening either transaction. If
+      // the archive pool is temporarily exhausted, waiting here must not leave
+      // a current-database transaction idle until Neon kills it.
+      archiveLock = await this.archivePool.connect();
       await currentLock.query('BEGIN');
       await currentLock.query(`SELECT pg_advisory_xact_lock(${ROUTING_LOCK_KEY})`);
-      archiveLock = await this.archivePool.connect();
       await archiveLock.query('BEGIN');
       await archiveLock.query(`SELECT pg_advisory_xact_lock(${ROUTING_LOCK_KEY})`);
       const result = await callback({ current: currentLock, archive: archiveLock });

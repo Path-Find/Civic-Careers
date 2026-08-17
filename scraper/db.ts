@@ -535,7 +535,7 @@ export async function saveRawJob(client: Client, job: {
           END,
           scraped_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location, pending.duration, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
+      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location ?? null, pending.duration, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
     },
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
