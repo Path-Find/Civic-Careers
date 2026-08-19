@@ -18,7 +18,20 @@ import {
 } from './db';
 import { extractRecentRelativePostedDate, extractPostedDate, normalizePostedDate } from './posted-date';
 import { extractRawJobTitle, normalizeJobTitle } from './title';
-import { extractListingType } from './requirements';
+import {
+  dedupeSkillsAgainstSoftware,
+  extractCertificationRequirements,
+  extractListingType,
+  extractSecurityRequirementLabel,
+  extractSoftwareRequirements,
+  extractVehicleRequired,
+  extractWorkYearDuration,
+  normalizeLanguageRequirements,
+  reconcileStructuredRequirements,
+  requirementFlagToDb,
+  splitLanguageOutOfSkills,
+} from './requirements';
+import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
 import { classifyRawCapture } from './capture-quality';
 import { formatCapturedDescription } from './fallback-description';
@@ -175,6 +188,18 @@ async function main() {
       leftPending += 1;
       return;
     }
+    // Body-side deterministic extraction — same functions the AI parser uses
+    // to cross-check its own output, run here with no AI result to reconcile
+    // against. Pure regex/keyword matching against the formatted description.
+    const structuredRequirements = reconcileStructuredRequirements(description, {}, row.raw_text);
+    const certificationRequirements = extractCertificationRequirements(description);
+    const softwareRequirements = extractSoftwareRequirements(description).values;
+    const skillsWithoutSoftware = dedupeSkillsAgainstSoftware(structuredRequirements.required_skills, softwareRequirements);
+    const { skills: finalSkills, languages: languagesFromSkills } = splitLanguageOutOfSkills(skillsWithoutSoftware);
+    const finalLanguages = normalizeLanguageRequirements(languagesFromSkills);
+    const vehicleRequired = extractVehicleRequired(description);
+    const securityCheckRequired = extractSecurityRequirementLabel(description);
+
     await saveJob(db, {
       id: row.id,
       url: row.application_url ?? row.url,
@@ -194,26 +219,28 @@ async function main() {
       is_inventory: details.listingType === 'inventory' ? 1 : 0,
       listing_type: details.listingType,
       is_student: details.isStudent,
-      benefits: JSON.stringify([]),
-      required_skills: JSON.stringify([]),
-      experience_requirements: JSON.stringify([]),
-      education_requirements: JSON.stringify([]),
-      license_requirements: JSON.stringify([]),
-      language_requirements: JSON.stringify([]),
-      certification_requirements: JSON.stringify([]),
-      software_requirements: JSON.stringify([]),
+      benefits: JSON.stringify(structuredRequirements.benefits),
+      required_skills: JSON.stringify(finalSkills),
+      experience_requirements: JSON.stringify(structuredRequirements.experience_requirements),
+      education_requirements: JSON.stringify(structuredRequirements.education_requirements),
+      license_requirements: JSON.stringify(structuredRequirements.license_requirements),
+      language_requirements: JSON.stringify(finalLanguages),
+      certification_requirements: JSON.stringify(certificationRequirements),
+      software_requirements: JSON.stringify(softwareRequirements),
       medical_requirements: JSON.stringify([]),
       responsibility_tags: JSON.stringify([]),
       qualification_tags: JSON.stringify([]),
       posted_at: details.postedAt,
       parser_version: DETERMINISTIC_PARSER_VERSION,
       work_model: details.workModel || null,
-      duration: details.duration || null,
+      duration: normalizeDuration(details.duration || extractWorkYearDuration(description) || ''),
       is_unionized: details.isUnionized !== null && details.isUnionized !== undefined ? details.isUnionized : null,
       union_name: details.unionName || null,
       salary_min: details.salaryMin !== null && details.salaryMin !== undefined ? details.salaryMin : null,
       salary_max: details.salaryMax !== null && details.salaryMax !== undefined ? details.salaryMax : null,
       salary_period: details.salaryPeriod || null,
+      vehicle_required: requirementFlagToDb(vehicleRequired),
+      security_check_required: requirementFlagToDb(securityCheckRequired),
     });
     if (details.postedAt) {
       await db.execute({
