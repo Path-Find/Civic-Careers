@@ -1,6 +1,6 @@
 import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
-import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle } from './title';
+import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeSourceJobTitle } from './title';
 import { extractPendingMetadata } from './pending-metadata';
 import { extractClosingDateStatus } from './closing-date';
 import { classifyRawCapture } from './capture-quality';
@@ -506,7 +506,7 @@ export async function saveRawJob(client: Client, job: {
 
   const suppliedTitle = job.title?.trim() || '';
   const sourceTitle = (isUsableJobTitle(suppliedTitle) ? suppliedTitle : extractRawJobTitle(job.source, job.raw_text) || extractUrlJobTitle(job.application_url ?? job.url, job.raw_text)) || null;
-  const title = sourceTitle ? normalizeJobTitle(sourceTitle) : null;
+  const title = sourceTitle ? normalizeSourceJobTitle(job.source, sourceTitle) : null;
   const pending = extractPendingMetadata(sourceTitle, job.raw_text);
   const pendingClosing = extractClosingDateStatus(job.raw_text);
   const pendingClosingDate = pendingClosing.date;
@@ -535,7 +535,7 @@ export async function saveRawJob(client: Client, job: {
           END,
           scraped_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location, pending.duration, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
+      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location ?? null, pending.duration, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
     },
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
@@ -561,7 +561,7 @@ export async function savePendingJob(client: Client, job: {
   await asNeonClient(client)?.restoreIfArchived(job.id);
   const suppliedTitle = job.title?.trim() || '';
   const sourceTitle = isUsableJobTitle(suppliedTitle) ? suppliedTitle : null;
-  const title = sourceTitle ? normalizeJobTitle(sourceTitle) : null;
+  const title = sourceTitle ? normalizeSourceJobTitle(job.source, sourceTitle) : null;
   const pending = extractPendingMetadata(sourceTitle, '');
   const pendingClosingDateStatus = job.closing_date ? 'known' : 'not_checked';
   await client.batch([

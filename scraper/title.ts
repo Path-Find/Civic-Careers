@@ -72,6 +72,10 @@ export function normalizeJobTitle(title: string | null | undefined): string {
 
   let t = original;
 
+  // BambooHR job cards for the City of Hamilton prefix the actual role with
+  // the employer's internal posting number.
+  t = t.replace(/^job\s+id\s*#?\s*\d+\s*:\s*/i, '').trim();
+
   // Meta parentheticals anywhere: (Part-Time), (2 Year Contract), (Casual), …
   t = t.replace(/\s*\(([^)]*)\)/g, (full, inner: string) => (
     isEmploymentOrDurationParen(inner) || isUnionMarkerParen(inner) ? '' : full
@@ -110,6 +114,30 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   t = t.replace(/\s*[-–—]\s*(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term|fixed[-\s]?term(?:\s+contract)?|limited\s+term\s+contract)\s*$/i, '').trim();
 
   return t || original;
+}
+
+/** Apply source-specific cleanup after the shared title normalization. */
+export function normalizeSourceJobTitle(source: string | null | undefined, title: string | null | undefined): string {
+  let normalized = normalizeJobTitle(title);
+  if (!normalized) return '';
+
+  if (source === 'City of Waterloo') {
+    // TalentPoolBuilder appends the employment-status field directly to the
+    // captured heading, sometimes without a separating space.
+    normalized = normalized.replace(/\s*employment\s+status.*$/i, '').trim();
+  }
+
+  if (source === 'Humber College') {
+    // Taleo includes Humber's faculty/department and employment classification
+    // in the same heading as the role title.
+    normalized = normalized.replace(/\s*\(\d+\s+positions?\)/i, '').trim();
+    normalized = normalized.replace(
+      /\s*(?:[-–—,]\s*)(?:(?:FHLS|CDFM|FMCAD|FAST|BCTI|UGH|SWEL|SSE|ITS|R&SM|RO|Office of the Registrar|Campus Services)(?:\s*[-–—]\s*(?:FT|PT)\s+(?:Admin|Support)|\s*[-–—]\s*(?:RPT|CPT|PC Prof|Clinical Contract|RPT Recurring))?|(?:FT|PT)\s+(?:Admin|Support)|(?:RPT|CPT|PC Prof|Clinical Contract|RPT Recurring))$/i,
+      '',
+    ).trim();
+  }
+
+  return normalized || normalizeJobTitle(title);
 }
 
 /** Return false for portal navigation headings that are not job titles. */
