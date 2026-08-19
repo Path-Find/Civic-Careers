@@ -54,6 +54,21 @@ const EXCLUDED_SOURCES = new Set(
 const DETERMINISTIC_PARSER_VERSION = 0;
 const CONCURRENCY = 10;
 
+// When a section has no bullet markers, descriptionLines() can't split it and
+// the whole paragraph is treated as one "line" — extractors built for real
+// bullets then emit the entire run-on blob as a single requirement. The
+// telltale sign is a missing space where a sentence boundary should be
+// (e.g. "disciplineDemonstrated"), plus implausible length for one bullet.
+function isPlausibleRequirementValue(value: string): boolean {
+  if (value.length > 220) return false;
+  const squishedSentenceJoins = value.match(/[a-z][A-Z]/g)?.length ?? 0;
+  return squishedSentenceJoins < 2;
+}
+
+function filterPlausible(values: string[]): string[] {
+  return values.filter(isPlausibleRequirementValue);
+}
+
 type RawRow = {
   id: string;
   url: string;
@@ -219,14 +234,14 @@ async function main() {
       is_inventory: details.listingType === 'inventory' ? 1 : 0,
       listing_type: details.listingType,
       is_student: details.isStudent,
-      benefits: JSON.stringify(structuredRequirements.benefits),
-      required_skills: JSON.stringify(finalSkills),
-      experience_requirements: JSON.stringify(structuredRequirements.experience_requirements),
-      education_requirements: JSON.stringify(structuredRequirements.education_requirements),
-      license_requirements: JSON.stringify(structuredRequirements.license_requirements),
-      language_requirements: JSON.stringify(finalLanguages),
-      certification_requirements: JSON.stringify(certificationRequirements),
-      software_requirements: JSON.stringify(softwareRequirements),
+      benefits: JSON.stringify(filterPlausible(structuredRequirements.benefits)),
+      required_skills: JSON.stringify(filterPlausible(finalSkills)),
+      experience_requirements: JSON.stringify(filterPlausible(structuredRequirements.experience_requirements)),
+      education_requirements: JSON.stringify(filterPlausible(structuredRequirements.education_requirements)),
+      license_requirements: JSON.stringify(filterPlausible(structuredRequirements.license_requirements)),
+      language_requirements: JSON.stringify(filterPlausible(finalLanguages)),
+      certification_requirements: JSON.stringify(filterPlausible(certificationRequirements)),
+      software_requirements: JSON.stringify(filterPlausible(softwareRequirements)),
       medical_requirements: JSON.stringify([]),
       responsibility_tags: JSON.stringify([]),
       qualification_tags: JSON.stringify([]),
