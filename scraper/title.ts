@@ -72,6 +72,14 @@ export function normalizeJobTitle(title: string | null | undefined): string {
 
   let t = original;
 
+  // Workday page-load headers
+  if (t.toLowerCase().includes('skip to main content')) {
+    const match = t.match(/skip to main content\s*(.+?)\s*page is loaded/i);
+    if (match) {
+      t = match[1].trim();
+    }
+  }
+
   // BambooHR job cards for the City of Hamilton prefix the actual role with
   // the employer's internal posting number.
   t = t.replace(/^job\s+id\s*#?\s*\d+\s*:\s*/i, '').trim();
@@ -231,6 +239,8 @@ export function extractRawJobTitle(source: string, rawText: string | null | unde
     candidate = rawText.match(
       /Skip to job title(?:Skip to action buttons)?\s*(.+?)(?=\s*Apply now\b)/i,
     )?.[1] ?? '';
+  } else if (source === 'City of Hamilton') {
+    candidate = rawText.match(/Job ID\s*#?\s*\d+:\s*([^\n]+)/i)?.[1] ?? '';
   } else if (source === 'City of Windsor') {
     candidate = rawText.match(
       /Job Title:\s*([^\n]+?)(?=Job Posting Number:|Posting Type:|$)/i,
