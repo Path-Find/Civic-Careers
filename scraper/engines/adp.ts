@@ -32,9 +32,20 @@ export async function scrapeADP(db: Client, context: BrowserContext, portalUrl: 
     // (#recruitment_careerCenter_showAllJobs, itself an <sdf-button>) is
     // clicked; job rows are div.current-openings-item elements with their
     // own onclick handler instead of a wrapping anchor.
+    const dismissCookieBanner = async () => {
+      const acceptBtn = await page.$('#onetrust-accept-btn-handler');
+      if (acceptBtn && await acceptBtn.isVisible().catch(() => false)) {
+        await acceptBtn.click().catch(() => {});
+        await page.waitForTimeout(500);
+      }
+    };
+
     const loadPortal = async () => {
       await safeGoto(page, portalUrl, 60000);
       await page.waitForTimeout(5000);
+      // Some ADP sources (e.g. City of Markham) show a OneTrust cookie-consent
+      // overlay that intercepts pointer events and blocks the job-row clicks below.
+      await dismissCookieBanner();
       const viewAllBtn = await page.$('#recruitment_careerCenter_showAllJobs');
       if (viewAllBtn && await viewAllBtn.isVisible().catch(() => false)) {
         await viewAllBtn.click();

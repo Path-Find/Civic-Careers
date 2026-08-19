@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Humber and Waterloo titles now drop source-specific department and employment-status metadata.
 - Hidden pending recovery now restores source-backed titles from captured PeopleSoft text, so jobs with valid dates are not left invisible.
 - The web build now uses the patched nanoid release, removing its open high-severity development dependency alert.
+- City of Markham jobs are scraped again — a cookie-consent popup was blocking every job click on their ADP page.
 
 - **Fake portal headings no longer publish as job titles** — source titles are used when available, otherwise the listing stays hidden until a real title is captured.
 - **Human-readable job URLs can recover missing titles safely** — URL slugs are used only when their words are confirmed in the captured source text.
