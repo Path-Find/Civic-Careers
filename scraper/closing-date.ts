@@ -47,6 +47,11 @@ const WORKDAY_APPLY_END = new RegExp(
   'gi',
 );
 
+const POSTING_PERIOD = new RegExp(
+  `posting\\s+period\\s*[:\\-]?\\s*${DATE_VALUE}\\s+(?:to|through|[-–—])\\s+(${DATE_VALUE})`,
+  'gi',
+);
+
 export type ClosingDateStatus = 'known' | 'not_checked' | 'not_listed' | 'open_until_filled' | 'invalid';
 
 const OPEN_UNTIL_FILLED = new RegExp([
@@ -102,6 +107,10 @@ export function extractClosingDate(rawText: string): string | null {
     }
   }
   for (const match of text.matchAll(WORKDAY_APPLY_END)) {
+    const normalized = normalizeClosingValue(match[1]);
+    if (normalized) return normalized;
+  }
+  for (const match of text.matchAll(POSTING_PERIOD)) {
     const normalized = normalizeClosingValue(match[1]);
     if (normalized) return normalized;
   }

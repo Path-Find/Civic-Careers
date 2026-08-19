@@ -82,6 +82,7 @@ test('extracts source closing dates without treating Job End Date as a deadline'
   assert.equal(extractClosingDate('Apply online at careers.example.ca by Monday, August 10, 2026'), '2026-08-10');
   assert.equal(extractClosingDate('Apply By: $127,855 per year 11:59 p.m. on Thursday, August 27, 2026'), '2026-08-27');
   assert.equal(extractClosingDate('Posting Start Date/Posting End Date From 07-02-2026 to 08-17-2026'), '2026-08-17');
+  assert.equal(extractClosingDate('Posting Period: 17-AUG-2026 to 18-SEP-2026'), '2026-09-18');
   assert.equal(extractClosingDate('Job End DateDecember 15, 2026'), null);
   assert.equal(extractClosingDate('Start Date2026/09/01 End Date2027/04/30'), null);
 });

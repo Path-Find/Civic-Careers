@@ -22,6 +22,7 @@ import { extractListingType } from './requirements';
 import { normalizeLocation } from './location';
 import { classifyRawCapture } from './capture-quality';
 import { formatCapturedDescription } from './fallback-description';
+import { extractBoardSpecificMetadata } from './board-parsers';
 
 dotenv.config({ quiet: true });
 
@@ -85,7 +86,7 @@ function buildDetails(row: RawRow) {
   const employmentType = row.raw_text.match(/\b(permanent\s+(?:full[- ]time|part[- ]time)|temporary\s+(?:full[- ]time|part[- ]time)|full[- ]time|part[- ]time|casual|contract)\b/i)?.[1] || '';
   const hours = row.raw_text.match(/(?:hours?\s+of\s+work|hours?\s+per\s+week|weekly\s+hours?\s+of\s+work|fte)\s*[:\-]?\s*([^.;]{3,100})/i)?.[1]?.trim() || '';
 
-  return {
+  const base = {
     title,
     listingType,
     postedAt,
@@ -95,6 +96,26 @@ function buildDetails(row: RawRow) {
     salary,
     employmentType,
     hours,
+    department: '',
+    workModel: null as 'Hybrid' | 'Remote' | 'On-site' | null,
+    duration: null as string | null,
+    isUnionized: null as number | null,
+    unionName: null as string | null,
+    salaryMin: null as number | null,
+    salaryMax: null as number | null,
+    salaryPeriod: null as string | null,
+  };
+
+  const custom = extractBoardSpecificMetadata(row.source, row.raw_text);
+
+  return {
+    ...base,
+    ...custom,
+    location: custom.location !== undefined ? custom.location : base.location,
+    closingDate: custom.closingDate !== undefined ? custom.closingDate : base.closingDate,
+    salary: custom.salary !== undefined ? custom.salary : base.salary,
+    employmentType: custom.employmentType !== undefined ? custom.employmentType : base.employmentType,
+    hours: custom.hours !== undefined ? custom.hours : base.hours,
   };
 }
 
@@ -163,7 +184,7 @@ async function main() {
     await saveJobDetails(db, {
       id: row.id,
       job_title: details.title,
-      department: '',
+      department: details.department || '',
       location: details.location,
       salary_range: details.salary,
       description,
@@ -186,6 +207,13 @@ async function main() {
       qualification_tags: JSON.stringify([]),
       posted_at: details.postedAt,
       parser_version: DETERMINISTIC_PARSER_VERSION,
+      work_model: details.workModel || null,
+      duration: details.duration || null,
+      is_unionized: details.isUnionized !== null && details.isUnionized !== undefined ? details.isUnionized : null,
+      union_name: details.unionName || null,
+      salary_min: details.salaryMin !== null && details.salaryMin !== undefined ? details.salaryMin : null,
+      salary_max: details.salaryMax !== null && details.salaryMax !== undefined ? details.salaryMax : null,
+      salary_period: details.salaryPeriod || null,
     });
     if (details.postedAt) {
       await db.execute({
