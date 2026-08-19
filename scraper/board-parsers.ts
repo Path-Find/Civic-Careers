@@ -26,6 +26,19 @@ export interface ExtractedBoardMetadata {
   salaryPeriod?: string | null;
 }
 
+function parseSalaryMinMax(range: string): { min: number | null; max: number | null } {
+  const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{1,4})?/g);
+  if (moneyMatches && moneyMatches.length >= 2) {
+    const min = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
+    const max = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
+    return { min, max };
+  } else if (moneyMatches && moneyMatches.length === 1) {
+    const min = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
+    return { min, max: min };
+  }
+  return { min: null, max: null };
+}
+
 /**
  * Parser for City of Hamilton (BambooHR/Custom Layout).
  */
@@ -115,16 +128,10 @@ export function parseCityOfToronto(rawText: string): ExtractedBoardMetadata {
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
-    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
-    if (moneyMatches && moneyMatches.length >= 2) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    } else if (moneyMatches && moneyMatches.length === 1) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = metadata.salaryMin;
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    }
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
   }
 
   // Shift Information / Hours
@@ -175,16 +182,10 @@ export function parseWorkday(rawText: string): ExtractedBoardMetadata {
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
-    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
-    if (moneyMatches && moneyMatches.length >= 2) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    } else if (moneyMatches && moneyMatches.length === 1) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = metadata.salaryMin;
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    }
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
   }
 
   // Scheduled Weekly Hours
@@ -236,12 +237,10 @@ export function parseOntarioHealthAtHome(rawText: string): ExtractedBoardMetadat
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
-    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
-    if (moneyMatches && moneyMatches.length >= 2) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    }
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
   }
 
   // Union
@@ -270,16 +269,10 @@ export function parseADP(rawText: string): ExtractedBoardMetadata {
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
-    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
-    if (moneyMatches && moneyMatches.length >= 2) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    } else if (moneyMatches && moneyMatches.length === 1) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = metadata.salaryMin;
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    }
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
   }
 
   // Department
@@ -322,16 +315,10 @@ export function parseDayforce(rawText: string): ExtractedBoardMetadata {
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
-    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
-    if (moneyMatches && moneyMatches.length >= 2) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    } else if (moneyMatches && moneyMatches.length === 1) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = metadata.salaryMin;
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    }
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
   }
 
   // Employment Type
@@ -380,16 +367,10 @@ export function parseNjoyn(rawText: string): ExtractedBoardMetadata {
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
-    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
-    if (moneyMatches && moneyMatches.length >= 2) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    } else if (moneyMatches && moneyMatches.length === 1) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = metadata.salaryMin;
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    }
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
   }
 
   // Job Type
@@ -456,16 +437,10 @@ export function parseTaleo(rawText: string): ExtractedBoardMetadata {
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
-    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
-    if (moneyMatches && moneyMatches.length >= 2) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    } else if (moneyMatches && moneyMatches.length === 1) {
-      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
-      metadata.salaryMax = metadata.salaryMin;
-      metadata.salaryPeriod = normalizeSalaryPeriod(range);
-    }
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
   }
 
   // Job Details
@@ -485,6 +460,65 @@ export function parseTaleo(rawText: string): ExtractedBoardMetadata {
 }
 
 /**
+ * Parser for SuccessFactors platform sites (Shared Health Manitoba, Mississauga, Halton Region, Ottawa, TTC).
+ */
+export function parseSuccessFactors(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+
+  // Salary
+  const salaryMatch = rawText.match(/Salary:\s*([^\n]+)/i);
+  if (salaryMatch) {
+    const range = salaryMatch[1].trim();
+    metadata.salary = range;
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
+  }
+
+  // Department
+  const deptMatch = rawText.match(/Department\s*(?:\/\s*Unit)?:\s*([^\n]+)/i);
+  if (deptMatch) {
+    metadata.department = normalizeDepartment(deptMatch[1]);
+  }
+
+  // Location / City / Site
+  const locMatch = rawText.match(/Site:\s*([^\n]+)/i) || rawText.match(/City:\s*([^\n]+)/i);
+  if (locMatch) {
+    metadata.location = locMatch[1].trim();
+  }
+
+  // Union
+  const unionMatch = rawText.match(/Union:\s*([^\n]+)/i);
+  if (unionMatch) {
+    const rawUnion = unionMatch[1].trim();
+    const normalizedUnion = normalizeUnionFields(rawUnion, !/non-?union/i.test(rawUnion));
+    metadata.isUnionized = normalizedUnion.is_unionized ? 1 : 0;
+    metadata.unionName = normalizedUnion.union_name || null;
+  }
+
+  // Closing date
+  const closingMatch = rawText.match(/Posting\s+End\s+Date:\s*([^\n]+)/i);
+  if (closingMatch) {
+    metadata.closingDate = extractClosingDate(closingMatch[0]);
+  }
+
+  // Work Arrangement
+  const arrangementMatch = rawText.match(/Work\s+Arrangement:\s*([^\n]+)/i);
+  if (arrangementMatch) {
+    metadata.workModel = normalizeWorkModel(arrangementMatch[1]);
+  }
+
+  // FTE / Hours
+  const fteMatch = rawText.match(/FTE:\s*([^\n]+)/i);
+  if (fteMatch) {
+    metadata.hours = `FTE: ${fteMatch[1].trim()}`;
+  }
+
+  return metadata;
+}
+
+/**
  * Dispatcher to select and execute the correct parser based on the job source.
  */
 export function extractBoardSpecificMetadata(source: string, rawText: string): ExtractedBoardMetadata {
@@ -496,6 +530,18 @@ export function extractBoardSpecificMetadata(source: string, rawText: string): E
   }
   if (source === 'Ontario Health atHome') {
     return parseOntarioHealthAtHome(rawText);
+  }
+
+  // SuccessFactors sources
+  const successFactorsSources = new Set([
+    'Shared Health Manitoba',
+    'Mississauga',
+    'Halton Region',
+    'City of Ottawa',
+    'TTC',
+  ]);
+  if (successFactorsSources.has(source)) {
+    return parseSuccessFactors(rawText);
   }
 
   // ADP sources

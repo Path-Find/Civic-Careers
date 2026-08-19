@@ -9,6 +9,7 @@ import {
   parseDayforce,
   parseNjoyn,
   parseTaleo,
+  parseSuccessFactors,
 } from '../board-parsers';
 
 test('parseHamilton extracts structured fields correctly', () => {
@@ -183,4 +184,32 @@ Applications for this position must be received at oakville.ca by no later than 
   assert.equal(result.employmentType, 'Part-time');
   assert.equal(result.closingDate, '2026-12-31');
 });
+
+test('parseSuccessFactors extracts structured fields correctly', () => {
+  const rawText = `
+Primary Care Paramedic
+Requisition ID: 399867
+Posting End Date: Open Until Filled
+City: Thompson
+Employer: Shared Health
+Site: Shared Health - Thompson General Hospital
+Department / Unit: Thompson - ERS
+Union: MAHCP
+FTE: 1.00
+Work Arrangement: In Person
+Salary: $32.588 - $51.165
+  `;
+  const result = parseSuccessFactors(rawText);
+  assert.equal(result.department, 'Thompson');
+  assert.equal(result.location, 'Shared Health - Thompson General Hospital');
+  assert.equal(result.isUnionized, 1);
+  assert.equal(result.unionName, 'MAHCP');
+  assert.equal(result.closingDate, null);
+  assert.equal(result.workModel, 'On-site');
+  assert.equal(result.hours, 'FTE: 1.00');
+  assert.equal(result.salary, '$32.588 - $51.165');
+  assert.equal(result.salaryMin, 32.588);
+  assert.equal(result.salaryMax, 51.165);
+});
+
 
