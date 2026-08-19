@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Job title usability checks now catch navigation headings that lack a space before sign-in options, correcting 8 McMaster University listings.
 - All remaining active hidden listings have had their deadlines/titles recovered where possible, soft-parsing 196 jobs.
-- Basic metadata backfill applied to all unparsed listings, promoting 855 jobs to details-pending status.
+- Basic metadata backfill applied to all unparsed listings, soft-parsing 855 jobs.
+- Basic metadata backfill (`backfill-metadata-only.ts`) no longer marks jobs as parsed, ensuring they keep their "Details pending" status. Reverted 3,258 previously backfilled jobs back to pending.
 - Trial source scrapes now preserve missing optional locations as database nulls instead of failing the run.
 - Workday scrapes no longer leave Neon transactions open while waiting for an archive connection.
 - City of Hamilton titles now show the actual role name instead of BambooHR's internal `Job ID` prefix.

@@ -193,7 +193,6 @@ async function main() {
         args: [details.postedAt, row.id],
       });
     }
-    await markJobParsed(db, row.id);
     promoted += 1;
   }
 
