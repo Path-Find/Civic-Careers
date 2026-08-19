@@ -7,6 +7,7 @@ import {
   normalizeDepartment,
   normalizeUnionFields,
 } from './validate';
+import { PEOPLE_SOFT_SOURCES } from './title';
 
 export interface ExtractedBoardMetadata {
   title?: string;
@@ -519,6 +520,168 @@ export function parseSuccessFactors(rawText: string): ExtractedBoardMetadata {
 }
 
 /**
+ * Parser for Technomedia (York University).
+ */
+export function parseTechnomedia(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+
+  const deptMatch = rawText.match(/Department\/Faculty \(BU\)\s*\n+\s*([^\n]+)/i);
+  if (deptMatch) {
+    metadata.department = normalizeDepartment(deptMatch[1]);
+  }
+
+  const affMatch = rawText.match(/Affiliation \*\s*\n+\s*([^\n]+)/i);
+  if (affMatch) {
+    const rawAff = affMatch[1].trim();
+    const isUnion = !/work study|non-?union|management|exempt/i.test(rawAff);
+    const normalizedUnion = normalizeUnionFields(rawAff, isUnion);
+    metadata.isUnionized = normalizedUnion.is_unionized ? 1 : 0;
+    metadata.unionName = normalizedUnion.union_name || null;
+  }
+
+  const detailsMatch = rawText.match(/Job Details \*\s*\n+\s*([^\n]+)/i);
+  if (detailsMatch) {
+    metadata.employmentType = normalizeEmploymentType(detailsMatch[1]);
+  }
+
+  const endMatch = rawText.match(/Job End Date\s*\n+\s*([^\n]+)/i);
+  if (endMatch) {
+    const val = endMatch[1].trim();
+    if (val && !/ongoing/i.test(val)) {
+      metadata.duration = val;
+      if (!metadata.employmentType) {
+        metadata.employmentType = 'Contract';
+      }
+    }
+  }
+
+  const compMatch = rawText.match(/Compensation \*\s*\n+\s*([^\n]+)/i) || rawText.match(/Compensation\s*\n+\s*([^\n]+)/i);
+  if (compMatch) {
+    const range = compMatch[1].trim();
+    metadata.salary = range;
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
+  }
+
+  const hoursMatch = rawText.match(/Total Weekly Hours of Work\s*\n+\s*([^\n]+)/i);
+  if (hoursMatch) {
+    metadata.hours = hoursMatch[1].trim();
+  }
+
+  const locMatch = rawText.match(/Job Location\s*\n+\s*([^\n]+)/i);
+  if (locMatch) {
+    metadata.location = locMatch[1].trim();
+  }
+
+  return metadata;
+}
+
+/**
+ * Parser for Jobs2Web platform postings.
+ */
+export function parseJobs2Web(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+
+  const salaryMatch = rawText.match(/Salary:\s*(.+?)(?=\s*(?:Job Closing Date|Closing Date|Job Description|$))/i)
+    || rawText.match(/Rate of Pay:\s*(.+?)(?=\s*(?:Job Closing Date|Closing Date|Job Description|$))/i);
+  if (salaryMatch) {
+    const range = salaryMatch[1].trim();
+    metadata.salary = range;
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
+  }
+
+  const closingMatch = rawText.match(/(?:Job Closing Date|Closing Date)\s*(?:\([^)]*\))?:\s*([^\n;]+)/i);
+  if (closingMatch) {
+    metadata.closingDate = extractClosingDate(closingMatch[0]);
+  }
+
+  return metadata;
+}
+
+/**
+ * Parser for Government of Canada custom postings.
+ */
+export function parseGovernmentOfCanada(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+
+  const closingMatch = rawText.match(/Closing date:\s*\n*\s*([^\n]+)/i);
+  if (closingMatch) {
+    metadata.closingDate = extractClosingDate(closingMatch[0]);
+  }
+
+  const salaryMatch = rawText.match(/Salary\s*\n+\s*([^\n]+)/i) || rawText.match(/Salary:\s*([^\n]+)/i);
+  if (salaryMatch) {
+    const range = salaryMatch[1].trim();
+    metadata.salary = range;
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
+  }
+
+  const locMatch = rawText.match(/Location\s*\n+([\s\S]+?)(?=\n\s*(?:Salary|Reference number|Selection process number|Who can apply|$))/i);
+  if (locMatch) {
+    const locLines = locMatch[1]
+      .split('\n')
+      .map(l => l.trim().replace(/,$/, ''))
+      .filter(Boolean)
+      .join(', ')
+      .replace(/\s+/g, ' ');
+    metadata.location = locLines;
+  }
+
+  return metadata;
+}
+
+/**
+ * Parser for PeopleSoft Fluid tenant postings.
+ */
+export function parsePeopleSoft(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+
+  const deptMatch = rawText.match(/Department:\s*([^\n]+)/i) || rawText.match(/Department\s*\n+([^\n]+)/i);
+  if (deptMatch) {
+    metadata.department = normalizeDepartment(deptMatch[1]);
+  }
+
+  const salaryMatch = rawText.match(/Salary Range:\s*([^\n]+)/i)
+    || rawText.match(/Salary\s*Range\s*\n+([^\n]+)/i)
+    || rawText.match(/Salary:\s*([^\n]+)/i);
+  if (salaryMatch) {
+    const range = salaryMatch[1].trim();
+    metadata.salary = range;
+    const parsed = parseSalaryMinMax(range);
+    metadata.salaryMin = parsed.min;
+    metadata.salaryMax = parsed.max;
+    metadata.salaryPeriod = normalizeSalaryPeriod(range);
+  }
+
+  const closingMatch = rawText.match(/(?:Closing Date|Closing\s+Date\s*:\s*)([^\n]+)/i)
+    || rawText.match(/Closing Date\s*\n+([^\n]+)/i);
+  if (closingMatch) {
+    metadata.closingDate = extractClosingDate(closingMatch[0]);
+  }
+
+  const unionMatch = rawText.match(/Affiliation:\s*([^\n]+)/i)
+    || rawText.match(/Union:\s*([^\n]+)/i)
+    || rawText.match(/Bargaining Unit:\s*([^\n]+)/i);
+  if (unionMatch) {
+    const rawUnion = unionMatch[1].trim();
+    const isUnion = !/non-?union|management|exempt/i.test(rawUnion);
+    const normalizedUnion = normalizeUnionFields(rawUnion, isUnion);
+    metadata.isUnionized = normalizedUnion.is_unionized ? 1 : 0;
+    metadata.unionName = normalizedUnion.union_name || null;
+  }
+
+  return metadata;
+}
+
+/**
  * Dispatcher to select and execute the correct parser based on the job source.
  */
 export function extractBoardSpecificMetadata(source: string, rawText: string): ExtractedBoardMetadata {
@@ -530,6 +693,34 @@ export function extractBoardSpecificMetadata(source: string, rawText: string): E
   }
   if (source === 'Ontario Health atHome') {
     return parseOntarioHealthAtHome(rawText);
+  }
+  if (source === 'York University') {
+    return parseTechnomedia(rawText);
+  }
+
+  // Jobs2Web sources
+  const jobs2WebSources = new Set([
+    'Canada Post',
+    'University of Toronto',
+    'CMHC',
+    'University of Guelph',
+    'City of Vancouver',
+    'City of Richmond Hill',
+    'City of Brampton',
+    'Region of Waterloo',
+  ]);
+  if (jobs2WebSources.has(source)) {
+    return parseJobs2Web(rawText);
+  }
+
+  // Government of Canada
+  if (source === 'Government of Canada') {
+    return parseGovernmentOfCanada(rawText);
+  }
+
+  // PeopleSoft sources
+  if (PEOPLE_SOFT_SOURCES.has(source)) {
+    return parsePeopleSoft(rawText);
   }
 
   // SuccessFactors sources

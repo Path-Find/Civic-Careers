@@ -127,7 +127,7 @@ function isNonUnionLabel(name: string): boolean {
   // Explicit non-membership labels only — do NOT treat "Non-Academic Staff Association" as non-union.
   if (/^union\s*\/\s*non[-\s]?union$/i.test(name)) return true;
   if (/^non[-\s]?union(?:ized)?\b/i.test(name)) return true;
-  if (/^(none|n\/?a|no|not unionized|non-affiliated|non-bargaining|non\s+spécifié|non\s+specifie|unspecified|tbd|unknown)$/i.test(name)) {
+  if (/^(none|n\/?a|no|not unionized|non-affiliated|non-bargaining|non\s+spécifié|non\s+specifie|unspecified|tbd|unknown|work[-\s]?study)$/i.test(name)) {
     return true;
   }
   if (/^(mgmt\s+)?non[-\s]?union(?:\s*\/\s*non\s*mpe)?(?:,\s*management)?$/i.test(name)) return true;

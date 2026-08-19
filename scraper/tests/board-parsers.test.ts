@@ -10,6 +10,10 @@ import {
   parseNjoyn,
   parseTaleo,
   parseSuccessFactors,
+  parseTechnomedia,
+  parseJobs2Web,
+  parseGovernmentOfCanada,
+  parsePeopleSoft,
 } from '../board-parsers';
 
 test('parseHamilton extracts structured fields correctly', () => {
@@ -210,6 +214,98 @@ Salary: $32.588 - $51.165
   assert.equal(result.salary, '$32.588 - $51.165');
   assert.equal(result.salaryMin, 32.588);
   assert.equal(result.salaryMax, 51.165);
+});
+
+test('parseTechnomedia extracts York University fields correctly', () => {
+  const rawText = `
+Department/Faculty (BU)
+Development, Division of Advancement
+
+Affiliation *
+Work Study
+
+Job Details *
+Casual
+
+Job Start Date
+09-08-2026
+
+Job End Date
+04-30-2027
+
+Compensation *
+Hourly Range:$17.60 - $18.00
+
+Total Weekly Hours of Work
+15
+
+Job Location
+Canada / Ontario / Keele Campus
+  `;
+  const result = parseTechnomedia(rawText);
+  assert.equal(result.department, 'Development, Division of Advancement');
+  assert.equal(result.isUnionized, 0);
+  assert.equal(result.unionName, null);
+  assert.equal(result.employmentType, 'Contract');
+  assert.equal(result.duration, '04-30-2027');
+  assert.equal(result.salary, 'Hourly Range:$17.60 - $18.00');
+  assert.equal(result.salaryMin, 17.6);
+  assert.equal(result.salaryMax, 18);
+  assert.equal(result.hours, '15');
+  assert.equal(result.location, 'Canada / Ontario / Keele Campus');
+});
+
+test('parseJobs2Web extracts Canada Post fields correctly', () => {
+  const rawText = `
+Salary: $20.51Job Closing Date (YYYY-MM-DD): 2026-08-24
+Job Description
+We are currently seeking an on-call Post Office Assistant...
+  `;
+  const result = parseJobs2Web(rawText);
+  assert.equal(result.salary, '$20.51');
+  assert.equal(result.salaryMin, 20.51);
+  assert.equal(result.salaryMax, 20.51);
+  assert.equal(result.closingDate, '2026-08-24');
+});
+
+test('parseGovernmentOfCanada extracts GC fields correctly', () => {
+  const rawText = `
+Transport Canada
+- Marine Safety & Security
+
+Closing date:
+December 11, 2026 - 23:59, Pacific Time
+
+Location
+Kingston (Ontario),
+North York (Ontario)
+
+Salary
+$112,823 to $131,504
+  `;
+  const result = parseGovernmentOfCanada(rawText);
+  assert.equal(result.closingDate, '2026-12-11');
+  assert.equal(result.salary, '$112,823 to $131,504');
+  assert.equal(result.salaryMin, 112823);
+  assert.equal(result.salaryMax, 131504);
+  assert.equal(result.location, 'Kingston (Ontario), North York (Ontario)');
+});
+
+test('parsePeopleSoft extracts fields correctly', () => {
+  const rawText = `
+Department: Human Resources
+Bargaining Unit: CUPE Local 123
+Salary Range: $30.00 - $45.00
+Closing Date: 2026-09-15
+  `;
+  const result = parsePeopleSoft(rawText);
+  assert.equal(result.department, 'Human Resources');
+  assert.equal(result.isUnionized, 1);
+  assert.equal(result.unionName, 'CUPE Local 123');
+  assert.equal(result.salary, '$30.00 - $45.00');
+  assert.equal(result.salaryMin, 30);
+  assert.equal(result.salaryMax, 45);
+  assert.equal(result.closingDate, '2026-09-15');
 });
 
 

@@ -207,7 +207,7 @@ export function extractTitleDuration(title: string | null | undefined): string |
   return null;
 }
 
-const PEOPLE_SOFT_SOURCES = new Set([
+export const PEOPLE_SOFT_SOURCES = new Set([
   'Fleming College',
   'Toronto Metropolitan University',
   'TransLink',
