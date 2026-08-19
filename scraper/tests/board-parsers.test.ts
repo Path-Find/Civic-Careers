@@ -5,6 +5,10 @@ import {
   parseCityOfToronto,
   parseWorkday,
   parseOntarioHealthAtHome,
+  parseADP,
+  parseDayforce,
+  parseNjoyn,
+  parseTaleo,
 } from '../board-parsers';
 
 test('parseHamilton extracts structured fields correctly', () => {
@@ -87,3 +91,96 @@ Hourly wage of $43.23 to $50.00 as per the OPSEU Collective Agreement
   assert.equal(result.isUnionized, 1);
   assert.equal(result.unionName, 'OPSEU');
 });
+
+test('parseADP extracts structured fields correctly', () => {
+  const rawText = `
+Theatre Technician - FLATO Markham TheatreTemporary Part Time Markham, ON, CA20 days agoRequisition ID: 4816Apply
+Salary Range: $23.22 To $43.23 Hourly 
+Department and Commission: Economic Growth, Culture and Entrepreneurship, Development Services
+Vacancy Type: Temporary 
+Application Deadline: August 31, 2026 
+  `;
+  const result = parseADP(rawText);
+  assert.equal(result.salary, '$23.22 To $43.23 Hourly');
+  assert.equal(result.salaryMin, 23.22);
+  assert.equal(result.salaryMax, 43.23);
+  assert.equal(result.salaryPeriod, 'hourly');
+  assert.equal(result.department, 'Economic Growth, Culture and Entrepreneurship, Development Services');
+  assert.equal(result.employmentType, 'Contract');
+  assert.equal(result.duration, 'Contract');
+  assert.equal(result.closingDate, '2026-08-31');
+});
+
+test('parseDayforce extracts structured fields correctly', () => {
+  const rawText = `
+Technologist, EnvironmentalReq #1968Woodbridge, Ontario, Canada
+Position Details: 
+Vacancies: 1
+Current Rate of Pay: Min = $43.94/hr  Max = $50.92/hr
+Employment type: Temporary Contract
+Duration of employment: 1 year
+Hours of work: 35 hrs/week 
+Work location: Restoration Services Centre
+Division: Restoration & Infrastructure
+  `;
+  const result = parseDayforce(rawText);
+  assert.equal(result.salaryMin, 43.94);
+  assert.equal(result.salaryMax, 50.92);
+  assert.equal(result.employmentType, 'Contract');
+  assert.equal(result.duration, '1 year');
+  assert.equal(result.hours, '35 hrs/week');
+  assert.equal(result.location, 'Restoration Services Centre');
+  assert.equal(result.department, 'Restoration & Infrastructure');
+});
+
+test('parseNjoyn extracts structured fields correctly', () => {
+  const rawText = `
+School Crossing Guard
+JD#:
+Contract
+Job Title:
+School Crossing Guard
+Job Type:
+Seasonal
+Salary:
+$18.80/Hour
+Hours of work:
+15 hours per week
+Union:
+Non-union
+Vacancy Type:
+Future
+  `;
+  const result = parseNjoyn(rawText);
+  assert.equal(result.salaryMin, 18.80);
+  assert.equal(result.salaryMax, 18.80);
+  assert.equal(result.salaryPeriod, 'hourly');
+  assert.equal(result.employmentType, 'Seasonal');
+  assert.equal(result.hours, '15 hours per week');
+  assert.equal(result.isUnionized, 0);
+  assert.equal(result.unionName, null);
+  assert.equal(result.duration, 'Contract');
+});
+
+test('parseTaleo extracts structured fields correctly', () => {
+  const rawText = `
+Waterfit Instructor
+Department
+Recreation and Culture
+Pay Range
+Starting at $35.90 per hour
+Apply Now
+ Job DetailsPart-Time
+Closing Date
+Applications for this position must be received at oakville.ca by no later than 11:59 pm on December 31, 2026.
+  `;
+  const result = parseTaleo(rawText);
+  assert.equal(result.department, 'Recreation and Culture');
+  assert.equal(result.salary, 'Starting at $35.90 per hour');
+  assert.equal(result.salaryMin, 35.90);
+  assert.equal(result.salaryMax, 35.90);
+  assert.equal(result.salaryPeriod, 'hourly');
+  assert.equal(result.employmentType, 'Part-time');
+  assert.equal(result.closingDate, '2026-12-31');
+});
+

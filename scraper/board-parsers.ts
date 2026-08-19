@@ -260,6 +260,231 @@ export function parseOntarioHealthAtHome(rawText: string): ExtractedBoardMetadat
 }
 
 /**
+ * Parser for ADP Workforce Now.
+ */
+export function parseADP(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+
+  // Salary Range
+  const salaryMatch = rawText.match(/Salary Range:\s*([^\n]+)/i);
+  if (salaryMatch) {
+    const range = salaryMatch[1].trim();
+    metadata.salary = range;
+    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
+    if (moneyMatches && moneyMatches.length >= 2) {
+      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
+      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
+      metadata.salaryPeriod = normalizeSalaryPeriod(range);
+    } else if (moneyMatches && moneyMatches.length === 1) {
+      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
+      metadata.salaryMax = metadata.salaryMin;
+      metadata.salaryPeriod = normalizeSalaryPeriod(range);
+    }
+  }
+
+  // Department
+  const deptMatch = rawText.match(/Department\s*(?:and\s*Commission)?:\s*([^\n]+)/i);
+  if (deptMatch) {
+    metadata.department = normalizeDepartment(deptMatch[1]);
+  }
+
+  // Vacancy Type / Employment Type
+  const typeMatch = rawText.match(/(?:Vacancy|Employment)\s*Type:\s*([^\n]+)/i)
+    || rawText.match(/\b(Temporary\s+Part\s+Time|Temporary\s+Full\s+Time|Part\s+Time|Full\s+Time)\b/i);
+  if (typeMatch) {
+    const val = typeMatch[1].trim();
+    metadata.employmentType = normalizeEmploymentType(val);
+    if (/temp|contract/i.test(val)) {
+      metadata.duration = 'Contract';
+    } else {
+      metadata.duration = 'Permanent';
+    }
+  }
+
+  // Closing date
+  const closingMatch = rawText.match(/Application\s*Deadline:\s*([^\n]+)/i);
+  if (closingMatch) {
+    metadata.closingDate = extractClosingDate(closingMatch[0]);
+  }
+
+  return metadata;
+}
+
+/**
+ * Parser for Dayforce candidate portal.
+ */
+export function parseDayforce(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+
+  // Rate of Pay / Salary
+  const salaryMatch = rawText.match(/(?:Rate\s+of\s+Pay|Salary\s+Range):\s*([^\n]+)/i)
+    || rawText.match(/Rate\s+of\s+Pay\s*[:\-]?\s*([^.!]{3,100})/i);
+  if (salaryMatch) {
+    const range = salaryMatch[1].trim();
+    metadata.salary = range;
+    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
+    if (moneyMatches && moneyMatches.length >= 2) {
+      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
+      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
+      metadata.salaryPeriod = normalizeSalaryPeriod(range);
+    } else if (moneyMatches && moneyMatches.length === 1) {
+      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
+      metadata.salaryMax = metadata.salaryMin;
+      metadata.salaryPeriod = normalizeSalaryPeriod(range);
+    }
+  }
+
+  // Employment Type
+  const typeMatch = rawText.match(/Employment\s*type:\s*([^\n]+)/i);
+  if (typeMatch) {
+    const val = typeMatch[1].trim();
+    metadata.employmentType = normalizeEmploymentType(val);
+  }
+
+  // Duration
+  const durationMatch = rawText.match(/Duration\s+of\s+employment:\s*([^\n]+)/i) || rawText.match(/Duration:\s*([^\n]+)/i);
+  if (durationMatch) {
+    metadata.duration = durationMatch[1].trim();
+    metadata.employmentType = 'Contract';
+  }
+
+  // Hours
+  const hoursMatch = rawText.match(/Hours\s+of\s+work:\s*([^\n]+)/i);
+  if (hoursMatch) {
+    metadata.hours = hoursMatch[1].trim();
+  }
+
+  // Location
+  const locMatch = rawText.match(/Work\s+location:\s*([^\n]+)/i) || rawText.match(/Location\s*[:\-]?\s*([^\n]+)/i);
+  if (locMatch) {
+    metadata.location = locMatch[1].trim();
+  }
+
+  // Department / Division / Business Unit
+  const deptMatch = rawText.match(/Business\s*unit:\s*([^\n]+)/i) || rawText.match(/Division:\s*([^\n]+)/i);
+  if (deptMatch) {
+    metadata.department = normalizeDepartment(deptMatch[1]);
+  }
+
+  return metadata;
+}
+
+/**
+ * Parser for Njoyn engine sites (Vaughan, Oshawa, Queen's, Carleton, etc.).
+ */
+export function parseNjoyn(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+
+  // Salary
+  const salaryMatch = rawText.match(/Salary:\s*([^\n]+)/i);
+  if (salaryMatch) {
+    const range = salaryMatch[1].trim();
+    metadata.salary = range;
+    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
+    if (moneyMatches && moneyMatches.length >= 2) {
+      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
+      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
+      metadata.salaryPeriod = normalizeSalaryPeriod(range);
+    } else if (moneyMatches && moneyMatches.length === 1) {
+      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
+      metadata.salaryMax = metadata.salaryMin;
+      metadata.salaryPeriod = normalizeSalaryPeriod(range);
+    }
+  }
+
+  // Job Type
+  const typeMatch = rawText.match(/Job\s*Type:\s*([^\n]+)/i);
+  if (typeMatch) {
+    const val = typeMatch[1].trim();
+    metadata.employmentType = normalizeEmploymentType(val);
+  }
+
+  // Hours of work
+  const hoursMatch = rawText.match(/Hours\s+of\s+work:\s*([^\n]+)/i);
+  if (hoursMatch) {
+    metadata.hours = hoursMatch[1].trim();
+  }
+
+  // Union
+  const unionMatch = rawText.match(/Union:\s*([^\n]+)/i);
+  if (unionMatch) {
+    const rawUnion = unionMatch[1].trim();
+    const normalizedUnion = normalizeUnionFields(rawUnion, !/non-?union/i.test(rawUnion));
+    metadata.isUnionized = normalizedUnion.is_unionized ? 1 : 0;
+    metadata.unionName = normalizedUnion.union_name || null;
+  }
+
+  // Vacancy Type / Duration
+  const vacancyMatch = rawText.match(/Vacancy\s*Type:\s*([^\n]+)/i);
+  if (vacancyMatch) {
+    const val = vacancyMatch[1].trim();
+    if (/temp|contract/i.test(val)) {
+      metadata.duration = 'Contract';
+      metadata.employmentType = 'Contract';
+    }
+  }
+
+  // Standalone tenure directly below JD#:
+  const njoynTenureMatch = rawText.match(/JD#:\s*\n+([^\n]+)/i) || rawText.match(/JD#:\s*([^\n]+)/i);
+  if (njoynTenureMatch) {
+    const val = njoynTenureMatch[1].trim();
+    if (/contract|temporary|seasonal|permanent/i.test(val)) {
+      metadata.duration = val;
+      if (!metadata.employmentType) {
+        metadata.employmentType = normalizeEmploymentType(val);
+      }
+    }
+  }
+
+  return metadata;
+}
+
+/**
+ * Parser for Taleo engine sites (Oakville, Seneca, Catharines, OCAD, Humber).
+ */
+export function parseTaleo(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+
+  // Department
+  const deptMatch = rawText.match(/Department\s*\n+([^\n]+)/i);
+  if (deptMatch) {
+    metadata.department = normalizeDepartment(deptMatch[1]);
+  }
+
+  // Pay Range
+  const salaryMatch = rawText.match(/Pay\s*Range\s*\n+([^\n]+)/i);
+  if (salaryMatch) {
+    const range = salaryMatch[1].trim();
+    metadata.salary = range;
+    const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
+    if (moneyMatches && moneyMatches.length >= 2) {
+      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
+      metadata.salaryMax = parseFloat(moneyMatches[moneyMatches.length - 1].replace(/[$,]/g, ''));
+      metadata.salaryPeriod = normalizeSalaryPeriod(range);
+    } else if (moneyMatches && moneyMatches.length === 1) {
+      metadata.salaryMin = parseFloat(moneyMatches[0].replace(/[$,]/g, ''));
+      metadata.salaryMax = metadata.salaryMin;
+      metadata.salaryPeriod = normalizeSalaryPeriod(range);
+    }
+  }
+
+  // Job Details
+  const detailsMatch = rawText.match(/Job\s+Details\s*([^\n]+)/i);
+  if (detailsMatch) {
+    const val = detailsMatch[1].trim();
+    metadata.employmentType = normalizeEmploymentType(val);
+  }
+
+  // Closing Date
+  const closingMatch = rawText.match(/Closing\s+Date\s*\n+([^\n]+)/i) || rawText.match(/Closing\s+Date\s*([^\n]+)/i);
+  if (closingMatch) {
+    metadata.closingDate = extractClosingDate(closingMatch[0]);
+  }
+
+  return metadata;
+}
+
+/**
  * Dispatcher to select and execute the correct parser based on the job source.
  */
 export function extractBoardSpecificMetadata(source: string, rawText: string): ExtractedBoardMetadata {
@@ -271,6 +496,53 @@ export function extractBoardSpecificMetadata(source: string, rawText: string): E
   }
   if (source === 'Ontario Health atHome') {
     return parseOntarioHealthAtHome(rawText);
+  }
+
+  // ADP sources
+  const adpSources = new Set([
+    'Municipality of Clarington',
+    'City of Markham',
+    'Town of Aurora',
+    'City of Sarnia',
+  ]);
+  if (adpSources.has(source)) {
+    return parseADP(rawText);
+  }
+
+  // Dayforce sources
+  const dayforceSources = new Set([
+    'TRCA',
+    'Infrastructure Ontario',
+    'City of St. Thomas',
+    'Town of Orangeville',
+  ]);
+  if (dayforceSources.has(source)) {
+    return parseDayforce(rawText);
+  }
+
+  // Njoyn sources
+  const njoynSources = new Set([
+    'City of Oshawa',
+    'City of Vaughan',
+    'Centennial College',
+    'Sheridan College',
+    'Carleton University',
+    "Queen's University",
+  ]);
+  if (njoynSources.has(source)) {
+    return parseNjoyn(rawText);
+  }
+
+  // Taleo sources
+  const taleoSources = new Set([
+    'Town of Oakville',
+    'Seneca College',
+    'City of St. Catharines',
+    'OCAD University',
+    'Humber College',
+  ]);
+  if (taleoSources.has(source)) {
+    return parseTaleo(rawText);
   }
 
   // Workday sources

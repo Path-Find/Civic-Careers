@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - Added a range-based closing date parser (`Posting Period`) to recover deadlines from City of Toronto and similar job postings.
-- Introduced a deterministic board-specific metadata parser system (`board-parsers.ts`) for Hamilton (BambooHR), Toronto (SuccessFactors), Workday, and Ontario Health atHome (iCIMS) to extract department, work model, union status, duration, and salary details.
+- Introduced deterministic board-specific metadata parsers in `board-parsers.ts` for Hamilton (BambooHR), Toronto (SuccessFactors), Workday, Ontario Health atHome (iCIMS), Taleo (Oakville/Humber/Seneca/OCAD), Dayforce (TRCA/IO), Njoyn (Vaughan/Oshawa/Queen's/Carleton), and ADP (Markham/Aurora/Sarnia/Clarington) to extract department, work model, union status, duration, and salary details.
 - Job title usability checks now catch navigation headings that lack a space before sign-in options, correcting 8 McMaster University listings.
 - All remaining active hidden listings have had their deadlines/titles recovered where possible, soft-parsing 196 jobs.
 - Basic metadata backfill applied to all unparsed listings, soft-parsing 855 jobs.
