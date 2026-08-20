@@ -33,6 +33,7 @@ export interface Job {
   academic_supervisor: string | null;
   academic_appointment_type: string | null;
   academic_schedule: string | null;
+  academic_term: string | null;
   is_unionized: number | null;
   union_name: string | null;
   benefits: string | null;
@@ -128,6 +129,7 @@ export interface JobDetails {
   academicSupervisor: string | null;
   academicAppointmentType: string | null;
   academicSchedule: string | null;
+  academicTerm: string | null;
 }
 
 export interface JobFilters {

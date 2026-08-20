@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Academic job titles that bundled a term ("Fall 2026"), union prefix ("CUPE - ..."), or course code ("MBAB 5P11") into the title now have those pulled into their own fields and shown as badges next to a cleaned-up title, instead of staying jumbled into the title text.
+- Extended the publish-quality gate to also catch a corrupted union field: found and removed 10 live jobs (9 City of Calgary, 1 other) whose "union" field held the entire raw posting (position type, pay grade, hours) instead of a union name — same unbounded-capture bug class as the department/title corruption fixed earlier, just not covered by that check.
 - Removed 1,193 public jobs whose department/title/salary/hours/location field had swallowed unrelated text from the raw posting (e.g. an entire job description dumped into "department"), or whose title was a portal button label ("View Job Details"), a cookie-consent banner, or a reposting/status annotation. Affected both tonight's mechanical backfill and some pre-existing AI-parsed jobs.
 - Added a reusable publish-quality gate (`scraper/publish-gate.ts`) and audit script (`scraper/audit-mechanical-publish.ts`) so this can be re-run and checked going forward instead of relying on manual review.
 - Salary is now displayed as a clean `$min - $max period` string derived from the parsed numeric salary fields, instead of the raw source text (which sometimes carried its own label, e.g. "Hourly Range:").

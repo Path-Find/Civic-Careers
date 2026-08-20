@@ -56,9 +56,129 @@ function isEmploymentOrDurationPiece(value: string): boolean {
     || /^(?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?)\b(?:\s+(?:contract|term|assignment|position))?$/i.test(s);
 }
 
+/** Bargaining-unit codes that belong in union_name, not the title. */
+const UNION_CODES = ['CUPE', 'OPSEU', 'USW', 'ONA', 'UNIFOR', 'SEIU', 'PSAC', 'NAPE', 'ATU', 'IAM', 'CAW', 'APTPUO'];
+const UNION_CODE_ALTERNATION = UNION_CODES.join('|');
+
 /** Parenthetical bargaining-unit markers that already belong in union_name. */
 function isUnionMarkerParen(inner: string): boolean {
-  return /^(?:CUPE(?:\s+\d+)?|OPSEU(?:\s+\d+)?|USW(?:\s+\d+)?|ONA(?:\s+\d+)?|UNIFOR(?:\s+\d+)?|SEIU(?:\s+\d+)?|PSAC(?:\s+\d+)?|NAPE(?:\s+\d+)?|ATU(?:\s+\d+)?|IAM(?:\s+\d+)?|CAW(?:\s+\d+)?|unionized)$/i.test(inner.replace(/\s+/g, ' ').trim());
+  return new RegExp(`^(?:${UNION_CODE_ALTERNATION})(?:\\s+\\d+)?$|^unionized$`, 'i').test(inner.replace(/\s+/g, ' ').trim());
+}
+
+/** Leading "CUPE - ", "APTPUO - Fall 2026 - ..." style union-code prefixes. */
+const UNION_PREFIX_PATTERN = new RegExp(`^\\s*(${UNION_CODE_ALTERNATION})(?:\\s+\\d+)?\\s*[-–—:]\\s*`, 'i');
+
+/** Extract a leading union-code prefix from a title, e.g. "CUPE - Fall 2026 - ..." → "CUPE". */
+export function extractUnionFromTitle(title: string | null | undefined): string | null {
+  if (!title) return null;
+  const match = title.match(UNION_PREFIX_PATTERN);
+  return match ? match[1].toUpperCase() : null;
+}
+
+function stripUnionPrefix(title: string): string {
+  return title.replace(UNION_PREFIX_PATTERN, '').trim();
+}
+
+const SEASON_WORD = '(?:Fall|Winter|Summer|Spring|Automne|Hiver|Été|Ete|Printemps)';
+const TERM_SEGMENT = `${SEASON_WORD}(?:\\s*/\\s*${SEASON_WORD})?\\s+\\d{4}(?:[-/]\\d{2,4})?`;
+// Segments can also join as whole season+year units, e.g. "Fall 2026/Winter 2027"
+// (as opposed to the season/season-then-year form already in TERM_SEGMENT above).
+const TERM_PATTERN = new RegExp(`${TERM_SEGMENT}(?:\\s*[&,/]\\s*${TERM_SEGMENT})*`, 'i');
+
+/** Extract an academic term like "Fall 2026", "Fall/Winter 2026-27", "Fall 2026 & Winter 2027", "Hiver 2027". */
+export function extractAcademicTerm(title: string | null | undefined): string | null {
+  if (!title) return null;
+  const match = title.match(TERM_PATTERN);
+  return match ? match[0].trim() : null;
+}
+
+function stripAcademicTerm(title: string): string {
+  return title.replace(TERM_PATTERN, '').trim();
+}
+
+// Department-code + number, e.g. "MBAB 5P11", "CRI100", "KIN8248H", "MGY377H1", "DRC1508-BB00".
+// The number can mix digits and letters ("5P11"), not just be all-digits.
+const COURSE_CODE_PATTERN = /\b[A-Z]{2,6}\s?\d[A-Z0-9]{2,4}[A-Z0-9.-]*\b/;
+
+/** Extract a course code from a title, e.g. "Teaching Assistant MBAB 5P11 Fall D" → "MBAB 5P11". */
+export function extractAcademicCourseCode(title: string | null | undefined): string | null {
+  if (!title) return null;
+  const match = title.match(COURSE_CODE_PATTERN);
+  return match ? match[0].trim() : null;
+}
+
+function stripAcademicCourseCode(title: string): string {
+  const match = title.match(COURSE_CODE_PATTERN);
+  return match ? title.replace(match[0], '').trim() : title;
+}
+
+function stripTrailingConnectorPunctuation(title: string): string {
+  return title
+    // Stripping a term/course/union match out of the middle of a title can leave
+    // behind an empty "()" (e.g. a parenthetical that contained only the term).
+    // NOTE: a similar rule that also stripped orphaned "/" characters was tried
+    // and reverted — it also matched real, meaningful slashes in ordinary
+    // non-academic titles like "Assistant / Associate Professor" or "Parks /
+    // Facility Operator", silently deleting a real "either/or" separator. Only
+    // touch punctuation classes ([,:;-]) that are never meaningful on their own
+    // when doubled up like this.
+    .replace(/\(\s*\)/g, '')
+    .replace(/\(\s*[:,-]\s*/g, '(')
+    // Removing a middle segment ("X - CODE - Y", "X, CODE - Y") leaves its
+    // bracketing punctuation adjacent ("X - - Y", "X, - Y") — collapse any run
+    // of 2+ connector-punctuation marks, whitespace allowed between them,
+    // down to just the first one.
+    .replace(/([,:;\-–—])(?:\s*[,:;\-–—])+/g, '$1')
+    .replace(/^[\s\-–—,:;]+/, '')
+    .replace(/[\s\-–—,:;]+$/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+// Course-code extraction only fires for sources that are actually academic institutions.
+// The pattern (letters + alphanumeric number) also matches non-academic requisition IDs
+// like "JR38550" or "REQ2024-0891" — stripping those from a municipal job title would be
+// exactly the kind of silent title-mangling this project spent tonight cleaning up.
+const ACADEMIC_SOURCE_PATTERN = /\b(university|college|institut)/i;
+
+/**
+ * Pull academic term, union code, and course code out of a title and return
+ * the cleaned title alongside them. Generic pattern-based — good enough to
+ * unify the common cases; per-source refinement (each university tends to
+ * have its own course-code format) is a reasonable follow-up, not required
+ * up front. Pass `source` so course-code extraction can be scoped to
+ * academic institutions only.
+ */
+export function extractAndStripAcademicMetadata(
+  title: string | null | undefined,
+  source?: string | null
+): {
+  title: string;
+  academicTerm: string | null;
+  unionName: string | null;
+  academicCourse: string | null;
+} {
+  const original = title ?? '';
+  const isAcademicSource = !!source && ACADEMIC_SOURCE_PATTERN.test(source);
+
+  const academicTerm = extractAcademicTerm(original);
+  const unionName = extractUnionFromTitle(original);
+  const academicCourse = isAcademicSource ? extractAcademicCourseCode(original) : null;
+
+  let clean = original;
+  clean = stripUnionPrefix(clean);
+  clean = stripAcademicTerm(clean);
+  if (isAcademicSource) clean = stripAcademicCourseCode(clean);
+  clean = stripTrailingConnectorPunctuation(clean);
+
+  // A title that strips down to almost nothing (e.g. a bare section code like
+  // "AE" once the union/term/course are all pulled out) is a worse title than
+  // the original, even though nothing here is technically wrong — keep the
+  // original text in that case; the extracted fields still show as badges.
+  const MIN_USABLE_TITLE_LENGTH = 4;
+  if (clean.trim().length < MIN_USABLE_TITLE_LENGTH) clean = original;
+
+  return { title: clean || original, academicTerm, unionName, academicCourse };
 }
 
 /**

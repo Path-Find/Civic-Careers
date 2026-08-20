@@ -264,7 +264,7 @@ async function initializeDbOnce(): Promise<Client> {
     'language_requirements', 'security_check_required', 'certification_requirements',
     'software_requirements', 'medical_requirements', 'hours', 'availability',
     'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours',
-    'academic_supervisor', 'academic_appointment_type', 'academic_schedule',
+    'academic_supervisor', 'academic_appointment_type', 'academic_schedule', 'academic_term',
   ]) {
     try {
       await client.execute(`ALTER TABLE job_details ADD COLUMN ${column} ${column.endsWith('_required') ? 'INTEGER' : 'TEXT'}`);
@@ -381,6 +381,7 @@ export async function saveJobDetails(client: Client, job: {
   academic_supervisor?: string;
   academic_appointment_type?: string;
   academic_schedule?: string;
+  academic_term?: string | null;
   experience_requirements?: string;
   is_unionized?: number;
   union_name?: string;
@@ -407,7 +408,7 @@ export async function saveJobDetails(client: Client, job: {
       id, job_title, department, location, workplace_address, salary_range, description, closing_date,
       is_inventory, listing_type, is_student, salary_min, salary_max, salary_period,
       work_model, employment_type, duration, experience_requirements, is_unionized, union_name, benefits, required_skills,
-      hours, availability, academic_role_type, academic_course, academic_workload, academic_office_hours, academic_supervisor, academic_appointment_type, academic_schedule,
+      hours, availability, academic_role_type, academic_course, academic_workload, academic_office_hours, academic_supervisor, academic_appointment_type, academic_schedule, academic_term,
       education_requirements, license_requirements, vehicle_required, language_requirements,
       security_check_required, certification_requirements, software_requirements, medical_requirements,
       responsibility_tags, qualification_tags, parser_version, posted_at, start_date, career_stage
@@ -417,7 +418,7 @@ export async function saveJobDetails(client: Client, job: {
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?
+      ?, ?, ?, ?, ?
     )
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
@@ -445,6 +446,7 @@ export async function saveJobDetails(client: Client, job: {
       academic_supervisor = COALESCE(NULLIF(excluded.academic_supervisor, ''), job_details.academic_supervisor),
       academic_appointment_type = COALESCE(NULLIF(excluded.academic_appointment_type, ''), job_details.academic_appointment_type),
       academic_schedule = COALESCE(NULLIF(excluded.academic_schedule, ''), job_details.academic_schedule),
+      academic_term = COALESCE(NULLIF(excluded.academic_term, ''), job_details.academic_term),
       experience_requirements = excluded.experience_requirements,
       is_unionized = excluded.is_unionized,
       union_name = excluded.union_name,
@@ -474,6 +476,7 @@ export async function saveJobDetails(client: Client, job: {
       job.required_skills ?? null,
       job.hours ?? null, job.availability ?? null, job.academic_role_type ?? null, job.academic_course ?? null,
       job.academic_workload ?? null, job.academic_office_hours ?? null, job.academic_supervisor ?? null, job.academic_appointment_type ?? null, job.academic_schedule ?? null,
+      job.academic_term ?? null,
       job.education_requirements ?? null, job.license_requirements ?? null,
       job.vehicle_required ?? null, job.language_requirements ?? null, job.security_check_required ?? null,
       job.certification_requirements ?? null, job.software_requirements ?? null, job.medical_requirements ?? null,

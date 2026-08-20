@@ -17,7 +17,7 @@ import {
   saveJobDetails,
 } from './db';
 import { extractRecentRelativePostedDate, extractPostedDate, normalizePostedDate } from './posted-date';
-import { extractRawJobTitle, normalizeJobTitle } from './title';
+import { extractAndStripAcademicMetadata, extractRawJobTitle, normalizeJobTitle } from './title';
 import {
   dedupeSkillsAgainstSoftware,
   extractCertificationRequirements,
@@ -108,7 +108,9 @@ function extractPostedAt(row: RawRow): string | null {
 }
 
 function buildDetails(row: RawRow) {
-  const title = normalizeJobTitle(row.title || extractRawJobTitle(row.source, row.raw_text) || row.raw_text.match(/^[^\n]{3,160}/)?.[0] || row.id);
+  const rawTitle = normalizeJobTitle(row.title || extractRawJobTitle(row.source, row.raw_text) || row.raw_text.match(/^[^\n]{3,160}/)?.[0] || row.id);
+  const academicMeta = extractAndStripAcademicMetadata(rawTitle, row.source);
+  const title = academicMeta.title;
   const listingType = extractListingType(row.raw_text, title, false);
   const postedAt = extractPostedAt(row);
   const isStudent = /\b(?:student|co-?op)\b/i.test(`${title}\n${row.raw_text}`) ? 1 : 0;
@@ -134,6 +136,8 @@ function buildDetails(row: RawRow) {
     salaryMin: null as number | null,
     salaryMax: null as number | null,
     salaryPeriod: null as string | null,
+    academicTerm: academicMeta.academicTerm,
+    academicCourse: academicMeta.academicCourse,
   };
 
   const custom = extractBoardSpecificMetadata(row.source, row.raw_text);
@@ -146,6 +150,10 @@ function buildDetails(row: RawRow) {
     salary: custom.salary !== undefined ? custom.salary : base.salary,
     employmentType: custom.employmentType !== undefined ? custom.employmentType : base.employmentType,
     hours: custom.hours !== undefined ? custom.hours : base.hours,
+    // A board-parser that positively determined union status (even "not unionized")
+    // wins; only fall back to a title-prefix guess when the parser never looked.
+    unionName: custom.unionName !== undefined ? custom.unionName : (academicMeta.unionName || base.unionName),
+    isUnionized: custom.isUnionized !== undefined ? custom.isUnionized : (academicMeta.unionName ? 1 : base.isUnionized),
   };
 
   const cleanSalary = formatSalaryDisplay(merged.salaryMin ?? null, merged.salaryMax ?? null, merged.salaryPeriod ?? null);
@@ -269,6 +277,8 @@ async function main() {
       salary_min: details.salaryMin !== null && details.salaryMin !== undefined ? details.salaryMin : null,
       salary_max: details.salaryMax !== null && details.salaryMax !== undefined ? details.salaryMax : null,
       salary_period: details.salaryPeriod || null,
+      academic_term: details.academicTerm || null,
+      academic_course: details.academicCourse || null,
       vehicle_required: requirementFlagToDb(vehicleRequired),
       security_check_required: requirementFlagToDb(securityCheckRequired),
     });

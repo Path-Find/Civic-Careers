@@ -379,6 +379,7 @@ export function parseJobDetails(job: Job): JobDetails {
     academicSupervisor: formatAcademicSupervisor(job.academic_supervisor),
     academicAppointmentType: formatAcademicAppointmentType(job.academic_appointment_type),
     academicSchedule: cleanAcademicCardValue(job.academic_schedule) || null,
+    academicTerm: cleanAcademicCardValue(job.academic_term) || null,
     union: formatUnionLabel(job.is_unionized, job.union_name),
     listingType: job.listing_type === 'ongoing_recruitment' ? 'Ongoing recruitment' : job.listing_type === 'inventory' || job.is_inventory === 1 ? 'Candidate inventory' : null,
     studentRequirement: job.is_student === 1 ? 'Yes' : null,

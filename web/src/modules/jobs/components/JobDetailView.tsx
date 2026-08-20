@@ -138,6 +138,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   ].filter(item => item.value);
   const hasRequirementsCard = requirementMetadata.length > 0 || Boolean(otherInformation);
   const academicMetadata: DetailMetadata[] = [
+    { label: 'Term', value: details.academicTerm },
     { label: 'Course / project', value: details.academicCourse },
     { label: 'Workload', value: details.academicWorkload || details.hours },
     { label: 'Office hours', value: details.academicOfficeHours },

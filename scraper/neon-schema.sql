@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS job_details (
   academic_supervisor TEXT,
   academic_appointment_type TEXT,
   academic_schedule TEXT,
+  academic_term TEXT,
   is_unionized INTEGER,
   union_name TEXT,
   benefits TEXT,
