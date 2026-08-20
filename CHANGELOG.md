@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed false-positive bot-challenge rejections on SuccessFactors and Njoyn detail pages containing static robot-check/hCaptcha widgets, restoring TTC and Carleton University listings.
+- Resolved Radware anti-bot blocks on Njoyn and SuccessFactors search pages by disabling automated browser flags and isolating browser contexts per task.
+- Fixed parameter boundary unescaping for Kingston RSS feed URLs, restoring 18 active jobs.
+- Promoted Algoma University, VIA Rail Canada, VIA TGF Inc., and City of Ottawa (Jobs2Web) from pending to active.
+- Fixed a Postgres query ambiguity bug in the `recordParseFailure` helper.
 - Added a range-based closing date parser (`Posting Period`) to recover deadlines from City of Toronto and similar job postings.
 - Introduced deterministic board-specific metadata parsers in `board-parsers.ts` for Hamilton (BambooHR), Toronto (SuccessFactors), Workday, Ontario Health atHome (iCIMS), Taleo (Oakville/Humber/Seneca/OCAD), Dayforce (TRCA/IO), Njoyn (Vaughan/Oshawa/Queen's/Carleton), ADP (Markham/Aurora/Sarnia/Clarington), and SuccessFactors (Shared Health Manitoba/Mississauga/Halton/Ottawa/TTC) to extract department, work model, union status, duration, and salary details.
 - Refactored salary parsing to extract up to 4 decimal places, allowing accurate preservation of paramedic and specialized collective agreement wage rates.

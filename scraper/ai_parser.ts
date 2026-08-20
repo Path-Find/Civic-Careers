@@ -73,7 +73,7 @@ function msUntilOffPeak(): number {
     const now = new Date();
     const mins = now.getUTCHours() * 60 + now.getUTCMinutes();
     const isPeak = (mins >= 60 && mins < 240) || (mins >= 360 && mins < 600);
-    if (!isPeak) return 0;
+    if (!isPeak || process.env.BYPASS_PEAK_HOURS === 'true') return 0;
     const targetMins = mins < 240 ? 240 : 600; // wait until 4 AM or 10 AM UTC
     return (targetMins - mins) * 60 * 1000 - now.getUTCSeconds() * 1000;
 }

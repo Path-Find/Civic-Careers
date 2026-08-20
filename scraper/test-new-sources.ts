@@ -249,7 +249,10 @@ const SOURCES = {
 
 async function main() {
   const headless = !process.env.DISPLAY && process.env.CI !== 'false';
-  const browser = await chromium.launch({ headless });
+  const browser = await chromium.launch({
+    headless,
+    args: ['--disable-blink-features=AutomationControlled']
+  });
   const context = await browser.newContext(BASE_CONFIG);
 
   const configuredTrialDbUrl = process.env.TRIAL_DB_URL?.trim();

@@ -725,7 +725,7 @@ export async function recordParseFailure(client: Client, failure: { id: string; 
           VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
           ON CONFLICT(id) DO UPDATE SET
             reason = excluded.reason,
-            attempt_count = attempt_count + 1,
+            attempt_count = parse_failures.attempt_count + 1,
             last_failed_at = CURRENT_TIMESTAMP`,
     args: [failure.id, failure.url, failure.source, failure.reason],
   });

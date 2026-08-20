@@ -4,8 +4,9 @@ This document tracks **all active** job portals currently scraped by Civic Caree
 
 The active list below is derived from `scraper/scraper.ts`'s `TASKS` array and should be re-synced whenever sources are added or removed there.
 
-## ADP WorkforceNow (4)
+## ADP WorkforceNow (5)
 
+- **Algoma University** — [Careers](https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=325cbdb8-d490-4480-ae8d-d332911ec006&ccId=19000101_000001&lang=en_CA)
 - **City of Markham** — [Careers](https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=04bf51f8-d2dd-4641-ba92-183522f6e8b3&ccId=19000101_000001&type=MP&lang=en_CA)
 - **City of Sarnia** — [Careers](https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=9ba4d624-1cab-4482-861f-900704c3df0d&ccId=19000101_000001&lang=en_CA)
 - **Municipality of Clarington** — [Careers](https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=09ed440f-e109-4f6f-ac03-075ea0a3a5e5&ccId=19000101_000001&lang=en_CA)
@@ -63,17 +64,20 @@ The active list below is derived from `scraper/scraper.ts`'s `TASKS` array and s
 
 - **City of Thunder Bay** — [Careers](https://careers.thunderbay.ca/careers-home/jobs)
 
-## Jobs2Web (9)
+## Jobs2Web (12)
 
 - **City of Brampton** — [Search](https://careers.brampton.ca/search/)
 - **City of Kitchener** — [Search](https://jobs.kitchener.ca/search/)
 - **City of London** — [Careers](https://careers.london.ca/search/)
+- **City of Ottawa (Jobs2Web)** — [Search](https://jobs-emplois.ottawa.ca/city-jobs/search/)
 - **City of Richmond Hill** — [Search](https://jobs.richmondhill.ca/search/)
 - **City of Vancouver** — [Search](https://jobs.vancouver.ca/search/)
 - **CMHC** — [Careers](https://careers.cmhc-schl.gc.ca/search/)
 - **Region of Waterloo** — [Search](https://careers.regionofwaterloo.ca/RoW/search/)
 - **University of Guelph** — [Careers](https://careers.uoguelph.ca/search/)
 - **University of Toronto** — [Jobs](https://jobs.utoronto.ca/search/)
+- **VIA Rail Canada** — [Search](https://careers.viarail.ca/search/)
+- **VIA TGF Inc.** — [Search](https://carrieres-careers.altotrain.ca/search/)
 
 ## JazzHR (2)
 
@@ -103,9 +107,8 @@ The active list below is derived from `scraper/scraper.ts`'s `TASKS` array and s
 
 - **City of Kingston** — [Careers](https://careers.cityofkingston.ca/CL2/net/ResumeProcessing/RssFeedOutput.aspx?CLID=61577&lang=1)
 
-## SuccessFactors (5)
+## SuccessFactors (4)
 
-- **City of Ottawa** — [Careers](https://career47.sapsf.com/careers/cityofottawa/search)
 - **City of Toronto** — [Jobs at City](https://jobs.toronto.ca/jobsatcity/search/)
 - **Halton Region** — [Search](https://careers.halton.ca/search/)
 - **Mississauga** — [Search](https://jobs.mississauga.ca/search/)
