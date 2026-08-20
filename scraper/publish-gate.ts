@@ -1,0 +1,83 @@
+/**
+ * One gate for whether a mechanically-parsed job is safe to publish.
+ *
+ * Used by both the live backfill write path (backfill-metadata-only.ts) and
+ * the retroactive audit (audit-mechanical-publish.ts) so a fix here protects
+ * both future runs and whatever was already published under a weaker check.
+ *
+ * Policy: on any red flag, hold the whole job back (fail closed). Never try
+ * to silently auto-correct a suspect field — a wrong guess published is worse
+ * than a real job left pending.
+ */
+import { isUsableJobTitle } from './title';
+
+export interface PublishGateDetails {
+  title: string;
+  department?: string | null;
+  hours?: string | null;
+  salary?: string | null;
+  location?: string | null;
+}
+
+// board-parsers.ts field regexes are bounded by newline only (`[^\n]+`), which
+// silently swallows the rest of the field when a source's raw text has no
+// newline between labeled fields — a whole job's remaining fields can end up
+// concatenated into e.g. "department". Real long values exist though (a
+// university department/faculty name can legitimately run 90+ chars, an
+// hours description with "as scheduled, no minimum guarantee" can too), so a
+// flat length cap alone rejects far more good jobs than bad ones. Two better
+// signals, checked instead of / in addition to a generous length backstop:
+//   - a colon inside the value: department/salary/location values never
+//     legitimately contain one — a colon means the next field's label got
+//     glued on (e.g. "...ServicesDivision: Employment & Social Services").
+//     `hours` is excluded: "9:00 AM - 5:00 PM" is a real, common value.
+//   - squished sentence joins (no space where a sentence ended, e.g.
+//     "OperationsCampus", "disciplineDemonstrated") — the fingerprint of a
+//     capture that ran across a raw-text boundary with no whitespace at all.
+const FIELDS_REJECT_COLON = new Set(['department', 'salary', 'location']);
+const SCALAR_FIELD_LENGTH_CEILING: Record<string, number> = {
+  title: 220,
+  department: 150,
+  hours: 200,
+  salary: 150,
+  location: 150,
+};
+
+function hasSquishedSentenceJoin(value: string): boolean {
+  return (value.match(/[a-z][A-Z]/g)?.length ?? 0) >= 1;
+}
+
+function corruptedScalarField(details: PublishGateDetails): string | null {
+  for (const [field, ceiling] of Object.entries(SCALAR_FIELD_LENGTH_CEILING)) {
+    const value = (details as unknown as Record<string, unknown>)[field];
+    if (typeof value !== 'string' || !value) continue;
+    if (value.length > ceiling) return field;
+    if (hasSquishedSentenceJoin(value)) return field;
+    if (FIELDS_REJECT_COLON.has(field) && value.includes(':')) return field;
+  }
+  return null;
+}
+
+// Employment-status words belong in employment_type, not the title — a title
+// carrying "(FT Temporary)" or similar is a sign the source-title extractor
+// grabbed a status label instead of the actual role name.
+const TITLE_STATUS_WORDS = /\b(full[- ]?time|part[- ]?time|temporary|casual|permanent|contract|FT|PT|vacation relief)\b/i;
+
+// Words that mark a title as a reposting/administrative annotation rather
+// than the actual role name, or portal chrome (cookie banner, etc.) captured
+// in place of a real title. Add more as one-liners here.
+// No trailing \b: glued-together portal captures (e.g. "...privacyWe use...")
+// can run directly into the next word with no space, so requiring a word
+// boundary right after the phrase would miss exactly the case this exists for.
+const TITLE_FLAGGED_WORDS = /\b(revised|amended|vacanc(?:y|ies)|repost(?:ed|ing)?|r[ée]affichage|we (?:use|value) (?:cookies|your privacy))/i;
+
+export function getPublishBlockReason(details: PublishGateDetails): string | null {
+  const corruptField = corruptedScalarField(details);
+  if (corruptField) return `corrupted field: ${corruptField}`;
+
+  if (!isUsableJobTitle(details.title)) return 'unusable title';
+  if (TITLE_STATUS_WORDS.test(details.title)) return 'employment-status words in title';
+  if (TITLE_FLAGGED_WORDS.test(details.title)) return 'flagged word in title';
+
+  return null;
+}

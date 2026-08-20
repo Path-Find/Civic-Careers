@@ -152,7 +152,7 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
 export function isUsableJobTitle(title: string | null | undefined): boolean {
   const normalized = normalizeJobTitle(title);
   if (!normalized) return false;
-  return !/^(?:skip\s+to\b|search\s+jobs?\b|job\s+description|no\s+results?\b|frequently\s+asked\b)/i.test(normalized);
+  return !/^(?:skip\s+to\b|search\s+jobs?\b|job\s+description|no\s+results?\b|frequently\s+asked\b|view\s+(?:the\s+)?job(?:\s+(?:details|posting))?\b|apply\s+now\b|click\s+here\b|read\s+more\b|see\s+details\b|job\s+details\b)/i.test(normalized);
 }
 
 /**

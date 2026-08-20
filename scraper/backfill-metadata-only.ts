@@ -36,6 +36,8 @@ import { normalizeLocation } from './location';
 import { classifyRawCapture } from './capture-quality';
 import { formatCapturedDescription } from './fallback-description';
 import { extractBoardSpecificMetadata } from './board-parsers';
+import { getPublishBlockReason } from './publish-gate';
+import { formatSalaryDisplay } from './salary-format';
 
 dotenv.config({ quiet: true });
 
@@ -136,7 +138,7 @@ function buildDetails(row: RawRow) {
 
   const custom = extractBoardSpecificMetadata(row.source, row.raw_text);
 
-  return {
+  const merged = {
     ...base,
     ...custom,
     location: custom.location !== undefined ? custom.location : base.location,
@@ -144,6 +146,12 @@ function buildDetails(row: RawRow) {
     salary: custom.salary !== undefined ? custom.salary : base.salary,
     employmentType: custom.employmentType !== undefined ? custom.employmentType : base.employmentType,
     hours: custom.hours !== undefined ? custom.hours : base.hours,
+  };
+
+  const cleanSalary = formatSalaryDisplay(merged.salaryMin ?? null, merged.salaryMax ?? null, merged.salaryPeriod ?? null);
+  return {
+    ...merged,
+    salary: cleanSalary || merged.salary,
   };
 }
 
@@ -195,6 +203,13 @@ async function main() {
   let leftPending = 0;
   async function processRow(row: RawRow) {
     const details = buildDetails(row);
+    if (getPublishBlockReason(details)) {
+      // A corrupted field, an unusable/CTA title, or a status/flagged word in
+      // the title. Never publish a job shell built from a field we know is
+      // bad — leave it pending instead of guessing or partially fixing it.
+      leftPending += 1;
+      return;
+    }
     const description = formatCapturedDescription(row.raw_text, details.title);
     if (!description) {
       // Non-Workday captures remain safe pending shells. Never hide a valid

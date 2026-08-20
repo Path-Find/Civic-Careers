@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Removed 1,193 public jobs whose department/title/salary/hours/location field had swallowed unrelated text from the raw posting (e.g. an entire job description dumped into "department"), or whose title was a portal button label ("View Job Details"), a cookie-consent banner, or a reposting/status annotation. Affected both tonight's mechanical backfill and some pre-existing AI-parsed jobs.
+- Added a reusable publish-quality gate (`scraper/publish-gate.ts`) and audit script (`scraper/audit-mechanical-publish.ts`) so this can be re-run and checked going forward instead of relying on manual review.
+- Salary is now displayed as a clean `$min - $max period` string derived from the parsed numeric salary fields, instead of the raw source text (which sometimes carried its own label, e.g. "Hourly Range:").
 - Fixed false-positive bot-challenge rejections on SuccessFactors and Njoyn detail pages containing static robot-check/hCaptcha widgets, restoring TTC and Carleton University listings.
 - Resolved Radware anti-bot blocks on Njoyn and SuccessFactors search pages by disabling automated browser flags and isolating browser contexts per task.
 - Fixed parameter boundary unescaping for Kingston RSS feed URLs, restoring 18 active jobs.
