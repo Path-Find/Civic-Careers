@@ -24,6 +24,7 @@ type Row = {
   hours: string | null;
   salary_range: string | null;
   location: string | null;
+  union_name: string | null;
   parser_version: number | null;
 };
 
@@ -31,7 +32,7 @@ async function main() {
   const db = await initDb();
 
   const result = await db.execute(`
-    SELECT id, job_title, department, hours, salary_range, location, parser_version
+    SELECT id, job_title, department, hours, salary_range, location, union_name, parser_version
     FROM job_details
   `);
   const rows = result.rows as unknown as Row[];
@@ -44,6 +45,7 @@ async function main() {
       hours: row.hours,
       salary: row.salary_range,
       location: row.location,
+      unionName: row.union_name,
     });
     if (reason) bad.push({ id: row.id, reason, parser_version: row.parser_version });
   }

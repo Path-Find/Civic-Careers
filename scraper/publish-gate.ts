@@ -17,6 +17,7 @@ export interface PublishGateDetails {
   hours?: string | null;
   salary?: string | null;
   location?: string | null;
+  unionName?: string | null;
 }
 
 // board-parsers.ts field regexes are bounded by newline only (`[^\n]+`), which
@@ -34,13 +35,18 @@ export interface PublishGateDetails {
 //   - squished sentence joins (no space where a sentence ended, e.g.
 //     "OperationsCampus", "disciplineDemonstrated") — the fingerprint of a
 //     capture that ran across a raw-text boundary with no whitespace at all.
-const FIELDS_REJECT_COLON = new Set(['department', 'salary', 'location']);
+const FIELDS_REJECT_COLON = new Set(['department', 'salary', 'location', 'unionName']);
 const SCALAR_FIELD_LENGTH_CEILING: Record<string, number> = {
   title: 220,
   department: 150,
   hours: 200,
   salary: 150,
   location: 150,
+  // Real union names run up to ~70 chars ("Association of the Academic Staff
+  // of the University of Alberta"); a City of Calgary board-parser bug was
+  // found dumping the entire raw posting (position type, pay grade, hours,
+  // job ID) into this field — same unbounded-capture class as the others.
+  unionName: 150,
 };
 
 function hasSquishedSentenceJoin(value: string): boolean {

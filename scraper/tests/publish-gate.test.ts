@@ -63,3 +63,22 @@ test('passes a legitimately long academic course-code title under the length cap
   });
   assert.equal(reason, null);
 });
+
+test('rejects a union field that swallowed the rest of the posting (City of Calgary case)', () => {
+  const reason = getPublishBlockReason({
+    title: 'Project Coordinator',
+    unionName: 'CUPE Local 38Position Type: 1 Temporary (up to 18 months)Compensation: Pay Grade 9 $41.49 - 55.51 per hourHours of work: Standard 35 hour work week.',
+  });
+  assert.equal(reason, 'corrupted field: unionName');
+});
+
+test('passes real long union names that happen to run long but have no colon', () => {
+  assert.equal(getPublishBlockReason({
+    title: 'Professor',
+    unionName: 'Association of the Academic Staff of the University of Alberta (AASUA)',
+  }), null);
+  assert.equal(getPublishBlockReason({
+    title: 'Steward',
+    unionName: 'Manitoba Government & General Employees’ Union (MGEU – Local 911)',
+  }), null);
+});
