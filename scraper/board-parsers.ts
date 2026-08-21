@@ -641,17 +641,36 @@ export function parseGovernmentOfCanada(rawText: string): ExtractedBoardMetadata
 /**
  * Parser for PeopleSoft Fluid tenant postings.
  */
+// PeopleSoft sources (Calgary, TMU, TransLink, Western, Winnipeg, McMaster,
+// Durham/Niagara Region, Fleming) render their "Position and Pay Information"
+// block as label-glued text with no newline between fields at all in some
+// postings (e.g. "Union: ExemptPosition Type: Permanent and Temporary
+// Compensation: ..."). A capture bounded only by `[^\n]+` silently swallows
+// every field after it into the one being captured. Bound each capture with
+// a lookahead for the next known label instead, so it stops at whichever
+// comes first: the next label, a newline, or the end of the text.
+const PEOPLE_SOFT_FIELD_LABELS = [
+  'Business Unit', 'Union', 'Position Type', 'Compensation', 'Hours of work',
+  'Days of work', 'Location', 'Audience', 'Apply By', 'Job ID', 'Department',
+  'Salary Range', 'Salary', 'Closing Date', 'Affiliation', 'Bargaining Unit',
+];
+const PEOPLE_SOFT_NEXT_LABEL = `(?=\\s*(?:${PEOPLE_SOFT_FIELD_LABELS.join('|')})\\s*:|\\n|$)`;
+
+function peopleSoftField(label: string): RegExp {
+  return new RegExp(`${label}:\\s*([^\\n]+?)${PEOPLE_SOFT_NEXT_LABEL}`, 'i');
+}
+
 export function parsePeopleSoft(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
-  const deptMatch = rawText.match(/Department:\s*([^\n]+)/i) || rawText.match(/Department\s*\n+([^\n]+)/i);
+  const deptMatch = rawText.match(peopleSoftField('Department')) || rawText.match(/Department\s*\n+([^\n]+)/i);
   if (deptMatch) {
     metadata.department = normalizeDepartment(deptMatch[1]);
   }
 
-  const salaryMatch = rawText.match(/Salary Range:\s*([^\n]+)/i)
+  const salaryMatch = rawText.match(peopleSoftField('Salary Range'))
     || rawText.match(/Salary\s*Range\s*\n+([^\n]+)/i)
-    || rawText.match(/Salary:\s*([^\n]+)/i);
+    || rawText.match(peopleSoftField('Salary'));
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
@@ -661,15 +680,15 @@ export function parsePeopleSoft(rawText: string): ExtractedBoardMetadata {
     metadata.salaryPeriod = normalizeSalaryPeriod(range);
   }
 
-  const closingMatch = rawText.match(/(?:Closing Date|Closing\s+Date\s*:\s*)([^\n]+)/i)
+  const closingMatch = rawText.match(peopleSoftField('Closing Date'))
     || rawText.match(/Closing Date\s*\n+([^\n]+)/i);
   if (closingMatch) {
     metadata.closingDate = extractClosingDate(closingMatch[0]);
   }
 
-  const unionMatch = rawText.match(/Affiliation:\s*([^\n]+)/i)
-    || rawText.match(/Union:\s*([^\n]+)/i)
-    || rawText.match(/Bargaining Unit:\s*([^\n]+)/i);
+  const unionMatch = rawText.match(peopleSoftField('Affiliation'))
+    || rawText.match(peopleSoftField('Union'))
+    || rawText.match(peopleSoftField('Bargaining Unit'));
   if (unionMatch) {
     const rawUnion = unionMatch[1].trim();
     const isUnion = !/non-?union|management|exempt/i.test(rawUnion);

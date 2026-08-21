@@ -308,4 +308,19 @@ Closing Date: 2026-09-15
   assert.equal(result.closingDate, '2026-09-15');
 });
 
+test('parsePeopleSoft stops a field at the next label even with no newline between them (City of Calgary case)', () => {
+  // Real Calgary postings glue the whole "Position and Pay Information"
+  // block into one line with no newlines between labels at all. A capture
+  // bounded only by newline used to swallow every field after it.
+  const rawText = 'Position and Pay InformationBusiness Unit: Water ServicesUnion: CUPE Local 38Position Type: 1 Temporary (up to 18 months) Compensation: Pay Grade 9 $41.49 - 55.51 per hourHours of work: Standard 35 hour work weekDays of work: This position works a 5-day work week.Location: VariousAudience: Internal/ExternalApply By: September 4, 2026Job ID: 314587';
+  const result = parsePeopleSoft(rawText);
+  assert.equal(result.unionName, 'CUPE Local 38');
+});
+
+test('parsePeopleSoft correctly identifies a non-union "Exempt" position without swallowing the rest of the posting', () => {
+  const rawText = 'Position and Pay InformationBusiness Unit: VariousUnion: ExemptPosition Type: Permanent and Temporary Compensation: Salary will be based on the position.Hours of work: Standard 35 hour work week';
+  const result = parsePeopleSoft(rawText);
+  assert.equal(result.isUnionized, 0);
+});
+
 
