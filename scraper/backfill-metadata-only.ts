@@ -113,7 +113,13 @@ function buildDetails(row: RawRow) {
   const title = academicMeta.title;
   const listingType = extractListingType(row.raw_text, title, false);
   const postedAt = extractPostedAt(row);
-  const isStudent = /\b(?:student|co-?op)\b/i.test(`${title}\n${row.raw_text}`) ? 1 : 0;
+  // Title only, not the whole raw posting: "student"/"co-op" anywhere in the
+  // body matches department names ("Student Systems"), software module names
+  // ("Student Financials"), and roles that supervise students rather than
+  // being for one. Live-data check found 615 of 700 jobs flagged this way
+  // had no "student"/"co-op" word in the title at all -- including "Nurse
+  // Practitioner", "Business Systems Analyst", "Research Scientist".
+  const isStudent = /\b(?:student|co-?op)\b/i.test(title) ? 1 : 0;
   const salary = row.raw_text.match(/(?:salary\s*(?:range)?|pay\s*rate?s?|hourly\s*rate|compensation)\s*[:\-]?\s*([^.!]{3,100}(?:\$|per\s+(?:hour|annum|year)|annual|hourly)[^.!]{0,40})/i)?.[1]?.trim() || '';
   const employmentType = row.raw_text.match(/\b(permanent\s+(?:full[- ]time|part[- ]time)|temporary\s+(?:full[- ]time|part[- ]time)|full[- ]time|part[- ]time|casual|contract)\b/i)?.[1] || '';
   const hours = row.raw_text.match(/(?:hours?\s+of\s+work|hours?\s+per\s+week|weekly\s+hours?\s+of\s+work|fte)\s*[:\-]?\s*([^.;]{3,100})/i)?.[1]?.trim() || '';
