@@ -50,6 +50,9 @@ const publicTitle = `COALESCE(
   CASE WHEN ${badTitlePrefixCheck("COALESCE(raw.title, '')")} THEN NULL ELSE NULLIF(TRIM(raw.title), '') END
 )`;
 const publicTitleVisibility = `AND ${publicTitle} IS NOT NULL`;
+// A raw scrape is not public approval. Only a soft- or fully-parsed row can
+// appear in public results; hidden rows remain available for repair from raw_jobs.
+const publicPublicationVisibility = `AND j.publication_status IN ('soft_parsed', 'fully_parsed')`;
 const explicitOpenUntilFilled = `(
   (${sourceText} LIKE '%until filled%' AND (
     ${sourceText} LIKE '%closing date%'
@@ -117,10 +120,10 @@ END`;
 const publicDeadline = `AND ((${closingDate} IS NOT NULL
   AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text)
   OR ${closingDateStatus} = 'open_until_filled')`;
-const currentPublicJobVisibility = `AND j.is_active = 1 ${publicTitleVisibility} ${publicDeadline}`;
+const currentPublicJobVisibility = `AND j.is_active = 1 ${publicPublicationVisibility} ${publicTitleVisibility} ${publicDeadline}`;
 
 const jobColumns = `
-  j.public_id AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
+  j.public_id AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.publication_status, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
   ${publicTitle} AS job_title, jd.department, COALESCE(jd.location, raw.pending_location) AS location,
   raw.url AS details_url,
@@ -146,7 +149,7 @@ const jobJoins = `
   LEFT JOIN raw_jobs raw ON j.id = raw.id`;
 
 const freshnessDate = `CASE WHEN COALESCE(jd.posted_at, raw.posted_at) IS NOT NULL AND LEFT(COALESCE(jd.posted_at, raw.posted_at), 10) <= CURRENT_DATE::text THEN LEFT(COALESCE(jd.posted_at, raw.posted_at), 10)::date ELSE j.first_seen_at::date END`;
-const visiblePending = publicTitleVisibility;
+    const visiblePending = `${publicPublicationVisibility} ${publicTitleVisibility}`;
 
 /** Match web/src/utils.ts slugify — company URLs are /companies/{slug}. */
 function slugifySource(text: string): string {
@@ -211,11 +214,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       const placeholders = requestedIds.map(() => '?').join(', ');
       const [currentResult, archiveResult] = await Promise.all([
         db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders})`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders}) ${currentPublicJobVisibility}`,
           args: requestedIds,
         }),
         archiveDb.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders})`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders}) ${currentPublicJobVisibility}`,
           args: requestedIds,
         }),
       ]);
@@ -228,16 +231,16 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       let result = await db.execute({
         sql: `SELECT jd.description, raw.raw_text,
                 CASE WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN 1 ELSE 0 END AS details_pending
-              FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
-              LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ?`,
+                FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
+              LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ? ${currentPublicJobVisibility}`,
         args: [id]
       });
       if (result.rows.length === 0) {
         result = await archiveDb.execute({
           sql: `SELECT jd.description, raw.raw_text,
                   CASE WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN 1 ELSE 0 END AS details_pending
-                FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
-                LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ?`,
+                  FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
+                LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ? ${currentPublicJobVisibility}`,
           args: [id]
         });
       }
@@ -271,11 +274,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       if (result.rows.length === 0) {
         result = /^\d+$/.test(jobId)
           ? await archiveDb.execute({
-            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ?`,
+            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${publicPublicationVisibility}`,
             args: [jobId]
           })
           : await archiveDb.execute({
-            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
+            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ? ${publicPublicationVisibility}`,
             args: [jobId]
           });
       }
@@ -287,7 +290,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         });
         if (result.rows.length === 0) {
           result = await archiveDb.execute({
-            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
+            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ? ${publicPublicationVisibility}`,
             args: [jobId]
           });
         }
@@ -309,7 +312,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       });
       if (result.rows.length === 0) {
         result = await archiveDb.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ?`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${currentPublicJobVisibility}`,
           args: [rid]
         });
       }
@@ -589,6 +592,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         SELECT ${jobColumns}
         ${jobJoins}
         WHERE j.is_saved = 1
+          ${publicPublicationVisibility}
       `;
       const [currentSaved, archiveSaved] = await Promise.all([
         db.execute(savedSql),

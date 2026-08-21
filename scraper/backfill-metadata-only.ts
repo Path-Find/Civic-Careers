@@ -17,7 +17,7 @@ import {
   saveJobDetails,
 } from './db';
 import { extractRecentRelativePostedDate, extractPostedDate, normalizePostedDate } from './posted-date';
-import { extractAndStripAcademicMetadata, extractRawJobTitle, normalizeJobTitle } from './title';
+import { extractAndStripAcademicMetadata, extractRawJobTitle, isUsableJobTitle, normalizeJobTitle } from './title';
 import {
   dedupeSkillsAgainstSoftware,
   extractCertificationRequirements,
@@ -108,7 +108,8 @@ function extractPostedAt(row: RawRow): string | null {
 }
 
 function buildDetails(row: RawRow) {
-  const rawTitle = normalizeJobTitle(row.title || extractRawJobTitle(row.source, row.raw_text) || row.raw_text.match(/^[^\n]{3,160}/)?.[0] || row.id);
+  const suppliedTitle = isUsableJobTitle(row.title) ? row.title : '';
+  const rawTitle = normalizeJobTitle(suppliedTitle || extractRawJobTitle(row.source, row.raw_text) || row.raw_text.match(/^[^\n]{3,160}/)?.[0] || row.id);
   const academicMeta = extractAndStripAcademicMetadata(rawTitle, row.source);
   const title = academicMeta.title;
   const listingType = extractListingType(row.raw_text, title, false);

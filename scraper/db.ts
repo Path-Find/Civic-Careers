@@ -151,6 +151,12 @@ async function initializeDbOnce(): Promise<Client> {
   `);
 
   try {
+    await client.execute(`ALTER TABLE jobs ADD COLUMN publication_status TEXT NOT NULL DEFAULT 'hidden'`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+
+  try {
     await client.execute(`ALTER TABLE jobs ADD COLUMN first_seen_at DATETIME`);
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
@@ -401,6 +407,7 @@ export async function saveJobDetails(client: Client, job: {
   posted_at?: string | null;
   start_date?: string | null;
   career_stage?: string | null;
+  publication_status?: 'soft_parsed' | 'fully_parsed';
 }) {
   await asNeonClient(client)?.restoreIfArchived(job.id);
   await client.execute({
@@ -486,6 +493,12 @@ export async function saveJobDetails(client: Client, job: {
   });
   // Full AI (or full-details) rewrite invalidates prior human verification.
   await client.execute({
+    sql: `UPDATE jobs SET publication_status = ? WHERE id = ?`,
+    // A details write is not the same thing as a completed parse. The parser
+    // marks the row fully parsed only after raw_jobs.parsed_at is committed.
+    args: [job.publication_status ?? 'soft_parsed', job.id],
+  });
+  await client.execute({
     sql: `UPDATE jobs SET verified_at = NULL WHERE id = ? AND verified_at IS NOT NULL`,
     args: [job.id],
   });
@@ -514,6 +527,7 @@ export async function saveRawJob(client: Client, job: {
   const pendingClosing = extractClosingDateStatus(job.raw_text);
   const pendingClosingDate = pendingClosing.date;
   const pendingClosingDateStatus = pendingClosing.status;
+  const publicationStatus = sourceTitle ? 'soft_parsed' : 'hidden';
   await client.batch([
     {
       sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_location, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
@@ -546,6 +560,11 @@ export async function saveRawJob(client: Client, job: {
         FROM raw_jobs WHERE id = ?
         ON CONFLICT(id) DO NOTHING`,
       args: [job.id],
+    },
+    {
+      sql: `UPDATE jobs SET publication_status = ?
+            WHERE id = ? AND EXISTS (SELECT 1 FROM raw_jobs WHERE id = ? AND parsed_at IS NULL)`,
+      args: [publicationStatus, job.id, job.id],
     },
   ], 'write');
   return true;
@@ -601,6 +620,7 @@ export async function savePendingJob(client: Client, job: {
           scraped_at = excluded.scraped_at`,
       args: [job.id],
     },
+    { sql: `UPDATE jobs SET publication_status = 'soft_parsed' WHERE id = ?`, args: [job.id] },
   ], 'write');
 }
 
@@ -706,9 +726,16 @@ export async function getUnparsedJobs(client: Client, excludedSources: string[] 
 }
 
 export async function markJobParsed(client: Client, id: string) {
+  await client.batch([
+    { sql: `UPDATE raw_jobs SET parsed_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [id] },
+    { sql: `UPDATE jobs SET publication_status = 'fully_parsed' WHERE id = ?`, args: [id] },
+  ], 'write');
+}
+
+export async function setPublicationStatus(client: Client, id: string, status: 'hidden' | 'soft_parsed' | 'fully_parsed') {
   await client.execute({
-    sql: `UPDATE raw_jobs SET parsed_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    args: [id],
+    sql: `UPDATE jobs SET publication_status = ?, is_active = CASE WHEN ? = 'hidden' THEN 0 ELSE 1 END WHERE id = ?`,
+    args: [status, status, id],
   });
 }
 
@@ -811,6 +838,13 @@ export async function cleanupExpiredJobsForSource(
   if (neon) {
     await neon.moveSourceMissingJobsToArchive(source, runStartedAt);
     return;
+  }
+  const touched = await client.execute({
+    sql: `SELECT COUNT(*) AS count FROM raw_jobs WHERE source = ? AND scraped_at >= ?`,
+    args: [source, runStartedAt],
+  });
+  if (Number(touched.rows[0]?.count ?? 0) === 0) {
+    throw new Error(`[${source}] No postings were captured; refusing to archive existing jobs for this source.`);
   }
   await client.execute({
     sql: `UPDATE jobs SET is_active = 0

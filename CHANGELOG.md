@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added enforced hidden, soft-parsed, and fully parsed publication states: corrupt or unusable listings are removed from public results, while safe partial parses remain visible with pending details.
+- Repaired publication states across the current and archive Neon stores, hiding 52 current corrupt listings without deleting their preserved raw captures.
+- Prevented a zero-result source scrape from archiving every existing posting for that employer; the source run now fails closed for review.
 - Fixed a generic salary/hours fallback truncating any dollar amount at its decimal point ("$33.83" was being stored as "$33") — the "stop at sentence end" boundary was treating every period as a sentence end, including the one inside a decimal number.
 - Extended the field-gluing fix to the remaining 8 mechanical parsers (SuccessFactors, City of Toronto, ADP, Dayforce, Njoyn, Hamilton, Government of Canada) covering every active source, closing out the systematic sweep started earlier tonight. Added a length backstop (matching the publish-gate ceilings) as the real safety net: different cities/institutions on the same platform use different field-label vocabularies, so no fixed label list fully covers every source — the backstop leaves a field unset rather than swallowing hundreds of characters of unrelated text when no known label is found nearby. Full-data validation against 522 real postings across all 41 affected sources found this brought remaining corruption to zero.
 - Fixed the same field-gluing bug in parseWorkday (University of Ottawa, Brock, and 8 other Workday sources) as the earlier PeopleSoft fix — department/salary/hours/closing-date captures now stop at the next known field label instead of running on into whatever follows.

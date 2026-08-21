@@ -6,7 +6,7 @@ type Row = Record<string, unknown>;
 const TABLES = {
   jobs: {
     key: 'id',
-    columns: ['id', 'url', 'source', 'is_active', 'is_saved', 'first_seen_at', 'scraped_at', 'verified_at', 'public_id'],
+    columns: ['id', 'url', 'source', 'is_active', 'is_saved', 'first_seen_at', 'scraped_at', 'verified_at', 'publication_status', 'public_id'],
   },
   raw_jobs: {
     key: 'id',
@@ -64,6 +64,10 @@ export class NeonDatabaseClient {
   }
 
   async initialize(): Promise<void> {
+    await Promise.all([
+      this.currentPool.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS publication_status TEXT NOT NULL DEFAULT 'hidden'`),
+      this.archivePool.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS publication_status TEXT NOT NULL DEFAULT 'hidden'`),
+    ]);
     const archiveMax = await this.archivePool.query<{ max: string | null }>('SELECT MAX(public_id)::text AS max FROM jobs');
     const currentMax = await this.currentPool.query<{ max: string | null }>('SELECT MAX(public_id)::text AS max FROM jobs');
     const maxPublicId = Math.max(Number(archiveMax.rows[0]?.max ?? 0), Number(currentMax.rows[0]?.max ?? 0));
@@ -79,6 +83,13 @@ export class NeonDatabaseClient {
     return this.withCurrentLock(async client => {
       const { sql, args } = statementParts(statement);
       return resultSet(await client.query<Row>(postgresPlaceholders(sql), args));
+    });
+  }
+
+  async executeArchive(statement: Statement) {
+    return this.withRoutingLocks(async ({ archive }) => {
+      const { sql, args } = statementParts(statement);
+      return resultSet(await archive.query<Row>(postgresPlaceholders(sql), args));
     });
   }
 
@@ -111,6 +122,13 @@ export class NeonDatabaseClient {
 
   async moveSourceMissingJobsToArchive(source: string, runStartedAt: string): Promise<number> {
     return this.withRoutingLocks(async ({ current, archive }) => {
+      const touched = await current.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM raw_jobs WHERE source = $1 AND scraped_at >= $2`,
+        [source, runStartedAt],
+      );
+      if (Number(touched.rows[0]?.count ?? 0) === 0) {
+        throw new Error(`[${source}] No postings were captured; refusing to archive existing jobs for this source.`);
+      }
       const result = await current.query<{ id: string }>(
         `SELECT j.id FROM jobs j
          WHERE j.source = $1

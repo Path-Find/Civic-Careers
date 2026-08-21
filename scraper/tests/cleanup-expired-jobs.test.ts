@@ -12,6 +12,9 @@ test('cleanupExpiredJobsForSource deactivates only that source missing this run'
       } else {
         statements.push(query);
       }
+      if (typeof query !== 'string' && /SELECT COUNT\(\*\) AS count FROM raw_jobs/i.test(query.sql)) {
+        return { rows: [{ count: 1 }], rowsAffected: 0 };
+      }
       return { rows: [], rowsAffected: 0 };
     },
   };
@@ -27,6 +30,24 @@ test('cleanupExpiredJobsForSource deactivates only that source missing this run'
   const purge = statements.find(s => /DELETE FROM parse_failures/i.test(s.sql));
   assert.ok(purge, 'expected parse_failures cleanup for delisted rows');
   assert.deepEqual(purge!.args, ['York University', 'York University', '2026-08-05 00:00:00']);
+});
+
+test('cleanupExpiredJobsForSource refuses to archive a source when the scrape captured zero postings', async () => {
+  const statements: string[] = [];
+  const client = {
+    execute: async (query: { sql: string } | string) => {
+      const sql = typeof query === 'string' ? query : query.sql;
+      statements.push(sql);
+      return { rows: [{ count: 0 }], rowsAffected: 0 };
+    },
+  };
+
+  await assert.rejects(
+    cleanupExpiredJobsForSource(client as never, 'VIA TGF Inc.', '2026-08-21 00:00:00'),
+    /No postings were captured; refusing to archive/i,
+  );
+  assert.equal(statements.length, 1);
+  assert.match(statements[0], /SELECT COUNT\(\*\)/i);
 });
 
 test('cleanupExpiredJobs is a no-op global path (do not use for expiry)', async () => {

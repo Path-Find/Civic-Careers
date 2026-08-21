@@ -1,4 +1,4 @@
-import { deactivateExpiredJobs, discardRawJob, initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
+import { deactivateExpiredJobs, discardRawJob, initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, recordParseFailure, clearParseFailure, countStalledParseFailures, setPublicationStatus } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, notifyDiscord } from './utils';
 import { classifyRawCapture } from './capture-quality';
@@ -31,6 +31,7 @@ import { extractStartDate } from './start-date';
 import { extractAcademicSchedule } from './academic-context';
 import { sourceMetadataFixFor } from './source-metadata-fixes';
 import { classifyCareerStage } from './career-stage';
+import { getPublishBlockReason } from './publish-gate';
 
 const CONCURRENCY = Number(process.env.PARSER_CONCURRENCY ?? 2);
 const ENABLE_DEEPSEEK_PARSER = process.env.ENABLE_DEEPSEEK_PARSER === 'true';
@@ -142,6 +143,29 @@ async function main() {
           ?? securityFromLabel;
         const parsedLocation = normalizeLocation(aiResult.location);
         const location = sourceMetadataFix?.location || parsedLocation || extractLabeledLocation(raw.raw_text);
+        const unionFields = normalizeUnionFields(aiResult.union_name, aiResult.is_unionized);
+        const publishBlockReason = getPublishBlockReason({
+          title: finalTitle,
+          department: sourceMetadataFix?.department ?? aiResult.department,
+          hours: sourceMetadataFix?.hours ?? aiResult.hours,
+          salary: sourceMetadataFix?.salaryRange ?? ((aiResult.salary_min || aiResult.salary_max)
+            ? `${aiResult.salary_min ?? ''} - ${aiResult.salary_max ?? ''} (${aiResult.salary_period})`
+            : ''),
+          location,
+          unionName: unionFields.union_name,
+        });
+        if (publishBlockReason) {
+          await setPublicationStatus(db, raw.id, 'hidden');
+          await recordParseFailure(db, {
+            id: raw.id,
+            url: raw.url,
+            source: raw.source,
+            reason: `permanent: publish gate: ${publishBlockReason}`,
+          });
+          failedSources.add(raw.source);
+          process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ⛔ (${raw.source} ${raw.id}: ${publishBlockReason})`);
+          return;
+        }
         const listingType = normalizeListingType(
           extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory),
           aiResult.is_inventory,
@@ -178,10 +202,8 @@ async function main() {
           academic_appointment_type: aiResult.academic_appointment_type,
           academic_schedule: extractAcademicSchedule(raw.raw_text) || aiResult.academic_schedule,
           experience_requirements: JSON.stringify(sourceMetadataFix?.experienceRequirements ?? structuredRequirements.experience_requirements),
-          ...(() => {
-            const u = normalizeUnionFields(aiResult.union_name, aiResult.is_unionized);
-            return { is_unionized: u.is_unionized ? 1 : 0, union_name: u.union_name };
-          })(),
+          is_unionized: unionFields.is_unionized ? 1 : 0,
+          union_name: unionFields.union_name,
           benefits: JSON.stringify(finalBenefits),
           required_skills: JSON.stringify(finalSkills),
           education_requirements: JSON.stringify(sourceMetadataFix?.educationRequirements ?? sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
