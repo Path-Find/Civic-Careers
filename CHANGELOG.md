@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed a gap that let "View Job Details" and similar portal button text keep showing as a live job title even after tonight's earlier title-quality fixes: pending jobs (not yet promoted) fall back to displaying their raw, unfiltered scraped title, which never went through the same usability check promoted jobs get. Now applies the same bad-title filter to that fallback too.
 - Fixed the root cause of the union-field corruption: PeopleSoft sources (Calgary, TMU, TransLink, Western, Winnipeg, McMaster, Durham/Niagara Region, Fleming) render their pay/position info as one line with no newlines between labels, so a capture bounded only by newline swallowed every field after it. Also fixed "Exempt" being wrongly treated as a real union name instead of a non-union label.
 - The "Student/Co-op" badge was checking the entire raw posting text for the word "student", which matched department names ("Student Systems"), software modules ("Student Financials"), and roles that supervise students rather than being for one — 615 of 700 flagged jobs had no "student" wording in the title at all, including "Nurse Practitioner" and "Research Scientist". Now only checks the title.
 - Academic job titles that bundled a term ("Fall 2026"), union prefix ("CUPE - ..."), or course code ("MBAB 5P11") into the title now have those pulled into their own fields and shown as badges next to a cleaned-up title, instead of staying jumbled into the title text.

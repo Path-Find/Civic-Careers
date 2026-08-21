@@ -32,9 +32,22 @@ const closingDate = `COALESCE(
   NULLIF(NULLIF(NULLIF(NULLIF(TRIM(raw.pending_closing_date), ''), 'null'), 'NULL'), 'N/A')
 )`;
 const sourceText = `LOWER(COALESCE(raw.title, '') || ' ' || COALESCE(raw.raw_text, ''))`;
+function badTitlePrefixCheck(column: string): string {
+  const bad = [
+    'skip to', 'view job details', 'view the job posting', 'apply now',
+    'click here', 'read more', 'search jobs', 'job description', 'no results',
+  ];
+  return bad.map(prefix => `LOWER(TRIM(${column})) LIKE '${prefix}%'`).join('\n  OR ');
+}
+// The raw scraped title (raw.title) is unfiltered -- it never goes through
+// publish-gate.ts's isUsableJobTitle check, since that check only runs when
+// a job is promoted into job_details. A job left pending (blocked by the
+// gate on some other field) still falls back to this raw title with zero
+// filtering, so portal chrome like "View Job Details" was showing live on
+// the site for pending jobs even after the gate existed for promoted ones.
 const publicTitle = `COALESCE(
-  CASE WHEN LOWER(TRIM(COALESCE(jd.job_title, ''))) LIKE 'skip to%' THEN NULL ELSE NULLIF(TRIM(jd.job_title), '') END,
-  CASE WHEN LOWER(TRIM(COALESCE(raw.title, ''))) LIKE 'skip to%' THEN NULL ELSE NULLIF(TRIM(raw.title), '') END
+  CASE WHEN ${badTitlePrefixCheck("COALESCE(jd.job_title, '')")} THEN NULL ELSE NULLIF(TRIM(jd.job_title), '') END,
+  CASE WHEN ${badTitlePrefixCheck("COALESCE(raw.title, '')")} THEN NULL ELSE NULLIF(TRIM(raw.title), '') END
 )`;
 const publicTitleVisibility = `AND ${publicTitle} IS NOT NULL`;
 const explicitOpenUntilFilled = `(
