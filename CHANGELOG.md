@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Recovered current listings that had been incorrectly archived, including 55 Njoyn postings stored as bot-page captures; incomplete records remain soft-parsed with “Details pending.”
+
 - Active source listings now receive the required closing metadata: an exact date when available or the “Until filled” fallback otherwise; incomplete soft-parsed rows remain hidden for repair.
 
 - Added enforced hidden, soft-parsed, and fully parsed publication states: corrupt or unusable listings are removed from public results, while safe partial parses remain visible with pending details.
