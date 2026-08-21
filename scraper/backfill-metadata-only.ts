@@ -120,9 +120,13 @@ function buildDetails(row: RawRow) {
   // had no "student"/"co-op" word in the title at all -- including "Nurse
   // Practitioner", "Business Systems Analyst", "Research Scientist".
   const isStudent = /\b(?:student|co-?op)\b/i.test(title) ? 1 : 0;
-  const salary = row.raw_text.match(/(?:salary\s*(?:range)?|pay\s*rate?s?|hourly\s*rate|compensation)\s*[:\-]?\s*([^.!]{3,100}(?:\$|per\s+(?:hour|annum|year)|annual|hourly)[^.!]{0,40})/i)?.[1]?.trim() || '';
+  // [^.!] as a sentence-end boundary also excludes a period inside a dollar
+  // amount ("$33.83"), truncating it to "$33" -- (?:[^.!]|\.(?=\d)) allows a
+  // period through only when it's followed by a digit (a decimal point, not
+  // a sentence end). Same fix applied to `hours` for the same reason.
+  const salary = row.raw_text.match(/(?:salary\s*(?:range)?|pay\s*rate?s?|hourly\s*rate|compensation)\s*[:\-]?\s*((?:[^.!]|\.(?=\d)){3,100}(?:\$|per\s+(?:hour|annum|year)|annual|hourly)(?:[^.!]|\.(?=\d)){0,40})/i)?.[1]?.trim() || '';
   const employmentType = row.raw_text.match(/\b(permanent\s+(?:full[- ]time|part[- ]time)|temporary\s+(?:full[- ]time|part[- ]time)|full[- ]time|part[- ]time|casual|contract)\b/i)?.[1] || '';
-  const hours = row.raw_text.match(/(?:hours?\s+of\s+work|hours?\s+per\s+week|weekly\s+hours?\s+of\s+work|fte)\s*[:\-]?\s*([^.;]{3,100})/i)?.[1]?.trim() || '';
+  const hours = row.raw_text.match(/(?:hours?\s+of\s+work|hours?\s+per\s+week|weekly\s+hours?\s+of\s+work|fte)\s*[:\-]?\s*((?:[^.;]|\.(?=\d)){3,100})/i)?.[1]?.trim() || '';
 
   const base = {
     title,
