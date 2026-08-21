@@ -2,7 +2,7 @@ import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
 import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeSourceJobTitle } from './title';
 import { extractPendingMetadata } from './pending-metadata';
-import { extractClosingDateStatus } from './closing-date';
+import { normalizeActiveClosingDateStatus } from './closing-date';
 import { classifyRawCapture } from './capture-quality';
 import { createNeonDatabaseClient, NeonDatabaseClient } from './neon-db';
 dotenv.config({ quiet: true });
@@ -524,7 +524,7 @@ export async function saveRawJob(client: Client, job: {
   const sourceTitle = (isUsableJobTitle(suppliedTitle) ? suppliedTitle : extractRawJobTitle(job.source, job.raw_text) || extractUrlJobTitle(job.application_url ?? job.url, job.raw_text)) || null;
   const title = sourceTitle ? normalizeSourceJobTitle(job.source, sourceTitle) : null;
   const pending = extractPendingMetadata(sourceTitle, job.raw_text);
-  const pendingClosing = extractClosingDateStatus(job.raw_text);
+  const pendingClosing = normalizeActiveClosingDateStatus(job.raw_text);
   const pendingClosingDate = pendingClosing.date;
   const pendingClosingDateStatus = pendingClosing.status;
   const publicationStatus = sourceTitle ? 'soft_parsed' : 'hidden';
@@ -546,9 +546,9 @@ export async function saveRawJob(client: Client, job: {
           pending_closing_date_status = CASE
             WHEN excluded.pending_closing_date IS NOT NULL AND TRIM(excluded.pending_closing_date) <> '' THEN 'known'
             WHEN raw_jobs.pending_closing_date IS NOT NULL AND TRIM(raw_jobs.pending_closing_date) <> '' THEN 'known'
-            WHEN raw_jobs.pending_closing_date_status = 'known' THEN 'known'
-            WHEN raw_jobs.pending_closing_date_status IN ('not_listed', 'open_until_filled', 'invalid', 'blocked') THEN raw_jobs.pending_closing_date_status
-            ELSE 'not_checked'
+            WHEN excluded.pending_closing_date_status = 'open_until_filled' THEN 'open_until_filled'
+            WHEN raw_jobs.pending_closing_date_status = 'blocked' THEN 'blocked'
+            ELSE 'open_until_filled'
           END,
           scraped_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
@@ -585,7 +585,7 @@ export async function savePendingJob(client: Client, job: {
   const sourceTitle = isUsableJobTitle(suppliedTitle) ? suppliedTitle : null;
   const title = sourceTitle ? normalizeSourceJobTitle(job.source, sourceTitle) : null;
   const pending = extractPendingMetadata(sourceTitle, '');
-  const pendingClosingDateStatus = job.closing_date ? 'known' : 'not_checked';
+  const pendingClosingDateStatus = job.closing_date ? 'known' : 'open_until_filled';
   await client.batch([
     {
       sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
@@ -602,7 +602,7 @@ export async function savePendingJob(client: Client, job: {
           pending_closing_date = COALESCE(excluded.pending_closing_date, raw_jobs.pending_closing_date),
           pending_closing_date_status = CASE
             WHEN excluded.pending_closing_date IS NOT NULL AND TRIM(excluded.pending_closing_date) <> '' THEN 'known'
-            ELSE COALESCE(raw_jobs.pending_closing_date_status, 'not_checked')
+            ELSE excluded.pending_closing_date_status
           END,
           scraped_at = CURRENT_TIMESTAMP,
           parsed_at = CURRENT_TIMESTAMP,

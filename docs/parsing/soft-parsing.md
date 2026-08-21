@@ -1,7 +1,8 @@
 # Civic Careers: soft parsing
 
-Use this document when the goal is to make hidden jobs visible by recovering a
-source-backed application closing date. Use `QUALITY.md` for field-level rules.
+Use this document when the goal is to make hidden jobs visible by repairing
+the required application-closing property. Use `QUALITY.md` for field-level
+rules.
 
 ## Result
 
@@ -9,14 +10,15 @@ A soft-parsed job has:
 
 - a valid source capture in `raw_jobs`;
 - an active shell row in `jobs`;
-- `raw_jobs.pending_closing_date` set to the source-backed last day to apply;
-- `raw_jobs.pending_closing_date_status = 'known'`;
+- either `raw_jobs.pending_closing_date` set to the source-backed last day to
+  apply, or `raw_jobs.pending_closing_date_status = 'open_until_filled'`;
 - `raw_jobs.parsed_at IS NULL`.
 
-An explicit source status of **Open Until Filled** is also valid pending
-application metadata. It stores `pending_closing_date_status =
-'open_until_filled'` with no calendar date. It is eligible for public listing;
-do not replace it with an invented date.
+An explicit source status of **Open Until Filled** is valid pending application
+metadata. When an active source posting supplies no usable last date, the same
+status is used as the product fallback. It stores
+`pending_closing_date_status = 'open_until_filled'` with no calendar date; do
+not invent a date.
 
 The same soft-metadata pass must normalize titles. If a captured title is portal
 navigation text such as “Skip to Main Content,” use a source title when one is
@@ -34,10 +36,12 @@ The job may retain an older `job_details` row for recovery. Because
 
 ## Eligibility
 
-Select active jobs with no effective closing date. The effective date is
-`job_details.closing_date`, falling back to `raw_jobs.pending_closing_date`.
-Skip rows whose `pending_closing_date_status = 'blocked'`; those source pages
-could not be captured and must be deliberately reopened before retrying.
+Select active jobs with no effective closing date or an incomplete closing
+status. The effective date is `job_details.closing_date`, falling back to
+`raw_jobs.pending_closing_date`. Normalize a valid active capture with no
+usable date to `open_until_filled`. Skip rows whose
+`pending_closing_date_status = 'blocked'`; those source pages could not be
+captured and must be deliberately reopened before retrying.
 
 Search `raw_jobs.raw_text` for direct evidence near phrases such as:
 
@@ -62,8 +66,8 @@ navigation shells such as `Skip to Main Content` or `Skip To Job Description`.
    dates, and enough keyword evidence to audit each selection.
 3. After explicit approval, write:
 
-   - `raw_jobs.pending_closing_date = YYYY-MM-DD`;
-   - `raw_jobs.pending_closing_date_status = 'known'`;
+   - `raw_jobs.pending_closing_date = YYYY-MM-DD` when a date is supported;
+   - otherwise `raw_jobs.pending_closing_date_status = 'open_until_filled'`;
    - `raw_jobs.parsed_at = NULL`;
    - `jobs.verified_at = NULL` if the row was previously verified;
    - one `manual_review_changes` record per job.
@@ -104,11 +108,12 @@ production write through the local Turso fallback.
 
 Verify against Neon and the deployed API/UI:
 
-- every selected job has a source-backed closing date today or later;
+- every selected job has a source-backed closing date today or later, or
+  `open_until_filled` status;
 - every selected job is active and has a title and link;
 - every selected job has `parsed_at IS NULL` and API `details_pending = 1`;
 - every selected job is included publicly and shows **Details pending**;
-- no no-date or past-date job became public;
+- no job without either a date or `open_until_filled` status became public;
 - blocked source captures remain excluded from recovery batches and public listings;
 - every change has an audit record;
 - a later hard parse can preserve the confirmed date.

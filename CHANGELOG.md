@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Active source listings now receive the required closing metadata: an exact date when available or the “Until filled” fallback otherwise; incomplete soft-parsed rows remain hidden for repair.
+
 - Added enforced hidden, soft-parsed, and fully parsed publication states: corrupt or unusable listings are removed from public results, while safe partial parses remain visible with pending details.
 - Repaired publication states across the current and archive Neon stores, hiding 52 current corrupt listings without deleting their preserved raw captures.
 - Prevented a zero-result source scrape from archiving every existing posting for that employer; the source run now fails closed for review.

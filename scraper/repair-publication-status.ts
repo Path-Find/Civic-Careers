@@ -35,6 +35,9 @@ type Row = {
   salary_range: string | null;
   location: string | null;
   union_name: string | null;
+  pending_closing_date: string | null;
+  pending_closing_date_status: string | null;
+  closing_date: string | null;
 };
 
 type Decision = {
@@ -64,6 +67,12 @@ function classify(row: Row): Decision {
 
   if (rawText && !classifyRawCapture(row.source, rawText).valid) {
     return { id: row.id, from: row.publication_status ?? 'NULL', active: row.is_active, to: 'hidden', reason: 'invalid raw capture' };
+  }
+
+  const closingDate = row.closing_date?.trim() || row.pending_closing_date?.trim() || '';
+  const closingStatus = row.pending_closing_date_status?.trim() || '';
+  if (!closingDate && closingStatus !== 'open_until_filled') {
+    return { id: row.id, from: row.publication_status ?? 'NULL', active: row.is_active, to: 'hidden', reason: 'missing application closing metadata' };
   }
 
   const blockReason = hasDetails
@@ -105,7 +114,10 @@ async function main() {
       d.hours,
       d.salary_range,
       d.location,
-      d.union_name
+      d.union_name,
+      raw.pending_closing_date,
+      raw.pending_closing_date_status,
+      d.closing_date
     FROM jobs j
     LEFT JOIN raw_jobs raw ON raw.id = j.id
     LEFT JOIN job_details d ON d.id = j.id

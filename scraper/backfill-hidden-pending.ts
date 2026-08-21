@@ -11,7 +11,7 @@
  */
 import dotenv from 'dotenv';
 import { initDb } from './db';
-import { extractClosingDateStatus } from './closing-date';
+import { normalizeActiveClosingDateStatus } from './closing-date';
 import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle } from './title';
 
 dotenv.config({ quiet: true });
@@ -99,7 +99,7 @@ async function main() {
     closingStatus: 'known' | 'open_until_filled';
   }> = rows.flatMap(row => {
     if (row.date_recovery_eligible !== 1) return [];
-    const closing = extractClosingDateStatus(String(row.raw_text ?? ''));
+    const closing = normalizeActiveClosingDateStatus(String(row.raw_text ?? ''));
     if (closing.status === 'open_until_filled') {
       return [{ ...row, closingDate: null, closingStatus: 'open_until_filled' as const }];
     }

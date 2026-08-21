@@ -19,7 +19,9 @@ listing; “pending” describes the depth of our processing, not whether the
 source job is valid.
 
 Public search includes jobs with a usable title, a current or future exact
-application date, and jobs whose source explicitly says **Open Until Filled**.
+application date, and jobs whose application metadata is normalized to
+**Until filled** when no date is available. A soft-parsed listing without
+either property remains hidden until that metadata is repaired.
 Portal navigation headings such as “Skip to Main Content” are not usable
 titles; the soft-metadata pass falls back to the source title or clears the fake
 title. A human-readable URL slug may be used only when its words are confirmed
@@ -34,10 +36,10 @@ These statuses apply to details-pending listings in
 | Status | Meaning | Date field |
 | --- | --- | --- |
 | `known` | The source gives an exact last date to apply | `pending_closing_date` contains `YYYY-MM-DD` |
-| `open_until_filled` | The source explicitly says the posting remains open until filled, a suitable candidate is found, or equivalent wording | Empty |
-| `not_listed` | The source posting does not provide a last date to apply | Empty; do not infer that the job is ongoing |
-| `invalid` | A closing-date field exists, but its value is unusable or malformed | Empty; needs review if the posting matters |
-| `not_checked` | No source check has been completed yet | Empty; this is an internal review queue, not a public conclusion |
+| `open_until_filled` | The source explicitly says the posting remains open until filled, or the active-source fallback has normalized a missing last date to the product phrase | Empty |
+| `not_listed` | The source posting does not provide a last date to apply | Empty; normalize to **Until filled** before public soft parsing |
+| `invalid` | A closing-date field exists, but its value is unusable or malformed | Empty; normalize to **Until filled** and flag the original value for review |
+| `not_checked` | No source check has been completed yet | Empty; normalize to **Until filled** before public soft parsing |
 | `blocked` | A source page could not be captured after a retry, such as a bot challenge, expired page, or non-rendering portal | Empty; hidden from public listings and excluded from automatic retries until deliberately reopened |
 
 The target after a review pass is zero `not_checked` rows among active,

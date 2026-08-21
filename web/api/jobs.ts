@@ -103,6 +103,7 @@ const effectiveInventory = `CASE WHEN COALESCE(jd.is_inventory, 0) = 1 OR ${effe
 const closingDateStatus = `CASE
   WHEN ${closingDate} IS NOT NULL THEN 'known'
   WHEN raw.pending_closing_date_status = 'blocked' THEN 'blocked'
+  WHEN raw.pending_closing_date_status = 'open_until_filled' THEN 'open_until_filled'
   WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN COALESCE(raw.pending_closing_date_status, 'not_checked')
   WHEN ${explicitOpenUntilFilled}
     OR ${sourceText} LIKE '%accepting applications until filled%' THEN 'open_until_filled'
@@ -114,9 +115,9 @@ const closingDateStatus = `CASE
     OR ${sourceText} LIKE '%closing date: none%' THEN 'invalid'
   ELSE 'not_checked'
 END`;
-// Public listings require a current/future source-backed deadline or an
-// explicit open-until-filled status. Other missing/uncertain statuses remain
-// hidden from public listings.
+// Public listings require a current/future source-backed deadline or the
+// normalized open-until-filled status. Soft-parsed rows without either signal
+// remain hidden until their pending application metadata is repaired.
 const publicDeadline = `AND ((${closingDate} IS NOT NULL
   AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text)
   OR ${closingDateStatus} = 'open_until_filled')`;
@@ -345,12 +346,14 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         db.execute(`SELECT ${jobColumns} ${jobJoins}
           ${activeJobWhere}
           AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
+          AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text
           AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '14 days')::date)::text
           ORDER BY LEFT(${closingDate}, 10) ASC LIMIT 10`),
         db.execute(`SELECT
           COUNT(*) AS available_job_count,
           SUM(CASE WHEN ${freshnessDate} >= (CURRENT_DATE - INTERVAL '7 days')::date THEN 1 ELSE 0 END) AS recently_added_count,
           SUM(CASE WHEN ${closingDate} IS NOT NULL AND ${closingDate} != ''
+            AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text
             AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '14 days')::date)::text THEN 1 ELSE 0 END) AS closing_soon_count,
           MAX(j.scraped_at) AS last_checked_at
           ${jobJoins} ${activeJobWhere}`),
