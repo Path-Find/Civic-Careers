@@ -28,14 +28,22 @@ export interface PublishGateDetails {
 // hours description with "as scheduled, no minimum guarantee" can too), so a
 // flat length cap alone rejects far more good jobs than bad ones. Two better
 // signals, checked instead of / in addition to a generous length backstop:
-//   - a colon inside the value: department/salary/location values never
+//   - a colon inside the value: salary/location/unionName values never
 //     legitimately contain one — a colon means the next field's label got
 //     glued on (e.g. "...ServicesDivision: Employment & Social Services").
 //     `hours` is excluded: "9:00 AM - 5:00 PM" is a real, common value.
+//     `department` is excluded: real academic naming legitimately uses one
+//     ("UTM: Anthropology") — see the note at FIELDS_REJECT_COLON below.
 //   - squished sentence joins (no space where a sentence ended, e.g.
 //     "OperationsCampus", "disciplineDemonstrated") — the fingerprint of a
 //     capture that ran across a raw-text boundary with no whitespace at all.
-const FIELDS_REJECT_COLON = new Set(['department', 'salary', 'location', 'unionName']);
+// `department` deliberately excluded: academic institutions routinely use a
+// legitimate "CAMPUS: Department" or "Program: Subtitle" naming convention
+// (found live: "UTM: Anthropology", "Master's in Development Practice:
+// Indigenous Development"). The one known genuine corruption case that has a
+// colon in department is still caught by the length ceiling regardless (it
+// runs 230 chars), so the colon check added nothing there but false positives.
+const FIELDS_REJECT_COLON = new Set(['salary', 'location', 'unionName']);
 const SCALAR_FIELD_LENGTH_CEILING: Record<string, number> = {
   title: 220,
   department: 150,
@@ -49,8 +57,17 @@ const SCALAR_FIELD_LENGTH_CEILING: Record<string, number> = {
   unionName: 150,
 };
 
+// A genuine glued-field join happens between two real WORDS ("Operations" +
+// "Campus", "Resource" + "Stewardship") -- both sides of the case transition
+// run several letters deep. A short-to-medium camelCase brand/product name
+// ("MoveUP", "IoT", "ServiceNow", "PeopleSoft", "GoodWorks") has a short
+// fragment on at least one side and must not trip this. Threshold picked by
+// testing candidate regexes against known real examples of both classes
+// (see tests/publish-gate.test.ts) rather than by inspection alone -- a
+// (3,2)-letter threshold still false-positived on "ServiceNow"/"PeopleSoft"/
+// "GoodWorks" found live in the archive DB; (3,5) cleanly separates both sets.
 function hasSquishedSentenceJoin(value: string): boolean {
-  return (value.match(/[a-z][A-Z]/g)?.length ?? 0) >= 1;
+  return /[a-z]{3,}[A-Z][a-z]{5,}/.test(value);
 }
 
 function corruptedScalarField(details: PublishGateDetails): string | null {
@@ -66,8 +83,19 @@ function corruptedScalarField(details: PublishGateDetails): string | null {
 
 // Employment-status words belong in employment_type, not the title — a title
 // carrying "(FT Temporary)" or similar is a sign the source-title extractor
-// grabbed a status label instead of the actual role name.
-const TITLE_STATUS_WORDS = /\b(full[- ]?time|part[- ]?time|temporary|casual|permanent|contract|FT|PT|vacation relief)\b/i;
+// grabbed a status label instead of the actual role name. Only counted as an
+// annotation when it trails off into punctuation (end of string, a comma,
+// a slash, a paren) or another status word right after -- not when a real
+// role name simply contains one of these words ("Contract Compliance
+// Officer", "Contract Academic Staff", "Procurement Contract Coordinator").
+// A plain "\b(...)\b" version of this regex matched 208 archive titles;
+// full-data validation showed 164 of those were real role names, not status
+// clutter -- this version cleanly separates the two (see publish-gate.test.ts).
+const STATUS_WORD_ALTERNATION = 'full[- ]?time|part[- ]?time|temporary|casual|permanent|contract|FT|PT|vacation relief';
+const TITLE_STATUS_WORDS = new RegExp(
+  `\\b(?:${STATUS_WORD_ALTERNATION})\\b(?=\\s*(?:$|[,;/)(]|\\s+(?:${STATUS_WORD_ALTERNATION})\\b))`,
+  'i',
+);
 
 // Words that mark a title as a reposting/administrative annotation rather
 // than the actual role name, or portal chrome (cookie banner, etc.) captured
