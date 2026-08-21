@@ -28,8 +28,8 @@ function extractSourceAcademicSchedule(value: unknown): string | null {
 }
 
 const closingDate = `COALESCE(
-  NULLIF(NULLIF(NULLIF(NULLIF(TRIM(jd.closing_date), ''), 'null'), 'NULL'), 'N/A'),
-  NULLIF(NULLIF(NULLIF(NULLIF(TRIM(raw.pending_closing_date), ''), 'null'), 'NULL'), 'N/A')
+  NULLIF(NULLIF(NULLIF(NULLIF(TRIM(raw.pending_closing_date), ''), 'null'), 'NULL'), 'N/A'),
+  NULLIF(NULLIF(NULLIF(NULLIF(TRIM(jd.closing_date), ''), 'null'), 'NULL'), 'N/A')
 )`;
 const sourceText = `LOWER(COALESCE(raw.title, '') || ' ' || COALESCE(raw.raw_text, ''))`;
 function badTitlePrefixCheck(column: string): string {
