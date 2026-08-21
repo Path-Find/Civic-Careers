@@ -27,6 +27,17 @@ export interface ExtractedBoardMetadata {
   salaryPeriod?: string | null;
 }
 
+// Shared fix for the field-gluing bug: many portals render their "label:
+// value" block as one line with no newline between fields at all in some
+// postings (e.g. "Union: ExemptPosition Type: Permanent..."). A capture
+// bounded only by `[^\n]+` silently swallows every field after it into the
+// one being captured. `boundedField` stops at whichever comes first: the
+// next known label in the same block, a newline, or the end of the text.
+function boundedField(label: string, otherLabelsInBlock: string[]): RegExp {
+  const nextLabel = `(?=\\s*(?:${otherLabelsInBlock.join('|')})\\s*:|\\n|$)`;
+  return new RegExp(`${label}:\\s*([^\\n]+?)${nextLabel}`, 'i');
+}
+
 function parseSalaryMinMax(range: string): { min: number | null; max: number | null } {
   const moneyMatches = range.match(/\$\d{1,3}(?:,\d{3})*(?:\.\d{1,4})?/g);
   if (moneyMatches && moneyMatches.length >= 2) {
@@ -162,6 +173,22 @@ export function parseCityOfToronto(rawText: string): ExtractedBoardMetadata {
 /**
  * Parser for Workday engine sites (Waterloo, Brock, Algonquin, etc.).
  */
+// Workday's "Department:...Campus:...Union Affiliation:..." section (seen on
+// University of Ottawa, Brock, and others) glues fields together with no
+// newline, the same way PeopleSoft does -- this is the exact pattern behind
+// tonight's original department-corruption incident.
+const WORKDAY_FIELD_LABELS = [
+  'Department', 'Campus', 'Date Posted \\(YYYY/MM/DD\\)',
+  'Applications must be received BEFORE \\(YYYY/MM/DD\\)', 'Union Affiliation',
+  'Job Family', 'Job Type', 'Salary Grade', 'Salary Range', 'Hiring Range',
+  'Scheduled Weekly Hours', 'Term', 'Length of Contract',
+  'Posting Closing Date', 'Closing Date', 'Note',
+];
+
+function workdayField(label: string): RegExp {
+  return boundedField(label, WORKDAY_FIELD_LABELS);
+}
+
 export function parseWorkday(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
@@ -173,13 +200,13 @@ export function parseWorkday(rawText: string): ExtractedBoardMetadata {
   }
 
   // Department
-  const deptMatch = rawText.match(/Department:\s*([^\n]+)/i);
+  const deptMatch = rawText.match(workdayField('Department'));
   if (deptMatch) {
     metadata.department = normalizeDepartment(deptMatch[1]);
   }
 
   // Salary
-  const salaryMatch = rawText.match(/Salary Range:\s*([^\n]+)/i) || rawText.match(/Hiring Range:\s*([^\n]+)/i);
+  const salaryMatch = rawText.match(workdayField('Salary Range')) || rawText.match(workdayField('Hiring Range'));
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
@@ -190,13 +217,13 @@ export function parseWorkday(rawText: string): ExtractedBoardMetadata {
   }
 
   // Scheduled Weekly Hours
-  const hoursMatch = rawText.match(/Scheduled Weekly Hours:\s*([^\n]+)/i);
+  const hoursMatch = rawText.match(workdayField('Scheduled Weekly Hours'));
   if (hoursMatch) {
     metadata.hours = hoursMatch[1].trim();
   }
 
   // Term / Length of Contract
-  const termMatch = rawText.match(/Term:\s*([^\n]+)/i) || rawText.match(/Length of Contract:\s*([^\n]+)/i);
+  const termMatch = rawText.match(workdayField('Term')) || rawText.match(workdayField('Length of Contract'));
   if (termMatch) {
     const term = termMatch[1].trim();
     if (term && !/^(?:n\/?a|none)$/i.test(term)) {
@@ -206,7 +233,7 @@ export function parseWorkday(rawText: string): ExtractedBoardMetadata {
   }
 
   // Closing date
-  const closingMatch = rawText.match(/Posting Closing Date:\s*([^\n]+)/i) || rawText.match(/Closing Date:\s*([^\n]+)/i);
+  const closingMatch = rawText.match(workdayField('Posting Closing Date')) || rawText.match(workdayField('Closing Date'));
   if (closingMatch) {
     metadata.closingDate = extractClosingDate(closingMatch[0]);
   }
@@ -654,10 +681,9 @@ const PEOPLE_SOFT_FIELD_LABELS = [
   'Days of work', 'Location', 'Audience', 'Apply By', 'Job ID', 'Department',
   'Salary Range', 'Salary', 'Closing Date', 'Affiliation', 'Bargaining Unit',
 ];
-const PEOPLE_SOFT_NEXT_LABEL = `(?=\\s*(?:${PEOPLE_SOFT_FIELD_LABELS.join('|')})\\s*:|\\n|$)`;
 
 function peopleSoftField(label: string): RegExp {
-  return new RegExp(`${label}:\\s*([^\\n]+?)${PEOPLE_SOFT_NEXT_LABEL}`, 'i');
+  return boundedField(label, PEOPLE_SOFT_FIELD_LABELS);
 }
 
 export function parsePeopleSoft(rawText: string): ExtractedBoardMetadata {

@@ -82,6 +82,27 @@ Posting Closing Date:September 18, 2026
   assert.equal(result.closingDate, '2026-09-18');
 });
 
+test('parseWorkday stops a field at the next label with no newline between them (University of Ottawa case)', () => {
+  // Real uOttawa postings glue "Department:X Campus:Y Union Affiliation:Z
+  // Date Posted...:" together with no newlines at all -- the exact bug
+  // behind the original department-corruption incident tonight.
+  const rawText = 'Department:On-Site TeamCampus:Fauteux Hall, Main Campus, Morisset Hall, Roger Guindon HallUnion Affiliation:SSUODate Posted (YYYY/MM/DD):2026/08/13Applications must be received BEFORE (YYYY/MM/DD):Salary Grade:SSUO Grade 08Salary Range:$68,149.00 - $86,083.00';
+  const result = parseWorkday(rawText);
+  assert.equal(result.department, 'On-Site Team');
+  assert.equal(result.salary, '$68,149.00 - $86,083.00');
+});
+
+test('parseWorkday still runs into free-form prose when no known label follows (known residual gap)', () => {
+  // When a field is the LAST labeled one before free-form description text
+  // begins, there is no next label to bound the capture at. This case is
+  // still protected by publish-gate.ts's length check at promotion time
+  // (held pending, never published) -- board-parsers.ts fixes reduce how
+  // often that happens, but do not eliminate it entirely.
+  const rawText = 'Salary Range:$68,149.00 - $86,083.00Make your mark with the Faculty of Health.';
+  const result = parseWorkday(rawText);
+  assert.notEqual(result.salary, '$68,149.00 - $86,083.00');
+});
+
 test('parseOntarioHealthAtHome extracts structured fields correctly', () => {
   const rawText = `
 Status: Full-Time or Part-Time

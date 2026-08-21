@@ -37,7 +37,12 @@ export function normalizeDepartment(value: string | null | undefined): string {
   let cleaned = value
     .replace(/\(\d+\)/g, '')
     .replace(/\s*[-–—]\s*Job Opportunity.*/i, '')
-    .replace(/\s*[-–—].*/, '')
+    // A dash with real whitespace on both sides is a trailing "- clause" to
+    // drop (e.g. "Finance - Campus Name"). Zero-or-more whitespace here used
+    // to also match a hyphen INSIDE a single compound word with no spaces
+    // around it, truncating real department names like "On-Site Team" to
+    // "On" and "Office of Equity and Anti-Racism" to "...and Anti".
+    .replace(/\s+[-–—]\s+.*/, '')
     .replace(/^General$/i, '')
     .replace(/&/g, ' & ')
     .replace(/\s+/g, ' ')
