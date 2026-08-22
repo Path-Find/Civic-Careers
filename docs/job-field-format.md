@@ -112,6 +112,14 @@ not invent a taxonomy or turn a generic duty into a requirement:
 | `qualification_tags` | JSON array using only the qualification labels listed above | High-level summary of qualifications; do not use it as a substitute for requirements |
 | `description` | Markdown with only genuinely additional narrative | `## Overview`, `## Responsibilities`, and `## Qualifications` as needed; no repeated location, pay, dates, employment type, duration, hours, availability, or structured requirements |
 
+**Area of study is a display/filter concept, not a separate stored field.** The
+source-backed `education_requirements` values retain the requirement wording,
+while the web filter extracts a canonical subject from it. Degree wording is
+not the subject: `BSc in Computer Science`, `Bachelor of Science in Computer
+Science`, and `Bachelor's degree in Computer Science` all produce the
+`Computer Science` option; `Bachelor`/`BSc`/`BA` are never area-of-study
+options themselves.
+
 ## Academic role card
 
 When `academic_role_type` is present, the detail page shows an **Academic

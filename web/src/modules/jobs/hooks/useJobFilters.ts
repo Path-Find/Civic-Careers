@@ -32,6 +32,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
   const [deadlineDays, setDeadlineDays] = useState<number | null>(null);
   const [listingTypeFilter, setListingTypeFilter] = useState<ListingTypeFilter>(null);
   const [showStudentJobs, setShowStudentJobs] = useState(false);
+  const [showAcademicJobs, setShowAcademicJobs] = useState(false);
   const [selectedCareerStages, setSelectedCareerStages] = useState<CareerStage[]>([]);
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [vehicleRequired, setVehicleRequired] = useState(false);
@@ -47,6 +48,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
       if (listingTypeFilter === 'ongoing_recruitment' && job.listing_type !== 'ongoing_recruitment') return false;
       if (listingTypeFilter === null && job.is_inventory) return false;
       if (showStudentJobs && !job.is_student) return false;
+      if (showAcademicJobs && !job.academic_role_type) return false;
       if (selectedCareerStages.length > 0 && (!job.career_stage || !selectedCareerStages.includes(job.career_stage))) return false;
       const query = searchTerm.toLowerCase();
       const matchesSearch = [job.job_title, job.department, job.source]
@@ -78,7 +80,7 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
       if (aUrgent && bUrgent) return (aDays ?? 0) - (bDays ?? 0);
       return jobFreshnessTimestamp(b, now) - jobFreshnessTimestamp(a, now);
     });
-  }, [jobs, currentView, searchTerm, locationTerms, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, selectedCareerStages, sortNewest, newlyAdded, now]);
+  }, [jobs, currentView, searchTerm, locationTerms, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, selectedCareerStages, sortNewest, newlyAdded, now]);
 
   const jobsByCompany = useMemo(() => groupJobsByCompany(jobs), [jobs]);
   const activeJobsByCompany = useMemo(() => Object.fromEntries(
@@ -100,12 +102,12 @@ export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string
     .filter(({ days }) => days >= 0).sort((a, b) => a.days - b.days).slice(0, 5).map(({ job }) => job), [jobs]);
 
   const resetFilters = () => {
-    setMinSalary(null); setLocationTerm(''); setSelectedModes([]); setSelectedLanguages([]); setVehicleRequired(false); setDeadlineDays(null); setListingTypeFilter(null); setShowStudentJobs(false); setSelectedCareerStages([]); setSortNewest(false); setNewlyAdded(false);
+    setMinSalary(null); setLocationTerm(''); setSelectedModes([]); setSelectedLanguages([]); setVehicleRequired(false); setDeadlineDays(null); setListingTypeFilter(null); setShowStudentJobs(false); setShowAcademicJobs(false); setSelectedCareerStages([]); setSortNewest(false); setNewlyAdded(false);
   };
 
   return {
     minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
-    listingTypeFilter, setListingTypeFilter, showStudentJobs, setShowStudentJobs, selectedCareerStages, setSelectedCareerStages, selectedLanguages, setSelectedLanguages, vehicleRequired, setVehicleRequired,
+    listingTypeFilter, setListingTypeFilter, showStudentJobs, setShowStudentJobs, showAcademicJobs, setShowAcademicJobs, selectedCareerStages, setSelectedCareerStages, selectedLanguages, setSelectedLanguages, vehicleRequired, setVehicleRequired,
     sortNewest, setSortNewest, newlyAdded, setNewlyAdded, filteredJobs,
     recentJobs, closingSoonJobs, availableJobCount: availableJobs.length, recentlyAddedCount,
     jobsByCompany, activeJobsByCompany, activeCompanies, inactiveCompanies, resetFilters,

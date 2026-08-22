@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { ListingTypeFilter } from '../../../types/jobs';
 import type { CompanySummary, Job } from '../../../types/jobs';
-import { EDUCATION_LEVELS, type EducationLevel } from '../educationFilters';
+import { EDUCATION_LEVELS, educationFieldOptions, type EducationLevel } from '../educationFilters';
 import { CAREER_STAGES, type CareerStage } from '../careerStage';
 
 function FilterSection({ title, children }: { title: string; children: ReactNode }) {
@@ -28,8 +28,8 @@ function SuggestionList({ suggestions, onSelect }: { suggestions: string[]; onSe
 }
 
 export function JobFiltersSidebar({
-  headerHeight, jobs, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, closingSoonDisabled,
-  onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onCareerStageChange, onCompanyChange, onEducationLevelChange, onEducationFieldChange, onReset,
+  headerHeight, jobs, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, closingSoonDisabled,
+  onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onAcademicJobsChange, onCareerStageChange, onCompanyChange, onEducationLevelChange, onEducationFieldChange, onReset,
 }: {
   headerHeight: number;
   jobs: Job[];
@@ -46,6 +46,7 @@ export function JobFiltersSidebar({
   deadlineDays: number | null;
   listingTypeFilter: ListingTypeFilter;
   showStudentJobs: boolean;
+  showAcademicJobs: boolean;
   closingSoonDisabled: boolean;
   onMinSalaryChange: (value: number | null) => void;
   onLocationChange: (value: string) => void;
@@ -55,6 +56,7 @@ export function JobFiltersSidebar({
   onDeadlineChange: (days: number | null) => void;
   onListingTypeChange: (value: ListingTypeFilter) => void;
   onStudentJobsChange: () => void;
+  onAcademicJobsChange: () => void;
   onCareerStageChange: (stage: CareerStage) => void;
   onCompanyChange: (name: string) => void;
   onEducationLevelChange: (level: EducationLevel) => void;
@@ -63,6 +65,7 @@ export function JobFiltersSidebar({
 }) {
   const [companyQuery, setCompanyQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
+  const [educationQuery, setEducationQuery] = useState('');
   const selectedLocations = useMemo(() => locationTerm.split(/[,;]+/).map(value => value.trim()).filter(Boolean), [locationTerm]);
   const companySuggestions = useMemo(() => companyOptions
     .map(company => company.name)
@@ -74,6 +77,13 @@ export function JobFiltersSidebar({
     .filter(location => location.length > 0 && location.length <= 100))]
     .filter(location => !selectedLocations.includes(location) && location.toLowerCase().includes(locationQuery.trim().toLowerCase()))
     .slice(0, 8), [jobs, selectedLocations, locationQuery]);
+  const educationSuggestions = useMemo(() => educationFieldOptions(jobs.map(job => job.education_requirements))
+    .filter(value => value.toLowerCase().includes(educationQuery.trim().toLowerCase()))
+    .filter(value => value !== educationField)
+    .slice(0, 8), [jobs, educationField, educationQuery]);
+  useEffect(() => {
+    if (!educationField) setEducationQuery('');
+  }, [educationField]);
   const selectLocation = (location: string) => {
     if (!selectedLocations.includes(location)) onLocationChange([...selectedLocations, location].join(', '));
     setLocationQuery('');
@@ -97,12 +107,14 @@ export function JobFiltersSidebar({
     <FilterSection title="Education">
       {EDUCATION_LEVELS.map(level => <FilterButton key={level.value} label={level.label} active={selectedEducationLevels.includes(level.value)} onClick={() => onEducationLevelChange(level.value)} />)}
       <label className="filter-title filter-field-label" htmlFor="education-field-filter">Area of study</label>
-      <input id="education-field-filter" className="location-filter-input" value={educationField} onChange={event => onEducationFieldChange(event.target.value)} placeholder="e.g. nursing, engineering" />
-      <p className="filter-note">Matches the area of study listed in the posting.</p>
+      {educationField && <div className="filter-selected-list"><button type="button" className="filter-selected" onClick={() => onEducationFieldChange('')}>{educationField} ×</button></div>}
+      <div className="filter-search-wrap"><input id="education-field-filter" className="location-filter-input" value={educationQuery} onChange={event => setEducationQuery(event.target.value)} placeholder="Search areas of study" aria-describedby="education-field-note" /><SuggestionList suggestions={educationQuery.trim() ? educationSuggestions : []} onSelect={value => { onEducationFieldChange(value); setEducationQuery(''); }} /></div>
+      <p id="education-field-note" className="filter-note">Select a standardized area of study.</p>
     </FilterSection>
     <FilterSection title="Deadline"><FilterButton label="Today" active={deadlineDays === 0} onClick={() => onDeadlineChange(deadlineDays === 0 ? null : 0)} disabled={closingSoonDisabled} /><FilterButton label="Within 7 days" active={deadlineDays === 7} onClick={() => onDeadlineChange(deadlineDays === 7 ? null : 7)} disabled={closingSoonDisabled} /><FilterButton label="Within 14 days" active={deadlineDays === 14} onClick={() => onDeadlineChange(deadlineDays === 14 ? null : 14)} disabled={closingSoonDisabled} /><FilterButton label="Within 30 days" active={deadlineDays === 30} onClick={() => onDeadlineChange(deadlineDays === 30 ? null : 30)} disabled={closingSoonDisabled} />{closingSoonDisabled && <p className="filter-note">These jobs are open until filled, so no closing-date filter applies.</p>}</FilterSection>
     <FilterSection title="Job Type">
       <FilterButton label="Student/Co-op" active={showStudentJobs} onClick={onStudentJobsChange} />
+      <FilterButton label="Academic roles" active={showAcademicJobs} onClick={onAcademicJobsChange} />
       <FilterButton label="Ongoing recruitment" active={listingTypeFilter === 'ongoing_recruitment'} onClick={() => onListingTypeChange(listingTypeFilter === 'ongoing_recruitment' ? null : 'ongoing_recruitment')} />
       <FilterButton label="Candidate inventory" active={listingTypeFilter === 'inventory'} onClick={() => onListingTypeChange(listingTypeFilter === 'inventory' ? null : 'inventory')} />
       {!listingTypeFilter && <p className="filter-note">Candidate inventory listings are hidden by default.</p>}

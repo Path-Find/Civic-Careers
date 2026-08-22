@@ -1,17 +1,38 @@
 const PLACEHOLDER = /^(?:n\/?a|none|null|not applicable|not specified|unknown)$/i;
 export const ACADEMIC_SCHEDULE_MAX_LENGTH = 120;
 
-const ACADEMIC_SOURCE_PATTERN = /\b(?:university|college|institute|polytechnic|school of|UBC)\b/i;
 const ACADEMIC_TITLE_PATTERN = /\b(?:professor|lecturer|instructor|teaching assistant|instructional assistant|research assistant|research associate|academic assistant|graduate assistant|post[- ]?doctoral|post[- ]?doc|postdoc|sessional faculty|course coordinator|course staff|course assistant|teaching fellow|research fellow|tutor|marker|demonstrator)\b/i;
 const RECREATIONAL_INSTRUCTOR_PATTERN = /\b(?:swim(?:ming)?|lifeguard|fitness|recreation|aquatic|sports?|coach|camp|skate|dance|yoga)\b.*\binstructor\b|\binstructor\b.*\b(?:swim(?:ming)?|lifeguard|fitness|recreation|aquatic|sports?|coach|camp|skate|dance|yoga)\b/i;
+const ACADEMIC_ROLE_TYPES = new Set([
+  'faculty', 'teaching_assistant', 'research_assistant', 'research_associate',
+  'postdoctoral', 'academic_instructor', 'course_staff',
+]);
 
 /** Academic fields are only meaningful for a clearly academic appointment. */
 export function isAcademicJob(source: string | null | undefined, title: string | null | undefined, roleType: unknown): boolean {
   if (!String(title ?? '').trim()) return false;
   const titleText = String(title);
   if (RECREATIONAL_INSTRUCTOR_PATTERN.test(titleText)) return false;
+  // The employer is not evidence. Universities and colleges also publish
+  // ordinary IT, facilities, administration, and student-support jobs.
   return ACADEMIC_TITLE_PATTERN.test(titleText)
-    || (ACADEMIC_SOURCE_PATTERN.test(String(source ?? '')) && /\b(?:faculty|course|academic)\b/i.test(titleText));
+    || (ACADEMIC_ROLE_TYPES.has(String(roleType ?? '')) && /\b(?:university|college|institute|polytechnic|school of|UBC)\b/i.test(String(source ?? '')));
+}
+
+/** A stored course value is safe to retain only when it looks like a real course code. */
+export function isLikelyAcademicCourse(source: string | null | undefined, title: string | null | undefined, course: string | null | undefined): boolean {
+  if (!/\b(?:university|college|institute|polytechnic|school of|UBC)\b/i.test(String(source ?? ''))) return false;
+  const value = String(course ?? '').replace(/\s+/g, ' ').trim();
+  if (!value || !/\b[A-Z]{2,8}\s?\d[A-Z0-9]{2,7}\b/i.test(value)) return false;
+  if (/\b(?:JR|REQ|PSFT|ADP|NEOGOV|LEVER|CA|CALL|CENTRE|CONTENT|EDUCATOR|MECHANIC|OFFICER|PROGRAM|PROCTOR|RESEARCH|SERVICES|STRATEGY|TERM|UNIT)\s*\d/i.test(value)) return false;
+
+  // Course-only rows are retained when the title itself is course-like. A
+  // job title with a normal staff role is usually a requisition ID capture,
+  // even when the employer is an educational institution.
+  const titleText = String(title ?? '');
+  const hasAcademicRoleTitle = /\b(?:assistant|associate|coordinator|manager|officer|specialist|technician|mechanic|worker|educator|administrator|leader|advisor|professor|lecturer|instructor|researcher)\b/i.test(titleText);
+  const code = value.match(/\b[A-Z]{2,8}\s?\d[A-Z0-9]{2,7}\b/i)?.[0] ?? '';
+  return !hasAcademicRoleTitle || new RegExp(`\\b${code.replace(/\\s+/g, '\\s*')}\\b`, 'i').test(titleText);
 }
 
 function clean(value: unknown): string {
