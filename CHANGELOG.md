@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Repaired 855 additional location values across current and archived jobs while preserving unresolved values for later source-specific review.
+
 - Canonicalized province-first locations such as `SK, Moose Jaw` to city-first storage and repaired the affected Defence Construction Canada records.
 
 - Standardized public salary and location displays, including compact ranges such as `$52K–$67K/year` and city-first Canadian locations.
