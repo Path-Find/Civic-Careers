@@ -489,8 +489,12 @@ export function normalizeJob(job: Job): Job {
   const normalizeLocation = (value: string | null): string => {
     if (!value) return '';
     const cleaned = value.replace(/\s+/g, ' ').trim();
-    if (cleaned !== cleaned.toUpperCase()) return cleaned;
-    return fixCasing(cleaned).replace(/\b(On|Qc|Ns|Nb|Mb|Sk|Ab|Bc|Pe|Nl|Nt|Nu|Yt|Ca|Us)\b/g, match => match.toUpperCase());
+    const cased = cleaned === cleaned.toUpperCase()
+      ? fixCasing(cleaned)
+      : cleaned;
+    const normalized = cased.replace(/\b(On|Qc|Ns|Nb|Mb|Sk|Ab|Bc|Pe|Nl|Nt|Nu|Yt|Ca|Us)\b/g, match => match.toUpperCase());
+    const provinceFirst = normalized.match(/^(AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT),\s+(.+)$/i);
+    return provinceFirst ? `${provinceFirst[2]}, ${provinceFirst[1].toUpperCase()}` : normalized;
   };
   return {
     ...job,

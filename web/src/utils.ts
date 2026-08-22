@@ -259,11 +259,11 @@ export const formatSalary = (job: { salary_min: number | null; salary_max: numbe
       ? `$${n.toLocaleString()}`
       : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
-  const displayPeriod: Record<string, string> = { hourly: 'hour', daily: 'day', monthly: 'month', biweekly: 'biweekly', weekly: 'week', yearly: 'year', flat: 'flat' };
+  const displayPeriod: Record<string, string> = { hourly: '/hour', daily: '/day', monthly: '/month', biweekly: '/biweekly', weekly: '/week', yearly: '/year', flat: '' };
   const range = min !== null && max !== null && min !== max
-    ? `${fmt(min)}-${fmt(max)}`
+    ? `${fmt(min)}–${fmt(max)}`
     : fmt((min ?? max) as number);
-  return `${range} ${displayPeriod[period]}`;
+  return `${range}${displayPeriod[period]}`;
 };
 
 export const daysUntilClose = (dateStr: string | null): number | null => {

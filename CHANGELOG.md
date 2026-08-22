@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Standardized public salary and location displays, including compact ranges such as `$52K–$67K/year` and city-first Canadian locations.
+
 - Repaired syndicated Defence Construction Canada postings so their salary, employer name, and application links no longer inherit Government of Canada metadata.
 
 - Added a conservative structured-field backfill for missing language, certification, vehicle, education, experience, and skills data, with duplicate and oversized-capture guards.
