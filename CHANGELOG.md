@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added a conservative current/archive Availability backfill that canonicalizes recognized schedule values and clears unsafe captures without changing raw source text.
 
+- Added source-scoped uOttawa recovery for Workday course titles, academic periods, and course fields, including truncated title slugs and labelled raw-page metadata.
+
+- uOttawa course metadata recovery now rejects oversized labelled captures and distinguishes course-tied teaching roles from faculty or research roles that legitimately have no course term.
+
 - Simplified public job reports into plain-language issue categories and added the live page plus current recorded details to the prefilled GitHub report.
 
 - Removed the redundant “Showing jobs closing within 14 days” sentence when the deadline control already communicates the active view.

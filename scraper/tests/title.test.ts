@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractAndStripAcademicMetadata, extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicTerm, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from '../title';
+import { extractAndStripAcademicMetadata, extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from '../title';
 
 describe('isEmploymentOrDurationParen', () => {
   it('matches employment and duration parentheticals', () => {
@@ -233,6 +233,32 @@ describe('normalizeJobTitle', () => {
     assert.equal(extractSourceAcademicCourse('York University', 'PASS Leader KINE 1031/2031 F/W'), 'KINE 1031/2031');
     assert.equal(extractSourceAcademicCourse('University of Toronto', 'Sessional Lecturer Fall2026 JR38000'), '');
     assert.equal(extractSourceAcademicCourse('University of Ottawa', 'Analyst, IT Support JR38657'), '');
+    assert.equal(
+      extractSourceAcademicCourseFromRaw('University of Ottawa', 'Course Title: Technologie en enseignement en santéCourse Code: MED6505Section:'),
+      'MED6505 — Technologie en enseignement en santé',
+    );
+    assert.equal(
+      extractSourceAcademicTermFromRaw('University of Ottawa', 'Academic Period:2027 Spring-Summer Semester'),
+      'Spring/Summer 2027',
+    );
+  });
+
+  it('cleans uOttawa slug titles with hyphenated course codes and sections', () => {
+    assert.equal(
+      normalizeSourceJobTitle(
+        'University of Ottawa',
+        'APTPUO---Fall-2026---Part-time-Professor-English-Language-Development-Instructor---ESL-0160-F300--Student-Teaching-in-English-Program--STEP-_JR38567',
+      ),
+      'Professor English Language Development Instructor',
+    );
+    assert.equal(
+      normalizeSourceJobTitle('University of Ottawa', 'APTPUO-FALL-2026-CHM4139-A00_JR38344-1'),
+      'Course Instructor',
+    );
+    assert.equal(
+      normalizeSourceJobTitle('University of Ottawa', 'APTPUO---Printemps-t-2027---MED6505_JR38394'),
+      'Course Instructor',
+    );
   });
 
   it('does not strip bare Temporary proper-name prefixes', () => {

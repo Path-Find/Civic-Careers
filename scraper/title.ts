@@ -125,7 +125,7 @@ const SOURCE_COURSE_CODE_PATTERNS: Record<string, RegExp> = {
   'Toronto Metropolitan University': /\b[A-Z]{2,4}\s?\d{3,4}(?:\s*\(\d+\))?\b/gi,
   // Ottawa source slugs also contain union abbreviations followed by years
   // (`APTPUO 2026`); a year is never a course code.
-  'University of Ottawa': /\b(?!JR|REQ)[A-Z]{2,6}\s?(?!20\d{2}\b)\d{3,5}[A-Z]?(?:\d{2})?\b/gi,
+  'University of Ottawa': /\b(?!JR|REQ)[A-Z]{2,6}(?:\s*[-–—]\s*|\s?)(?!20\d{2}\b)\d{3,5}[A-Z]?(?:\d{2})?\b/gi,
   // `LEC103` is a section label that often follows the real code, e.g.
   // `STA258H5S LEC103`; do not promote it to academic_course.
   'University of Toronto': /\b(?!LEC\d{3,4}\b)[A-Z]{3,5}\d{3,4}[A-Z0-9]{0,3}\b/gi,
@@ -326,15 +326,34 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     // reuse the academic extractor so the term survives in structured fields
     // while disappearing from the title. Only apply this when a real academic
     // term or union marker is present; ordinary seasonal roles are untouched.
+    const looksLikeSlug = /(?:---|_JR\d|_REQ\d)/i.test(String(title ?? ''));
+    const sourceCourse = extractSourceAcademicCourse(source, title);
+    if (looksLikeSlug && sourceCourse && !/(?:professor|instructor|assistant|tutor)/i.test(String(title ?? ''))
+      && /^[A-Z]\d{2,4}(?:\s+\d+)?$/i.test(normalized.replace(/^APTPUO\s+/i, '').trim())) {
+      return 'Course Instructor';
+    }
     let academicHeading = normalized
       .replace(/-{2,}/g, ' - ')
       .replace(/_/g, ' ')
+      .replace(/\b(Printemps|Automne|Hiver|Fall|Winter|Spring|Summer)[-\s]+t[-\s]+(\d{4})\b/i, '$1 $2')
       .replace(/\b(20\d{2})\s+(Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\b/gi, '$2 $1')
       .replace(new RegExp(`\\b(${SEASON_WORD})[-\\s]+(\\d{4}(?:[-/]\\d{2,4})?)`, 'i'), '$1 $2')
       .replace(/^(?:CUPE|OPSEU|APTPUO|APEUO|APTEUO|ATPUO)\s+(?=(?:part[-\s]?time|full[-\s]?time|fall|winter|spring|summer|automne|hiver|été|ete|printemps|20\d{2})\b)/i, '')
       .replace(/\b(?:JR|REQ)\d[\w-]*\b\s*[-–—]\s*/gi, '')
       .replace(/\s*[-–—]?\s*(?:JR|REQ)\d[\w-]*\s*$/i, '')
       .trim();
+    // Parsed records can already have lost the original slug separators but
+    // still retain the union/section annotation (for example `APTPUO A00` or
+    // `Teaching Assistant - F300: ...`). Clean those forms too so the rule
+    // protects reparses as well as fresh Workday captures.
+    if (/^APTPUO\s+[A-Z]\d{2,4}(?:\s+\d+)?$/i.test(academicHeading)
+      || (looksLikeSlug && /^(?:APTPUO\s+)?[A-Z]\d{2,4}(?:\s+\d+)?$/i.test(academicHeading))) return 'Course Instructor';
+    academicHeading = academicHeading
+      .replace(/^APTPUO\s*[-–—:]\s*/i, '')
+      .replace(/\s*[-–—]\s*[A-Z]\d{2,4}\s*:.*$/i, '')
+      .trim();
+    if (looksLikeSlug) academicHeading = academicHeading.replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+    academicHeading = academicHeading.replace(/^(?:APTPUO|APEUO|APTEUO|ATPUO|CUPE)\s+/i, '').trim();
     for (let i = 0; i < 3; i += 1) {
       const next = stripUnionPrefix(academicHeading);
       if (next === academicHeading) break;
@@ -343,8 +362,14 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     const academicMeta = extractAndStripAcademicMetadata(academicHeading, source);
     if (academicMeta.academicTerm || academicMeta.unionName || academicMeta.academicCourse) {
       const roleAlias = academicHeading.match(/\b(TA|AE)(?=\s|$)/i)?.[1] ?? '';
+      const titleWithoutTerm = stripAcademicTerm(academicHeading);
+      const courseCode = extractAcademicCourseCode(titleWithoutTerm, source);
+      const courseIndex = courseCode
+        ? titleWithoutTerm.toLowerCase().indexOf(courseCode.toLowerCase())
+        : -1;
+      const rolePrefix = courseIndex > 0 ? titleWithoutTerm.slice(0, courseIndex).trim() : '';
       const extractedTitle = stripTrailingConnectorPunctuation(
-        stripAcademicCourseCode(stripAcademicTerm(academicHeading), source),
+        rolePrefix || stripAcademicCourseCode(titleWithoutTerm, source),
       );
       const displayTitle = extractedTitle.length >= 4 ? extractedTitle : academicMeta.title;
       normalized = normalizeJobTitle(roleAlias ? roleAlias : displayTitle)
@@ -470,6 +495,20 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
       .trim();
   }
 
+  if (source === 'University of Ottawa') {
+    normalized = normalized
+      .replace(/^APTPUO\s*[-–—:]\s*/i, '')
+      .replace(/^CUPE\s*[-–—:]\s*Academic\s+Year\s+\d{4}[-/]\d{2,4}\s*[-–—:]\s*/i, '')
+      .replace(/\s*[-–—]\s*[A-Z]\d{2,4}\s*:.*$/i, '')
+      .replace(/\s*[-–—]\s*[A-Z]\d{2,4}\s*$/i, '')
+      .trim();
+    if (/(?:---|_JR\d|_REQ\d)/i.test(String(title ?? ''))
+      && extractSourceAcademicCourse(source, title)
+      && !/(?:professor|instructor|assistant|tutor)/i.test(String(title ?? ''))
+      && /^[A-Z]\d{2,4}(?:\s+\d+)?$/i.test(normalized)) normalized = 'Course Instructor';
+    if (/^APTPUO\s+[A-Z]\d{2,4}(?:\s*[:–—-].*)?$/i.test(normalized)) normalized = 'Course Instructor';
+    if (/^STUDENT\s*[-–—:]\s*[A-Z]\d{2,4}\b/i.test(normalized)) normalized = 'Student';
+  }
   return normalized || normalizeJobTitle(title);
 }
 
@@ -511,6 +550,16 @@ export function extractSourceAcademicCourse(source: string | null | undefined, t
     : code;
 }
 
+/** Recover uOttawa's labelled course metadata when the Workday title was truncated. */
+export function extractSourceAcademicCourseFromRaw(source: string | null | undefined, rawText: string | null | undefined): string {
+  if (source !== 'University of Ottawa' || !rawText) return '';
+  const code = String(rawText).match(/\bCourse Code:\s*([^\r\n]+?)(?=Section:|Course Description:|$)/i)?.[1]?.trim() ?? '';
+  const title = String(rawText).match(/\bCourse Title:\s*([^\r\n]+?)(?=Course Code:|Section:|Course Description:|$)/i)?.[1]?.trim() ?? '';
+  const normalizedCode = code.replace(/\s+/g, ' ').trim();
+  if (!/^(?!JR|REQ)[A-Z]{2,6}\s*-?\s*\d{3,5}[A-Z]?(?:\d{2})?$/i.test(normalizedCode)) return '';
+  return title ? `${normalizedCode} — ${title}` : normalizedCode;
+}
+
 /** Recover abbreviated PeopleSoft terms such as TMU's `F26` into the term field. */
 export function extractSourceAcademicTerm(source: string | null | undefined, title: string | null | undefined): string {
   const value = String(title ?? '').replace(/\s+/g, ' ').trim();
@@ -548,6 +597,20 @@ export function extractSourceAcademicTerm(source: string | null | undefined, tit
   if (!abbreviated) return '';
   const label = { f: 'Fall', w: 'Winter', s: 'Summer' }[abbreviated[1].toLowerCase()] ?? '';
   return label ? `${label} 20${abbreviated[2]}` : '';
+}
+
+/** Recover uOttawa's Academic Period label when it was omitted from the title. */
+export function extractSourceAcademicTermFromRaw(source: string | null | undefined, rawText: string | null | undefined): string {
+  if (source !== 'University of Ottawa' || !rawText) return '';
+  const period = String(rawText).match(/Academic Period:\s*(\d{4})\s+([A-Za-z]+(?:[-/]\s*[A-Za-z]+)?)\s+Semester/i);
+  if (!period) return '';
+  const label = period[2].replace(/\s*[-/]\s*/g, '/');
+  const normalized = label
+    .replace(/\bAutumn\b/i, 'Fall')
+    .replace(/\bHiver\b/i, 'Winter')
+    .replace(/\bPrintemps\b/i, 'Spring')
+    .replace(/\bÉté\b|\bEte\b/i, 'Summer');
+  return `${normalized} ${period[1]}`;
 }
 
 /** Return false for portal navigation headings that are not job titles. */

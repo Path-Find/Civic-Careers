@@ -6,12 +6,13 @@
  */
 import dotenv from 'dotenv';
 import { initDb } from './db';
-import { extractSourceAcademicCourse, extractSourceAcademicTerm, normalizeSourceJobTitle } from './title';
+import { extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, normalizeSourceJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
 const CURRENT_ONLY = process.argv.includes('--current-only');
+const SOURCE_FILTER = process.argv.find(arg => arg.startsWith('--source='))?.slice('--source='.length).trim().toLowerCase() || '';
 const isAcademicSource = (source: string) => /university|college|polytechnic|institut/i.test(source);
 
 const STORED_COURSE_PATTERNS: Record<string, RegExp> = {
@@ -42,7 +43,7 @@ async function main() {
   }
 
   const query = `
-    SELECT j.id, j.source, r.title AS raw_title, d.job_title AS detail_title,
+    SELECT j.id, j.source, r.title AS raw_title, r.raw_text, d.job_title AS detail_title,
            d.academic_course, d.academic_term
     FROM jobs j
     LEFT JOIN raw_jobs r ON r.id = j.id
@@ -64,15 +65,27 @@ async function main() {
     for (const row of result.rows) {
       const source = String(row.source ?? '');
       if (!isAcademicSource(source)) continue;
+      if (SOURCE_FILTER && source.toLowerCase() !== SOURCE_FILTER) continue;
       const rawTitle = String(row.raw_title ?? '').trim();
       const detailTitle = String(row.detail_title ?? '').trim();
       const sourceTitle = rawTitle || detailTitle;
-      const title = normalizeSourceJobTitle(source, sourceTitle);
+      const rawText = String(row.raw_text ?? '');
+      const storedCourse = String(row.academic_course ?? '').trim();
+      let title = normalizeSourceJobTitle(source, sourceTitle);
       // Never use the record ID as academic evidence. PeopleSoft, Workday,
       // and hashed source IDs resemble course codes closely enough to poison
       // the academic_course field.
-      const course = extractSourceAcademicCourse(source, sourceTitle);
-      const term = extractSourceAcademicTerm(source, sourceTitle);
+      const course = extractSourceAcademicCourseFromRaw(source, rawText) || extractSourceAcademicCourse(source, sourceTitle);
+      const term = extractSourceAcademicTermFromRaw(source, rawText) || extractSourceAcademicTerm(source, sourceTitle);
+      if (source === 'University of Ottawa') {
+        if (storedCourse && /^APTPUO\b/i.test(sourceTitle)) title = 'Course Instructor';
+        if (/^APTPUO\s+Étudiant\.e/i.test(sourceTitle)) title = 'Student Professor';
+        if (/^Student\s+Part-time\s+Prof\s+APTPUO$/i.test(sourceTitle)) title = 'Student Professor';
+        if (/^CUPE\s*[-–—:]\s*Academic\s+Year/i.test(sourceTitle)) title = 'Indigenous Academic Tutor';
+      }
+      if (source === 'University of Ottawa' && /^(?:Printemps|Automne|Hiver|Fall|Winter|Spring|Summer)$/i.test(title)) {
+        title = /(?:Professor|Professeure|Professeur)/i.test(rawText) ? 'Professor' : 'Course Instructor';
+      }
 
       if (rawTitle && rawTitle !== normalizeSourceJobTitle(source, rawTitle)) {
         titleChanges += 1;
@@ -82,7 +95,6 @@ async function main() {
         titleChanges += 1;
         writes.push({ sql: 'UPDATE job_details SET job_title = ? WHERE id = ?', args: [title, String(row.id)] });
       }
-      const storedCourse = String(row.academic_course ?? '').trim();
       // Reconcile old poisoned values as well as filling blanks. A known
       // source-specific format is the safety boundary for clearing a value;
       // unknown academic sources retain their existing field untouched.

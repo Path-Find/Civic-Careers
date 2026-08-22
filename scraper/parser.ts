@@ -4,7 +4,7 @@ import { githubRunUrl, notifyDiscord } from './utils';
 import { classifyRawCapture } from './capture-quality';
 import { normalizeDuration } from './duration';
 import { extractLabeledLocation, normalizeLocation } from './location';
-import { extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicTerm, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from './title';
+import { extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from './title';
 import { normalizeEmploymentType, normalizeSalaryPeriod, normalizeUnionFields, normalizeWorkModel } from './validate';
 import {
   dedupeSkillsAgainstSoftware,
@@ -153,7 +153,7 @@ async function main() {
         const academicAllowed = isAcademicJob(raw.source, finalTitle, aiResult.academic_role_type);
         const academicRoleType = academicAllowed ? aiResult.academic_role_type : null;
         const academicCourse = academicAllowed
-          ? (aiResult.academic_course || extractSourceAcademicCourse(raw.source, raw.title ?? aiResult.job_title))
+          ? (aiResult.academic_course || extractSourceAcademicCourseFromRaw(raw.source, raw.raw_text) || extractSourceAcademicCourse(raw.source, raw.title ?? aiResult.job_title))
           : '';
         const academicWorkload = academicAllowed ? aiResult.academic_workload : '';
         const academicOfficeHours = academicAllowed ? aiResult.academic_office_hours : '';
@@ -161,7 +161,8 @@ async function main() {
         const academicAppointmentType = academicAllowed ? aiResult.academic_appointment_type : '';
         const academicSchedule = academicAllowed ? (extractAcademicSchedule(raw.raw_text) || aiResult.academic_schedule || '') : '';
         const duration = sourceMetadataFix?.duration ?? normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || '');
-        const academicTerm = extractSourceAcademicTerm(raw.source, raw.title ?? aiResult.job_title);
+        const academicTerm = extractSourceAcademicTermFromRaw(raw.source, raw.raw_text)
+          || extractSourceAcademicTerm(raw.source, raw.title ?? aiResult.job_title);
         const parsedSchedule = splitHoursAndAvailability(
           sourceMetadataFix?.hours ?? aiResult.hours,
           aiResult.availability,

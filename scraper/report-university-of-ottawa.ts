@@ -63,7 +63,7 @@ function flags(row: Row): string[] {
   const result: string[] = [];
   const title = text(row.job_title || row.raw_title);
   const rawTitle = text(row.raw_title);
-  const titleMetadata = /\b(?:fall|winter|spring|summer|automne|hiver|printemps|\bF\/?W\s*\d{2}(?:\/\d{2})?|\d{4}[- ]?\d{2,4}|\d+\s+(?:role|roles|position|positions)|\b(?:pool|pipeline|posting|job posting|student|APTPUO|JR\d{4,})\b)/i;
+  const titleMetadata = /\b(?:fall|winter|spring|summer|automne|hiver|printemps|\bF\/?W\s*\d{2}(?:\/\d{2})?|\d{4}[- ]?\d{2,4}|\d+\s+(?:role|roles|position|positions)|\b(?:pool|pipeline|posting|job posting|APTPUO|JR\d{4,})\b)/i;
   if (titleMetadata.test(title)) result.push('title_contains_metadata');
   if (rawTitle && title && rawTitle !== title) result.push('raw_title_differs_from_parsed_title');
   for (const field of FIELDS) {
@@ -87,7 +87,8 @@ function flags(row: Row): string[] {
   if (salary && !/\b(?:hour|daily|day|week|weekly|biweekly|month|monthly|year|yearly|flat)\b/i.test(salary)) result.push('salary_missing_period');
   if (salary && /\b(?:grade|step)\s*\d+/i.test(salary)) result.push('salary_contains_grade_or_step');
   if (/^\s*(?:term|term|schedule|workload|availability|licen[cs]es?)\s*$/i.test(title)) result.push('placeholder_title');
-  if (text(row.academic_role_type) && !text(row.academic_course) && !text(row.academic_term)) result.push('academic_role_without_course_or_term');
+  if (/^(?:teaching_assistant|course_instructor|academic_expert)$/i.test(text(row.academic_role_type))
+    && !text(row.academic_course) && !text(row.academic_term)) result.push('academic_role_without_course_or_term');
   return result;
 }
 
