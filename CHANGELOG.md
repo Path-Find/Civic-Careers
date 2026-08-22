@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Removed the redundant “Showing jobs closing within 14 days” sentence when the deadline control already communicates the active view.
+
 - Oversized Responsibilities and Qualifications sections now trigger “Details pending” instead of rendering potentially corrupted description text.
 
 - Kept Career stage as a sidebar filter without displaying “Student” as a job-detail metadata field.

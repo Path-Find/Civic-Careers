@@ -43,7 +43,9 @@ export function buildFilterSummary(filters: SummaryFilters): string {
   if (filters.showAcademicJobs) parts.push('for academic roles');
   if (filters.listingTypeFilter === 'inventory') parts.push('in candidate inventories');
   if (filters.listingTypeFilter === 'ongoing_recruitment') parts.push('in ongoing recruitment');
-  if (filters.deadlineDays !== null) parts.push(filters.deadlineDays === -1 ? 'without a closing date' : `closing within ${filters.deadlineDays === 0 ? 'today' : `${filters.deadlineDays} days`}`);
+  // The deadline control already states this when it is the only active
+  // filter; repeat it only when it adds context to another filter.
+  if (filters.deadlineDays !== null && parts.length > 0) parts.push(filters.deadlineDays === -1 ? 'without a closing date' : `closing within ${filters.deadlineDays === 0 ? 'today' : `${filters.deadlineDays} days`}`);
   if (filters.newlyAdded) parts.push('added in the last 7 days');
   if (filters.sortNewest) parts.push('sorted by latest posting');
   return parts.length > 0 ? `Showing jobs ${parts.join(' ')}.` : '';
