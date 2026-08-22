@@ -10,9 +10,7 @@
  */
 import dotenv from 'dotenv';
 import { initDb } from './db';
-import { classifyRawCapture } from './capture-quality';
-import { getPublishBlockReason } from './publish-gate';
-import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle } from './title';
+import { evaluateJobQuality } from './quality-pipeline';
 
 dotenv.config({ quiet: true });
 
@@ -35,6 +33,11 @@ type Row = {
   salary_range: string | null;
   location: string | null;
   union_name: string | null;
+  availability: string | null;
+  academic_schedule: string | null;
+  academic_workload: string | null;
+  academic_office_hours: string | null;
+  education_requirements: string | null;
   pending_closing_date: string | null;
   pending_closing_date_status: string | null;
   closing_date: string | null;
@@ -49,47 +52,31 @@ type Decision = {
 };
 
 function classify(row: Row): Decision {
-  const hasDetails = Boolean(row.detail_id);
-  const hasParsedAt = Boolean(row.parsed_at);
-  const rawText = row.raw_text?.trim() || '';
-  const rawTitle = isUsableJobTitle(row.raw_title?.trim() || '')
-    ? row.raw_title!.trim()
-    : extractRawJobTitle(row.source, rawText)
-      || extractUrlJobTitle(row.application_url || row.raw_url, rawText)
-      || '';
-  const title = isUsableJobTitle(row.detail_title?.trim() || '')
-    ? row.detail_title!.trim()
-    : rawTitle;
-
-  if (!title || !isUsableJobTitle(title)) {
-    return { id: row.id, from: row.publication_status ?? 'NULL', active: row.is_active, to: 'hidden', reason: 'unusable title' };
-  }
-
-  if (rawText && !classifyRawCapture(row.source, rawText).valid) {
-    return { id: row.id, from: row.publication_status ?? 'NULL', active: row.is_active, to: 'hidden', reason: 'invalid raw capture' };
-  }
-
-  const closingDate = row.closing_date?.trim() || row.pending_closing_date?.trim() || '';
-  const closingStatus = row.pending_closing_date_status?.trim() || '';
-  if (!closingDate && closingStatus !== 'open_until_filled') {
-    return { id: row.id, from: row.publication_status ?? 'NULL', active: row.is_active, to: 'hidden', reason: 'missing application closing metadata' };
-  }
-
-  const blockReason = getPublishBlockReason({
-    title,
+  const evaluation = evaluateJobQuality({
+    source: row.source,
+    title: row.raw_title,
+    detailTitle: row.detail_title,
+    rawText: row.raw_text,
+    url: row.raw_url,
+    applicationUrl: row.application_url,
     department: row.department,
     hours: row.hours,
     salary: row.salary_range,
     location: row.location,
     unionName: row.union_name,
+    availability: row.availability,
+    academicSchedule: row.academic_schedule,
+    academicWorkload: row.academic_workload,
+    academicOfficeHours: row.academic_office_hours,
+    educationRequirements: row.education_requirements,
+    closingDate: row.closing_date || row.pending_closing_date,
+    closingDateStatus: row.pending_closing_date_status,
+    hasDetails: Boolean(row.detail_id),
+    parsedAt: row.parsed_at,
   });
-  if (blockReason) {
-    return { id: row.id, from: row.publication_status ?? 'NULL', active: row.is_active, to: 'hidden', reason: blockReason };
-  }
-
-  const to = hasDetails && hasParsedAt ? 'fully_parsed' : 'soft_parsed';
-  const reason = to === 'fully_parsed' ? 'parsed details and parsed_at present' : 'safe title/metadata available; details pending';
-  return { id: row.id, from: row.publication_status ?? 'NULL', active: row.is_active, to, reason };
+  const reason = evaluation.reasons[0]
+    || (evaluation.status === 'fully_parsed' ? 'parsed details and parsed_at present' : 'safe title/metadata available; details pending');
+  return { id: row.id, from: row.publication_status ?? 'NULL', active: row.is_active, to: evaluation.status, reason };
 }
 
 async function main() {
@@ -113,6 +100,11 @@ async function main() {
       d.salary_range,
       d.location,
       d.union_name,
+      d.availability,
+      d.academic_schedule,
+      d.academic_workload,
+      d.academic_office_hours,
+      d.education_requirements,
       raw.pending_closing_date,
       raw.pending_closing_date_status,
       d.closing_date

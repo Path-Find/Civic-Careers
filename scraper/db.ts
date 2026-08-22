@@ -1,6 +1,7 @@
 import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
 import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeSourceJobTitle } from './title';
+import { evaluateJobQuality } from './quality-pipeline';
 import { extractPendingMetadata } from './pending-metadata';
 import { normalizeActiveClosingDateStatus } from './closing-date';
 import { classifyRawCapture } from './capture-quality';
@@ -522,12 +523,21 @@ export async function saveRawJob(client: Client, job: {
 
   const suppliedTitle = job.title?.trim() || '';
   const sourceTitle = (isUsableJobTitle(suppliedTitle) ? suppliedTitle : extractRawJobTitle(job.source, job.raw_text) || extractUrlJobTitle(job.application_url ?? job.url, job.raw_text)) || null;
-  const title = sourceTitle ? normalizeSourceJobTitle(job.source, sourceTitle) : null;
-  const pending = extractPendingMetadata(sourceTitle, job.raw_text);
   const pendingClosing = normalizeActiveClosingDateStatus(job.raw_text);
+  const quality = evaluateJobQuality({
+    source: job.source,
+    title: sourceTitle,
+    rawText: job.raw_text,
+    url: job.url,
+    applicationUrl: job.application_url,
+    closingDate: pendingClosing.date,
+    closingDateStatus: pendingClosing.status,
+  });
+  const title = quality.title || null;
+  const pending = extractPendingMetadata(sourceTitle, job.raw_text);
   const pendingClosingDate = pendingClosing.date;
   const pendingClosingDateStatus = pendingClosing.status;
-  const publicationStatus = sourceTitle ? 'soft_parsed' : 'hidden';
+  const publicationStatus = quality.status;
   await client.batch([
     {
       sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_location, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
@@ -583,7 +593,13 @@ export async function savePendingJob(client: Client, job: {
   await asNeonClient(client)?.restoreIfArchived(job.id);
   const suppliedTitle = job.title?.trim() || '';
   const sourceTitle = isUsableJobTitle(suppliedTitle) ? suppliedTitle : null;
-  const title = sourceTitle ? normalizeSourceJobTitle(job.source, sourceTitle) : null;
+  const quality = evaluateJobQuality({
+    source: job.source,
+    title: sourceTitle,
+    closingDate: job.closing_date,
+    closingDateStatus: job.closing_date ? 'known' : 'open_until_filled',
+  });
+  const title = quality.title || null;
   const pending = extractPendingMetadata(sourceTitle, '');
   const pendingClosingDateStatus = job.closing_date ? 'known' : 'open_until_filled';
   await client.batch([
@@ -620,7 +636,7 @@ export async function savePendingJob(client: Client, job: {
           scraped_at = excluded.scraped_at`,
       args: [job.id],
     },
-    { sql: `UPDATE jobs SET publication_status = 'soft_parsed' WHERE id = ?`, args: [job.id] },
+    { sql: `UPDATE jobs SET publication_status = '${quality.status}' WHERE id = ?`, args: [job.id] },
   ], 'write');
 }
 

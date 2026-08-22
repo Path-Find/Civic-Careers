@@ -199,7 +199,12 @@ function App() {
   // jobsSource is set by the scoped company-page API fetch — no need to mirror it into searchTerm.
   const isCompanyPage = currentView === 'jobs' && Boolean(jobsSource);
   const companyCareersPortal = jobsOrganization?.portal ?? (jobsSource ? companyPortal(jobsSource) : null);
+  const visibleSelectedCompanyNames = isCompanyPage && jobsSource
+    ? [jobsOrganization?.name ?? jobsSource]
+    : selectedCompanyNames;
   const companyFilteredJobs = filteredJobs;
+  const allVisibleResultsUntilFilled = jobs.length > 0
+    && jobs.every(job => !job.closing_date && job.closing_date_status === 'open_until_filled');
   const selectedCompanySources = selectedCompanyNames.flatMap(name => companySummaries.find(company => company.name === name)?.sourceNames ?? [name]);
   const employerFilteredJobs = currentView === 'saved'
     ? companyFilteredJobs.filter(job => selectedCompanyNames.length === 0 || selectedCompanyNames.includes(jobsSource ?? '') || selectedCompanySources.includes(job.source))
@@ -658,7 +663,7 @@ function App() {
                   headerHeight={headerHeight}
                   jobs={jobs}
                   companyOptions={companySummaries.filter(company => Number(company.active_job_count) > 0)}
-                  selectedCompanyNames={selectedCompanyNames}
+                  selectedCompanyNames={visibleSelectedCompanyNames}
                   selectedEducationLevels={selectedEducationLevels}
                   educationField={educationField}
                   selectedCareerStages={selectedCareerStages}
@@ -670,6 +675,7 @@ function App() {
                   deadlineDays={deadlineDays}
                   listingTypeFilter={listingTypeFilter}
                   showStudentJobs={showStudentJobs}
+                  closingSoonDisabled={allVisibleResultsUntilFilled}
                   onMinSalaryChange={setMinSalary}
                   onLocationChange={setLocationTerm}
                   onModesChange={mode => setSelectedModes(prev => prev.includes(mode) ? prev.filter(value => value !== mode) : [...prev, mode])}
@@ -692,17 +698,17 @@ function App() {
                   {currentView === 'companies' ? `${visibleCompanySummaries.length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${educationFilteredJobs.length.toLocaleString()} saved jobs` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
                   </div>
                   {currentView === 'companies' && <div className="company-sort-options"><button className={companySort === 'alphabetical' ? 'active' : ''} onClick={() => setCompanySort('alphabetical')}>A–Z</button><button className={companySort === 'mostJobs' ? 'active' : ''} onClick={() => setCompanySort('mostJobs')}>Most jobs</button><button className={companySort === 'recent' ? 'active' : ''} onClick={() => setCompanySort('recent')}>Recently added</button></div>}
-                  {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => applyMostRecentSort(false)} onClosingSoon={() => applyClosingSoonSort(false)} onNewlyAdded={() => applyNewlyAddedSort(false)} />}
+                  {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} closingSoonDisabled={allVisibleResultsUntilFilled} onMostRecent={() => applyMostRecentSort(false)} onClosingSoon={() => applyClosingSoonSort(false)} onNewlyAdded={() => applyNewlyAddedSort(false)} />}
                 </div>
-                {(currentView === 'jobs' || currentView === 'saved') && hasJobFilters && <p className="filter-summary" aria-live="polite">{buildFilterSummary({ searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages })}</p>}
+                {(currentView === 'jobs' || currentView === 'saved') && hasJobFilters && buildFilterSummary({ searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages }) && <p className="filter-summary" aria-live="polite">{buildFilterSummary({ searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages })}</p>}
                 {isCompanyPage && (
                   <div className="company-page-header">
                     <div>
                       <h2 className="company-page-title">{jobsSource}</h2>
-                      {companyCareersPortal ? <a className="company-page-portal" href={companyCareersPortal} target="_blank" rel="noopener noreferrer">
+                      {companyCareersPortal && <a className="company-page-portal" href={companyCareersPortal} target="_blank" rel="noopener noreferrer">
                           <ExternalLink size={14} />
                           Visit Official Careers Site
-                        </a> : <p className="company-page-portal-missing">Official careers link not recorded</p>}
+                        </a>}
                       {jobsOrganization && jobsOrganization.children.length > 0 && <div className="company-child-links">
                         <span className="company-child-links-label">Includes</span>
                         {jobsOrganization.children.map(child => <a key={child.name} href={child.portal} target="_blank" rel="noopener noreferrer">{child.name} <ExternalLink size={12} /></a>)}

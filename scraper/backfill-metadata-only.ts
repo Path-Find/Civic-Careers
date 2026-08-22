@@ -17,7 +17,7 @@ import {
   saveJobDetails,
 } from './db';
 import { extractRecentRelativePostedDate, extractPostedDate, normalizePostedDate } from './posted-date';
-import { extractAndStripAcademicMetadata, extractRawJobTitle, isUsableJobTitle, normalizeSourceJobTitle } from './title';
+import { extractAndStripAcademicMetadata, extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicTerm, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from './title';
 import {
   dedupeSkillsAgainstSoftware,
   extractCertificationRequirements,
@@ -30,13 +30,14 @@ import {
   reconcileStructuredRequirements,
   requirementFlagToDb,
   splitLanguageOutOfSkills,
+  classifyStudentRequirement,
 } from './requirements';
 import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
 import { classifyRawCapture } from './capture-quality';
 import { formatCapturedDescription } from './fallback-description';
 import { extractBoardSpecificMetadata } from './board-parsers';
-import { getPublishBlockReason } from './publish-gate';
+import { evaluateJobQuality } from './quality-pipeline';
 import { formatSalaryDisplay } from './salary-format';
 
 dotenv.config({ quiet: true });
@@ -46,6 +47,7 @@ const APPLY = process.argv.includes('--apply');
 // --include-soft-parsed is an explicit maintenance escape hatch for a reviewed
 // re-run of deterministic metadata, never the normal queue path.
 const INCLUDE_SOFT_PARSED = process.argv.includes('--include-soft-parsed');
+const ACADEMIC_ONLY = process.argv.includes('--academic-only');
 const UNPARSED_ONLY = !INCLUDE_SOFT_PARSED;
 const EXCLUDED_SOURCES = new Set(
   (process.env.EXCLUDE_SOURCES ?? '')
@@ -109,9 +111,10 @@ function extractPostedAt(row: RawRow): string | null {
 
 function buildDetails(row: RawRow) {
   const suppliedTitle = isUsableJobTitle(row.title) ? row.title : '';
-  const rawTitle = normalizeSourceJobTitle(row.source, suppliedTitle || extractRawJobTitle(row.source, row.raw_text) || row.raw_text.match(/^[^\n]{3,160}/)?.[0] || row.id);
-  const academicMeta = extractAndStripAcademicMetadata(rawTitle, row.source);
-  const title = academicMeta.title;
+  const sourceTitle = suppliedTitle || extractRawJobTitle(row.source, row.raw_text) || row.raw_text.match(/^[^\n]{3,160}/)?.[0] || row.id;
+  const academicHeading = normalizeJobTitle(sourceTitle).replace(/-{2,}/g, ' - ').replace(/_/g, ' ');
+  const academicMeta = extractAndStripAcademicMetadata(academicHeading, row.source);
+  const title = normalizeSourceJobTitle(row.source, academicMeta.title || sourceTitle);
   const listingType = extractListingType(row.raw_text, title, false);
   const postedAt = extractPostedAt(row);
   // Title only, not the whole raw posting: "student"/"co-op" anywhere in the
@@ -120,7 +123,7 @@ function buildDetails(row: RawRow) {
   // being for one. Live-data check found 615 of 700 jobs flagged this way
   // had no "student"/"co-op" word in the title at all -- including "Nurse
   // Practitioner", "Business Systems Analyst", "Research Scientist".
-  const isStudent = /\b(?:student|co-?op)\b/i.test(title) ? 1 : 0;
+  const isStudent = classifyStudentRequirement(title, row.raw_text) ? 1 : 0;
   // [^.!] as a sentence-end boundary also excludes a period inside a dollar
   // amount ("$33.83"), truncating it to "$33" -- (?:[^.!]|\.(?=\d)) allows a
   // period through only when it's followed by a digit (a decimal point, not
@@ -148,7 +151,8 @@ function buildDetails(row: RawRow) {
     salaryMax: null as number | null,
     salaryPeriod: null as string | null,
     academicTerm: academicMeta.academicTerm,
-    academicCourse: academicMeta.academicCourse,
+    academicCourse: extractSourceAcademicCourse(row.source, sourceTitle) || academicMeta.academicCourse,
+    academicTerm: extractSourceAcademicTerm(row.source, sourceTitle) || academicMeta.academicTerm,
   };
 
   const custom = extractBoardSpecificMetadata(row.source, row.raw_text);
@@ -174,11 +178,46 @@ function buildDetails(row: RawRow) {
   };
 }
 
+function sanitizeDeterministicMetadata(details: ReturnType<typeof buildDetails>, row: RawRow) {
+  const sanitized = { ...details };
+  const clearableFields = new Set(['department', 'hours', 'salary', 'location', 'unionName']);
+  const evaluate = () => evaluateJobQuality({
+    source: row.source,
+    title: sanitized.title,
+    rawText: row.raw_text,
+    url: row.url,
+    applicationUrl: row.application_url,
+    closingDate: sanitized.closingDate,
+    closingDateStatus: sanitized.closingDate ? 'known' : 'open_until_filled',
+    department: sanitized.department,
+    hours: sanitized.hours,
+    salary: sanitized.salary,
+    location: sanitized.location,
+    unionName: sanitized.unionName,
+  });
+  let quality = evaluate();
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const field = quality.reasons[0]?.match(/^corrupted field: (\w+)$/)?.[1] ?? '';
+    if (!clearableFields.has(field)) break;
+    (sanitized as Record<string, unknown>)[field] = '';
+    if (field === 'salary') {
+      sanitized.salaryMin = null;
+      sanitized.salaryMax = null;
+      sanitized.salaryPeriod = null;
+    }
+    quality = evaluate();
+  }
+  return { details: sanitized, quality };
+}
+
 async function main() {
   const db = await initDb();
 
   const sourceExclusion = EXCLUDED_SOURCES.size > 0
     ? ` AND r.source NOT IN (${[...EXCLUDED_SOURCES].map(() => '?').join(',')})`
+    : '';
+  const academicSourceFilter = ACADEMIC_ONLY
+    ? "AND (r.source ILIKE '%university%' OR r.source ILIKE '%college%' OR r.source ILIKE '%polytechnic%' OR r.source ILIKE '%institute%')"
     : '';
   const parseScope = UNPARSED_ONLY
     ? 'r.parsed_at IS NULL'
@@ -197,6 +236,7 @@ async function main() {
       AND (r.raw_text IS NOT NULL AND r.raw_text != '')
       ${safeRowGuard}
       ${sourceExclusion}
+      ${academicSourceFilter}
     ORDER BY r.scraped_at ASC
   `,
     args: [...EXCLUDED_SOURCES],
@@ -220,21 +260,29 @@ async function main() {
 
   let promoted = 0;
   let leftPending = 0;
+  const pendingReasons = new Map<string, number>();
+  const notePending = (reason: string) => {
+    leftPending += 1;
+    pendingReasons.set(reason, (pendingReasons.get(reason) ?? 0) + 1);
+  };
   async function processRow(row: RawRow) {
     const details = buildDetails(row);
-    if (getPublishBlockReason(details)) {
+    const sanitized = sanitizeDeterministicMetadata(details, row);
+    const safeDetails = sanitized.details;
+    const quality = sanitized.quality;
+    if (quality.status === 'hidden') {
       // A corrupted field, an unusable/CTA title, or a status/flagged word in
       // the title. Never publish a job shell built from a field we know is
       // bad — leave it pending instead of guessing or partially fixing it.
-      leftPending += 1;
+      notePending(quality.reasons.join('; ') || 'quality gate');
       return;
     }
-    const description = formatCapturedDescription(row.raw_text, details.title);
+    const description = formatCapturedDescription(row.raw_text, safeDetails.title);
     if (!description) {
       // Non-Workday captures remain safe pending shells. Never hide a valid
       // source capture merely because this deterministic fallback does not
       // know how to turn it into a full description.
-      leftPending += 1;
+      notePending('could not format captured description');
       return;
     }
     // Body-side deterministic extraction — same functions the AI parser uses
@@ -257,17 +305,17 @@ async function main() {
     });
     await saveJobDetails(db, {
       id: row.id,
-      job_title: details.title,
-      department: details.department || '',
-      location: details.location,
-      salary_range: details.salary,
+      job_title: quality.title,
+      department: safeDetails.department || '',
+      location: safeDetails.location,
+      salary_range: safeDetails.salary,
       description,
-      closing_date: details.closingDate,
-      employment_type: details.employmentType,
-      hours: details.hours,
-      is_inventory: details.listingType === 'inventory' ? 1 : 0,
-      listing_type: details.listingType,
-      is_student: details.isStudent,
+      closing_date: safeDetails.closingDate,
+      employment_type: safeDetails.employmentType,
+      hours: safeDetails.hours,
+      is_inventory: safeDetails.listingType === 'inventory' ? 1 : 0,
+      listing_type: safeDetails.listingType,
+      is_student: safeDetails.isStudent,
       benefits: JSON.stringify(filterPlausible(structuredRequirements.benefits)),
       required_skills: JSON.stringify(filterPlausible(finalSkills)),
       experience_requirements: JSON.stringify(filterPlausible(structuredRequirements.experience_requirements)),
@@ -279,24 +327,24 @@ async function main() {
       medical_requirements: JSON.stringify([]),
       responsibility_tags: JSON.stringify([]),
       qualification_tags: JSON.stringify([]),
-      posted_at: details.postedAt,
+      posted_at: safeDetails.postedAt,
       parser_version: DETERMINISTIC_PARSER_VERSION,
-      work_model: details.workModel || null,
-      duration: normalizeDuration(details.duration || extractWorkYearDuration(description) || ''),
-      is_unionized: details.isUnionized !== null && details.isUnionized !== undefined ? details.isUnionized : null,
-      union_name: details.unionName || null,
-      salary_min: details.salaryMin !== null && details.salaryMin !== undefined ? details.salaryMin : null,
-      salary_max: details.salaryMax !== null && details.salaryMax !== undefined ? details.salaryMax : null,
-      salary_period: details.salaryPeriod || null,
-      academic_term: details.academicTerm || null,
-      academic_course: details.academicCourse || null,
+      work_model: safeDetails.workModel || null,
+      duration: normalizeDuration(safeDetails.duration || extractWorkYearDuration(description) || ''),
+      is_unionized: safeDetails.isUnionized !== null && safeDetails.isUnionized !== undefined ? safeDetails.isUnionized : null,
+      union_name: safeDetails.unionName || null,
+      salary_min: safeDetails.salaryMin !== null && safeDetails.salaryMin !== undefined ? safeDetails.salaryMin : null,
+      salary_max: safeDetails.salaryMax !== null && safeDetails.salaryMax !== undefined ? safeDetails.salaryMax : null,
+      salary_period: safeDetails.salaryPeriod || null,
+      academic_term: safeDetails.academicTerm || null,
+      academic_course: safeDetails.academicCourse || null,
       vehicle_required: requirementFlagToDb(vehicleRequired),
       security_check_required: requirementFlagToDb(securityCheckRequired),
     });
-    if (details.postedAt) {
+    if (safeDetails.postedAt) {
       await db.execute({
         sql: `UPDATE raw_jobs SET posted_at = COALESCE(posted_at, ?) WHERE id = ?`,
-        args: [details.postedAt, row.id],
+        args: [safeDetails.postedAt, row.id],
       });
     }
     promoted += 1;
@@ -308,6 +356,7 @@ async function main() {
   }
 
   console.log(`[Metadata backfill] Promoted ${promoted}; left pending ${leftPending}; discarded ${invalid.length}.`);
+  if (pendingReasons.size > 0) console.log('[Metadata backfill] Pending reasons:', JSON.stringify(Object.fromEntries(pendingReasons), null, 2));
 }
 
 main().catch(error => {

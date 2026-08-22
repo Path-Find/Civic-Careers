@@ -17,22 +17,39 @@ export function isEmploymentOrDurationParen(inner: string): boolean {
   const s = inner.replace(/\s+/g, ' ').trim();
   if (!s) return false;
 
-  if (/^(?:part[-\s]?time|full[-\s]?time|temporary|temp|casual|seasonal|permanent|term|contract|on[-\s]?call|inventory|re[-\s]?post|periodic(?:\s+posting)?)$/i.test(s)) {
+  if (/^(?:part[-\s]?time|full[-\s]?time|temporary|temp|casual|seasonal|permanent|term|contract|on[-\s]?call|inventory|re[-\s]?post|reaffichage|réaffichage|periodic(?:\s+posting)?|rpt|cpt|prn|fte|sessional)$/i.test(s)) {
     return true;
   }
 
+  // A posting count is metadata, not part of the public role name.
+  if (/^\d+\s+positions?$/i.test(s)) return true;
+  if (/^several\s+positions?$/i.test(s)) return true;
+  if (/^up\s+to\s+\d+$/i.test(s)) return true;
+
   // "Approximately 2-year contract", "up to 6 months", "18 months"
-  if (/^(?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?)\b(?:\s+(?:contract|term|assignment|position))?$/i.test(s)) {
+  if (/^(?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?)\b(?:\s+(?:contract|term|assignment|position|temporary))?$/i.test(s)) {
     return true;
   }
 
   // "2 Year Contract", "9 Month Contract", "18-months contract", "1-Year Contract"
-  if (/^\d+(?:\.\d+)?\s*[-–—]?\s*(?:year|years|month|months|yr|yrs|mo|mos)\s+(?:contract|term|assignment|position)?$/i.test(s)) {
+  if (/^\d+(?:\.\d+)?\s*[-–—]?\s*(?:year|years|month|months|yr|yrs|mo|mos)\s+(?:contract|term|assignment|position|temporary)?$/i.test(s)) {
+    return true;
+  }
+
+  // Boards sometimes combine the status and duration in one parenthetical,
+  // e.g. "Temporary - Up to 20 mths" or "Contract, up to 18 months".
+  if (/^(?:temporary|permanent|contract|term|limited[- ]term)\s*[-,;]?\s*(?:(?:up to|approximately|approx\.?|maximum|max\.?)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|mths?|weeks?|days?)\b/i.test(s)) {
     return true;
   }
 
   // "fixed-term", "term contract", "contract position"
   if (/^(?:fixed[-\s]?term|term\s+contract|contract\s+position|contract\s+role)$/i.test(s)) {
+    return true;
+  }
+
+  // Academic and college postings sometimes put assignment metadata in a
+  // dated parenthetical, e.g. "Appendix D/Temporary Assignment: ...".
+  if (/^(?:appendix\s+[A-Z0-9]+\s*\/\s*)?(?:temporary assignment|temporary|contract|term assignment)\s*:\s*[^)]*\d{4}/i.test(s)) {
     return true;
   }
 
@@ -57,7 +74,7 @@ function isEmploymentOrDurationPiece(value: string): boolean {
 }
 
 /** Bargaining-unit codes that belong in union_name, not the title. */
-const UNION_CODES = ['CUPE', 'OPSEU', 'USW', 'ONA', 'UNIFOR', 'SEIU', 'PSAC', 'NAPE', 'ATU', 'IAM', 'CAW', 'APTPUO'];
+const UNION_CODES = ['CUPE', 'OPSEU', 'USW', 'ONA', 'UNIFOR', 'SEIU', 'PSAC', 'NAPE', 'ATU', 'IAM', 'CAW', 'APTPUO', 'APEUO', 'APTEUO', 'ATPUO'];
 const UNION_CODE_ALTERNATION = UNION_CODES.join('|');
 
 /** Parenthetical bargaining-unit markers that already belong in union_name. */
@@ -100,15 +117,32 @@ function stripAcademicTerm(title: string): string {
 // The number can mix digits and letters ("5P11"), not just be all-digits.
 const COURSE_CODE_PATTERN = /\b[A-Z]{2,6}\s?\d[A-Z0-9]{2,4}[A-Z0-9.-]*\b/;
 
+// Course-code formats are not interchangeable across academic boards. Keep
+// the known formats explicit so a season, requisition ID, or section label is
+// not accidentally promoted into academic_course.
+const SOURCE_COURSE_CODE_PATTERNS: Record<string, RegExp> = {
+  'Brock University': /\b(?:[A-Z]{3}\s?\d{4}|[A-Z]{4}\s\d[A-Z]\d{2})\b/gi,
+  'Toronto Metropolitan University': /\b[A-Z]{2,4}\s?\d{3,4}(?:\s*\(\d+\))?\b/gi,
+  // Ottawa source slugs also contain union abbreviations followed by years
+  // (`APTPUO 2026`); a year is never a course code.
+  'University of Ottawa': /\b(?!JR|REQ)[A-Z]{2,6}\s?(?!20\d{2}\b)\d{3,5}[A-Z]?(?:\d{2})?\b/gi,
+  // `LEC103` is a section label that often follows the real code, e.g.
+  // `STA258H5S LEC103`; do not promote it to academic_course.
+  'University of Toronto': /\b(?!LEC\d{3,4}\b)[A-Z]{3,5}\d{3,4}[A-Z0-9]{0,3}\b/gi,
+  'York University': /\b[A-Z]{2,5}\s\d{3,4}(?:\s*\/\s*(?:[A-Z]{2,5}\s?)?\d{3,4})?\b/gi,
+};
+
 /** Extract a course code from a title, e.g. "Teaching Assistant MBAB 5P11 Fall D" → "MBAB 5P11". */
-export function extractAcademicCourseCode(title: string | null | undefined): string | null {
+export function extractAcademicCourseCode(title: string | null | undefined, source?: string | null): string | null {
   if (!title) return null;
-  const match = title.match(COURSE_CODE_PATTERN);
+  const pattern = source ? SOURCE_COURSE_CODE_PATTERNS[source] ?? COURSE_CODE_PATTERN : COURSE_CODE_PATTERN;
+  const match = title.match(pattern);
   return match ? match[0].trim() : null;
 }
 
-function stripAcademicCourseCode(title: string): string {
-  const match = title.match(COURSE_CODE_PATTERN);
+function stripAcademicCourseCode(title: string, source?: string | null): string {
+  const pattern = source ? SOURCE_COURSE_CODE_PATTERNS[source] ?? COURSE_CODE_PATTERN : COURSE_CODE_PATTERN;
+  const match = title.match(pattern);
   return match ? title.replace(match[0], '').trim() : title;
 }
 
@@ -137,8 +171,15 @@ function stripTrailingConnectorPunctuation(title: string): string {
 
 // Boards sometimes append a fixed-term contract description to the title
 // instead of exposing it as a separate duration field.
-const TRAILING_DURATION_METADATA = /\s*[-–—]\s*((?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?)(?:\s+(?:contract|term|assignment|position))?(?:\s+with\s+(?:the\s+)?possibility\s+of\s+extension)?|(?:temporary|permanent|contract|term)\s+assignment)\s*$/i;
+const TRAILING_DURATION_METADATA = /\s*[-–—]\s*((?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|mths?|weeks?|days?)(?:\s+(?:contract|term|assignment|position))?(?:\s+with\s+(?:the\s+)?possibility\s+of\s+extension)?|(?:temporary|permanent|contract|term)\s+assignment)\s*$/i;
 const TRAILING_VACANCY_METADATA = /\s*[-–—]\s*\d+\s+vacanc(?:y|ies)\s*$/i;
+const TRAILING_POSITION_METADATA = /\s*[-–—]\s*\d+\s+positions?\s*$/i;
+const TRAILING_SEVERAL_POSITIONS_METADATA = /\s*[-–—]\s*several\s+positions?\s*$/i;
+const TRAILING_COUNT_METADATA = /\s*[-–—]\s*up\s+to\s+\d+\s*$/i;
+const TRAILING_POOL_METADATA = /\s*[-–—]\s*general\s+application\s+pool\s*$/i;
+const TRAILING_PLAIN_POOL_METADATA = /\s*[-–—]\s*pool\s*$/i;
+const TRAILING_PIPELINE_METADATA = /\s*[-–—]\s*pipeline\s+posting\s+only\s*$/i;
+const TRAILING_MULTIPLICITY_METADATA = /\s+x\s+\d+\s*$/i;
 
 // Course-code extraction only fires for sources that are actually academic institutions.
 // The pattern (letters + alphanumeric number) also matches non-academic requisition IDs
@@ -166,14 +207,24 @@ export function extractAndStripAcademicMetadata(
   const original = title ?? '';
   const isAcademicSource = !!source && ACADEMIC_SOURCE_PATTERN.test(source);
 
-  const academicTerm = extractAcademicTerm(original);
+  const seasonalTerm = isAcademicSource
+    ? original.match(/(?:^|[-–—:,()]\s*)(F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer))?)(?:\s*\))?(?=\s*(?:sessional)?\s*$)/i)?.[1] ?? null
+    : null;
+  const academicTerm = extractAcademicTerm(original) || seasonalTerm;
   const unionName = extractUnionFromTitle(original);
-  const academicCourse = isAcademicSource ? extractAcademicCourseCode(original) : null;
+  const academicCourse = isAcademicSource ? extractAcademicCourseCode(original, source) : null;
 
   let clean = original;
   clean = stripUnionPrefix(clean);
   clean = stripAcademicTerm(clean);
-  if (isAcademicSource) clean = stripAcademicCourseCode(clean);
+  if (isAcademicSource && !extractAcademicTerm(original)) {
+    clean = clean
+      .replace(/\s*[-–—:,()]\s*(?:F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer))?)\s*$/i, '')
+      .replace(/\s*\(\s*(?:F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer))?)\s*\)\s*$/i, '')
+      .replace(/^(?:F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer))?)\s*[-–—:,()]\s*/i, '')
+      .trim();
+  }
+  if (isAcademicSource) clean = stripAcademicCourseCode(clean, source);
   clean = stripTrailingConnectorPunctuation(clean);
 
   // A title that strips down to almost nothing (e.g. a bare section code like
@@ -208,6 +259,7 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   // BambooHR job cards for the City of Hamilton prefix the actual role with
   // the employer's internal posting number.
   t = t.replace(/^job\s+id\s*#?\s*\d+\s*:\s*/i, '').trim();
+  t = t.replace(/^job\s+posting\s*[-–—:]\s*/i, '').trim();
 
   // Meta parentheticals anywhere: (Part-Time), (2 Year Contract), (Casual), …
   t = t.replace(/\s*\(([^)]*)\)/g, (full, inner: string) => (
@@ -218,12 +270,22 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   // Trailing dash inventory / employment
   t = t.replace(/\s*[-–—]\s*inventory\s*$/i, '').trim();
   t = t.replace(TRAILING_VACANCY_METADATA, '').trim();
+  t = t.replace(TRAILING_POSITION_METADATA, '').trim();
+  t = t.replace(TRAILING_SEVERAL_POSITIONS_METADATA, '').trim();
+  t = t.replace(/\s*,?\s*(?:multiple|several)\s+positions?\s+available\s*$/i, '').trim();
+  t = t.replace(TRAILING_COUNT_METADATA, '').trim();
+  t = t.replace(TRAILING_POOL_METADATA, '').trim();
+  t = t.replace(TRAILING_PLAIN_POOL_METADATA, '').trim();
+  t = t.replace(TRAILING_PIPELINE_METADATA, '').trim();
+  t = t.replace(TRAILING_MULTIPLICITY_METADATA, '').trim();
   t = t.replace(TRAILING_DURATION_METADATA, '').trim();
   t = t.replace(/\s*[-–—]\s*(?:re[-\s]?post(?:ing)?|periodic(?:\s+posting|\s+post)?)\s*$/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*(?:reaffichage|réaffichage)\s*$/i, '').trim();
   t = t.replace(
-    /\s*[-–—]\s*(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term|fixed[-\s]?term(?:\s+contract)?|limited\s+term\s+contract)\s*$/i,
+    /\s*[-–—]\s*(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term|sessional|fixed[-\s]?term(?:\s+contract)?|limited\s+term\s+contract)\s*$/i,
     '',
   ).trim();
+  t = t.replace(/\s+sessional\s*$/i, '').trim();
 
   // Some boards put the metadata before the role with a comma, e.g.
   // "Contract, Community Relations Specialist".
@@ -256,6 +318,55 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
   let normalized = normalizeJobTitle(title);
   if (!normalized) return '';
 
+  if (source === 'University of Ottawa') {
+    // uOttawa's Workday headings commonly put the academic term, bargaining
+    // unit, course code, and requisition ID into one display title, e.g.
+    // `APTPUO---Winter-2027---API5135D_JR37962`. Those are metadata fields,
+    // not the public role title. Normalize the slug separators first, then
+    // reuse the academic extractor so the term survives in structured fields
+    // while disappearing from the title. Only apply this when a real academic
+    // term or union marker is present; ordinary seasonal roles are untouched.
+    let academicHeading = normalized
+      .replace(/-{2,}/g, ' - ')
+      .replace(/_/g, ' ')
+      .replace(/\b(20\d{2})\s+(Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\b/gi, '$2 $1')
+      .replace(new RegExp(`\\b(${SEASON_WORD})[-\\s]+(\\d{4}(?:[-/]\\d{2,4})?)`, 'i'), '$1 $2')
+      .replace(/^(?:CUPE|OPSEU|APTPUO|APEUO|APTEUO|ATPUO)\s+(?=(?:part[-\s]?time|full[-\s]?time|fall|winter|spring|summer|automne|hiver|été|ete|printemps|20\d{2})\b)/i, '')
+      .replace(/\b(?:JR|REQ)\d[\w-]*\b\s*[-–—]\s*/gi, '')
+      .replace(/\s*[-–—]?\s*(?:JR|REQ)\d[\w-]*\s*$/i, '')
+      .trim();
+    for (let i = 0; i < 3; i += 1) {
+      const next = stripUnionPrefix(academicHeading);
+      if (next === academicHeading) break;
+      academicHeading = next;
+    }
+    const academicMeta = extractAndStripAcademicMetadata(academicHeading, source);
+    if (academicMeta.academicTerm || academicMeta.unionName || academicMeta.academicCourse) {
+      const roleAlias = academicHeading.match(/\b(TA|AE)(?=\s|$)/i)?.[1] ?? '';
+      const extractedTitle = stripTrailingConnectorPunctuation(
+        stripAcademicCourseCode(stripAcademicTerm(academicHeading), source),
+      );
+      const displayTitle = extractedTitle.length >= 4 ? extractedTitle : academicMeta.title;
+      normalized = normalizeJobTitle(roleAlias ? roleAlias : displayTitle)
+        .replace(/^\s*(?:[A-Z]\d{1,2}(?:\s*\/\s*[A-Z]\d{1,2})?|[A-Z])\s*[-–—:]\s*/i, '')
+        .replace(/\s*[-–—:]\s*(?:[A-Z]\d{1,2}(?:\s*\/\s*[A-Z]\d{1,2})?|[A-Z])\s*$/i, '')
+        .trim();
+      if (/^(?:TA|TAs)$/i.test(normalized)) normalized = 'Teaching Assistant';
+      if (/^AE$/i.test(normalized)) normalized = 'Academic Expert';
+      if (/^(?:[A-Z]{2,8}\s*)?\d[A-Z0-9]{2,7}(?:\s+[A-Z]\d{2})?$/i.test(normalized)
+        || /^(?:[A-Z]\d{1,2}(?:\s*\/\s*[A-Z]\d{1,2})?|[A-Z])\s*[-–—:]\s*/i.test(normalized)) {
+        normalized = 'Course Instructor';
+      }
+      const courseOnlyHeading = /^(?:Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\s+\d{4}(?:[-/]\d{2,4})?\s*[-–—:]?\s*[A-Z]{2,8}\s?\d[A-Z0-9]{2,7}(?:\s+[A-Z]\d{0,2})?$/i.test(academicHeading)
+        || /^[A-Z]{2,8}\s?\d[A-Z0-9]{2,7}(?:\s+[A-Z]\d{0,2})?\s*[-–—:]\s*(?:Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\s+\d{4}/i.test(academicHeading);
+      if (academicMeta.academicTerm && courseOnlyHeading) {
+        normalized = 'Course Instructor';
+      }
+    }
+    normalized = normalized.replace(/\s*[-–—]\s*(?:Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\s*\d{4}(?:[-/]\d{2,4})?\s*[-–—].*$/i, '').trim();
+    normalized = normalized.replace(/\s*[-–—]\s*(?:Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\s*\d{4}\s*$/i, '').trim();
+  }
+
   if (source === 'City of Waterloo') {
     // TalentPoolBuilder appends the employment-status field directly to the
     // captured heading, sometimes without a separating space.
@@ -278,7 +389,165 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     normalized = normalized.replace(/\s*\(\s*#\d{3,}\s*\)\s*$/i, '').trim();
   }
 
+  if (source === 'Metrolinx') {
+    // Metrolinx appends location, shift pattern, pay annotation, and pool
+    // status to the same heading. Those belong in structured fields, not the
+    // public role name.
+    normalized = normalized.replace(/\s*[-–—]\s*[^-–—]+?\s*[-–—]\s*various\s+shifts(?:\s*\([^)]*\))?$/i, '').trim();
+    normalized = normalized.replace(/\s*\([^)]*\$[^)]*\)\s*$/i, '').trim();
+    normalized = normalized.replace(/\s*[-–—]\s*various\s+shifts\s*$/i, '').trim();
+  }
+
+  if (source === 'Toronto Metropolitan University') {
+    // PeopleSoft prefixes these course-assistant postings with the term and
+    // department, then appends section initials and the number of roles.
+    normalized = normalized
+      .replace(/^\s*(?:F|W|S)\d{2}\s+/i, '')
+      .replace(/^(?:Soc|SAF)\s+(?=(?:Academic|Teaching|Instructional)\s+Assistant\b)/i, '')
+      .replace(/\s+[A-Z]{2,8}\s?\d{3,4}\s*\([^)]{1,24}\)(?:\s+[A-Z]{2})?(?:\s+\d+\s+roles?)?\s*$/i, '')
+      .replace(/\s+\(\d+\)\s+[A-Z]{2}\s*$/i, '')
+      .replace(/\s+\d+\s+roles?\s*$/i, '')
+      .replace(/\s+\d+\s+posting\s*$/i, '')
+      .replace(/^\s*Winter\s+\d{4}\s*[-–—]\s*SAF\s*[-–—]\s*/i, '')
+      .replace(/\s+posting\s*$/i, '')
+      .replace(/^\s*[-–—,:;]+\s*/, '')
+      .trim();
+    const courseCode = extractAcademicCourseCode(title, source);
+    if (courseCode) normalized = stripTrailingConnectorPunctuation(normalized.replace(courseCode, '').replace(/\s+(?:Fall|Winter|Spring|Summer)\s+\d{4}\s*$/i, '').replace(/\s+[-–—:]\s+/g, ' '));
+    normalized = normalized.replace(/\s+position\b/i, '').trim();
+    if (/\b(?:Academic|Teaching) Assistant\b/i.test(normalized) && extractSourceAcademicCourse(source, title)) {
+      normalized = normalized.match(/\bTeaching Assistant\b/i)?.[0]
+        || normalized.match(/\bAcademic Assistant\b/i)?.[0]
+        || normalized;
+    }
+  }
+
+  if (source === 'Brock University') {
+    // Brock instructional postings append the term and delivery block rather
+    // than a year, e.g. "Marker-Grader MBAB 5P03 Fall D2". The course code,
+    // season, and D-block are metadata; the role remains the display title.
+    normalized = normalized
+      .replace(/\s+(?:Fall|Winter|Spring|Summer)\s+D\d(?:-\d+)?(?:\s*&\s*D\d(?:-\d+)?)?\s*$/i, '')
+      .replace(/\s*[-–—:,]\s*(?:Fall|Winter|Spring|Summer)\s*$/i, '')
+      .trim();
+    if (COURSE_CODE_PATTERN.test(normalized)
+      && /\b(?:marker[-\s]?grader|teaching\s+assistant|instructor|sessional|tutor|lab\s+demonstrator)\b/i.test(normalized)) {
+      const academicMeta = extractAndStripAcademicMetadata(normalized, source);
+      if (academicMeta.title.length >= 4) normalized = academicMeta.title;
+    }
+  }
+
+  if (source === 'University of Toronto') {
+    normalized = normalized
+      .replace(/^\s*Emergency\s+Posting\s*[-–—:]\s*/i, '')
+      .replace(/\s*[-–—:]\s*Emergency\s+Posting\s*$/i, '')
+      .replace(/\s*[-–—]\s*EMERG\s+(?:Fall|Winter|Spring|Summer)\s*\d{4}\s*$/i, '')
+      .trim();
+    if (/\bSessional\s+(?:Lecturer|Instructional Assistant)\b/i.test(normalized)
+      && extractSourceAcademicCourse(source, title)) {
+      normalized = normalized.match(/\bSessional\s+Instructional Assistant\b/i)?.[0]
+        || normalized.match(/\bSessional\s+Lecturer\b/i)?.[0]
+        || normalized;
+    }
+  }
+
+  if (source === 'York University') {
+    const courseCode = extractAcademicCourseCode(title, source);
+    if (courseCode) normalized = normalized.replace(courseCode, '').trim();
+    normalized = normalized.replace(/\s+F\/W(?:\s+\d{2}\/\d{2})?\b/gi, '').trim();
+  }
+
+  if (/university|college|polytechnic|institut/i.test(String(source ?? ''))) {
+    // Academic boards frequently append a season without a year, such as
+    // `Winter/Spring`, `Fall`, or `(Winter) Sessional`. It is term metadata
+    // when it is at the edge of the title; ordinary phrases like "Winter
+    // Operations Coordinator" remain untouched.
+    normalized = normalized
+      .replace(/\s*\(\s*(?:F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer))?(?:\s+\d{4}(?:[-/]\d{2,4})?)?)\s*\)\s*$/i, '')
+      .replace(/\s*[-–—:,]\s*(?:F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer))?(?:\s+\d{4}(?:[-/]\d{2,4})?)?)\s*$/i, '')
+      .replace(/\s*\((?:Fall|Winter|Spring|Summer)\s+\d{4}(?:[-/]\d{2,4})?(?:\s*\/\s*(?:Fall|Winter|Spring|Summer)\s+\d{4}(?:[-/]\d{2,4})?)?\)\s*$/i, '')
+      .replace(/^(?:F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer)))\s*[-–—:,]\s*/i, '')
+      .trim();
+  }
+
   return normalized || normalizeJobTitle(title);
+}
+
+/** Recover a source-labelled course code/section for the academic_course field. */
+export function extractSourceAcademicCourse(source: string | null | undefined, title: string | null | undefined): string {
+  const value = String(title ?? '').replace(/\s+/g, ' ').trim();
+  if (!value || !/university|college|polytechnic|institut/i.test(String(source ?? ''))) return '';
+  const coursePattern = SOURCE_COURSE_CODE_PATTERNS[source]
+    ?? /\b[A-Z]{2,8}\s?\d[A-Z0-9]{2,7}(?:\s*\/\s*(?:[A-Z]{2,8}\s?)?\d[A-Z0-9]{2,7})?(?:\s*\([^)]{1,24}\))?/gi;
+  const codeMatch = [...value.matchAll(new RegExp(coursePattern.source, 'gi'))]
+    .find(match => !/^(?:fall|winter|spring|summer|automne|hiver|été|ete|printemps)\s*\d{4}$/i.test(match[0].trim()));
+  if (!codeMatch || codeMatch.index === undefined) return '';
+  const code = codeMatch[0].replace(/\s+/g, ' ').trim();
+  let remainder = value.slice(codeMatch.index + codeMatch[0].length)
+    .replace(/^\s*[-–—:]+\s*/, '')
+    .replace(/\s+\b(?:LEC\d{2,5}|L\d{4,5}|[A-Z]{1,4}\d{1,2})\b\s*/i, ' ')
+    .replace(/\s*\([^)]*\b(?:emergency|emerg)\b[^)]*\)/i, '')
+    .replace(/\s*[-–—]\s*(?:Emergency Posting|TWO POSITIONS?|\d+\s+roles?)\s*$/i, '')
+    .replace(/\b(?:JR|REQ)\d[\w-]*\b/gi, '')
+    .trim();
+  if (source === 'Toronto Metropolitan University') {
+    remainder = remainder
+      .replace(/\s+[-–—]\s*(?:Academic|Teaching) Assistant\b.*$/i, '')
+      .replace(/\s+\b[A-Z]{2}\b(?:\s+\d+\s+roles?)?\s*$/i, '')
+      .trim();
+  } else {
+    remainder = remainder.replace(/\s+[-–—]\s*Sessional\s+(?:Lecturer|Instructional Assistant)\s*$/i, '').trim();
+  }
+  remainder = remainder
+    .replace(/\b(?:Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\s*\d{4}(?:[-/]\d{2,4})?\b/gi, '')
+    .replace(/\bF\/W(?:\s+\d{2}\/\d{2})?\b/gi, '')
+    .replace(/\b(?:Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\s+D\d(?:-\d+)?(?:\s*&\s*D\d(?:-\d+)?)?\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .replace(/^\s*[-–—:;,]+\s*|\s*[-–—:;,]+\s*$/g, '')
+    .trim();
+  if (source === 'Brock University') return code;
+  return remainder && !/^(?:\([^)]*\)|[A-Z]{1,3}|\d+\s+roles?)$/i.test(remainder)
+    ? `${code} — ${remainder}`
+    : code;
+}
+
+/** Recover abbreviated PeopleSoft terms such as TMU's `F26` into the term field. */
+export function extractSourceAcademicTerm(source: string | null | undefined, title: string | null | undefined): string {
+  const value = String(title ?? '').replace(/\s+/g, ' ').trim();
+  if (!value || !/university|college|polytechnic/i.test(String(source ?? ''))) return '';
+  const full = extractAcademicTerm(value);
+  if (full) return full;
+  const reversed = value.match(/\b(20\d{2})\s+(Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\b/i);
+  if (reversed) return `${reversed[2]} ${reversed[1]}`;
+  if (source === 'York University') {
+    const yorkTerm = value.match(/\bF\/W(?:\s+(\d{2})\/(\d{2}))?\b/i);
+    if (yorkTerm?.[1] && yorkTerm[2]) return `Fall/Winter 20${yorkTerm[1]}-${yorkTerm[2]}`;
+    if (yorkTerm) return 'Fall/Winter';
+  }
+  const seasonal = value.match(/(?:^|[-–—:,()]\s*)(F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer))?)(?:\s*\))?(?=\s*(?:sessional)?\s*$)/i)?.[1];
+  if (seasonal) {
+    const compact = seasonal.replace(/\s+/g, ' ').trim();
+    const fiscal = compact.match(/^F\/W\s+(\d{2})\/(\d{2})$/i);
+    if (fiscal) return `Fall/Winter 20${fiscal[1]}-${fiscal[2]}`;
+    return compact;
+  }
+  const leadingSeasonal = value.match(/^(F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer))?)\s*[-–—:,]/i)?.[1];
+  if (leadingSeasonal) {
+    const compact = leadingSeasonal.replace(/\s+/g, ' ').trim();
+    const fiscal = compact.match(/^F\/W\s+(\d{2})\/(\d{2})$/i);
+    if (fiscal) return `Fall/Winter 20${fiscal[1]}-${fiscal[2]}`;
+    return compact;
+  }
+  if (source === 'Brock University') {
+    const block = value.match(/\b(Fall|Winter|Spring|Summer)\s+D\d(?:-\d+)?(?:\s*&\s*D\d(?:-\d+)?)?\b/i)?.[1];
+    if (block) return block;
+  }
+  const compactYear = value.match(/\b(Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\s*(20\d{2})(?:[-/]\d{2,4})?\b/i);
+  if (compactYear) return `${compactYear[1]} ${compactYear[2]}`;
+  const abbreviated = value.match(/^(F|W|S)(\d{2})\b/i);
+  if (!abbreviated) return '';
+  const label = { f: 'Fall', w: 'Winter', s: 'Summer' }[abbreviated[1].toLowerCase()] ?? '';
+  return label ? `${label} 20${abbreviated[2]}` : '';
 }
 
 /** Return false for portal navigation headings that are not job titles. */

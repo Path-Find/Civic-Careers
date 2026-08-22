@@ -34,9 +34,7 @@ function academicRoleFromTitle(value: string | null | undefined): AcademicRoleTy
 export function extractAcademicSchedule(value: unknown): string | null {
   const text = value == null ? '' : String(value).replace(/\s+/g, ' ').trim();
   if (!text) return null;
-  const match = text.match(/\b(?:course|class)\s+schedule\s*:\s*(.*)$/i);
-  const schedule = match?.[1]?.split(/\s+-\s+-?\s*(?:requirements|work hours|course (?:title|code)|posting limited to|salary|location)\s*:/i)[0].trim() ?? '';
-  return schedule || null;
+  return text.length <= 120 ? text : null;
 }
 
 const ACADEMIC_PLACEHOLDER = /^(?:n\/?a|none|null|not applicable|not specified|unknown)$/i;

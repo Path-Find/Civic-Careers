@@ -29,6 +29,13 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
       },
     ],
   },
+  {
+    slug: 'wsib',
+    name: 'WSIB',
+    sourceNames: ['WSIB'],
+    portal: 'https://wsib-iaepup.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs?mode=location',
+    children: [],
+  },
 ];
 
 export function organizationGroupForSlug(slug: string): OrganizationGroup | null {

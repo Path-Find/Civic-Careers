@@ -10,16 +10,20 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { splitHoursAndAvailability } from './hours-availability';
+import { getPublishBlockReason } from './publish-gate';
 
 dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
+const QUALITY_ONLY = process.argv.includes('--quality-only');
 
 async function main() {
   const db = await initDb();
 
   const query = await db.execute(`
-    SELECT j.id, j.source, d.job_title, d.hours, d.availability
+    SELECT j.id, j.source, d.job_title, d.hours, d.availability, d.department,
+           d.salary_range, d.location, d.union_name, d.academic_schedule,
+           d.academic_workload, d.academic_office_hours
     FROM jobs j
     JOIN job_details d ON d.id = j.id
     WHERE (d.hours IS NOT NULL AND trim(d.hours) != '')
@@ -38,6 +42,20 @@ async function main() {
   const changes: Change[] = [];
 
   for (const row of query.rows) {
+    if (QUALITY_ONLY) {
+      const reason = getPublishBlockReason({
+        title: String(row.job_title ?? ''),
+        department: String(row.department ?? ''),
+        hours: String(row.hours ?? ''),
+        salary: String(row.salary_range ?? ''),
+        location: String(row.location ?? ''),
+        unionName: String(row.union_name ?? ''),
+        academicSchedule: String(row.academic_schedule ?? ''),
+        academicWorkload: String(row.academic_workload ?? ''),
+        academicOfficeHours: String(row.academic_office_hours ?? ''),
+      });
+      if (reason !== 'corrupted field: hours' && reason !== 'corrupted field: availability') continue;
+    }
     const fromH = String(row.hours ?? '').trim();
     const fromA = String(row.availability ?? '').trim();
     const { hours: toH, availability: toA } = splitHoursAndAvailability(fromH, fromA);
@@ -52,7 +70,7 @@ async function main() {
     });
   }
 
-  console.log(`[hours-availability] Scanned ${query.rows.length} row(s) with hours and/or availability.`);
+  console.log(`[hours-availability] Scanned ${query.rows.length} row(s) with hours and/or availability${QUALITY_ONLY ? ' (quality failures only)' : ''}.`);
   console.log(`[hours-availability] Would change: ${changes.length}${APPLY ? ' (applying)' : ' (dry-run)'}.`);
   for (const c of changes) {
     console.log(

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added university-specific course-code and term normalization for Brock, TMU, uOttawa, U of T, and York, and repaired current academic fields without treating requisition IDs as courses.
+
 - Removed the unsolicited results-link control and redundant empty-results copy.
 
 - Replaced the growing employer list with searchable suggestions and added location suggestions as users type.

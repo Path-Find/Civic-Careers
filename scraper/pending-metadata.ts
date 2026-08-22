@@ -1,5 +1,6 @@
 import { extractLabeledLocation, normalizeLocation } from './location';
 import { extractTitleDuration } from './title';
+import { classifyStudentRequirement } from './requirements';
 
 export type PendingMetadata = {
   salaryText: string | null;
@@ -37,12 +38,7 @@ export function extractPendingMetadata(title: string | null | undefined, rawText
     }
   }
 
-  const titleAndText = `${title ?? ''}\n${rawText}`;
-  const isStudent = /\b(?:student|co[- ]?op|intern(?:ship)?)\b/i.test(title ?? '')
-    || /\b(?:student|co[- ]?op|intern(?:ship)?)\s+(?:position|role|job|employment|placement|program|opportunity)\b/i.test(titleAndText)
-    || /\b(?:position|role|job)\s+for\s+(?:a\s+)?student\b/i.test(titleAndText)
-    ? 1
-    : null;
+  const isStudent = classifyStudentRequirement(title, rawText) ? 1 : null;
 
   const workdayLocation = normalized.match(/\b(?:apply\s*)?locations(?=[A-Z0-9])\s*(.+?)(?=(?:remote\s*type|time\s*type|posted\s*on|job\s*requisition|category\s*type|position\s*type|college\/administrative|faculty\/department|job\s*schedule|about\s+the\s+job)(?:\b|[A-Z0-9]|\s|$)|$)/i)?.[1] ?? '';
   const locationCandidate = (workdayLocation.split(/\s+-\s+/).pop() ?? workdayLocation)

@@ -14,6 +14,7 @@ dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
 const ACTIVE_ONLY = process.argv.includes('--active-only');
+const CURRENT_ONLY = process.argv.includes('--current-only');
 
 type QueryRow = Record<string, unknown>;
 type Statement = string | { sql: string; args?: unknown[] };
@@ -85,7 +86,7 @@ async function main() {
   }];
 
   const archiveExecute = (db as unknown as { executeArchive?: Execute }).executeArchive;
-  if (archiveExecute) {
+  if (archiveExecute && !CURRENT_ONLY) {
     stores.push({
       label: 'archive',
       read: statement => archiveExecute.call(db, statement),

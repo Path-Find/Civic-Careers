@@ -16,8 +16,8 @@ function FilterSection({ title, children }: { title: string; children: ReactNode
   </div>;
 }
 
-function FilterButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return <button className={`filter-button ${active ? 'active' : ''}`} onClick={onClick}>{label}</button>;
+function FilterButton({ label, active, onClick, disabled = false }: { label: string; active: boolean; onClick: () => void; disabled?: boolean }) {
+  return <button className={`filter-button ${active ? 'active' : ''}`} onClick={onClick} disabled={disabled}>{label}</button>;
 }
 
 function SuggestionList({ suggestions, onSelect }: { suggestions: string[]; onSelect: (value: string) => void }) {
@@ -28,7 +28,7 @@ function SuggestionList({ suggestions, onSelect }: { suggestions: string[]; onSe
 }
 
 export function JobFiltersSidebar({
-  headerHeight, jobs, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs,
+  headerHeight, jobs, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, closingSoonDisabled,
   onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onCareerStageChange, onCompanyChange, onEducationLevelChange, onEducationFieldChange, onReset,
 }: {
   headerHeight: number;
@@ -46,6 +46,7 @@ export function JobFiltersSidebar({
   deadlineDays: number | null;
   listingTypeFilter: ListingTypeFilter;
   showStudentJobs: boolean;
+  closingSoonDisabled: boolean;
   onMinSalaryChange: (value: number | null) => void;
   onLocationChange: (value: string) => void;
   onModesChange: (mode: string) => void;
@@ -61,6 +62,8 @@ export function JobFiltersSidebar({
   onReset: () => void;
 }) {
   const [companyQuery, setCompanyQuery] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
+  const selectedLocations = useMemo(() => locationTerm.split(/[,;]+/).map(value => value.trim()).filter(Boolean), [locationTerm]);
   const companySuggestions = useMemo(() => companyOptions
     .map(company => company.name)
     .filter(name => !selectedCompanyNames.includes(name))
@@ -69,22 +72,19 @@ export function JobFiltersSidebar({
   const locationSuggestions = useMemo(() => [...new Set(jobs
     .map(job => job.location?.trim() ?? '')
     .filter(location => location.length > 0 && location.length <= 100))]
-    .filter(location => location.toLowerCase().includes(locationTerm.split(/[,;]+/).pop()?.trim().toLowerCase() ?? ''))
-    .slice(0, 8), [jobs, locationTerm]);
+    .filter(location => !selectedLocations.includes(location) && location.toLowerCase().includes(locationQuery.trim().toLowerCase()))
+    .slice(0, 8), [jobs, selectedLocations, locationQuery]);
   const selectLocation = (location: string) => {
-    const terms = locationTerm.split(/[,;]+/).map(term => term.trim()).filter(Boolean);
-    const currentQuery = terms.pop() ?? '';
-    const nextTerms = [...terms, location];
-    if (!currentQuery && terms.length === 0) nextTerms.splice(0, nextTerms.length, location);
-    onLocationChange(nextTerms.join(', '));
+    if (!selectedLocations.includes(location)) onLocationChange([...selectedLocations, location].join(', '));
+    setLocationQuery('');
   };
 
   return <aside className="listing-sidebar" style={{ top: `${headerHeight + 20}px`, maxHeight: `calc(100vh - ${headerHeight + 40}px)` }}>
     <div className="filter-heading"><span className="filter-heading-label">Filters</span></div>
-    <div className="filter-section"><label className="filter-title" htmlFor="location-filter">Location</label><div className="filter-search-wrap"><input id="location-filter" className="location-filter-input" value={locationTerm} onChange={event => onLocationChange(event.target.value)} placeholder="Search locations" aria-describedby="location-filter-note" /><SuggestionList suggestions={locationSuggestions} onSelect={selectLocation} /></div><p id="location-filter-note" className="filter-note">Type to search. Separate locations with commas.</p></div>
+    <div className="filter-section"><label className="filter-title" htmlFor="location-filter">Location</label>{selectedLocations.length > 0 && <div className="filter-selected-list">{selectedLocations.map(location => <button key={location} type="button" className="filter-selected" onClick={() => onLocationChange(selectedLocations.filter(value => value !== location).join(', '))}>{location} ×</button>)}</div>}<div className="filter-search-wrap"><input id="location-filter" className="location-filter-input" value={locationQuery} onChange={event => setLocationQuery(event.target.value)} placeholder="Search locations" aria-describedby="location-filter-note" /><SuggestionList suggestions={locationQuery.trim() ? locationSuggestions : []} onSelect={selectLocation} /></div><p id="location-filter-note" className="filter-note">Type to find a location. Jobs match any selected location.</p></div>
     {companyOptions.length > 0 && <FilterSection title="Employer">
       {selectedCompanyNames.length > 0 && <div className="filter-selected-list">{selectedCompanyNames.map(name => <button key={name} type="button" className="filter-selected" onClick={() => onCompanyChange(name)}>{name} ×</button>)}</div>}
-      <div className="filter-search-wrap"><input id="employer-filter" className="location-filter-input" value={companyQuery} onChange={event => setCompanyQuery(event.target.value)} placeholder="Search employers" aria-label="Search employers" /><SuggestionList suggestions={companySuggestions} onSelect={name => { onCompanyChange(name); setCompanyQuery(''); }} /></div>
+      <div className="filter-search-wrap"><input id="employer-filter" className="location-filter-input" value={companyQuery} onChange={event => setCompanyQuery(event.target.value)} placeholder="Search employers" aria-label="Search employers" /><SuggestionList suggestions={companyQuery.trim() ? companySuggestions : []} onSelect={name => { onCompanyChange(name); setCompanyQuery(''); }} /></div>
       <p className="filter-note">Type to find an employer.</p>
     </FilterSection>}
     <FilterSection title="Salary Min (yearly)">
@@ -100,7 +100,7 @@ export function JobFiltersSidebar({
       <input id="education-field-filter" className="location-filter-input" value={educationField} onChange={event => onEducationFieldChange(event.target.value)} placeholder="e.g. nursing, engineering" />
       <p className="filter-note">Matches the area of study listed in the posting.</p>
     </FilterSection>
-    <FilterSection title="Deadline"><FilterButton label="Today" active={deadlineDays === 0} onClick={() => onDeadlineChange(deadlineDays === 0 ? null : 0)} /><FilterButton label="Within 7 days" active={deadlineDays === 7} onClick={() => onDeadlineChange(deadlineDays === 7 ? null : 7)} /><FilterButton label="Within 14 days" active={deadlineDays === 14} onClick={() => onDeadlineChange(deadlineDays === 14 ? null : 14)} /><FilterButton label="Within 30 days" active={deadlineDays === 30} onClick={() => onDeadlineChange(deadlineDays === 30 ? null : 30)} /></FilterSection>
+    <FilterSection title="Deadline"><FilterButton label="Today" active={deadlineDays === 0} onClick={() => onDeadlineChange(deadlineDays === 0 ? null : 0)} disabled={closingSoonDisabled} /><FilterButton label="Within 7 days" active={deadlineDays === 7} onClick={() => onDeadlineChange(deadlineDays === 7 ? null : 7)} disabled={closingSoonDisabled} /><FilterButton label="Within 14 days" active={deadlineDays === 14} onClick={() => onDeadlineChange(deadlineDays === 14 ? null : 14)} disabled={closingSoonDisabled} /><FilterButton label="Within 30 days" active={deadlineDays === 30} onClick={() => onDeadlineChange(deadlineDays === 30 ? null : 30)} disabled={closingSoonDisabled} />{closingSoonDisabled && <p className="filter-note">These jobs are open until filled, so no closing-date filter applies.</p>}</FilterSection>
     <FilterSection title="Job Type">
       <FilterButton label="Student/Co-op" active={showStudentJobs} onClick={onStudentJobsChange} />
       <FilterButton label="Ongoing recruitment" active={listingTypeFilter === 'ongoing_recruitment'} onClick={() => onListingTypeChange(listingTypeFilter === 'ongoing_recruitment' ? null : 'ongoing_recruitment')} />

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getPublishBlockReason } from '../publish-gate';
+import { evaluateJobQuality } from '../quality-pipeline';
 
 test('rejects a department field that swallowed unrelated fields (University of Ottawa case)', () => {
   const reason = getPublishBlockReason({
@@ -29,6 +30,22 @@ test('rejects a title that swallowed the rest of the posting (City of Hamilton c
     title: 'Financial Coordinator (3 vacancies-1 permanent 2 temporary)Corporate Services - Hamilton, Ontario (Hybrid)Contribute to the City of Hamilton, one of Canada’s largest cities - home to a diverse and strong economy, an active and inclusive community, a robust cultural and dining scene, hundreds of kilometers of hiking trails and natural beauty just minutes from the downtown core, and so much more.',
   });
   assert.equal(reason, 'corrupted field: title');
+});
+
+test('rejects pipeline and multiplicity annotations left in titles', () => {
+  assert.equal(getPublishBlockReason({ title: 'Project Coordinator - PIPELINE POSTING ONLY' }), 'flagged word in title');
+  assert.equal(getPublishBlockReason({ title: 'Clinical Practice Nurse Clinician x 20' }), 'flagged word in title');
+  assert.equal(getPublishBlockReason({ title: 'Transit Operator - POOL' }), 'flagged word in title');
+});
+
+test('rejects an education field that swallowed its source label', () => {
+  assert.equal(
+    getPublishBlockReason({
+      title: 'Civil Engineering Technologist',
+      educationRequirements: '["Education Do I Need?A college diploma in Civil Engineering Technology"]',
+    }),
+    'corrupted field: educationRequirements',
+  );
 });
 
 test('rejects a portal CTA label captured as the title', () => {
@@ -69,6 +86,10 @@ test('rejects duration phrases left in a soft-parsed title', () => {
   );
 });
 
+test('keeps a legitimate tiered position title', () => {
+  assert.equal(getPublishBlockReason({ title: 'Canada Research Chair Tier 2 Position - Tenure Track Assistant Professor' }), null);
+});
+
 test('does not flag a real role name that happens to contain a status word (archive false-positive sweep)', () => {
   // A plain \b(word)\b version of this check matched 208 archive titles;
   // full-data validation found 164 of those were real role names, not status
@@ -100,6 +121,37 @@ test('passes a clean, ordinary job', () => {
     location: 'Hamilton, ON',
   });
   assert.equal(reason, null);
+});
+
+test('the shared quality pipeline applies title rules to soft-parsed rows', () => {
+  const quality = evaluateJobQuality({
+    source: 'University of Ottawa',
+    title: 'APTPUO---Winter-2027---API5135D_JR37962---Ethics and Moral Reasoning',
+    closingDateStatus: 'open_until_filled',
+  });
+  assert.equal(quality.title, 'Ethics and Moral Reasoning');
+  assert.equal(quality.status, 'soft_parsed');
+  assert.deepEqual(quality.reasons, []);
+});
+
+test('the shared quality pipeline hides soft rows with no deadline signal', () => {
+  const quality = evaluateJobQuality({
+    source: 'Example source',
+    title: 'Recreation Programmer',
+  });
+  assert.equal(quality.status, 'hidden');
+  assert.deepEqual(quality.reasons, ['missing application closing metadata']);
+});
+
+test('the shared quality gate rejects an oversized schedule field', () => {
+  assert.equal(getPublishBlockReason({ title: 'Professor', academicSchedule: 'x'.repeat(121) }), 'corrupted field: academicSchedule');
+});
+
+test('the shared quality gate flags verbatim workload duplication', () => {
+  assert.equal(
+    getPublishBlockReason({ title: 'Professor', hours: '24 hours per week', academicWorkload: '24 hours per week' }),
+    'duplicated fields: hours/academicWorkload',
+  );
 });
 
 test('passes a legitimately long academic course-code title under the length cap', () => {

@@ -15,16 +15,18 @@ function extractSourceAcademicCourse(value: unknown): string | null {
 
 function extractSourceAcademicSchedule(value: unknown): string | null {
   const text = sourceTextValue(value);
-  const label = text.search(/(?:course|class)\s+schedule\s*:/i);
-  if (label >= 0) {
-    const start = text.indexOf(':', label) + 1;
-    const remainder = text.slice(start).trim();
-    const end = remainder.search(/\s+-\s+-?\s*(?:requirements|work hours|course (?:title|code)|posting limited to|salary|location)\s*:/i);
-    const schedule = (end < 0 ? remainder : remainder.slice(0, end)).trim();
-    if (schedule) return schedule;
+  const label = text.match(/\b(?:course|class)\s+schedule\s*:\s*|\bhoraire\s*:\s*/i);
+  if (label?.index !== undefined) {
+    const remainder = text.slice(label.index + label[0].length).trim();
+    const end = remainder.search(/(?=\s*(?:requirements?|exigences?|work\s+hours?|heures?\s+(?:total|de\s+travail)|additional\s+information|information\s+additionnelle|course\s+(?:title|code)|posting\s+limited\s+to|salary|location|similar\s+jobs?|locations?|time\s+type|posted\s+on|time\s+left\s+to\s+apply)\s*:)/i);
+    const schedule = (end < 0 ? remainder : remainder.slice(0, end))
+      .replace(/^(?:[-–—]\s*)+/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (schedule.length > 0 && schedule.length <= 120) return schedule;
   }
   const semester = text.match(/\(((?:Fall|Winter|Spring|Summer)\s+Semester:\s*[^)]+)\)/i)?.[1]?.trim();
-  return semester || null;
+  return semester && semester.length <= 120 ? semester : null;
 }
 
 const closingDate = `COALESCE(

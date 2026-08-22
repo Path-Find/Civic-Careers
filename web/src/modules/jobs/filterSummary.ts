@@ -44,5 +44,5 @@ export function buildFilterSummary(filters: SummaryFilters): string {
   if (filters.deadlineDays !== null) parts.push(filters.deadlineDays === -1 ? 'without a closing date' : `closing within ${filters.deadlineDays === 0 ? 'today' : `${filters.deadlineDays} days`}`);
   if (filters.newlyAdded) parts.push('added in the last 7 days');
   if (filters.sortNewest) parts.push('sorted by latest posting');
-  return parts.length > 0 ? `Showing jobs ${parts.join(' ')}.` : 'Showing all available jobs.';
+  return parts.length > 0 ? `Showing jobs ${parts.join(' ')}.` : '';
 }

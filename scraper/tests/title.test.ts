@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractAndStripAcademicMetadata, extractRawJobTitle, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from '../title';
+import { extractAndStripAcademicMetadata, extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicTerm, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from '../title';
 
 describe('isEmploymentOrDurationParen', () => {
   it('matches employment and duration parentheticals', () => {
@@ -60,6 +60,7 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeJobTitle('Animal Services Officer (2 Year Contract)'), 'Animal Services Officer');
     assert.equal(normalizeJobTitle('Coordinator, Commercial Management (9 Month Contract)'), 'Coordinator, Commercial Management');
     assert.equal(normalizeJobTitle('Building Inspector I (18-months contract)'), 'Building Inspector I');
+    assert.equal(normalizeJobTitle('Senior IT Project Manager - IT Security & IT Risk (12 month temporary)'), 'Senior IT Project Manager - IT Security & IT Risk');
     assert.equal(normalizeJobTitle('House Technician II (Temporary, up to 6 months)'), 'House Technician II');
     assert.equal(normalizeJobTitle('Recreation Facilities Attendant I - Arenas (Permanent, On-Call)'), 'Recreation Facilities Attendant I - Arenas');
     assert.equal(normalizeJobTitle('Contract, Community Relations Specialist (18 Months)'), 'Community Relations Specialist');
@@ -85,6 +86,15 @@ describe('normalizeJobTitle', () => {
     );
     assert.equal(normalizeJobTitle('Assurance Specialist, Structures - 12 Month Contract'), 'Assurance Specialist, Structures');
     assert.equal(normalizeJobTitle('Junior Planner, Development – 1 Vacancy'), 'Junior Planner, Development');
+    assert.equal(normalizeJobTitle('User Service Representative (3 positions)'), 'User Service Representative');
+    assert.equal(normalizeJobTitle('User Service Representative - 3 positions'), 'User Service Representative');
+    assert.equal(normalizeJobTitle('Greeter / Demonstrator - (Several Positions)'), 'Greeter / Demonstrator');
+    assert.equal(
+      normalizeJobTitle('Field Placement Support Officer (Appendix D/Temporary Assignment: September 2026 – September 2027)'),
+      'Field Placement Support Officer',
+    );
+    assert.equal(normalizeJobTitle('Relief School Crossing Guard (Up to 6)'), 'Relief School Crossing Guard');
+    assert.equal(normalizeJobTitle('School Crossing Guard - GENERAL APPLICATION POOL'), 'School Crossing Guard');
   });
 
   it('moves parenthetical union markers out of the display title', () => {
@@ -121,6 +131,7 @@ describe('normalizeJobTitle', () => {
       'Senior Financial Analyst-Utility Billing',
     );
     assert.equal(normalizeJobTitle('JOB ID 32166: Process Supervisor'), 'Process Supervisor');
+    assert.equal(normalizeJobTitle('Job Posting - Mechanic, Municipal Garage'), 'Mechanic, Municipal Garage');
   });
 
   it('cleans source-specific title metadata', () => {
@@ -144,6 +155,84 @@ describe('normalizeJobTitle', () => {
       normalizeSourceJobTitle('Government of Canada', 'Manufacturing Execution System (MES) Software Specialist (#25689)'),
       'Manufacturing Execution System (MES) Software Specialist',
     );
+    assert.equal(
+      normalizeSourceJobTitle('University of Ottawa', 'APTPUO---Winter-2027---API5135D_JR37962---Ethics and Moral Reasoning'),
+      'Ethics and Moral Reasoning',
+    );
+    assert.equal(
+      normalizeSourceJobTitle('University of Ottawa', 'Sessional Lecturer: Winter 2027 Planning Seminar'),
+      'Sessional Lecturer: Planning Seminar',
+    );
+    assert.equal(
+      normalizeSourceJobTitle('University of Ottawa', 'Winter Operations Coordinator'),
+      'Winter Operations Coordinator',
+    );
+    assert.equal(normalizeSourceJobTitle('York University', 'F/W 26/27 - Research Assistant'), 'Research Assistant');
+    assert.equal(extractSourceAcademicTerm('York University', 'F/W 26/27 - Research Assistant'), 'Fall/Winter 2026-27');
+    assert.equal(normalizeSourceJobTitle('Brock University', 'Front Counter 2 (Winter) Sessional'), 'Front Counter 2');
+    assert.equal(extractSourceAcademicTerm('Brock University', 'Front Counter 2 (Winter) Sessional'), 'Winter');
+  });
+
+  it('cleans Brock instructional titles and preserves their term metadata', () => {
+    assert.equal(
+      normalizeSourceJobTitle('Brock University', 'Marker-Grader MBAB 5P03 Fall D2'),
+      'Marker-Grader',
+    );
+    assert.equal(extractSourceAcademicTerm('Brock University', 'Marker-Grader MBAB 5P03 Fall D2'), 'Fall');
+    assert.equal(
+      normalizeSourceJobTitle('University of Winnipeg', 'Teaching Assistant, BIOL-1112L (Fall 2026/Winter 2027)'),
+      'Teaching Assistant, BIOL-1112L',
+    );
+    assert.equal(
+      normalizeSourceJobTitle('University of Ottawa', 'Fall 2026 - TA - CMN3102-C00'),
+      'Teaching Assistant',
+    );
+  });
+
+  it('removes pool, pipeline, and multiplicity annotations from titles', () => {
+    assert.equal(
+      normalizeSourceJobTitle('Metrolinx', '310T Mechanic - Streetsville - Various Shifts ($44.04/hourly) - POOL'),
+      '310T Mechanic',
+    );
+    assert.equal(normalizeJobTitle('Project Coordinator (Capital Project Delivery) - PIPELINE POSTING ONLY'), 'Project Coordinator (Capital Project Delivery)');
+    assert.equal(normalizeJobTitle('Clinical Practice Nurse Clinician x 20 (RPT)'), 'Clinical Practice Nurse Clinician');
+  });
+
+  it('moves Toronto and TMU course metadata out of display titles', () => {
+    assert.equal(
+      normalizeSourceJobTitle('Toronto Metropolitan University', 'F26 Soc Teaching Assistant SOC490(1-4) JG 2 roles'),
+      'Teaching Assistant',
+    );
+    assert.equal(
+      extractSourceAcademicCourse('Toronto Metropolitan University', 'Academic Assistant - CPS615 - Theory of Computation'),
+      'CPS615 — Theory of Computation',
+    );
+    assert.equal(
+      normalizeSourceJobTitle('University of Toronto', 'Sessional Lecturer - STA258H5S LEC103 Statistics with Applied Probability'),
+      'Sessional Lecturer',
+    );
+    assert.equal(
+      extractSourceAcademicCourse('University of Toronto', 'Sessional Lecturer - STA258H5S LEC103 Statistics with Applied Probability'),
+      'STA258H5S — Statistics with Applied Probability',
+    );
+    assert.equal(extractSourceAcademicTerm('Toronto Metropolitan University', 'F26 Soc Teaching Assistant SOC490(1-4) JG 2 roles'), 'Fall 2026');
+    assert.equal(normalizeSourceJobTitle('Toronto Metropolitan University', 'Co Teaching Position - DG8012 MRP in Digital Media Fall 2026'), 'Co Teaching MRP in Digital Media');
+    assert.equal(normalizeSourceJobTitle('University of Ottawa', 'Fall 2026 - TA ENV1101'), 'Teaching Assistant');
+    assert.equal(normalizeSourceJobTitle('University of Ottawa', 'Fall 2026 BCH4932 G00'), 'Course Instructor');
+    assert.equal(normalizeSourceJobTitle('University of Ottawa', 'Winter 2027- GNG2501 C'), 'Course Instructor');
+    assert.equal(normalizeSourceJobTitle('York University', 'PASS Leader KINE 1031/2031 F/W (Academic Peer Support Assistant Lead)'), 'PASS Leader (Academic Peer Support Assistant Lead)');
+    assert.equal(extractSourceAcademicTerm('York University', 'PASS Leader KINE 1031/2031 F/W 26/27'), 'Fall/Winter 2026-27');
+  });
+
+  it('uses source-specific academic course formats without promoting term or section labels', () => {
+    assert.equal(extractSourceAcademicCourse('Brock University', 'Marker-Grader MBAB 5P03 Fall D2'), 'MBAB 5P03');
+    assert.equal(extractSourceAcademicCourse('University of Ottawa', 'Fall 2026 - ANT2521 A00'), 'ANT2521');
+    assert.equal(extractSourceAcademicCourse('University of Ottawa', 'ATPUO Winter 2027 MBA5501B00 Corporate Governance'), 'MBA5501B00 — Corporate Governance');
+    assert.equal(extractSourceAcademicCourse('University of Toronto', 'Sessional Lecturer - STA258H5S LEC103 Statistics'), 'STA258H5S — Statistics');
+    assert.equal(extractSourceAcademicCourse('Toronto Metropolitan University', 'Academic Assistant CPS109'), 'CPS109');
+    assert.equal(extractSourceAcademicCourse('York University', 'PASS Leader KINE 1031/2031 F/W'), 'KINE 1031/2031');
+    assert.equal(extractSourceAcademicCourse('University of Toronto', 'Sessional Lecturer Fall2026 JR38000'), '');
+    assert.equal(extractSourceAcademicCourse('University of Ottawa', 'Analyst, IT Support JR38657'), '');
   });
 
   it('does not strip bare Temporary proper-name prefixes', () => {

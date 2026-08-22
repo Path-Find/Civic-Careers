@@ -26,6 +26,7 @@ export const APPLICATION_URL_FIXES: Record<string, string> = {
   '2451297': 'https://www.canada.ca/en/security-intelligence-service/corporate/csis-jobs/available-jobs/deputy-chief-of-procurement-and-acquisitions.html',
   '2450663': 'https://careers.bankofcanada.ca/job/Ottawa-%28Downtown%29-Senior-AI-Platform-Specialist%2C-Microsoft-Azure-ON/604815517/',
   '2451565': 'https://phh.tbe.taleo.net/phh04/ats/careers/v2/viewRequisition?org=DEFENCECONSTRUCTIONCANADA&cws=47&rid=8053',
+  'e6b45f4a9d6f': 'https://wsib-iaepup.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/job/19795/',
 };
 
 export const LEGACY_JOB_IDS_BY_APPLICATION_URL: Record<string, string> = Object.fromEntries(

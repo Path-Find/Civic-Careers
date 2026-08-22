@@ -18,6 +18,11 @@ export interface PublishGateDetails {
   salary?: string | null;
   location?: string | null;
   unionName?: string | null;
+  availability?: string | null;
+  academicSchedule?: string | null;
+  academicWorkload?: string | null;
+  academicOfficeHours?: string | null;
+  educationRequirements?: string | null;
 }
 
 // board-parsers.ts field regexes are bounded by newline only (`[^\n]+`), which
@@ -55,6 +60,11 @@ const SCALAR_FIELD_LENGTH_CEILING: Record<string, number> = {
   // found dumping the entire raw posting (position type, pay grade, hours,
   // job ID) into this field — same unbounded-capture class as the others.
   unionName: 150,
+  availability: 120,
+  academicSchedule: 120,
+  academicWorkload: 120,
+  academicOfficeHours: 120,
+  educationRequirements: 500,
 };
 
 // A genuine glued-field join happens between two real WORDS ("Operations" +
@@ -77,6 +87,23 @@ function corruptedScalarField(details: PublishGateDetails): string | null {
     if (value.length > ceiling) return field;
     if (hasSquishedSentenceJoin(value)) return field;
     if (FIELDS_REJECT_COLON.has(field) && value.includes(':')) return field;
+    if (field === 'hours' || field === 'availability' || field === 'academicSchedule' || field === 'academicWorkload' || field === 'academicOfficeHours') {
+      if (/\b(?:department|location|salary|requirements?|exigences?|work\s+modality|work\s+hours?|hours?|workload|schedule|status|vacanc(?:y|ies)|additional\s+information|information\s+additionnelle)\s*:/i.test(value)) return field;
+    }
+    if (field === 'educationRequirements' && /\beducation\s*(?:do\s+i\s+need)?\s*[?:]/i.test(value)) return field;
+  }
+  return null;
+}
+
+function duplicatedScalarFields(details: PublishGateDetails): string | null {
+  const fields = ['hours', 'availability', 'academicSchedule', 'academicWorkload', 'academicOfficeHours'] as const;
+  const values = fields
+    .map(field => ({ field, value: String(details[field] ?? '').replace(/\s+/g, ' ').trim().toLowerCase() }))
+    .filter(item => item.value.length >= 12);
+  for (let i = 0; i < values.length; i += 1) {
+    for (let j = i + 1; j < values.length; j += 1) {
+      if (values[i].value === values[j].value) return `${values[i].field}/${values[j].field}`;
+    }
   }
   return null;
 }
@@ -97,7 +124,7 @@ const TITLE_STATUS_WORDS = new RegExp(
   'i',
 );
 
-const TITLE_DURATION_PHRASES = /\b(?:\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?))\s+(?:contract|term|assignment|position)\b(?:\s+with\s+(?:the\s+)?possibility\s+of\s+extension)?/i;
+const TITLE_DURATION_PHRASES = /\b(?:\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|mths?|weeks?|days?))\s+(?:contract|term|assignment|position)\b(?:\s+with\s+(?:the\s+)?possibility\s+of\s+extension)?/i;
 
 // Words that mark a title as a reposting/administrative annotation rather
 // than the actual role name, or portal chrome (cookie banner, etc.) captured
@@ -105,16 +132,21 @@ const TITLE_DURATION_PHRASES = /\b(?:\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|mont
 // No trailing \b: glued-together portal captures (e.g. "...privacyWe use...")
 // can run directly into the next word with no space, so requiring a word
 // boundary right after the phrase would miss exactly the case this exists for.
-const TITLE_FLAGGED_WORDS = /\b(revised|amended|vacanc(?:y|ies)|repost(?:ed|ing)?|r[ée]affichage|we (?:use|value) (?:cookies|your privacy))/i;
+const TITLE_FLAGGED_WORDS = /\b(revised|amended|vacanc(?:y|ies)|(?:several|\d+)\s+positions?|up\s+to\s+\d+(?!\s+(?:years?|months?|mths?|weeks?|days?))|general\s+application\s+pool|pipeline\s+posting\s+only|repost(?:ed|ing)?|r[ée]affichage|we (?:use|value) (?:cookies|your privacy))/i;
 
 export function getPublishBlockReason(details: PublishGateDetails): string | null {
   const corruptField = corruptedScalarField(details);
   if (corruptField) return `corrupted field: ${corruptField}`;
 
+  const duplicateFields = duplicatedScalarFields(details);
+  if (duplicateFields) return `duplicated fields: ${duplicateFields}`;
+
   if (!isUsableJobTitle(details.title)) return 'unusable title';
   if (TITLE_DURATION_PHRASES.test(details.title)) return 'duration metadata in title';
   if (TITLE_STATUS_WORDS.test(details.title)) return 'employment-status words in title';
-  if (TITLE_FLAGGED_WORDS.test(details.title)) return 'flagged word in title';
+  if (TITLE_FLAGGED_WORDS.test(details.title)
+    && !/\b(?:tier|grade|level|class)\s+\d+\s+positions?\b/i.test(details.title)) return 'flagged word in title';
+  if (/\s+x\s+\d+\s*$/i.test(details.title) || /[-–—]\s*pool\s*$/i.test(details.title)) return 'flagged word in title';
 
   const normalizedTitle = normalizeJobTitle(details.title);
   if (normalizedTitle !== details.title.replace(/\s+/g, ' ').trim()) return 'un-normalized title metadata';

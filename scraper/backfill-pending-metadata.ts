@@ -9,7 +9,8 @@ import { initDb } from './db';
 import dotenv from 'dotenv';
 import { extractPendingMetadata, isUsablePendingLocation } from './pending-metadata';
 import { normalizeActiveClosingDateStatus } from './closing-date';
-import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeSourceJobTitle } from './title';
+import { evaluateJobQuality } from './quality-pipeline';
+import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
@@ -47,13 +48,22 @@ async function main() {
       ? suppliedTitle
       : extractRawJobTitle(String(row.source ?? ''), rawText)
         || extractUrlJobTitle(String(row.application_url ?? row.url ?? ''), rawText);
-    const title = normalizeSourceJobTitle(String(row.source ?? ''), sourceTitle);
+    const title = sourceTitle;
     const pending = extractPendingMetadata(sourceTitle, rawText);
     const closing = normalizeActiveClosingDateStatus(rawText);
     const existingClosingDate = String(row.pending_closing_date ?? '').trim();
+    const quality = evaluateJobQuality({
+      source: String(row.source ?? ''),
+      title,
+      rawText,
+      url: String(row.url ?? ''),
+      applicationUrl: String(row.application_url ?? ''),
+      closingDate: existingClosingDate || closing.date,
+      closingDateStatus: existingClosingDate || closing.date ? 'known' : closing.status,
+    });
     return {
       id: String(row.id),
-      title: title || null,
+      title: quality.title || null,
       ...pending,
       closingDate: existingClosingDate || closing.date,
       location: pending.location || (isUsablePendingLocation(String(row.pending_location ?? '')) ? String(row.pending_location) : null),

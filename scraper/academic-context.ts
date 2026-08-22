@@ -1,4 +1,18 @@
 const PLACEHOLDER = /^(?:n\/?a|none|null|not applicable|not specified|unknown)$/i;
+export const ACADEMIC_SCHEDULE_MAX_LENGTH = 120;
+
+const ACADEMIC_SOURCE_PATTERN = /\b(?:university|college|institute|polytechnic|school of|UBC)\b/i;
+const ACADEMIC_TITLE_PATTERN = /\b(?:professor|lecturer|instructor|teaching assistant|instructional assistant|research assistant|research associate|academic assistant|graduate assistant|post[- ]?doctoral|post[- ]?doc|postdoc|sessional faculty|course coordinator|course staff|course assistant|teaching fellow|research fellow|tutor|marker|demonstrator)\b/i;
+const RECREATIONAL_INSTRUCTOR_PATTERN = /\b(?:swim(?:ming)?|lifeguard|fitness|recreation|aquatic|sports?|coach|camp|skate|dance|yoga)\b.*\binstructor\b|\binstructor\b.*\b(?:swim(?:ming)?|lifeguard|fitness|recreation|aquatic|sports?|coach|camp|skate|dance|yoga)\b/i;
+
+/** Academic fields are only meaningful for a clearly academic appointment. */
+export function isAcademicJob(source: string | null | undefined, title: string | null | undefined, roleType: unknown): boolean {
+  if (!String(title ?? '').trim()) return false;
+  const titleText = String(title);
+  if (RECREATIONAL_INSTRUCTOR_PATTERN.test(titleText)) return false;
+  return ACADEMIC_TITLE_PATTERN.test(titleText)
+    || (ACADEMIC_SOURCE_PATTERN.test(String(source ?? '')) && /\b(?:faculty|course|academic)\b/i.test(titleText));
+}
 
 function clean(value: unknown): string {
   if (typeof value !== 'string') return '';
@@ -20,6 +34,21 @@ function normalizeUnits(value: string): string {
     .replace(/\/\s*(?:wk|wks|week)\b/gi, ' per week')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** Extract only a short source-labelled course/class schedule. */
+export function extractAcademicSchedule(value: unknown): string {
+  const text = clean(value);
+  if (!text) return '';
+  const label = text.match(/\b(?:course|class)\s+schedule\s*:\s*|\bhoraire\s*:\s*/i);
+  if (!label || label.index === undefined) return '';
+  const remainder = text.slice(label.index + label[0].length).trim();
+  const end = remainder.search(/(?=\s*(?:requirements?|exigences?|work\s+hours?|heures?\s+(?:total|de\s+travail)|additional\s+information|information\s+additionnelle|course\s+(?:title|code)|posting\s+limited\s+to|salary|location|similar\s+jobs?|locations?|time\s+type|posted\s+on|time\s+left\s+to\s+apply)\s*:)/i);
+  const schedule = (end < 0 ? remainder : remainder.slice(0, end))
+    .replace(/^(?:[-–—]\s*)+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return schedule.length > 0 && schedule.length <= ACADEMIC_SCHEDULE_MAX_LENGTH ? schedule : '';
 }
 
 export function normalizeAcademicCourse(value: unknown): string {

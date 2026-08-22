@@ -10,7 +10,7 @@ import dotenv from 'dotenv';
 import { initDb } from './db';
 import { normalizeAcademicRoleType } from './validate';
 import { splitHoursAndAvailability } from './hours-availability';
-import { normalizeAcademicAppointmentType, normalizeAcademicCourse, normalizeAcademicOfficeHours, normalizeAcademicSupervisor, normalizeAcademicWorkload } from './academic-context';
+import { isAcademicJob, normalizeAcademicAppointmentType, normalizeAcademicCourse, normalizeAcademicOfficeHours, normalizeAcademicSupervisor, normalizeAcademicWorkload } from './academic-context';
 
 dotenv.config({ quiet: true });
 
@@ -216,6 +216,7 @@ async function withRetry(candidate: Candidate): Promise<AcademicContext | null> 
 
 type DbClient = {
   execute: (statement: any, args?: any) => Promise<any>;
+  batch?: (statements: any[], mode?: string) => Promise<any>;
 };
 
 async function ensureColumns(db: DbClient) {
@@ -255,8 +256,8 @@ async function updateAcademicContext(db: DbClient, id: string, context: Academic
 
 async function sanitizeStoredContext(db: DbClient) {
   const result = await db.execute(`
-    SELECT id, job_title, academic_role_type, academic_course, hours, availability, academic_workload, academic_office_hours, academic_appointment_type
-    FROM job_details
+    SELECT j.source, jd.id, jd.job_title, jd.academic_role_type, jd.academic_course, jd.hours, jd.availability, jd.academic_workload, jd.academic_office_hours, jd.academic_supervisor, jd.academic_appointment_type
+    FROM job_details jd JOIN jobs j ON j.id = jd.id
     WHERE academic_role_type IS NOT NULL
        OR academic_course IS NOT NULL
        OR academic_workload IS NOT NULL
@@ -265,6 +266,7 @@ async function sanitizeStoredContext(db: DbClient) {
        OR academic_appointment_type IS NOT NULL
   `);
   let cleaned = 0;
+  const writes: Array<{ sql: string; args: unknown[] }> = [];
   for (const row of result.rows) {
     const hours = cleanAcademicHours(row.hours);
     const availability = cleanAcademicAvailability(row.availability);
@@ -272,7 +274,10 @@ async function sanitizeStoredContext(db: DbClient) {
     const academic_office_hours = normalizeAcademicOfficeHours(row.academic_office_hours);
     const academic_appointment_type = normalizeAcademicAppointmentType(row.academic_appointment_type);
     const title = String(row.job_title ?? '');
-    const academic_role_type = recreationalInstructorPattern.test(title)
+    const academicAllowed = isAcademicJob(row.source, title, row.academic_role_type);
+    const academic_role_type = !academicAllowed
+      ? null
+      : recreationalInstructorPattern.test(title)
       ? null
       : postdoctoralRolePattern.test(title)
       ? 'postdoctoral'
@@ -288,24 +293,41 @@ async function sanitizeStoredContext(db: DbClient) {
       && row.academic_role_type === 'teaching_assistant'
       ? 'academic_instructor'
       : row.academic_role_type;
-    const storedCourse = normalizeAcademicCourse(row.academic_course);
-    const academic_course = /^(?:Fall|Winter|Spring|Summer)\s+\d{4}$/i.test(storedCourse)
+    const storedCourse = academicAllowed ? normalizeAcademicCourse(row.academic_course) : '';
+    const academic_course = !academicAllowed
+      ? null
+      : /^(?:Fall|Winter|Spring|Summer)\s+\d{4}$/i.test(storedCourse)
       ? extractAcademicCourse(String(row.job_title ?? ''))
       : storedCourse;
+    const academic_workload_final = !academicAllowed || academic_workload.toLowerCase() === cleanText(row.hours).toLowerCase()
+      ? null
+      : academic_workload;
+    const academic_office_hours_final = academicAllowed ? academic_office_hours : null;
+    const academic_supervisor_final = academicAllowed ? normalizeAcademicSupervisor(row.academic_supervisor) : null;
+    const academic_appointment_type_final = academicAllowed ? academic_appointment_type : null;
     if (academic_role_type === row.academic_role_type
       && academic_course === storedCourse
       && hours === cleanText(row.hours)
       && availability === cleanText(row.availability)
-      && academic_workload === normalizeAcademicWorkload(row.academic_workload)
-      && academic_office_hours === normalizeAcademicOfficeHours(row.academic_office_hours)
-      && academic_appointment_type === normalizeAcademicAppointmentType(row.academic_appointment_type)) continue;
-    await db.execute({
-      sql: `UPDATE job_details SET academic_role_type = ?, academic_course = ?, hours = ?, availability = ?, academic_workload = ?, academic_office_hours = ?, academic_appointment_type = ? WHERE id = ?`,
-      args: [academic_role_type || null, academic_course || null, hours || null, availability || null, academic_workload || null, academic_office_hours || null, academic_appointment_type || null, String(row.id)],
+      && academic_workload_final === normalizeAcademicWorkload(row.academic_workload)
+      && academic_office_hours_final === normalizeAcademicOfficeHours(row.academic_office_hours)
+      && academic_supervisor_final === normalizeAcademicSupervisor(row.academic_supervisor)
+      && academic_appointment_type_final === normalizeAcademicAppointmentType(row.academic_appointment_type)) continue;
+    if (!APPLY) {
+      cleaned += 1;
+      continue;
+    }
+    writes.push({
+      sql: `UPDATE job_details SET academic_role_type = ?, academic_course = ?, hours = ?, availability = ?, academic_workload = ?, academic_office_hours = ?, academic_supervisor = ?, academic_appointment_type = ? WHERE id = ?`,
+      args: [academic_role_type || null, academic_course || null, hours || null, availability || null, academic_workload_final || null, academic_office_hours_final || null, academic_supervisor_final || null, academic_appointment_type_final || null, String(row.id)],
     });
     cleaned += 1;
   }
-  if (cleaned) console.log(`[academic-context] Sanitized existing context rows: ${cleaned}`);
+  if (APPLY && writes.length) {
+    if (db.batch) await db.batch(writes, 'write');
+    else for (const write of writes) await db.execute(write);
+  }
+  if (cleaned) console.log(`[academic-context] ${APPLY ? 'Sanitized' : 'Would sanitize'} existing context rows: ${cleaned}`);
 }
 
 async function main() {

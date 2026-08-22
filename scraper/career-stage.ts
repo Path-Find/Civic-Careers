@@ -19,7 +19,12 @@ export function classifyCareerStage(input: {
   const rawText = String(input.rawText ?? '').replace(/\s+/g, ' ').trim();
   const sourceText = `${title} ${rawText}`;
 
-  if ((input.isStudent === 1 || input.isStudent === true) || STUDENT_SIGNAL.test(sourceText)) {
+  // Do not let ordinary prose about students/learners turn a professional
+  // role into a student career stage. The requirement flag is classified
+  // separately from explicit eligibility evidence.
+  if ((input.isStudent === 1 || input.isStudent === true)
+    || STUDENT_SIGNAL.test(title)
+    || /\bstudent employment\b|\bco[- ]?op program\b/i.test(rawText)) {
     return 'student';
   }
   if (EARLY_CAREER_SIGNAL.test(sourceText)) {

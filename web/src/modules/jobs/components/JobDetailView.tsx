@@ -1,6 +1,6 @@
 import { Bookmark, ExternalLink } from 'lucide-react';
 import { useState, type MouseEvent } from 'react';
-import { compactOverview, formatDate, getQuickScanLabels, isPlaceholderSection, isRedundantCompensation, parseMarkdownSections, reclassifyMandatoryNiceToHave, renderMarkdown } from '../../../utils';
+import { compactOverview, daysUntilClose, formatDate, getQuickScanLabels, isPlaceholderSection, isRedundantCompensation, parseMarkdownSections, reclassifyMandatoryNiceToHave, renderMarkdown } from '../../../utils';
 import { parseTagList } from '../jobUtils';
 import { CopyLinkButton } from './CopyLinkButton';
 import { pendingDetailAction } from '../pendingDetailAction';
@@ -124,7 +124,10 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     { label: 'Listing type', value: details.listingType }, { label: 'Student requirement', value: details.studentRequirement },
     { label: 'Career stage', value: careerStageLabel(job.career_stage) },
     { label: 'Benefits', value: details.benefits }, { label: 'Union', value: details.union },
-  ];
+  ].filter(item => !(item.label === 'Term'
+    && details.type
+    && details.duration
+    && details.type.trim().toLowerCase() === details.duration.trim().toLowerCase()));
   const requirementMetadata: DetailMetadata[] = [
     { label: 'Experience', value: details.experience },
     { label: 'Education', value: details.education },
@@ -140,18 +143,20 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
   const academicMetadata: DetailMetadata[] = [
     { label: 'Term', value: details.academicTerm },
     { label: 'Course / project', value: details.academicCourse },
-    { label: 'Workload', value: details.academicWorkload || details.hours },
+    { label: 'Workload', value: details.academicWorkload },
     { label: 'Office hours', value: details.academicOfficeHours },
     { label: 'Schedule', value: details.academicSchedule },
     { label: 'Appointment type', value: details.academicAppointmentType },
     { label: 'Supervisor', value: details.academicSupervisor },
   ].filter(item => item.value);
+  const closingDays = daysUntilClose(job.closing_date);
+  const urgentDeadline = closingDays !== null && closingDays >= 0 && closingDays <= 3;
 
   return <main className="detail-main">
     <div className="detail-grid">
       <div className="detail-sidebar" style={{ top: `${headerHeight + 20}px` }}>
-        {job.closing_date && formatDate(job.closing_date) && <div className="deadline-card"><div className="deadline-label">Apply By</div><div className="deadline-value">{formatDate(job.closing_date)}</div></div>}
-        {!job.closing_date && job.closing_date_status === 'open_until_filled' && <div className="deadline-card"><div className="deadline-label">Apply By</div><div className="deadline-value">Until filled</div></div>}
+        {job.closing_date && formatDate(job.closing_date) && <div className={`deadline-card ${urgentDeadline ? 'deadline-card-urgent' : ''}`}><div className="deadline-label">Apply By</div><div className="deadline-value">{formatDate(job.closing_date)}</div></div>}
+        {!job.closing_date && job.closing_date_status === 'open_until_filled' && <div className="deadline-card deadline-card-until-filled"><div className="deadline-label">Apply By</div><div className="deadline-value">Until filled</div></div>}
         <div className="detail-actions">
           <a className="detail-action apply-button" href={job.url} target="_blank" rel="noopener noreferrer" onClick={recordApplyClick}><ExternalLink size={14} /> Apply</a>
           <button className="detail-action save-button" onClick={event => onToggleSave(job, event)}><Bookmark size={14} fill={job.is_saved ? '#0f172a' : 'transparent'} />{job.is_saved ? 'Saved' : 'Save'}</button>

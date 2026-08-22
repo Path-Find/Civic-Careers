@@ -104,6 +104,17 @@ export class NeonDatabaseClient {
     });
   }
 
+  async batchArchive(statements: Statement[]) {
+    return this.withRoutingLocks(async ({ archive }) => {
+      const results = [];
+      for (const statement of statements) {
+        const { sql, args } = statementParts(statement);
+        results.push(resultSet(await archive.query<Row>(postgresPlaceholders(sql), args)));
+      }
+      return results;
+    });
+  }
+
   async restoreIfArchived(id: string): Promise<void> {
     await this.withRoutingLocks(async ({ archive, current }) => {
       const archived = await archive.query<{ id: string }>(
