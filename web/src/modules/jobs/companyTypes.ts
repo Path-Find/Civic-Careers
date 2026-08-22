@@ -128,6 +128,9 @@ export function companyTypes(name: string): CompanyType[] {
 export const COMPANY_PORTALS: Record<string, string> = {
   'City of Toronto': 'https://jobs.toronto.ca/jobsatcity/',
   'Government of Canada': 'https://www.canada.ca/en/public-service-commission/jobs/services/gc-jobs.html',
+  'Government of Alberta': 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/',
+  'Canada Post': 'https://jobs.canadapost.ca/go/Canada-Post-All-Current-Opportunities/2319117/',
+  'Shared Health Manitoba': 'https://careers.wrha.mb.ca/',
   'Province of Ontario': 'https://www.gojobs.gov.on.ca/Jobs.aspx',
   'Province of Ontario (OPS)': 'https://www.gojobs.gov.on.ca/Jobs.aspx',
   'CMHC': 'https://www.cmhc-schl.gc.ca/about-us/careers',
@@ -190,6 +193,7 @@ export const COMPANY_PORTALS: Record<string, string> = {
   'Seneca College': 'https://www.senecacollege.ca/about/careers.html',
   'University of Guelph': 'https://careers.uoguelph.ca/search/',
   'University of Ottawa': 'https://uottawa.wd3.myworkdayjobs.com/en-US/uOttawa_External_Career_Site',
+  'University of Saskatchewan': 'https://careers.usask.ca/',
   'Algonquin College': 'https://algonquincollege.wd3.myworkdayjobs.com/CareerOpportunities',
   'Fanshawe College': 'https://fanshawec.wd3.myworkdayjobs.com/fanshawecareers',
   'Carleton University': 'https://carleton.njoyn.com/CL2/xweb/xweb.asp?CLID=53443&page=joblisting&lang=1',
