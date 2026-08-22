@@ -12,6 +12,7 @@
     "backfill-metadata-only": "npx tsx backfill-metadata-only.ts",
     "backfill-normalize-titles": "npx tsx backfill-normalize-titles.ts",
     "backfill-normalize-salaries": "npx tsx backfill-normalize-salaries.ts",
+    "backfill-deduplicate-fields": "npx tsx backfill-deduplicate-fields.ts",
     "repair-publication-status": "npx tsx repair-publication-status.ts",
     "audit:quality": "npx tsx audit-quality.ts",
     "backfill:academic-metadata": "npx tsx backfill-source-academic-metadata.ts",

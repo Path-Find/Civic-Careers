@@ -120,6 +120,10 @@ export function normalizeAvailability(raw: string | null | undefined): string {
   if (/receive\s+an\s+alert|^n\b|^\s*(?:up\s+to|approx(?:\.)?)\s+\d+\s*$|\banticipated\s+start\s+date\b|^\s*\d+(?:\.\d+)?\s*FTE\s*$/i.test(s)) return '';
   const embeddedLabel = s.search(/\s+(?:salary|union|department|location|work\s+modality|status|vacanc(?:y|ies))\s*:/i);
   if (embeddedLabel > 0) s = s.slice(0, embeddedLabel).trim();
+  // A Workday/AI capture once took the tail of "after the ratification"
+  // as availability ("r the ratification"). Ratification is labour-relations
+  // prose, never a work schedule, so fail closed for it at normalization.
+  if (/\bratification\b/i.test(s)) return '';
   if (/(?:openings?|vacanc(?:y|ies)|division|department|union|salary|location|total\s+hours?)/i.test(s)) return '';
   if (/varying\s+hours?|hours?\s+of\s+work/i.test(s)) return '';
 

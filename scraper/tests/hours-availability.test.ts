@@ -37,6 +37,10 @@ test('normalizeAvailability maps schedule tags', () => {
   assert.equal(normalizeAvailability('Weekdays, evenings, weekends, and holidays'), 'Evenings; Weekends; Weekdays; Holidays');
 });
 
+test('normalizeAvailability drops labour-relations prose', () => {
+  assert.equal(normalizeAvailability('r the ratification'), '');
+});
+
 test('split does not invent availability from credit notes', () => {
   assert.deepEqual(
     splitHoursAndAvailability('39 hours (3 credits)', '(3 credits)'),

@@ -25,6 +25,12 @@ type Row = {
   salary_range: string | null;
   location: string | null;
   union_name: string | null;
+  availability: string | null;
+  duration: string | null;
+  academic_course: string | null;
+  academic_schedule: string | null;
+  academic_term: string | null;
+  academic_workload: string | null;
   parser_version: number | null;
 };
 
@@ -32,7 +38,9 @@ async function main() {
   const db = await initDb();
 
   const result = await db.execute(`
-    SELECT id, job_title, department, hours, salary_range, location, union_name, parser_version
+    SELECT id, job_title, department, hours, salary_range, location, union_name,
+      availability, duration, academic_course, academic_schedule, academic_term, academic_workload,
+      parser_version
     FROM job_details
   `);
   const rows = result.rows as unknown as Row[];
@@ -46,6 +54,12 @@ async function main() {
       salary: row.salary_range,
       location: row.location,
       unionName: row.union_name,
+      availability: row.availability,
+      duration: row.duration,
+      academicCourse: row.academic_course,
+      academicSchedule: row.academic_schedule,
+      academicTerm: row.academic_term,
+      academicWorkload: row.academic_workload,
     });
     if (reason) bad.push({ id: row.id, reason, parser_version: row.parser_version });
   }

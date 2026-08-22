@@ -34,7 +34,10 @@ type Row = {
   location: string | null;
   union_name: string | null;
   availability: string | null;
+  duration: string | null;
+  academic_course: string | null;
   academic_schedule: string | null;
+  academic_term: string | null;
   academic_workload: string | null;
   academic_office_hours: string | null;
   education_requirements: string | null;
@@ -65,7 +68,10 @@ function classify(row: Row): Decision {
     location: row.location,
     unionName: row.union_name,
     availability: row.availability,
+    duration: row.duration,
+    academicCourse: row.academic_course,
     academicSchedule: row.academic_schedule,
+    academicTerm: row.academic_term,
     academicWorkload: row.academic_workload,
     academicOfficeHours: row.academic_office_hours,
     educationRequirements: row.education_requirements,
@@ -101,7 +107,10 @@ async function main() {
       d.location,
       d.union_name,
       d.availability,
+      d.duration,
+      d.academic_course,
       d.academic_schedule,
+      d.academic_term,
       d.academic_workload,
       d.academic_office_hours,
       d.education_requirements,

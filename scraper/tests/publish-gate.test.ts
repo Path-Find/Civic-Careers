@@ -67,6 +67,13 @@ test('rejects a portal alert setting captured as hours', () => {
   );
 });
 
+test('rejects labour-relations prose captured as availability', () => {
+  assert.equal(
+    getPublishBlockReason({ title: 'Course Instructor', availability: 'r the ratification' }),
+    'corrupted field: availability',
+  );
+});
+
 test('rejects a cookie-banner capture used as the title', () => {
   const reason = getPublishBlockReason({
     title: 'We value your privacyWe use cookies to enhance your browsing experience, serve personalised ads or content, and analyse our traffic.',
@@ -159,6 +166,29 @@ test('the shared quality gate flags verbatim workload duplication', () => {
     getPublishBlockReason({ title: 'Professor', hours: '24 hours per week', academicWorkload: '24 hours per week' }),
     'duplicated fields: hours/academicWorkload',
   );
+});
+
+test('the shared quality gate flags duplicated academic metadata', () => {
+  assert.equal(
+    getPublishBlockReason({ title: 'Course Instructor', duration: 'Fall 2026', academicTerm: 'Fall 2026' }),
+    'duplicated fields: duration/academicTerm',
+  );
+  assert.equal(
+    getPublishBlockReason({ title: 'Course Instructor', academicSchedule: 'Winter 2027', academicTerm: 'Winter 2027' }),
+    'duplicated fields: academicSchedule/academicTerm',
+  );
+});
+
+test('the shared quality pipeline applies duplicate-field rules', () => {
+  const quality = evaluateJobQuality({
+    source: 'University of Ottawa',
+    title: 'Course Instructor',
+    duration: 'Fall 2026',
+    academicTerm: 'Fall 2026',
+    closingDateStatus: 'open_until_filled',
+  });
+  assert.equal(quality.status, 'hidden');
+  assert.deepEqual(quality.reasons, ['duplicated fields: duration/academicTerm']);
 });
 
 test('passes a legitimately long academic course-code title under the length cap', () => {

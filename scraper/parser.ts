@@ -160,6 +160,8 @@ async function main() {
         const academicSupervisor = academicAllowed ? aiResult.academic_supervisor : '';
         const academicAppointmentType = academicAllowed ? aiResult.academic_appointment_type : '';
         const academicSchedule = academicAllowed ? (extractAcademicSchedule(raw.raw_text) || aiResult.academic_schedule || '') : '';
+        const duration = sourceMetadataFix?.duration ?? normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || '');
+        const academicTerm = extractSourceAcademicTerm(raw.source, raw.title ?? aiResult.job_title);
         const parsedSchedule = splitHoursAndAvailability(
           sourceMetadataFix?.hours ?? aiResult.hours,
           aiResult.availability,
@@ -182,7 +184,10 @@ async function main() {
           location,
           unionName: unionFields.union_name,
           availability: parsedSchedule.availability,
+          duration,
+          academicCourse,
           academicSchedule,
+          academicTerm,
           academicWorkload,
           academicOfficeHours,
           educationRequirements: JSON.stringify(sourceMetadataFix?.educationRequirements ?? sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
@@ -226,7 +231,7 @@ async function main() {
           salary_period: sourceMetadataFix?.salaryPeriod ?? normalizeSalaryPeriod(aiResult.salary_period),
           work_model: normalizeWorkModel(aiResult.work_model, finalTitle),
           employment_type: sourceMetadataFix?.employmentType ?? normalizeEmploymentType(aiResult.employment_type),
-          duration: sourceMetadataFix?.duration ?? normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || ''),
+          duration,
           hours: parsedSchedule.hours,
           availability: parsedSchedule.availability,
           academic_role_type: academicRoleType,
@@ -236,7 +241,7 @@ async function main() {
           academic_supervisor: academicSupervisor,
           academic_appointment_type: academicAppointmentType,
           academic_schedule: academicSchedule,
-          academic_term: extractSourceAcademicTerm(raw.source, raw.title ?? aiResult.job_title),
+          academic_term: academicTerm,
           experience_requirements: JSON.stringify(sourceMetadataFix?.experienceRequirements ?? structuredRequirements.experience_requirements),
           is_unionized: unionFields.is_unionized ? 1 : 0,
           union_name: unionFields.union_name,

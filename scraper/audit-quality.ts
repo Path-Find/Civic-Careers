@@ -29,7 +29,10 @@ type Row = {
   location: string | null;
   union_name: string | null;
   availability: string | null;
+  duration: string | null;
+  academic_course: string | null;
   academic_schedule: string | null;
+  academic_term: string | null;
   academic_workload: string | null;
   academic_office_hours: string | null;
   education_requirements: string | null;
@@ -43,7 +46,8 @@ const QUERY = `
     raw.url AS raw_url, raw.application_url, raw.title AS raw_title, raw.raw_text,
     raw.parsed_at, d.id AS detail_id, d.job_title AS detail_title, d.department,
     d.hours, d.salary_range, d.location, d.union_name,
-    d.availability, d.academic_schedule, d.academic_workload, d.academic_office_hours,
+    d.availability, d.duration, d.academic_course, d.academic_schedule, d.academic_term,
+    d.academic_workload, d.academic_office_hours,
     d.education_requirements,
     raw.pending_closing_date, raw.pending_closing_date_status, d.closing_date
   FROM jobs j
@@ -73,7 +77,10 @@ async function auditStore(
       location: row.location,
       unionName: row.union_name,
       availability: row.availability,
+      duration: row.duration,
+      academicCourse: row.academic_course,
       academicSchedule: row.academic_schedule,
+      academicTerm: row.academic_term,
       academicWorkload: row.academic_workload,
       academicOfficeHours: row.academic_office_hours,
       educationRequirements: row.education_requirements,

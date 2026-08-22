@@ -36,6 +36,15 @@ test('extracts a clean range from glued source prose', () => {
   });
 });
 
+test('collapses a period repeated after both ends of a source range', () => {
+  assert.deepEqual(parseSalaryText('$48.02/hr – $49.45/hr'), {
+    min: 48.02,
+    max: 49.45,
+    period: 'hourly',
+    display: '$48.02 - $49.45 hourly',
+  });
+});
+
 test('only canonical dollar ranges pass the salary display filter', () => {
   assert.equal(isCanonicalSalary('$25.60 - $32 hourly'), true);
   assert.equal(isCanonicalSalary('$25.60 To $32.00 HourlyThe Corporation'), false);

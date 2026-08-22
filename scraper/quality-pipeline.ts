@@ -61,7 +61,10 @@ export function evaluateJobQuality(input: QualityInput): QualityEvaluation {
       location: input.location,
       unionName: input.unionName,
       availability: input.availability,
+      duration: input.duration,
+      academicCourse: input.academicCourse,
       academicSchedule: input.academicSchedule,
+      academicTerm: input.academicTerm,
       academicWorkload: input.academicWorkload,
       academicOfficeHours: input.academicOfficeHours,
     })

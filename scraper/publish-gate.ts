@@ -20,7 +20,10 @@ export interface PublishGateDetails {
   location?: string | null;
   unionName?: string | null;
   availability?: string | null;
+  duration?: string | null;
+  academicCourse?: string | null;
   academicSchedule?: string | null;
+  academicTerm?: string | null;
   academicWorkload?: string | null;
   academicOfficeHours?: string | null;
   educationRequirements?: string | null;
@@ -62,7 +65,10 @@ const SCALAR_FIELD_LENGTH_CEILING: Record<string, number> = {
   // job ID) into this field — same unbounded-capture class as the others.
   unionName: 150,
   availability: 120,
+  duration: 120,
+  academicCourse: 240,
   academicSchedule: 120,
+  academicTerm: 120,
   academicWorkload: 120,
   academicOfficeHours: 120,
   educationRequirements: 500,
@@ -88,6 +94,7 @@ function corruptedScalarField(details: PublishGateDetails): string | null {
     if (value.length > ceiling) return field;
     if (hasSquishedSentenceJoin(value)) return field;
     if (FIELDS_REJECT_COLON.has(field) && value.includes(':')) return field;
+    if (field === 'availability' && /\bratification\b/i.test(value)) return field;
     if (field === 'salary' && !isCanonicalSalary(value)) return field;
     if (field === 'hours' || field === 'availability' || field === 'academicSchedule' || field === 'academicWorkload' || field === 'academicOfficeHours') {
       if (field === 'hours' && /receive\s+an\s+alert|^n\s*\(/i.test(value)) return field;
@@ -99,9 +106,24 @@ function corruptedScalarField(details: PublishGateDetails): string | null {
 }
 
 function duplicatedScalarFields(details: PublishGateDetails): string | null {
+  const normalize = (value: unknown) => String(value ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const explicitPairs = [
+    ['duration', 'academicTerm'],
+    ['duration', 'academicSchedule'],
+    ['academicSchedule', 'academicTerm'],
+    ['availability', 'academicTerm'],
+    ['academicCourse', 'academicTerm'],
+    ['hours', 'academicWorkload'],
+  ] as const;
+  for (const [left, right] of explicitPairs) {
+    const leftValue = normalize(details[left]);
+    const rightValue = normalize(details[right]);
+    if (leftValue && leftValue === rightValue) return `${left}/${right}`;
+  }
+
   const fields = ['hours', 'availability', 'academicSchedule', 'academicWorkload', 'academicOfficeHours'] as const;
   const values = fields
-    .map(field => ({ field, value: String(details[field] ?? '').replace(/\s+/g, ' ').trim().toLowerCase() }))
+    .map(field => ({ field, value: normalize(details[field]) }))
     .filter(item => item.value.length >= 12);
   for (let i = 0; i < values.length; i += 1) {
     for (let j = i + 1; j < values.length; j += 1) {
