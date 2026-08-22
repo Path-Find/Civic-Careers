@@ -21,6 +21,7 @@
     "audit:availability": "npx tsx audit-availability.ts",
     "audit:parser-regression": "npx tsx audit-parser-regression.ts",
     "audit:live-content": "npx tsx audit-live-content.ts",
+    "backfill:missing-fields": "npx tsx backfill-missing-fields.ts",
     "backfill:availability": "npx tsx backfill-availability.ts",
     "report:university-of-ottawa": "npx tsx report-university-of-ottawa.ts",
     "backfill:academic-metadata": "npx tsx backfill-source-academic-metadata.ts",
