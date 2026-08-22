@@ -553,16 +553,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       const countArgs = [...filterArgs];
       const titleSuggestions = sourceFilters.length > 0
         ? db.execute({
-          sql: `SELECT DISTINCT COALESCE(jd.job_title, raw.title) AS title
-            ${jobJoins}
-            WHERE j.source IN (${sourceFilters.map(() => '?').join(', ')})
-              AND j.is_active = 1
-              ${visiblePending}
-              AND ${effectiveInventory} = 0
-              ${publicDeadline}
-              AND TRIM(COALESCE(jd.job_title, raw.title, '')) <> ''
-            ORDER BY LOWER(title), title
-            LIMIT 50`,
+          sql: `SELECT title FROM (
+            SELECT DISTINCT COALESCE(jd.job_title, raw.title) AS title
+              ${jobJoins}
+              WHERE j.source IN (${sourceFilters.map(() => '?').join(', ')})
+                AND j.is_active = 1
+                ${visiblePending}
+                AND ${effectiveInventory} = 0
+                ${publicDeadline}
+                AND TRIM(COALESCE(jd.job_title, raw.title, '')) <> ''
+          ) AS title_suggestions
+          ORDER BY LOWER(title), title
+          LIMIT 50`,
           args: sourceFilters,
         })
         : Promise.resolve({ rows: [] as Array<Record<string, unknown>> });

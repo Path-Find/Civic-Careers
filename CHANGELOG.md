@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Company pages now load their job results correctly in Postgres; VIA TGF and other source-scoped pages no longer fail on title suggestions.
+
 - Public deadline checks now use Toronto’s calendar date, keeping same-day Canadian postings visible until the local date ends.
 
 - Restored four archived/hidden listings only after their individual source URLs were verified live; dead archived listings remain hidden.
