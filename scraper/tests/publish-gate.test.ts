@@ -11,6 +11,24 @@ test('rejects a department field that swallowed unrelated fields (University of 
   assert.equal(reason, 'corrupted field: department');
 });
 
+test('rejects whole-page prose and duplicate structured list fields', () => {
+  assert.equal(
+    getPublishBlockReason({
+      title: 'Course Instructor',
+      requiredSkills: JSON.stringify(['Skip to main contentAPTPUO page is loaded', 'Communication']),
+    }),
+    'corrupted field: requiredSkills',
+  );
+  assert.equal(
+    getPublishBlockReason({
+      title: 'Course Instructor',
+      responsibilityTags: JSON.stringify(['Education & mentoring']),
+      qualificationTags: JSON.stringify(['Education & mentoring']),
+    }),
+    'duplicated fields: responsibilityTags/qualificationTags',
+  );
+});
+
 test('does not flag a legitimate colon in an academic department name', () => {
   // Found live in the archive DB: department was in the colon-reject set
   // originally, which flagged real "CAMPUS: Department" / "Program: Subtitle"

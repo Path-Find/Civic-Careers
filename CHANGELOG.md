@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - uOttawa course metadata recovery now rejects oversized labelled captures and distinguishes course-tied teaching roles from faculty or research roles that legitimately have no course term.
 
+- Structured list fields now fail publication when they contain portal/page prose or duplicate another structured list, preventing whole descriptions from being exposed as skills or tags.
+
 - Simplified public job reports into plain-language issue categories and added the live page plus current recorded details to the prefilled GitHub report.
 
 - Removed the redundant “Showing jobs closing within 14 days” sentence when the deadline control already communicates the active view.

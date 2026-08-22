@@ -67,6 +67,10 @@ export function evaluateJobQuality(input: QualityInput): QualityEvaluation {
       academicTerm: input.academicTerm,
       academicWorkload: input.academicWorkload,
       academicOfficeHours: input.academicOfficeHours,
+      requiredSkills: input.requiredSkills,
+      softwareRequirements: input.softwareRequirements,
+      responsibilityTags: input.responsibilityTags,
+      qualificationTags: input.qualificationTags,
     })
     : 'unusable title';
 

@@ -191,6 +191,10 @@ async function main() {
           academicTerm,
           academicWorkload,
           academicOfficeHours,
+          requiredSkills: JSON.stringify(finalSkills),
+          softwareRequirements: JSON.stringify(finalSoftwareRequirements),
+          responsibilityTags: JSON.stringify(aiResult.responsibility_tags),
+          qualificationTags: JSON.stringify(aiResult.qualification_tags),
           educationRequirements: JSON.stringify(sourceMetadataFix?.educationRequirements ?? sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
         });
         if (quality.status === 'hidden') {

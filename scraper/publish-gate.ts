@@ -28,6 +28,10 @@ export interface PublishGateDetails {
   academicWorkload?: string | null;
   academicOfficeHours?: string | null;
   educationRequirements?: string | null;
+  requiredSkills?: string | null;
+  softwareRequirements?: string | null;
+  responsibilityTags?: string | null;
+  qualificationTags?: string | null;
 }
 
 // board-parsers.ts field regexes are bounded by newline only (`[^\n]+`), which
@@ -135,6 +139,42 @@ function duplicatedScalarFields(details: PublishGateDetails): string | null {
   return null;
 }
 
+function parseList(value: unknown): string[] {
+  if (typeof value !== 'string' || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(item => String(item ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function corruptedListField(details: PublishGateDetails): string | null {
+  const fields = ['requiredSkills', 'softwareRequirements', 'responsibilityTags', 'qualificationTags'] as const;
+  for (const field of fields) {
+    const values = parseList(details[field]);
+    if (values.some(value => value.length > 500
+      || /skip to main content|applylocations|page is loaded|similar jobs|read more|follow us|policy \d+|©/i.test(value))) {
+      return field;
+    }
+  }
+  return null;
+}
+
+function duplicatedListFields(details: PublishGateDetails): string | null {
+  const normalize = (field: keyof PublishGateDetails) => JSON.stringify(parseList(details[field]).map(value => value.toLowerCase()));
+  const pairs = [
+    ['requiredSkills', 'educationRequirements'],
+    ['requiredSkills', 'softwareRequirements'],
+    ['responsibilityTags', 'qualificationTags'],
+  ] as const;
+  for (const [left, right] of pairs) {
+    const values = parseList(details[left]);
+    if (values.length > 0 && normalize(left) === normalize(right)) return `${left}/${right}`;
+  }
+  return null;
+}
+
 // Employment-status words belong in employment_type, not the title — a title
 // carrying "(FT Temporary)" or similar is a sign the source-title extractor
 // grabbed a status label instead of the actual role name. Only counted as an
@@ -165,8 +205,14 @@ export function getPublishBlockReason(details: PublishGateDetails): string | nul
   const corruptField = corruptedScalarField(details);
   if (corruptField) return `corrupted field: ${corruptField}`;
 
+  const corruptList = corruptedListField(details);
+  if (corruptList) return `corrupted field: ${corruptList}`;
+
   const duplicateFields = duplicatedScalarFields(details);
   if (duplicateFields) return `duplicated fields: ${duplicateFields}`;
+
+  const duplicateLists = duplicatedListFields(details);
+  if (duplicateLists) return `duplicated fields: ${duplicateLists}`;
 
   if (!isUsableJobTitle(details.title)) return 'unusable title';
   if (TITLE_DURATION_PHRASES.test(details.title)) return 'duration metadata in title';
