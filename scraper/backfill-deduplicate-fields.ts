@@ -28,6 +28,7 @@ type Row = {
   software_requirements: string | null;
   responsibility_tags: string | null;
   qualification_tags: string | null;
+  education_requirements: string | null;
 };
 
 type Change = Row & {
@@ -39,7 +40,7 @@ const QUERY = `
   SELECT j.id, j.source, d.job_title, d.duration, d.academic_course,
     d.academic_term, d.hours, d.academic_workload, d.academic_schedule,
     d.availability, d.required_skills, d.software_requirements,
-    d.responsibility_tags, d.qualification_tags
+    d.responsibility_tags, d.qualification_tags, d.education_requirements
   FROM jobs j
   JOIN job_details d ON d.id = j.id
 `;
@@ -101,6 +102,10 @@ function changesFor(rows: Row[]): Change[] {
     if (equal(next.required_skills, row.software_requirements)) {
       next.software_requirements = null;
       reasons.push('required_skills = software_requirements');
+    }
+    if (equal(next.required_skills, row.education_requirements)) {
+      next.required_skills = null;
+      reasons.push('required_skills = education_requirements');
     }
     if (equal(next.responsibility_tags, row.qualification_tags)) {
       next.qualification_tags = null;
