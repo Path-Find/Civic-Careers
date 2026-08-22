@@ -684,6 +684,7 @@ function App() {
                   showStudentJobs={showStudentJobs}
                   showAcademicJobs={showAcademicJobs}
                   closingSoonDisabled={allVisibleResultsUntilFilled}
+                  savedView={currentView === 'saved'}
                   onMinSalaryChange={setMinSalary}
                   onLocationChange={setLocationTerm}
                   onModesChange={mode => setSelectedModes(prev => prev.includes(mode) ? prev.filter(value => value !== mode) : [...prev, mode])}
@@ -729,7 +730,6 @@ function App() {
                   {(currentView === 'jobs' || currentView === 'saved') ? (
                     <>
                       {educationFilteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
-                      {currentView === 'saved' && <p className="saved-filter-note">Filters apply to saved jobs only. Recently viewed jobs stay separate.</p>}
                       {educationFilteredJobs.length === 0 && <p className="saved-empty-state">{currentView === 'saved' ? (hasJobFilters ? 'No saved jobs match these filters.' : 'No saved jobs yet.') : (hasJobFilters ? 'No jobs match these filters.' : 'No jobs are currently available.')}</p>}
                       {currentView === 'saved' && <section className="recently-viewed-section">
                         <div className="recently-viewed-heading-row">

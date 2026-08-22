@@ -28,7 +28,7 @@ function SuggestionList({ suggestions, onSelect }: { suggestions: string[]; onSe
 }
 
 export function JobFiltersSidebar({
-  headerHeight, jobs, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, closingSoonDisabled,
+  headerHeight, jobs, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, closingSoonDisabled, savedView,
   onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onAcademicJobsChange, onCareerStageChange, onCompanyChange, onEducationLevelChange, onEducationFieldChange, onReset,
 }: {
   headerHeight: number;
@@ -48,6 +48,7 @@ export function JobFiltersSidebar({
   showStudentJobs: boolean;
   showAcademicJobs: boolean;
   closingSoonDisabled: boolean;
+  savedView: boolean;
   onMinSalaryChange: (value: number | null) => void;
   onLocationChange: (value: string) => void;
   onModesChange: (mode: string) => void;
@@ -87,7 +88,7 @@ export function JobFiltersSidebar({
   };
 
   return <aside className="listing-sidebar" style={{ top: `${headerHeight + 20}px`, maxHeight: `calc(100vh - ${headerHeight + 40}px)` }}>
-    <div className="filter-heading"><span className="filter-heading-label">Filters</span></div>
+    <div className={`filter-heading ${savedView ? 'saved-filter-heading' : ''}`}><span className="filter-heading-label">Filters</span>{savedView && <p className="saved-filter-note">Filters apply to saved jobs only. Recently viewed jobs stay separate.</p>}</div>
     <div className="filter-section"><label className="filter-title" htmlFor="location-filter">Location</label>{selectedLocations.length > 0 && <div className="filter-selected-list">{selectedLocations.map(location => <button key={location} type="button" className="filter-selected" onClick={() => onLocationChange(selectedLocations.filter(value => value !== location).join(', '))}>{location} ×</button>)}</div>}<div className="filter-search-wrap"><input id="location-filter" className="location-filter-input" value={locationQuery} onChange={event => setLocationQuery(event.target.value)} placeholder="Search locations" /><SuggestionList suggestions={locationQuery.trim() ? locationSuggestions : []} onSelect={selectLocation} /></div></div>
     {companyOptions.length > 0 && <FilterSection title="Employer">
       {selectedCompanyNames.length > 0 && <div className="filter-selected-list">{selectedCompanyNames.map(name => <button key={name} type="button" className="filter-selected" onClick={() => onCompanyChange(name)}>{name} ×</button>)}</div>}

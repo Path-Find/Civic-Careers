@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Moved the saved-jobs filter explanation into the sidebar beneath the Filters heading instead of placing it below the job list.
+
 - Company directory rows are now real links, so they support right-click, middle-click, and modifier-click opening while preserving in-app navigation for ordinary clicks.
 
 - Simplified the location and employer filters, aligned their search controls, and made salary thresholds compare supported pay periods using approximate yearly equivalents.
