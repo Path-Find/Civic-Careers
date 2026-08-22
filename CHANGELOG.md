@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Kept Career stage as a sidebar filter without displaying “Student” as a job-detail metadata field.
+
 - Added official careers links for Shared Health Manitoba, Canada Post, the Government of Alberta, and the University of Saskatchewan.
 
 - Salary display now removes unnecessary `.00` decimals and uses exact compact `K` notation for clean yearly amounts such as `$110.5K-$143K`.
