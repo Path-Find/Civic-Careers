@@ -82,7 +82,6 @@ export function useJobs() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [jobsTotal, setJobsTotal] = useState(0);
   const [jobsAvailableTotal, setJobsAvailableTotal] = useState(0);
-  const [companyTitleSuggestions, setCompanyTitleSuggestions] = useState<string[]>([]);
   /** Canonical employer name when the jobs list is scoped to one employer. */
   const [jobsSource, setJobsSource] = useState<string | null>(null);
   const [jobsOrganization, setJobsOrganization] = useState<OrganizationGroup | null>(null);
@@ -165,7 +164,6 @@ export function useJobs() {
           const closingSoonJobs = data.closingSoonJobs.map(normalizeJob);
           setHomeData({ ...data, recentJobs, closingSoonJobs });
           setJobs([...recentJobs, ...closingSoonJobs]);
-          setCompanyTitleSuggestions([]);
           clearSourceScope();
           return;
         }
@@ -173,14 +171,12 @@ export function useJobs() {
         if (view === 'companies') {
           setCompanySummaries(data);
           setJobs([]);
-          setCompanyTitleSuggestions([]);
           clearSourceScope();
           return;
         }
 
         if (view === 'saved') {
           setJobs((Array.isArray(data) ? data : []).map(normalizeJob));
-          setCompanyTitleSuggestions([]);
           clearSourceScope();
           return;
         }
@@ -192,7 +188,6 @@ export function useJobs() {
           setJobs(job ? [job] : []);
           setJobsTotal(job ? 1 : 0);
           setJobsAvailableTotal(job?.is_active ? 1 : 0);
-          setCompanyTitleSuggestions([]);
           clearSourceScope();
           return;
         }
@@ -202,7 +197,6 @@ export function useJobs() {
         setJobs(list);
         setJobsTotal(Number(data.total ?? list.length));
         setJobsAvailableTotal(Number(data.availableTotal ?? data.total ?? list.length));
-        setCompanyTitleSuggestions(Array.isArray(data.titleSuggestions) ? data.titleSuggestions : []);
         setSourceScope(data.source ?? null, Array.isArray(data.sources) ? data.sources : [], data.organization ?? null);
       })
       .catch(error => console.error('Error fetching jobs:', error))
@@ -279,7 +273,6 @@ export function useJobs() {
     jobsAvailableTotal,
     jobsSource,
     jobsOrganization,
-    companyTitleSuggestions,
     setServerFilters,
     loadMore,
     refresh,

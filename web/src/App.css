@@ -164,13 +164,6 @@
 .company-child-links { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem 0.75rem; margin-top: 0.8rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; }
 .company-child-links-label { color: #64748b; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 .company-child-links a { display: inline-flex; align-items: center; gap: 0.25rem; color: #2563eb; font-size: 0.75rem; font-weight: 600; text-decoration: none; }
-.company-title-suggestions { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; }
-.company-title-suggestions-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.55rem; }
-.company-title-suggestions h3 { margin: 0; color: #64748b; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-.company-title-clear { border: 0; padding: 0; background: transparent; color: #64748b; font: inherit; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
-.company-title-options { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.company-title-option { border: 1px solid #e2e8f0; border-radius: 999px; padding: 0.3rem 0.55rem; background: white; color: #475569; font: inherit; font-size: 0.7rem; font-weight: 600; cursor: pointer; }
-.company-title-option:hover, .company-title-option.active { border-color: #0f172a; background: #0f172a; color: white; }
 .list-sort-options { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
 .list-heading-row { position: sticky; top: 0; z-index: 10; display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding: 0.75rem 0; background: white; flex-wrap: wrap; }
 .list-count-label { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }

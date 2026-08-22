@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { inject } from '@vercel/analytics';
 import { jobIdFromPath, jobRoute, slugify } from './utils';
 import type { Job, ListingTypeFilter, View } from './types/jobs';
-import { normalizeJobTitle, parseJobDetails } from './modules/jobs/jobUtils';
+import { parseJobDetails } from './modules/jobs/jobUtils';
 import { useJobs } from './modules/jobs/hooks/useJobs';
 import { useJobFilters } from './modules/jobs/hooks/useJobFilters';
 import { useRecentlyViewed } from './modules/jobs/hooks/useRecentlyViewed';
@@ -12,7 +12,6 @@ import { JobDetailView } from './modules/jobs/components/JobDetailView';
 import { HomeQuickFilters } from './modules/jobs/components/HomeQuickFilters';
 import { LocationPrompt } from './modules/jobs/components/LocationPrompt';
 import { CompanyDirectory } from './modules/jobs/components/CompanyDirectory';
-import { CompanyTitleSuggestions } from './modules/jobs/components/CompanyTitleSuggestions';
 import { CompanyFiltersSidebar } from './modules/jobs/components/CompanyFiltersSidebar';
 import { ListSortControls } from './modules/jobs/components/ListSortControls';
 import { EDUCATION_LEVELS, matchesEducationField, matchesEducationLevel, type EducationLevel } from './modules/jobs/educationFilters';
@@ -161,7 +160,7 @@ function replaceJobFiltersInUrl(state: JobUrlState) {
 }
 
 function App() {
-  const { jobs, homeData, companySummaries, companyTitleSuggestions, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, jobsOrganization, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
+  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, jobsOrganization, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -169,7 +168,6 @@ function App() {
   const [companySort, setCompanySort] = useState<'alphabetical' | 'mostJobs' | 'recent'>('alphabetical');
   const [companyStatus, setCompanyStatus] = useState<'hiring' | 'all'>('hiring');
   const [selectedCompanyTypes, setSelectedCompanyTypes] = useState<CompanyType[]>([]);
-  const [companyTitleFilter, setCompanyTitleFilter] = useState<string | null>(null);
   const [selectedCompanyNames, setSelectedCompanyNames] = useState<string[]>([]);
   const [selectedEducationLevels, setSelectedEducationLevels] = useState<EducationLevel[]>([]);
   const [educationField, setEducationField] = useState('');
@@ -200,13 +198,8 @@ function App() {
   const lastCheckedAt = homeData?.lastCheckedAt ?? latestJobCheckedAt;
   // jobsSource is set by the scoped company-page API fetch — no need to mirror it into searchTerm.
   const isCompanyPage = currentView === 'jobs' && Boolean(jobsSource);
-  const companyTitleOptions = [...new Set(companyTitleSuggestions.map(normalizeJobTitle).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-    .slice(0, 20);
   const companyCareersPortal = jobsOrganization?.portal ?? (jobsSource ? companyPortal(jobsSource) : null);
-  const companyFilteredJobs = isCompanyPage && companyTitleFilter
-    ? filteredJobs.filter(job => normalizeJobTitle(job.job_title) === companyTitleFilter)
-    : filteredJobs;
+  const companyFilteredJobs = filteredJobs;
   const selectedCompanySources = selectedCompanyNames.flatMap(name => companySummaries.find(company => company.name === name)?.sourceNames ?? [name]);
   const employerFilteredJobs = currentView === 'saved'
     ? companyFilteredJobs.filter(job => selectedCompanyNames.length === 0 || selectedCompanyNames.includes(jobsSource ?? '') || selectedCompanySources.includes(job.source))
@@ -226,7 +219,6 @@ function App() {
     || minSalary
     || showStudentJobs
     || listingTypeFilter
-    || companyTitleFilter
   );
   const hasJobFilters = hasClientOnlyFilters || deadlineDays !== null || newlyAdded || selectedCompanyNames.length > 0 || selectedEducationLevels.length > 0 || educationField.trim().length > 0 || selectedCareerStages.length > 0;
   // Prefer API totals whenever no client-only filters are active (includes deadline / newly-added / company scope).
@@ -356,7 +348,6 @@ function App() {
         setSelectedJob(null);
       } else if (path.startsWith('/companies/')) {
         setCurrentView('jobs');
-        setCompanyTitleFilter(null);
         setSelectedJob(null);
       } else if (path === '/companies') {
         setCurrentView('companies');
@@ -420,7 +411,6 @@ function App() {
   const handleNavigate = (view: View, companyFilter?: string, companySlug?: string) => {
     setCurrentView(view);
     setSelectedJob(null);
-    setCompanyTitleFilter(null);
     window.scrollTo(0, 0);
     if (companyFilter) {
       setSearchTerm(companyFilter);
@@ -509,7 +499,7 @@ function App() {
 
   const reset = () => {
     setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setSelectedLanguages([]); setVehicleRequired(false); setMinSalary(null); setDeadlineDays(null); setListingTypeFilter(null); setSortNewest(false); setNewlyAdded(false);
-    setLocationTerm(''); setShowStudentJobs(false); setSelectedCareerStages([]); setSelectedCompanyTypes([]); setCompanyTitleFilter(null); setSelectedCompanyNames([]); setSelectedEducationLevels([]); setEducationField('');
+    setLocationTerm(''); setShowStudentJobs(false); setSelectedCareerStages([]); setSelectedCompanyTypes([]); setSelectedCompanyNames([]); setSelectedEducationLevels([]); setEducationField('');
     setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], educationLevels: [], educationField: '', careerStages: [] });
     window.history.pushState(null, '', '/');
     refresh();
@@ -718,12 +708,6 @@ function App() {
                         {jobsOrganization.children.map(child => <a key={child.name} href={child.portal} target="_blank" rel="noopener noreferrer">{child.name} <ExternalLink size={12} /></a>)}
                       </div>}
                     </div>
-                    <CompanyTitleSuggestions
-                      titles={companyTitleOptions}
-                      selectedTitle={companyTitleFilter}
-                      onSelect={title => setCompanyTitleFilter(previous => previous === title ? null : title)}
-                      onClear={() => setCompanyTitleFilter(null)}
-                    />
                   </div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replaced the growing employer list with searchable suggestions and added location suggestions as users type.
 
+- Limited company job-title suggestions to titles shared by at least three available jobs.
+
 - Fixed fixed-term contract wording being left in public job titles instead of being moved into duration metadata.
 
 - Added an automated post-scrape quality pass that refreshes metadata, applies shared and source-specific title cleanup, fills missing active deadlines, and enforces publication states before jobs reach the public site.
