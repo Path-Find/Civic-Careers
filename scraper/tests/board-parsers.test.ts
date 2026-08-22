@@ -13,8 +13,35 @@ import {
   parseTechnomedia,
   parseJobs2Web,
   parseGovernmentOfCanada,
+  parseDefenceConstructionCanada,
   parsePeopleSoft,
 } from '../board-parsers';
+
+test('parseDefenceConstructionCanada prefers the labelled salary range over allowances', () => {
+  const result = parseDefenceConstructionCanada(`
+Position Description
+Administrative Assistant
+Location
+SK, Moose Jaw
+Salary Range:
+$51,566 - $67,035
+Employment status:
+Continuing
+Flexible work option:
+Onsite 5 days/week
+Closing Date:
+28/08/2026
+Benefits include a $400 annual wellness allowance.
+  `);
+  assert.equal(result.salary, '$51,566-$67,035 year');
+  assert.equal(result.salaryMin, 51566);
+  assert.equal(result.salaryMax, 67035);
+  assert.equal(result.salaryPeriod, 'yearly');
+  assert.equal(result.location, 'SK, Moose Jaw');
+  assert.equal(result.employmentType, 'Permanent');
+  assert.equal(result.workModel, 'On-site');
+  assert.equal(result.closingDate, '2026-08-28');
+});
 
 test('parseHamilton extracts structured fields correctly', () => {
   const rawText = `

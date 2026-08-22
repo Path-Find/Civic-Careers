@@ -48,6 +48,7 @@ const APPLY = process.argv.includes('--apply');
 // re-run of deterministic metadata, never the normal queue path.
 const INCLUDE_SOFT_PARSED = process.argv.includes('--include-soft-parsed');
 const ACADEMIC_ONLY = process.argv.includes('--academic-only');
+const SOURCE_ONLY = process.argv.find(arg => arg.startsWith('--source='))?.slice('--source='.length) ?? '';
 const UNPARSED_ONLY = !INCLUDE_SOFT_PARSED;
 const EXCLUDED_SOURCES = new Set(
   (process.env.EXCLUDE_SOURCES ?? '')
@@ -221,6 +222,7 @@ async function main() {
   const academicSourceFilter = ACADEMIC_ONLY
     ? "AND (r.source ILIKE '%university%' OR r.source ILIKE '%college%' OR r.source ILIKE '%polytechnic%' OR r.source ILIKE '%institute%')"
     : '';
+  const sourceOnlyFilter = SOURCE_ONLY ? 'AND r.source = ?' : '';
   const parseScope = UNPARSED_ONLY
     ? 'r.parsed_at IS NULL'
     : '(r.parsed_at IS NULL OR d.parser_version = 0)';
@@ -239,9 +241,10 @@ async function main() {
       ${safeRowGuard}
       ${sourceExclusion}
       ${academicSourceFilter}
+      ${sourceOnlyFilter}
     ORDER BY r.scraped_at ASC
   `,
-    args: [...EXCLUDED_SOURCES],
+    args: [...EXCLUDED_SOURCES, ...(SOURCE_ONLY ? [SOURCE_ONLY] : [])],
   });
 
   const rows = result.rows as unknown as RawRow[];

@@ -15,6 +15,7 @@ export type CompanyType = typeof COMPANY_TYPE_OPTIONS[number]['value'];
 // "University".
 export const COMPANY_TYPES: Record<string, CompanyType[]> = {
   'Government of Canada': ['publicAgency'],
+  'Defence Construction Canada': ['publicAgency'],
   'Province of Ontario (OPS)': ['publicAgency'],
   'Province of Ontario': ['publicAgency'],
   'CMHC': ['publicAgency'],

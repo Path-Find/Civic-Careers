@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Repaired syndicated Defence Construction Canada postings so their salary, employer name, and application links no longer inherit Government of Canada metadata.
+
+- Added a conservative structured-field backfill for missing language, certification, vehicle, education, experience, and skills data, with duplicate and oversized-capture guards.
+
 - Added a dry-run missing-field backfill that recovers safe blank metadata from preserved captures without overwriting populated values.
+
+- Normalized unambiguous employment-type values such as `FULL-TIME` and `Full Time` to the controlled display vocabulary.
 
 - Added read-only raw-capture replay and Playwright content audits so parser drift and dead/challenge pages are detected before publication.
 

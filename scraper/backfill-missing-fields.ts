@@ -11,7 +11,7 @@ import dotenv from 'dotenv';
 import { initDb } from './db';
 import { extractBoardSpecificMetadata } from './board-parsers';
 import { classifyRawCapture } from './capture-quality';
-import { extractCertificationRequirements, extractSoftwareRequirements, reconcileStructuredRequirements } from './requirements';
+import { extractCertificationRequirements, extractLanguageVehicleRequirements, extractSecurityRequirementLabel, extractSoftwareRequirements, extractVehicleRequired, reconcileStructuredRequirements } from './requirements';
 import { formatSalaryDisplay, parseSalaryText } from './salary-format';
 import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
@@ -30,10 +30,11 @@ const QUERY = `
   SELECT j.id, j.source, r.raw_text,
          d.job_title, d.department, d.location, d.salary_range, d.salary_min,
          d.salary_max, d.salary_period, d.employment_type, d.work_model,
-         d.duration, d.hours, d.union_name, d.benefits,
+         d.duration, d.hours, d.union_name, d.description, d.benefits,
          d.required_skills, d.software_requirements, d.experience_requirements,
          d.education_requirements, d.license_requirements,
          d.language_requirements, d.certification_requirements
+         , d.vehicle_required, d.security_check_required
   FROM jobs j
   JOIN raw_jobs r ON r.id = j.id
   JOIN job_details d ON d.id = j.id
@@ -59,11 +60,40 @@ function list(value: unknown): string[] {
 }
 
 function addIfEmpty(fields: Record<string, unknown>, row: Row, field: string, value: unknown): void {
-  if (empty(row[field]) && (typeof value === 'number' || text(value))) fields[field] = value;
+  if (!empty(row[field]) && row[field] !== null && row[field] !== undefined) return;
+  if (typeof value === 'boolean') fields[field] = value ? 1 : 0;
+  else if (typeof value === 'number' || text(value)) fields[field] = value;
 }
 
 function addListIfEmpty(fields: Record<string, unknown>, row: Row, field: string, values: string[]): void {
-  if (list(row[field]).length === 0 && values.length > 0) fields[field] = JSON.stringify(values);
+  const cleaned = [...new Set(
+    values
+      .map(value => String(value ?? '').replace(/\s+/g, ' ').trim())
+      .filter(value => value && value.length <= 300)
+      .filter(value => !/skip to main content|page is loaded|similar jobs|follow us|cookie(?: policy| notice)|posting information/i.test(value))
+      .filter(value => !(value.length > 180 && /[.!?](?:\s|$)/.test(value))),
+  )];
+  if (list(row[field]).length === 0 && cleaned.length > 0) fields[field] = JSON.stringify(cleaned);
+}
+
+function sameList(left: string[], right: string[]): boolean {
+  const normalize = (values: string[]) => JSON.stringify([...new Set(values.map(value => value.toLowerCase().replace(/\s+/g, ' ').trim()))].sort());
+  return left.length > 0 && normalize(left) === normalize(right);
+}
+
+function rejectStructuredDuplicates(fields: Record<string, unknown>, row: Row): void {
+  const lists = ['benefits', 'required_skills', 'software_requirements', 'experience_requirements', 'education_requirements', 'license_requirements', 'language_requirements', 'certification_requirements'];
+  for (const field of lists) {
+    const candidate = list(fields[field]);
+    if (candidate.length === 0) continue;
+    for (const other of lists) {
+      if (other === field) continue;
+      if (sameList(candidate, list(row[other]))) {
+        delete fields[field];
+        break;
+      }
+    }
+  }
 }
 
 function corruptedBackfillValues(row: Row): Record<string, unknown> {
@@ -92,12 +122,12 @@ function candidateChanges(row: Row): Record<string, unknown> {
   const duration = normalizeDuration(parsed.duration);
   const unionName = normalizeUnionName(parsed.unionName);
   const hours = text(parsed.hours);
-  if (department.length <= 150 && !/\b(?:position\s+type|employee\s+group|posting\s+information|department|location|salary)\s*:?/i.test(department)) addIfEmpty(fields, row, 'department', department);
-  if (location.length <= 150 && !/\b(?:campus|job\s+type|employment\s+tenure|posting\s+information)\b/i.test(location)) addIfEmpty(fields, row, 'location', location);
+  if (department.length <= 150 && !/(?:position\s*type|employee\s*group|posting\s*information|department|location|salary)\s*:?/i.test(department)) addIfEmpty(fields, row, 'department', department);
+  if (location.length <= 150 && !/(?:campus[a-z]|job\s*type|employment\s*tenure|posting\s*information)/i.test(location)) addIfEmpty(fields, row, 'location', location);
   addIfEmpty(fields, row, 'employment_type', employmentType);
   addIfEmpty(fields, row, 'work_model', workModel);
   addIfEmpty(fields, row, 'duration', duration);
-  if (hours.length <= 200 && !/^FTE:\s*(?:casual|n\/a|none)$/i.test(hours) && !/\b(?:department|location|salary|posting)\s*:/i.test(hours)) addIfEmpty(fields, row, 'hours', hours);
+  if (hours.length <= 200 && !/^FTE:\s*[^\w]*(?:casual|n\/a|none)/i.test(hours) && !/\b(?:department|location|salary|posting)\s*:/i.test(hours)) addIfEmpty(fields, row, 'hours', hours);
   if (unionName.length <= 150 && !/\b(?:position|posting|information|department|location|salary)\s*:/i.test(unionName)) addIfEmpty(fields, row, 'union_name', unionName);
 
   const salaryText = parsed.salary ?? '';
@@ -114,14 +144,23 @@ function candidateChanges(row: Row): Record<string, unknown> {
   // expensive across the historical archive. It still only populates empty
   // JSON fields and never replaces a human/AI value.
   if (INCLUDE_STRUCTURED) {
-    const structured = reconcileStructuredRequirements(raw, {}, raw);
-    addListIfEmpty(fields, row, 'benefits', structured.benefits);
-    addListIfEmpty(fields, row, 'required_skills', structured.required_skills);
-    addListIfEmpty(fields, row, 'experience_requirements', structured.experience_requirements);
-    addListIfEmpty(fields, row, 'education_requirements', structured.education_requirements);
-    addListIfEmpty(fields, row, 'license_requirements', structured.license_requirements);
-    addListIfEmpty(fields, row, 'software_requirements', extractSoftwareRequirements(raw).values);
-    addListIfEmpty(fields, row, 'certification_requirements', extractCertificationRequirements(raw));
+    const structuredText = text(row.description) || raw;
+    const structuredFields = ['benefits', 'required_skills', 'experience_requirements', 'education_requirements', 'license_requirements', 'software_requirements', 'certification_requirements', 'language_requirements'];
+    if (structuredFields.some(field => list(row[field]).length === 0) || row.vehicle_required == null || row.security_check_required == null) {
+      const structured = reconcileStructuredRequirements(structuredText, {}, raw);
+      addListIfEmpty(fields, row, 'benefits', structured.benefits);
+      addListIfEmpty(fields, row, 'required_skills', structured.required_skills);
+      addListIfEmpty(fields, row, 'experience_requirements', structured.experience_requirements);
+      addListIfEmpty(fields, row, 'education_requirements', structured.education_requirements);
+      addListIfEmpty(fields, row, 'license_requirements', structured.license_requirements);
+      addListIfEmpty(fields, row, 'software_requirements', extractSoftwareRequirements(raw).values);
+      addListIfEmpty(fields, row, 'certification_requirements', extractCertificationRequirements(raw));
+      const language = extractLanguageVehicleRequirements(structuredText, text(row.job_title));
+      addListIfEmpty(fields, row, 'language_requirements', language.language_requirements);
+      if (row.vehicle_required == null) addIfEmpty(fields, row, 'vehicle_required', extractVehicleRequired(structuredText));
+      if (row.security_check_required == null) addIfEmpty(fields, row, 'security_check_required', extractSecurityRequirementLabel(structuredText));
+      rejectStructuredDuplicates(fields, row);
+    }
   }
   return fields;
 }
@@ -163,7 +202,11 @@ async function main() {
   let updated = 0;
   for (const change of (REPAIR_ARTIFACTS ? repairs : changes)) {
     const columns = Object.keys(change.fields);
-    const sql = `UPDATE job_details SET ${columns.map(column => `${column} = ?`).join(', ')} WHERE id = ?`;
+    const guarded = columns.filter(column => change.fields[column] !== null);
+    const guard = guarded.length > 0
+      ? ` AND ${guarded.map(column => `(${column} IS NULL OR TRIM(CAST(${column} AS TEXT)) = '')`).join(' AND ')}`
+      : '';
+    const sql = `UPDATE job_details SET ${columns.map(column => `${column} = ?`).join(', ')} WHERE id = ?${guard}`;
     const statement = { sql, args: [...columns.map(column => change.fields[column]), change.id] };
     if (change.store === 'archive' && archive.executeArchive) await archive.executeArchive(statement);
     else await db.execute(statement);

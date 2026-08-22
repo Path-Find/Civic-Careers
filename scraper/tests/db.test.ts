@@ -130,7 +130,7 @@ test('saveRawJob creates a shell listing without marking it parsed', async () =>
   assert.equal(statements[0].args?.[11], 'open_until_filled');
   assert.equal(statements[0].args?.[8], null);
   assert.match(statements[1].sql, /INSERT INTO jobs/i);
-  assert.match(statements[1].sql, /ON CONFLICT\(id\) DO NOTHING/i);
+  assert.match(statements[1].sql, /ON CONFLICT\(id\) DO UPDATE/i);
   assert.match(statements[2].sql, /publication_status/i);
   assert.equal(statements[2].args?.[0], 'soft_parsed');
 });

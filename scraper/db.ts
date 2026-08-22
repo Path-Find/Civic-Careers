@@ -6,6 +6,7 @@ import { extractPendingMetadata } from './pending-metadata';
 import { normalizeActiveClosingDateStatus } from './closing-date';
 import { classifyRawCapture } from './capture-quality';
 import { createNeonDatabaseClient, NeonDatabaseClient } from './neon-db';
+import { canonicalSourceForRaw, defenceConstructionApplicationUrl } from './source-fixes';
 dotenv.config({ quiet: true });
 
 // After this many failed parse attempts, a job is excluded from getUnparsedJobs
@@ -515,21 +516,23 @@ export async function saveRawJob(client: Client, job: {
   posted_at?: string | null;
 }): Promise<boolean> {
   await asNeonClient(client)?.restoreIfArchived(job.id);
-  const captureQuality = classifyRawCapture(job.source, job.raw_text);
+  const source = canonicalSourceForRaw(job.source, job.raw_text);
+  const applicationUrl = defenceConstructionApplicationUrl(job.raw_text) ?? job.application_url;
+  const captureQuality = classifyRawCapture(source, job.raw_text);
   if (!captureQuality.valid) {
     await discardRawJob(client, job.id);
     return false;
   }
 
   const suppliedTitle = job.title?.trim() || '';
-  const sourceTitle = (isUsableJobTitle(suppliedTitle) ? suppliedTitle : extractRawJobTitle(job.source, job.raw_text) || extractUrlJobTitle(job.application_url ?? job.url, job.raw_text)) || null;
+  const sourceTitle = (isUsableJobTitle(suppliedTitle) ? suppliedTitle : extractRawJobTitle(source, job.raw_text) || extractUrlJobTitle(applicationUrl ?? job.url, job.raw_text)) || null;
   const pendingClosing = normalizeActiveClosingDateStatus(job.raw_text);
   const quality = evaluateJobQuality({
-    source: job.source,
+    source,
     title: sourceTitle,
     rawText: job.raw_text,
     url: job.url,
-    applicationUrl: job.application_url,
+    applicationUrl,
     closingDate: pendingClosing.date,
     closingDateStatus: pendingClosing.status,
   });
@@ -562,13 +565,13 @@ export async function saveRawJob(client: Client, job: {
           END,
           scraped_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location ?? null, pending.duration, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
+      args: [job.id, job.url, applicationUrl ?? null, source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location ?? null, pending.duration, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
     },
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
         SELECT id, COALESCE(application_url, url), source, 1, first_seen_at, scraped_at
         FROM raw_jobs WHERE id = ?
-        ON CONFLICT(id) DO NOTHING`,
+        ON CONFLICT(id) DO UPDATE SET source = excluded.source, url = COALESCE(excluded.url, jobs.url), scraped_at = excluded.scraped_at`,
       args: [job.id],
     },
     {

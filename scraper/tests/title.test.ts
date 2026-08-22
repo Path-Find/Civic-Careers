@@ -50,6 +50,13 @@ describe('isEmploymentOrDurationParen', () => {
   });
 });
 
+it('extracts Defence Construction Canada titles from the syndicated layout', () => {
+  assert.equal(
+    extractRawJobTitle('Defence Construction Canada', 'Position Description\nAdministrative Assistant\nLocation\nSK, Moose Jaw'),
+    'Administrative Assistant',
+  );
+});
+
 describe('normalizeJobTitle', () => {
   it('strips employment/duration parentheticals', () => {
     assert.equal(normalizeJobTitle('Custodian (Part-Time)'), 'Custodian');

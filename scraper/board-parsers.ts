@@ -732,6 +732,28 @@ export function parseGovernmentOfCanada(rawText: string): ExtractedBoardMetadata
   return metadata;
 }
 
+/** DCC is syndicated through GC Jobs but uses a distinct Taleo field layout. */
+export function parseDefenceConstructionCanada(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+  const salary = rawText.match(/Salary\s+Range\s*:\s*([^\n]+)/i)?.[1]?.trim();
+  const parsedSalary = salary ? parseSalaryText(salary, 'yearly') : null;
+  if (parsedSalary) {
+    metadata.salary = parsedSalary.display;
+    metadata.salaryMin = parsedSalary.min;
+    metadata.salaryMax = parsedSalary.max;
+    metadata.salaryPeriod = parsedSalary.period;
+  }
+  const location = rawText.match(/\bLocation\s*(?::\s*|\n+\s*)([^\n]+)/i)?.[1]?.trim();
+  if (location) metadata.location = location;
+  const employment = rawText.match(/Employment\s+status\s*:\s*([^\n]+)/i)?.[1]?.trim();
+  if (employment) metadata.employmentType = normalizeEmploymentType(employment);
+  const workModel = rawText.match(/Flexible\s+work\s+option\s*:\s*([^\n]+)/i)?.[1]?.trim();
+  if (workModel) metadata.workModel = normalizeWorkModel(workModel);
+  const closing = rawText.match(/Closing\s+Date\s*:\s*([^\n]+)/i)?.[1]?.trim();
+  if (closing) metadata.closingDate = extractClosingDate(`Closing Date: ${closing}`);
+  return metadata;
+}
+
 /**
  * Parser for PeopleSoft Fluid tenant postings.
  */
@@ -828,6 +850,9 @@ export function extractBoardSpecificMetadata(source: string, rawText: string): E
   // Government of Canada
   if (source === 'Government of Canada') {
     return parseGovernmentOfCanada(rawText);
+  }
+  if (source === 'Defence Construction Canada') {
+    return parseDefenceConstructionCanada(rawText);
   }
 
   // PeopleSoft sources

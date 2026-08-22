@@ -724,6 +724,8 @@ export function extractRawJobTitle(source: string, rawText: string | null | unde
     // first line is the job title. The scraper's link metadata does not carry
     // that title, so recover only that first source line for pending shells.
     candidate = rawText.match(/^\s*([^\r\n]+)/)?.[1] ?? '';
+  } else if (source === 'Defence Construction Canada') {
+    candidate = rawText.match(/Position Description\s+(.+?)\s+Location\b/i)?.[1] ?? '';
   }
 
   const title = normalizeJobTitle(candidate);

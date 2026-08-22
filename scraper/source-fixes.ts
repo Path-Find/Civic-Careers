@@ -8,6 +8,25 @@ export type GovernmentOfCanadaFix = {
   medicalRequirements?: string[];
 };
 
+/** DCC postings are syndicated through GC Jobs but are their own employer. */
+export function isDefenceConstructionCanadaPosting(rawText: string): boolean {
+  return /Defence Construction Canada\s*\(DCC\)|\bDCC\s+is\s+(?:looking|recruiting)|To begin a career with Defence Construction Canada/i.test(rawText);
+}
+
+export function defenceConstructionApplicationUrl(rawText: string): string | null {
+  if (!isDefenceConstructionCanadaPosting(rawText)) return null;
+  const requisition = rawText.match(/\bRequisition Number\s*:?\s*(\d{3,})/i)?.[1];
+  return requisition
+    ? `https://phh.tbe.taleo.net/phh04/ats/careers/v2/viewRequisition?org=DEFENCECONSTRUCTIONCANADA&cws=47&rid=${requisition}`
+    : null;
+}
+
+export function canonicalSourceForRaw(source: string, rawText: string): string {
+  return source === 'Government of Canada' && isDefenceConstructionCanadaPosting(rawText)
+    ? 'Defence Construction Canada'
+    : source;
+}
+
 // This GC link is an account/profile page, not a job posting. The scraper
 // excludes it from future runs and the source backfill deactivates the row.
 export const EXCLUDED_GOVERNMENT_OF_CANADA_IDS = new Set(['2352259', '2445703']);
