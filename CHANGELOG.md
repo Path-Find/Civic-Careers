@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Salary display now removes unnecessary `.00` decimals and uses exact compact `K` notation for clean yearly amounts such as `$110.5K-$143K`.
+
 - Moved the saved-jobs filter explanation into the sidebar beneath the Filters heading instead of placing it below the job list.
 
 - Company directory rows are now real links, so they support right-click, middle-click, and modifier-click opening while preserving in-app navigation for ordinary clicks.

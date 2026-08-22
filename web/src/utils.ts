@@ -250,9 +250,15 @@ export const formatSalary = (job: { salary_min: number | null; salary_max: numbe
   const period = String(job.salary_period ?? '').trim().toLowerCase();
   if (min === null && max === null) return null;
   if (!['hourly', 'daily', 'monthly', 'biweekly', 'weekly', 'yearly', 'flat'].includes(period)) return null;
-  const fmt = (n: number) => n % 1 === 0
-    ? `$${n.toLocaleString()}`
-    : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (n: number) => {
+    if (period === 'yearly' && n >= 10_000 && n % 100 === 0) {
+      const compact = n / 1_000;
+      return `$${compact.toLocaleString(undefined, { maximumFractionDigits: 2 })}K`;
+    }
+    return n % 1 === 0
+      ? `$${n.toLocaleString()}`
+      : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
   const displayPeriod: Record<string, string> = { hourly: 'hour', daily: 'day', monthly: 'month', biweekly: 'biweekly', weekly: 'week', yearly: 'year', flat: 'flat' };
   const range = min !== null && max !== null && min !== max
     ? `${fmt(min)}-${fmt(max)}`
