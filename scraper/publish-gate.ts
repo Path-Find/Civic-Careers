@@ -11,6 +11,7 @@
  */
 import { isUsableJobTitle, normalizeJobTitle } from './title';
 import { isCanonicalSalary } from './salary-format';
+import { isCanonicalAvailability } from './hours-availability';
 
 export interface PublishGateDetails {
   title: string;
@@ -96,6 +97,7 @@ function corruptedScalarField(details: PublishGateDetails): string | null {
     if (FIELDS_REJECT_COLON.has(field) && value.includes(':')) return field;
     if (field === 'availability' && /\bratification\b|\bdocument(?:s)?\b/i.test(value)) return field;
     if (field === 'salary' && !isCanonicalSalary(value)) return field;
+    if (field === 'availability' && !isCanonicalAvailability(value)) return field;
     if (field === 'hours' || field === 'availability' || field === 'academicSchedule' || field === 'academicWorkload' || field === 'academicOfficeHours') {
       if (field === 'hours' && /receive\s+an\s+alert|^n\s*\(/i.test(value)) return field;
       if (/\b(?:department|location|salary|requirements?|exigences?|work\s+modality|work\s+hours?|hours?|workload|schedule|status|vacanc(?:y|ies)|additional\s+information|information\s+additionnelle)\s*:/i.test(value)) return field;

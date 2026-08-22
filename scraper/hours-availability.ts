@@ -99,7 +99,7 @@ export function normalizeHours(raw: string | null | undefined): string {
 }
 
 const AVAIL_TAGS: Array<[string, RegExp]> = [
-  ['Daytime', /\bdaytime\b|\bdays?\b(?!\s*,?\s*evenings)/i],
+  ['Daytime', /\bdaytime\b|(?<![-\w])days?(?!\s*,?\s*evenings)/i],
   ['Evenings', /\bevenings?\b/i],
   ['Nights', /\bnights?\b/i],
   ['Weekends', /\bweekends?\b/i],
@@ -111,6 +111,14 @@ const AVAIL_TAGS: Array<[string, RegExp]> = [
   ['On-call', /\bon-?call\b/i],
   ['School hours', /\bschool\s+(?:hours|season|hours\s+of\s+operation)\b/i],
 ];
+
+const CANONICAL_AVAILABILITY_TOKEN = '(?:Daytime|Evenings|Nights|Weekends|Weekdays|Holidays|Shift work|Variable|Flexible|On-call|School hours|(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)-(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun))';
+const CANONICAL_AVAILABILITY = new RegExp(`^${CANONICAL_AVAILABILITY_TOKEN}(?:; ${CANONICAL_AVAILABILITY_TOKEN})*$`);
+
+/** Return true only for the controlled, display-ready Availability format. */
+export function isCanonicalAvailability(value: string | null | undefined): boolean {
+  return typeof value === 'string' && CANONICAL_AVAILABILITY.test(value.trim());
+}
 
 /** Compact availability to known schedule tags; multi with "; ". */
 export function normalizeAvailability(raw: string | null | undefined): string {
@@ -127,6 +135,17 @@ export function normalizeAvailability(raw: string | null | undefined): string {
   if (/\bratification\b|\bdocument(?:s)?\b/i.test(s)) return '';
   if (/(?:openings?|vacanc(?:y|ies)|division|department|union|salary|location|total\s+hours?)/i.test(s)) return '';
   if (/varying\s+hours?|hours?\s+of\s+work/i.test(s)) return '';
+
+  // Some source templates expose FTE/employment metadata in the schedule
+  // slot. It is never an availability value; remove it while preserving any
+  // real schedule tags that were captured beside it.
+  s = s
+    .replace(/(?:^|;\s*)FTE:\s*(?:;|$)/gi, ';')
+    .replace(/(?:^|;\s*)FTE:\s*[^;]+/gi, '')
+    .replace(/\s*;\s*;+/g, ';')
+    .replace(/^\s*;\s*|\s*;\s*$/g, '')
+    .trim();
+  if (!s) return '';
 
   // Employment fluff is not availability
   if (/^(full[-\s]?time|part[-\s]?time)(\s+term)?$/i.test(s)) return '';
@@ -152,7 +171,7 @@ export function normalizeAvailability(raw: string | null | undefined): string {
 
   // Explicit weekday span: Monday to Friday / Tuesday to Saturday
   const daySpan = s.match(
-    /\b(Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)\s+to\s+(Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)\b/i,
+    /\b(Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)\s*(?:to|[-–—])\s*(Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)\b/i,
   );
   if (daySpan) {
     const abbr = (w: string) => {
@@ -170,11 +189,8 @@ export function normalizeAvailability(raw: string | null | undefined): string {
     if (new RegExp(`^${label}$`, 'i').test(s)) return label;
   }
 
-  // Short free text without hour counts — keep lightly cleaned if short
-  if (s.length <= 48 && !/\d{1,3}(?:\.\d{1,2})?\s*(?:hours?|hrs?)\b/i.test(s)) {
-    return s.replace(/\s*;\s*/g, '; ').replace(/\s*,\s*/g, ', ');
-  }
-
+  // Unknown prose is unsafe here. Empty is preferable to publishing a
+  // fragment, date, source label, or application instruction as a schedule.
   return '';
 }
 

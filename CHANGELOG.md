@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added a repeatable whole-corpus Availability audit and strict publication gate so nonstandard schedule prose, FTE metadata, and source fragments cannot reach public listings.
+
 - Simplified public job reports into plain-language issue categories and added the live page plus current recorded details to the prefilled GitHub report.
 
 - Removed the redundant “Showing jobs closing within 14 days” sentence when the deadline control already communicates the active view.
