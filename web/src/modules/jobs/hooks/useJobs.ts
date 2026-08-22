@@ -241,14 +241,18 @@ export function useJobs() {
     try {
       const response = await fetch(`${API}/api/jobs?id=${job.id}`);
       const data = await response.json();
-      if (data.description || data.academic_course || data.academic_schedule) {
+      if (data.description || data.academic_course || data.academic_schedule || data.details_pending !== undefined) {
         updateJob(job.id, {
           ...(data.description ? { description: data.description } : {}),
           ...(data.academic_course ? { academic_course: data.academic_course } : {}),
           ...(data.academic_schedule ? { academic_schedule: data.academic_schedule } : {}),
+          ...(data.details_pending !== undefined ? { details_pending: Number(data.details_pending) } : {}),
         });
       }
-      return data.description as string | undefined;
+      return {
+        description: data.description as string | undefined,
+        detailsPending: data.details_pending === undefined ? undefined : Number(data.details_pending),
+      };
     } catch (error) {
       console.error('Error fetching job description:', error);
       return undefined;

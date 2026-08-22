@@ -415,8 +415,12 @@ function App() {
     if (!selectedJob) return;
     recordViewed(selectedJob);
     if (selectedJob.description) return;
-    loadDescription(selectedJob).then(description => {
-      if (description) setSelectedJob(prev => prev && prev.id === selectedJob.id ? { ...prev, description } : prev);
+    loadDescription(selectedJob).then(result => {
+      if (result) setSelectedJob(prev => prev && prev.id === selectedJob.id ? {
+        ...prev,
+        ...(result.description ? { description: result.description } : {}),
+        ...(result.detailsPending === undefined ? {} : { details_pending: result.detailsPending }),
+      } : prev);
     });
   }, [selectedJob, loadDescription, recordViewed]);
 

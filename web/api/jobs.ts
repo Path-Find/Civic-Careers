@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createArchiveDb, createDb } from './_db.js';
 import { ORGANIZATION_GROUPS, organizationGroupForSlug, organizationGroupForSources } from '../src/modules/jobs/organizationMetadata.js';
+import { hasOversizedJobSection } from '../src/modules/jobs/descriptionQuality.js';
 
 const PUBLIC_CACHE = 's-maxage=86400, stale-while-revalidate=86400';
 function sourceTextValue(value: unknown): string {
@@ -261,7 +262,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         description: result.rows[0].description ?? null,
         academic_course: extractSourceAcademicCourse(result.rows[0].raw_text),
         academic_schedule: extractSourceAcademicSchedule(result.rows[0].raw_text),
-        details_pending: Number(result.rows[0].details_pending ?? 0),
+        details_pending: Number(result.rows[0].details_pending ?? 0) || (hasOversizedJobSection(String(result.rows[0].description ?? '')) ? 1 : 0),
       }));
       return;
     }
