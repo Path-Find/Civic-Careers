@@ -15,14 +15,33 @@ export function matchesLocation(location: string | null | undefined, filter: str
   return terms.some(term => normalizedLocation.includes(term));
 }
 
-/** Salary thresholds are yearly dollars; never compare them to another pay period. */
+const ANNUALIZATION_FACTORS: Record<string, number> = {
+  hourly: 2_080,
+  daily: 260,
+  weekly: 52,
+  biweekly: 26,
+  monthly: 12,
+  yearly: 1,
+};
+
+/** Convert supported pay periods to an approximate yearly equivalent. */
+export function annualizedSalaryMinimum(
+  salaryMin: number | null | undefined,
+  salaryPeriod: string | null | undefined,
+): number | null {
+  if (salaryMin === null || salaryMin === undefined || !Number.isFinite(salaryMin)) return null;
+  const factor = ANNUALIZATION_FACTORS[String(salaryPeriod ?? '').trim().toLowerCase()];
+  return factor === undefined ? null : Math.round(salaryMin * factor * 100) / 100;
+}
+
 export function matchesSalaryMinimum(
   salaryMin: number | null | undefined,
   salaryPeriod: string | null | undefined,
   minimum: number | null,
 ): boolean {
   if (minimum === null) return true;
-  return salaryPeriod === 'yearly' && salaryMin !== null && salaryMin !== undefined && salaryMin >= minimum;
+  const annualizedMinimum = annualizedSalaryMinimum(salaryMin, salaryPeriod);
+  return annualizedMinimum !== null && annualizedMinimum >= minimum;
 }
 
 export function useJobFilters(jobs: Job[], currentView: View, searchTerm: string) {

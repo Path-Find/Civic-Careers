@@ -16,7 +16,7 @@ function titleCaseField(value: string): string {
 }
 
 function cleanFieldCandidate(value: string): string {
-  let field = value
+  const field = value
     .replace(/\s+/g, ' ')
     .replace(/^[,;:–—-]+|[,;:–—-]+$/g, '')
     .replace(/\s*\((?:or|and)\s+equivalent[^)]*\)$/i, '')

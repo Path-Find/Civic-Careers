@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { ListingTypeFilter } from '../../../types/jobs';
@@ -81,9 +81,6 @@ export function JobFiltersSidebar({
     .filter(value => value.toLowerCase().includes(educationQuery.trim().toLowerCase()))
     .filter(value => value !== educationField)
     .slice(0, 8), [jobs, educationField, educationQuery]);
-  useEffect(() => {
-    if (!educationField) setEducationQuery('');
-  }, [educationField]);
   const selectLocation = (location: string) => {
     if (!selectedLocations.includes(location)) onLocationChange([...selectedLocations, location].join(', '));
     setLocationQuery('');
@@ -91,15 +88,14 @@ export function JobFiltersSidebar({
 
   return <aside className="listing-sidebar" style={{ top: `${headerHeight + 20}px`, maxHeight: `calc(100vh - ${headerHeight + 40}px)` }}>
     <div className="filter-heading"><span className="filter-heading-label">Filters</span></div>
-    <div className="filter-section"><label className="filter-title" htmlFor="location-filter">Location</label>{selectedLocations.length > 0 && <div className="filter-selected-list">{selectedLocations.map(location => <button key={location} type="button" className="filter-selected" onClick={() => onLocationChange(selectedLocations.filter(value => value !== location).join(', '))}>{location} ×</button>)}</div>}<div className="filter-search-wrap"><input id="location-filter" className="location-filter-input" value={locationQuery} onChange={event => setLocationQuery(event.target.value)} placeholder="Search locations" aria-describedby="location-filter-note" /><SuggestionList suggestions={locationQuery.trim() ? locationSuggestions : []} onSelect={selectLocation} /></div><p id="location-filter-note" className="filter-note">Type to find a location. Jobs match any selected location.</p></div>
+    <div className="filter-section"><label className="filter-title" htmlFor="location-filter">Location</label>{selectedLocations.length > 0 && <div className="filter-selected-list">{selectedLocations.map(location => <button key={location} type="button" className="filter-selected" onClick={() => onLocationChange(selectedLocations.filter(value => value !== location).join(', '))}>{location} ×</button>)}</div>}<div className="filter-search-wrap"><input id="location-filter" className="location-filter-input" value={locationQuery} onChange={event => setLocationQuery(event.target.value)} placeholder="Search locations" /><SuggestionList suggestions={locationQuery.trim() ? locationSuggestions : []} onSelect={selectLocation} /></div></div>
     {companyOptions.length > 0 && <FilterSection title="Employer">
       {selectedCompanyNames.length > 0 && <div className="filter-selected-list">{selectedCompanyNames.map(name => <button key={name} type="button" className="filter-selected" onClick={() => onCompanyChange(name)}>{name} ×</button>)}</div>}
       <div className="filter-search-wrap"><input id="employer-filter" className="location-filter-input" value={companyQuery} onChange={event => setCompanyQuery(event.target.value)} placeholder="Search employers" aria-label="Search employers" /><SuggestionList suggestions={companyQuery.trim() ? companySuggestions : []} onSelect={name => { onCompanyChange(name); setCompanyQuery(''); }} /></div>
-      <p className="filter-note">Type to find an employer.</p>
     </FilterSection>}
-    <FilterSection title="Salary Min (yearly)">
+    <FilterSection title="Salary Min (yearly equivalent)">
       {[50000, 75000, 100000, 125000].map(value => <FilterButton key={value} label={`$${value / 1000}k+`} active={minSalary === value} onClick={() => onMinSalaryChange(minSalary === value ? null : value)} />)}
-      <p className="filter-note">Only yearly salaries are compared. Other pay periods are not converted.</p>
+      <p className="filter-note">Hourly, daily, weekly, biweekly, and monthly pay is converted to an approximate yearly equivalent. Flat or unclear pay is excluded.</p>
     </FilterSection>
     <FilterSection title="Work Mode">{['In-person', 'Hybrid', 'Remote'].map(mode => <FilterButton key={mode} label={mode} active={selectedModes.includes(mode)} onClick={() => onModesChange(mode)} />)}</FilterSection>
     <FilterSection title="Language">{['English', 'French'].map(language => <FilterButton key={language} label={language} active={selectedLanguages.includes(language)} onClick={() => onLanguageChange(language)} />)}</FilterSection>

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Simplified the location and employer filters, aligned their search controls, and made salary thresholds compare supported pay periods using approximate yearly equivalents.
+
 - Repaired the truncated George Brown licence capture (`College of E`) and normalized Early Childhood Educator registration as `RECE (CECE)`; future truncated captures are rejected.
 
 - Removed academic context from 645 non-academic current/archive rows, limited the Academic roles filter and detail card to confirmed academic roles, and changed Area of study to canonical autocomplete options.

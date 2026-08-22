@@ -57,7 +57,7 @@
 .filter-title { font-size: 0.75rem; font-weight: 700; color: #64748b; letter-spacing: normal; }
 .filter-options { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 .filter-note { margin: 0.35rem 0 0; color: #94a3b8; font-size: 0.7rem; line-height: 1.35; }
-.filter-search-wrap { position: relative; }
+.filter-search-wrap { position: relative; width: 100%; flex: 0 0 100%; }
 .filter-suggestions { position: absolute; z-index: 5; left: 0; right: 0; max-height: 12rem; overflow-y: auto; margin-top: 0.2rem; padding: 0.2rem; border: 1px solid #e2e8f0; border-radius: 6px; background: white; box-shadow: 0 8px 20px rgb(15 23 42 / 10%); }
 .filter-suggestion { display: block; width: 100%; padding: 0.4rem 0.45rem; border: 0; border-radius: 4px; background: white; color: #475569; font: inherit; font-size: 0.7rem; text-align: left; cursor: pointer; }
 .filter-suggestion:hover, .filter-suggestion:focus-visible { background: #f1f5f9; color: #0f172a; }
