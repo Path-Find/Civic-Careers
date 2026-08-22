@@ -36,6 +36,10 @@ type Row = {
   academic_workload: string | null;
   academic_office_hours: string | null;
   education_requirements: string | null;
+  required_skills: string | null;
+  software_requirements: string | null;
+  responsibility_tags: string | null;
+  qualification_tags: string | null;
   pending_closing_date: string | null;
   pending_closing_date_status: string | null;
   closing_date: string | null;
@@ -48,7 +52,8 @@ const QUERY = `
     d.hours, d.salary_range, d.location, d.union_name,
     d.availability, d.duration, d.academic_course, d.academic_schedule, d.academic_term,
     d.academic_workload, d.academic_office_hours,
-    d.education_requirements,
+    d.education_requirements, d.required_skills, d.software_requirements,
+    d.responsibility_tags, d.qualification_tags,
     raw.pending_closing_date, raw.pending_closing_date_status, d.closing_date
   FROM jobs j
   LEFT JOIN raw_jobs raw ON raw.id = j.id
@@ -84,6 +89,10 @@ async function auditStore(
       academicWorkload: row.academic_workload,
       academicOfficeHours: row.academic_office_hours,
       educationRequirements: row.education_requirements,
+      requiredSkills: row.required_skills,
+      softwareRequirements: row.software_requirements,
+      responsibilityTags: row.responsibility_tags,
+      qualificationTags: row.qualification_tags,
       closingDate: row.closing_date || row.pending_closing_date,
       closingDateStatus: row.pending_closing_date_status,
       hasDetails: Boolean(row.detail_id),

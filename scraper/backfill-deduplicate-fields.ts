@@ -24,17 +24,22 @@ type Row = {
   academic_workload: string | null;
   academic_schedule: string | null;
   availability: string | null;
+  required_skills: string | null;
+  software_requirements: string | null;
+  responsibility_tags: string | null;
+  qualification_tags: string | null;
 };
 
 type Change = Row & {
-  next: Pick<Row, 'duration' | 'academic_course' | 'academic_workload' | 'academic_schedule' | 'availability'>;
+  next: Pick<Row, 'duration' | 'academic_course' | 'academic_workload' | 'academic_schedule' | 'availability' | 'required_skills' | 'software_requirements' | 'responsibility_tags' | 'qualification_tags'>;
   reasons: string[];
 };
 
 const QUERY = `
   SELECT j.id, j.source, d.job_title, d.duration, d.academic_course,
     d.academic_term, d.hours, d.academic_workload, d.academic_schedule,
-    d.availability
+    d.availability, d.required_skills, d.software_requirements,
+    d.responsibility_tags, d.qualification_tags
   FROM jobs j
   JOIN job_details d ON d.id = j.id
 `;
@@ -46,6 +51,21 @@ function normalized(value: string | null): string {
 function equal(left: string | null, right: string | null): boolean {
   const a = normalized(left);
   return Boolean(a) && a === normalized(right);
+}
+
+function list(value: string | null): string[] {
+  try {
+    const parsed = JSON.parse(String(value ?? ''));
+    return Array.isArray(parsed) ? parsed.map(item => String(item ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean) : [];
+  } catch { return []; }
+}
+
+function listJson(value: string[]): string | null {
+  return value.length ? JSON.stringify(value) : null;
+}
+
+function badListItem(value: string): boolean {
+  return value.length > 500 || /skip to main content|applylocations|page is loaded|similar jobs|read more|follow us|policy \d+|©/i.test(value);
 }
 
 function isForbiddenAvailability(value: string | null): boolean {
@@ -62,8 +82,30 @@ function changesFor(rows: Row[]): Change[] {
       academic_workload: row.academic_workload,
       academic_schedule: row.academic_schedule,
       availability: row.availability,
+      required_skills: row.required_skills,
+      software_requirements: row.software_requirements,
+      responsibility_tags: row.responsibility_tags,
+      qualification_tags: row.qualification_tags,
     };
     const reasons: string[] = [];
+
+    for (const field of ['required_skills', 'software_requirements', 'responsibility_tags', 'qualification_tags'] as const) {
+      const before = list(row[field]);
+      const after = before.filter(value => !badListItem(value));
+      if (after.length !== before.length) {
+        next[field] = listJson(after);
+        reasons.push(`corrupt ${field}`);
+      }
+    }
+
+    if (equal(next.required_skills, row.software_requirements)) {
+      next.software_requirements = null;
+      reasons.push('required_skills = software_requirements');
+    }
+    if (equal(next.responsibility_tags, row.qualification_tags)) {
+      next.qualification_tags = null;
+      reasons.push('responsibility_tags = qualification_tags');
+    }
 
     if (isForbiddenAvailability(row.availability)) {
       next.availability = null;
@@ -110,8 +152,12 @@ function bulkUpdate(changes: Change[]) {
       change.next.academic_workload,
       change.next.academic_schedule,
       change.next.availability,
+      change.next.required_skills,
+      change.next.software_requirements,
+      change.next.responsibility_tags,
+      change.next.qualification_tags,
     );
-    return '(?, ?, ?, ?, ?, ?)';
+    return '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
   }).join(', ');
   return {
     sql: `UPDATE job_details AS d
@@ -119,8 +165,12 @@ function bulkUpdate(changes: Change[]) {
           academic_course = v.academic_course::text,
           academic_workload = v.academic_workload::text,
           academic_schedule = v.academic_schedule::text,
-          availability = v.availability::text
-      FROM (VALUES ${values}) AS v(id, duration, academic_course, academic_workload, academic_schedule, availability)
+          availability = v.availability::text,
+          required_skills = v.required_skills::text,
+          software_requirements = v.software_requirements::text,
+          responsibility_tags = v.responsibility_tags::text,
+          qualification_tags = v.qualification_tags::text
+      FROM (VALUES ${values}) AS v(id, duration, academic_course, academic_workload, academic_schedule, availability, required_skills, software_requirements, responsibility_tags, qualification_tags)
       WHERE d.id = v.id::text`,
     args,
   };
