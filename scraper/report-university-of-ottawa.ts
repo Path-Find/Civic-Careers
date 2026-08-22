@@ -87,7 +87,7 @@ function flags(row: Row): string[] {
   if (salary && !/\b(?:hour|daily|day|week|weekly|biweekly|month|monthly|year|yearly|flat)\b/i.test(salary)) result.push('salary_missing_period');
   if (salary && /\b(?:grade|step)\s*\d+/i.test(salary)) result.push('salary_contains_grade_or_step');
   if (/^\s*(?:term|term|schedule|workload|availability|licen[cs]es?)\s*$/i.test(title)) result.push('placeholder_title');
-  if (/^(?:teaching_assistant|course_instructor|academic_expert)$/i.test(text(row.academic_role_type))
+  if (/^(?:course_instructor|academic_expert)$/i.test(text(row.academic_role_type))
     && !text(row.academic_course) && !text(row.academic_term)) result.push('academic_role_without_course_or_term');
   return result;
 }

@@ -92,6 +92,11 @@ test('parseWorkday stops a field at the next label with no newline between them 
   assert.equal(result.salary, '$68,149.00 - $86,083.00');
 });
 
+test('parseWorkday removes the glued FT marker before a Campus label', () => {
+  const parsed = parseWorkday('Faculty/Department:Department of Physics_FTCampus:Main CampusDate Posted (YYYY/MM/DD):2025/12/10');
+  assert.equal(parsed.department, 'Department of Physics');
+});
+
 test('parseWorkday still runs into free-form prose when no known label follows (known residual gap)', () => {
   // When a field is the LAST labeled one before free-form description text
   // begins, there is no next label to bound the capture at. This case is

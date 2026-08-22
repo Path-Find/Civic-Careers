@@ -27,6 +27,21 @@ test('rejects whole-page prose and duplicate structured list fields', () => {
     }),
     'duplicated fields: responsibilityTags/qualificationTags',
   );
+  assert.equal(
+    getPublishBlockReason({
+      title: 'Academic Expert',
+      educationRequirements: JSON.stringify(['Bachelor’s degree in communication or a related field']),
+      qualificationTags: JSON.stringify(['Bachelor’s degree in communication or a related field']),
+    }),
+    'duplicated fields: qualificationTags/educationRequirements',
+  );
+  assert.equal(
+    getPublishBlockReason({
+      title: 'Senior Officer, Gift Processing',
+      requiredSkills: JSON.stringify(['Our team is dedicated to advancing the University\'s mission by securing philanthropic support and building partnerships.']),
+    }),
+    'corrupted field: requiredSkills',
+  );
 });
 
 test('does not flag a legitimate colon in an academic department name', () => {

@@ -154,11 +154,17 @@ function corruptedListField(details: PublishGateDetails): string | null {
   for (const field of fields) {
     const values = parseList(details[field]);
     if (values.some(value => value.length > 500
-      || /skip to main content|applylocations|page is loaded|similar jobs|read more|follow us|policy \d+|©/i.test(value))) {
+      || /skip to main content|applylocations|page is loaded|similar jobs|read more|follow us|policy \d+|©/i.test(value)
+      || isStructuredProse(value))) {
       return field;
     }
   }
   return null;
+}
+
+function isStructuredProse(value: string): boolean {
+  return value.length > 180 && /[.!?](?:\s|$)/.test(value)
+    || /^(?:our team|we foster|responsible for|coordinates?|produces?|show availability|the successful applicant|will be responsible)/i.test(value);
 }
 
 function duplicatedListFields(details: PublishGateDetails): string | null {
@@ -167,6 +173,7 @@ function duplicatedListFields(details: PublishGateDetails): string | null {
     ['requiredSkills', 'educationRequirements'],
     ['requiredSkills', 'softwareRequirements'],
     ['responsibilityTags', 'qualificationTags'],
+    ['qualificationTags', 'educationRequirements'],
   ] as const;
   for (const [left, right] of pairs) {
     const values = parseList(details[left]);

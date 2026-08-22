@@ -45,6 +45,7 @@ async function main() {
   const query = `
     SELECT j.id, j.source, r.title AS raw_title, r.raw_text, d.job_title AS detail_title,
            d.academic_course, d.academic_term
+           ,d.department
     FROM jobs j
     LEFT JOIN raw_jobs r ON r.id = j.id
     LEFT JOIN job_details d ON d.id = j.id
@@ -60,6 +61,7 @@ async function main() {
     let titleChanges = 0;
     let courseChanges = 0;
     let termChanges = 0;
+    let departmentChanges = 0;
     const writes: Array<{ sql: string; args: unknown[] }> = [];
 
     for (const row of result.rows) {
@@ -71,6 +73,7 @@ async function main() {
       const sourceTitle = rawTitle || detailTitle;
       const rawText = String(row.raw_text ?? '');
       const storedCourse = String(row.academic_course ?? '').trim();
+      const storedDepartment = String(row.department ?? '').trim();
       let title = normalizeSourceJobTitle(source, sourceTitle);
       // Never use the record ID as academic evidence. PeopleSoft, Workday,
       // and hashed source IDs resemble course codes closely enough to poison
@@ -87,9 +90,9 @@ async function main() {
         title = /(?:Professor|Professeure|Professeur)/i.test(rawText) ? 'Professor' : 'Course Instructor';
       }
 
-      if (rawTitle && rawTitle !== normalizeSourceJobTitle(source, rawTitle)) {
+      if (rawTitle && rawTitle !== title) {
         titleChanges += 1;
-        writes.push({ sql: 'UPDATE raw_jobs SET title = ? WHERE id = ?', args: [normalizeSourceJobTitle(source, rawTitle), String(row.id)] });
+        writes.push({ sql: 'UPDATE raw_jobs SET title = ? WHERE id = ?', args: [title, String(row.id)] });
       }
       if (detailTitle && detailTitle !== title) {
         titleChanges += 1;
@@ -107,9 +110,19 @@ async function main() {
         termChanges += 1;
         writes.push({ sql: 'UPDATE job_details SET academic_term = ? WHERE id = ?', args: [term, String(row.id)] });
       }
+      if (source === 'University of Ottawa') {
+        const repairedDepartment = storedDepartment
+          .replace(/[_\s]+FT(?=Campus:)/i, '')
+          .replace(/Campus:[\s\S]*$/i, '')
+          .trim();
+        if (repairedDepartment !== storedDepartment) {
+          departmentChanges += 1;
+          writes.push({ sql: 'UPDATE job_details SET department = ? WHERE id = ?', args: [repairedDepartment || null, String(row.id)] });
+        }
+      }
     }
 
-    console.log(`[Source academic metadata:${store.label}] ${APPLY ? 'Applying' : 'Dry run'}: ${titleChanges} title change(s), ${courseChanges} course field(s), ${termChanges} term field(s).`);
+    console.log(`[Source academic metadata:${store.label}] ${APPLY ? 'Applying' : 'Dry run'}: ${titleChanges} title change(s), ${courseChanges} course field(s), ${termChanges} term field(s), ${departmentChanges} department field(s).`);
     if (APPLY && writes.length > 0) await store.batch(writes);
   }
 }

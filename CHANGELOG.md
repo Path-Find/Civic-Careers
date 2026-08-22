@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added shared prose detection for structured skills and tags, repaired duplicated education/qualification values, and fixed Workday department captures that glued an `FT` marker and Campus header into the department.
+
+- Reconciled Ottawa raw and parsed titles from preserved source captures so source-specific Professor and Student Professor titles remain consistent without re-scraping.
+
 - Cleared academic panels from 119 current/archive postings whose titles did not support an academic appointment, while preserving source-backed course terms and legitimate research roles.
 
 - Added a read-only parser regression audit that samples current and archived postings across multiple sources and reuses the publication-quality gates without making paid AI calls or database changes.

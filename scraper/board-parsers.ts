@@ -231,7 +231,10 @@ export function parseWorkday(rawText: string): ExtractedBoardMetadata {
   // Department
   const deptMatch = rawText.match(workdayField('Department'));
   if (deptMatch) {
-    metadata.department = normalizeDepartment(deptMatch[1]);
+    // Some Workday tenants glue the FT marker to the next Campus label:
+    // `Department of Physics_FTCampus:Main Campus`. The marker is not part
+    // of the department and must not become the start of a page-sized capture.
+    metadata.department = normalizeDepartment(deptMatch[1].replace(/[_\s]+FT$/i, ''));
   }
 
   // Salary

@@ -66,7 +66,10 @@ function listJson(value: string[]): string | null {
 }
 
 function badListItem(value: string): boolean {
-  return value.length > 500 || /skip to main content|applylocations|page is loaded|similar jobs|read more|follow us|policy \d+|©/i.test(value);
+  return value.length > 500
+    || /skip to main content|applylocations|page is loaded|similar jobs|read more|follow us|policy \d+|©/i.test(value)
+    || (value.length > 180 && /[.!?](?:\s|$)/.test(value))
+    || /^(?:our team|we foster|responsible for|coordinates?|produces?|show availability|the successful applicant|will be responsible)/i.test(value);
 }
 
 function isForbiddenAvailability(value: string | null): boolean {
@@ -106,6 +109,10 @@ function changesFor(rows: Row[]): Change[] {
     if (equal(next.required_skills, row.education_requirements)) {
       next.required_skills = null;
       reasons.push('required_skills = education_requirements');
+    }
+    if (equal(next.qualification_tags, row.education_requirements)) {
+      next.qualification_tags = null;
+      reasons.push('qualification_tags = education_requirements');
     }
     if (equal(next.responsibility_tags, row.qualification_tags)) {
       next.qualification_tags = null;
