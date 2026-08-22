@@ -63,7 +63,7 @@ function changesFor(rows: Row[]): Change[] {
     const next = {
       academic_role_type: null,
       academic_course: courseAllowed ? value(row.academic_course) || null : null,
-      academic_term: null,
+      academic_term: courseAllowed ? value(row.academic_term) || null : null,
       academic_workload: null,
       academic_office_hours: null,
       academic_supervisor: null,
@@ -151,4 +151,3 @@ main().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });
-
