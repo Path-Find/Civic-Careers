@@ -12,7 +12,10 @@ const source = process.env.MANUAL_SOURCE;
 async function main() {
   if (!source) throw new Error('MANUAL_SOURCE is required');
 
-  const browser = await chromium.launch({ headless: !process.env.DISPLAY && process.env.CI !== 'false' });
+  const browser = await chromium.launch({
+    headless: !process.env.DISPLAY && process.env.CI !== 'false',
+    args: ['--disable-blink-features=AutomationControlled']
+  });
   const context = await browser.newContext(BASE_CONFIG);
   const db = await initDb();
 

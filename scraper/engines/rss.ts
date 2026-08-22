@@ -8,7 +8,7 @@ export function extractRSSJobs(xml: string, idPrefix: string): Array<{ id: strin
     if (!body) return [];
     const linkMatch = body.match(/<link>(.*?)<\/link>/);
     if (!linkMatch?.[1]) return [];
-    const url = linkMatch[1].trim();
+    const url = linkMatch[1].replace(/&amp;/g, '&').trim();
     const idMatch = url.match(/[?&](?:JOBID|jobid|id)=([^&]+)/i);
     if (!idMatch?.[1]) return [];
     return [{ id: `${idPrefix}_${idMatch[1].toLowerCase()}`, url }];

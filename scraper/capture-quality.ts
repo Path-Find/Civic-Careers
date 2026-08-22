@@ -28,7 +28,15 @@ export function classifyRawCapture(source: string, rawText: string): RawCaptureQ
   if (!text) return { valid: false, issue: 'empty' };
   if (looksUnrendered(text)) return { valid: false, issue: 'unrendered' };
   if (OBJECT_STORAGE_ERROR.test(text)) return { valid: false, issue: 'error_page' };
-  if (BOT_CHALLENGE.test(text)) return { valid: false, issue: 'bot_challenge' };
+  if (BOT_CHALLENGE.test(text)) {
+    // hCaptcha or reCAPTCHA widgets embedded in a real job detail page often contain static labels 
+    // like "Confirm you are not a robot" or "Please verify you are human".
+    // A real bot challenge page will be very short and won't contain typical job-posting keywords.
+    const hasJobKeywords = /\b(?:requisition|qualifications|responsibilities|experience|education|duration|benefits)\b/i.test(text);
+    if (!hasJobKeywords || text.length < 1500) {
+      return { valid: false, issue: 'bot_challenge' };
+    }
+  }
   if (EXPIRED_PAGE.test(text)) return { valid: false, issue: 'expired_page' };
 
   // The National Gallery's generic talent-community page can be captured

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { extractPostedDate, extractRecentRelativePostedDate, normalizePostedDate } from '../posted-date';
-import { extractClosingDate, extractClosingDateStatus } from '../closing-date';
+import { extractClosingDate, extractClosingDateStatus, normalizeActiveClosingDateStatus } from '../closing-date';
 
 test('normalizes supported official date formats', () => {
   assert.equal(normalizePostedDate('2026/07/03'), '2026-07-03');
@@ -155,5 +155,12 @@ test('classifies pending closing-date status when no date is available', () => {
   assert.deepEqual(extractClosingDateStatus('A rendered posting body with general information'), {
     date: null,
     status: 'not_checked',
+  });
+});
+
+test('normalizes an active posting without a usable date to the public fallback', () => {
+  assert.deepEqual(normalizeActiveClosingDateStatus('A rendered posting body with no application deadline.'), {
+    date: null,
+    status: 'open_until_filled',
   });
 });

@@ -40,7 +40,7 @@ const BATCH_SIZE = 1000;
 const jobsPlan: TablePlan = {
   name: 'jobs',
   keyColumn: 'id',
-  columns: ['id', 'url', 'source', 'is_active', 'is_saved', 'first_seen_at', 'scraped_at', 'verified_at', 'public_id'],
+  columns: ['id', 'url', 'source', 'is_active', 'is_saved', 'first_seen_at', 'scraped_at', 'verified_at', 'publication_status', 'public_id'],
   timestampColumns: ['first_seen_at', 'scraped_at', 'verified_at'],
   route: (row) => Number(row.is_active ?? 0) === 1 ? 'current' : 'archive',
 };

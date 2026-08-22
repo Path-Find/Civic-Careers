@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  isCanonicalAvailability,
   normalizeAvailability,
   normalizeHours,
   splitHoursAndAvailability,
 } from '../hours-availability';
+
+test('recognizes only canonical availability values', () => {
+  assert.equal(isCanonicalAvailability('Evenings; Weekends'), true);
+  assert.equal(isCanonicalAvailability('Mon-Fri'), true);
+  assert.equal(isCanonicalAvailability('Monday to Friday'), false);
+  assert.equal(isCanonicalAvailability('FTE: 1.00'), false);
+  assert.equal(isCanonicalAvailability(''), false);
+});
 
 test('normalizeHours maps common workload phrases', () => {
   assert.equal(normalizeHours('35 hours per week'), '35 hours per week');
@@ -35,6 +44,26 @@ test('normalizeAvailability maps schedule tags', () => {
   assert.equal(normalizeAvailability('36.'), '');
   assert.equal(normalizeAvailability('(3 credits)'), '');
   assert.equal(normalizeAvailability('Weekdays, evenings, weekends, and holidays'), 'Evenings; Weekends; Weekdays; Holidays');
+  assert.equal(normalizeAvailability('Monday-Friday'), 'Mon-Fri');
+  assert.equal(normalizeAvailability('Nine-day work cycle'), '');
+});
+
+test('normalizeAvailability drops labour-relations prose', () => {
+  assert.equal(normalizeAvailability('r the ratification'), '');
+});
+
+test('normalizeAvailability drops application-document prose', () => {
+  assert.equal(normalizeAvailability('r you add each document'), '');
+});
+
+test('normalizeAvailability drops FTE metadata but keeps real schedule tags', () => {
+  assert.equal(normalizeAvailability('FTE:; FTE: 1.00'), '');
+  assert.equal(normalizeAvailability('Evenings; Weekends; FTE: 0.80'), 'Evenings; Weekends');
+});
+
+test('normalizeAvailability rejects unknown short prose', () => {
+  assert.equal(normalizeAvailability('week'), '');
+  assert.equal(normalizeAvailability('As per schedule'), '');
 });
 
 test('split does not invent availability from credit notes', () => {

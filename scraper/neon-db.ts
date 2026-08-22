@@ -6,7 +6,7 @@ type Row = Record<string, unknown>;
 const TABLES = {
   jobs: {
     key: 'id',
-    columns: ['id', 'url', 'source', 'is_active', 'is_saved', 'first_seen_at', 'scraped_at', 'verified_at', 'public_id'],
+    columns: ['id', 'url', 'source', 'is_active', 'is_saved', 'first_seen_at', 'scraped_at', 'verified_at', 'publication_status', 'public_id'],
   },
   raw_jobs: {
     key: 'id',
@@ -14,7 +14,7 @@ const TABLES = {
   },
   job_details: {
     key: 'id',
-    columns: ['id', 'job_title', 'department', 'location', 'workplace_address', 'salary_range', 'description', 'closing_date', 'is_inventory', 'listing_type', 'is_student', 'salary_min', 'salary_max', 'salary_period', 'work_model', 'employment_type', 'duration', 'hours', 'availability', 'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours', 'academic_supervisor', 'academic_appointment_type', 'academic_schedule', 'is_unionized', 'union_name', 'benefits', 'required_skills', 'experience_requirements', 'education_requirements', 'license_requirements', 'vehicle_required', 'language_requirements', 'security_check_required', 'certification_requirements', 'software_requirements', 'medical_requirements', 'responsibility_tags', 'qualification_tags', 'posted_at', 'parser_version', 'start_date', 'career_stage'],
+    columns: ['id', 'job_title', 'department', 'location', 'workplace_address', 'salary_range', 'description', 'closing_date', 'is_inventory', 'listing_type', 'is_student', 'salary_min', 'salary_max', 'salary_period', 'work_model', 'employment_type', 'duration', 'hours', 'availability', 'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours', 'academic_supervisor', 'academic_appointment_type', 'academic_schedule', 'academic_term', 'is_unionized', 'union_name', 'benefits', 'required_skills', 'experience_requirements', 'education_requirements', 'license_requirements', 'vehicle_required', 'language_requirements', 'security_check_required', 'certification_requirements', 'software_requirements', 'medical_requirements', 'responsibility_tags', 'qualification_tags', 'posted_at', 'parser_version', 'start_date', 'career_stage'],
   },
   parse_failures: {
     key: 'id',
@@ -64,6 +64,10 @@ export class NeonDatabaseClient {
   }
 
   async initialize(): Promise<void> {
+    await Promise.all([
+      this.currentPool.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS publication_status TEXT NOT NULL DEFAULT 'hidden'`),
+      this.archivePool.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS publication_status TEXT NOT NULL DEFAULT 'hidden'`),
+    ]);
     const archiveMax = await this.archivePool.query<{ max: string | null }>('SELECT MAX(public_id)::text AS max FROM jobs');
     const currentMax = await this.currentPool.query<{ max: string | null }>('SELECT MAX(public_id)::text AS max FROM jobs');
     const maxPublicId = Math.max(Number(archiveMax.rows[0]?.max ?? 0), Number(currentMax.rows[0]?.max ?? 0));
@@ -82,12 +86,30 @@ export class NeonDatabaseClient {
     });
   }
 
+  async executeArchive(statement: Statement) {
+    return this.withRoutingLocks(async ({ archive }) => {
+      const { sql, args } = statementParts(statement);
+      return resultSet(await archive.query<Row>(postgresPlaceholders(sql), args));
+    });
+  }
+
   async batch(statements: Statement[]) {
     return this.withCurrentLock(async client => {
       const results = [];
       for (const statement of statements) {
         const { sql, args } = statementParts(statement);
         results.push(resultSet(await client.query<Row>(postgresPlaceholders(sql), args)));
+      }
+      return results;
+    });
+  }
+
+  async batchArchive(statements: Statement[]) {
+    return this.withRoutingLocks(async ({ archive }) => {
+      const results = [];
+      for (const statement of statements) {
+        const { sql, args } = statementParts(statement);
+        results.push(resultSet(await archive.query<Row>(postgresPlaceholders(sql), args)));
       }
       return results;
     });
@@ -111,6 +133,13 @@ export class NeonDatabaseClient {
 
   async moveSourceMissingJobsToArchive(source: string, runStartedAt: string): Promise<number> {
     return this.withRoutingLocks(async ({ current, archive }) => {
+      const touched = await current.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM raw_jobs WHERE source = $1 AND scraped_at >= $2`,
+        [source, runStartedAt],
+      );
+      if (Number(touched.rows[0]?.count ?? 0) === 0) {
+        throw new Error(`[${source}] No postings were captured; refusing to archive existing jobs for this source.`);
+      }
       const result = await current.query<{ id: string }>(
         `SELECT j.id FROM jobs j
          WHERE j.source = $1

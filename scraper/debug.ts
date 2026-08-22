@@ -1,7 +1,10 @@
 import { chromium } from 'playwright';
 
 async function debug() {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--disable-blink-features=AutomationControlled']
+  });
   const page = await browser.newPage();
   await page.goto('https://jobs.toronto.ca/jobsatcity/search/', { waitUntil: 'networkidle' });
   await page.waitForTimeout(5000);

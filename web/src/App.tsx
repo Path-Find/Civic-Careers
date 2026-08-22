@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { inject } from '@vercel/analytics';
 import { jobIdFromPath, jobRoute, slugify } from './utils';
 import type { Job, ListingTypeFilter, View } from './types/jobs';
-import { normalizeJobTitle, parseJobDetails } from './modules/jobs/jobUtils';
+import { parseJobDetails } from './modules/jobs/jobUtils';
 import { useJobs } from './modules/jobs/hooks/useJobs';
 import { useJobFilters } from './modules/jobs/hooks/useJobFilters';
 import { useRecentlyViewed } from './modules/jobs/hooks/useRecentlyViewed';
@@ -12,10 +12,8 @@ import { JobDetailView } from './modules/jobs/components/JobDetailView';
 import { HomeQuickFilters } from './modules/jobs/components/HomeQuickFilters';
 import { LocationPrompt } from './modules/jobs/components/LocationPrompt';
 import { CompanyDirectory } from './modules/jobs/components/CompanyDirectory';
-import { CompanyTitleSuggestions } from './modules/jobs/components/CompanyTitleSuggestions';
 import { CompanyFiltersSidebar } from './modules/jobs/components/CompanyFiltersSidebar';
 import { ListSortControls } from './modules/jobs/components/ListSortControls';
-import { CopyLinkButton } from './modules/jobs/components/CopyLinkButton';
 import { EDUCATION_LEVELS, matchesEducationField, matchesEducationLevel, type EducationLevel } from './modules/jobs/educationFilters';
 import { buildFilterSummary } from './modules/jobs/filterSummary';
 import { companyPortal, companyTypes, type CompanyType } from './modules/jobs/companyTypes';
@@ -72,6 +70,7 @@ type JobUrlState = {
   deadlineDays: number | null;
   listingTypeFilter: ListingTypeFilter;
   showStudentJobs: boolean;
+  showAcademicJobs: boolean;
   sortNewest: boolean;
   newlyAdded: boolean;
   selectedCompanyNames: string[];
@@ -84,7 +83,7 @@ const VALID_MODES = ['In-person', 'Hybrid', 'Remote'] as const;
 const VALID_LANGUAGES = ['English', 'French'] as const;
 const VALID_SALARIES = [50000, 75000, 100000, 125000] as const;
 const VALID_DEADLINES = [0, 7, 14, 30, -1] as const;
-const JOB_FILTER_QUERY_KEYS = ['search', 'location', 'salary', 'mode', 'language', 'vehicle', 'student', 'closing', 'listing', 'sort', 'added', 'company', 'degree', 'field', 'stage'];
+const JOB_FILTER_QUERY_KEYS = ['search', 'location', 'salary', 'mode', 'language', 'vehicle', 'student', 'academic', 'closing', 'listing', 'sort', 'added', 'company', 'degree', 'field', 'stage'];
 
 const EMPTY_JOB_URL_STATE: JobUrlState = {
   searchTerm: '',
@@ -96,6 +95,7 @@ const EMPTY_JOB_URL_STATE: JobUrlState = {
   deadlineDays: null,
   listingTypeFilter: null,
   showStudentJobs: false,
+  showAcademicJobs: false,
   sortNewest: false,
   newlyAdded: false,
   selectedCompanyNames: [],
@@ -128,6 +128,7 @@ function parseJobUrlState(search: string): JobUrlState {
       ? params.get('listing') as Exclude<ListingTypeFilter, null>
       : null,
     showStudentJobs: params.get('student') === '1',
+    showAcademicJobs: params.get('academic') === '1',
     sortNewest: params.get('sort') === 'newest' && deadlineDays === null && !newlyAdded,
     newlyAdded,
     selectedCompanyNames: params.getAll('company').filter(Boolean),
@@ -147,6 +148,7 @@ function replaceJobFiltersInUrl(state: JobUrlState) {
   [...state.selectedLanguages].sort().forEach(language => url.searchParams.append('language', language));
   if (state.vehicleRequired) url.searchParams.set('vehicle', '1');
   if (state.showStudentJobs) url.searchParams.set('student', '1');
+  if (state.showAcademicJobs) url.searchParams.set('academic', '1');
   if (state.deadlineDays !== null) url.searchParams.set('closing', String(state.deadlineDays));
   if (state.listingTypeFilter) url.searchParams.set('listing', state.listingTypeFilter);
   if (state.sortNewest) url.searchParams.set('sort', 'newest');
@@ -162,7 +164,7 @@ function replaceJobFiltersInUrl(state: JobUrlState) {
 }
 
 function App() {
-  const { jobs, homeData, companySummaries, companyTitleSuggestions, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, jobsOrganization, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
+  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, jobsOrganization, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -170,7 +172,6 @@ function App() {
   const [companySort, setCompanySort] = useState<'alphabetical' | 'mostJobs' | 'recent'>('alphabetical');
   const [companyStatus, setCompanyStatus] = useState<'hiring' | 'all'>('hiring');
   const [selectedCompanyTypes, setSelectedCompanyTypes] = useState<CompanyType[]>([]);
-  const [companyTitleFilter, setCompanyTitleFilter] = useState<string | null>(null);
   const [selectedCompanyNames, setSelectedCompanyNames] = useState<string[]>([]);
   const [selectedEducationLevels, setSelectedEducationLevels] = useState<EducationLevel[]>([]);
   const [educationField, setEducationField] = useState('');
@@ -187,7 +188,7 @@ function App() {
   const filters = useJobFilters(jobs, currentView, searchTerm);
   const {
     minSalary, setMinSalary, locationTerm, setLocationTerm, selectedModes, setSelectedModes, deadlineDays, setDeadlineDays,
-    listingTypeFilter, setListingTypeFilter, showStudentJobs, setShowStudentJobs, selectedCareerStages, setSelectedCareerStages, selectedLanguages, setSelectedLanguages, vehicleRequired, setVehicleRequired,
+    listingTypeFilter, setListingTypeFilter, showStudentJobs, setShowStudentJobs, showAcademicJobs, setShowAcademicJobs, selectedCareerStages, setSelectedCareerStages, selectedLanguages, setSelectedLanguages, vehicleRequired, setVehicleRequired,
     sortNewest, setSortNewest, newlyAdded, setNewlyAdded, filteredJobs,
     recentJobs, availableJobCount, recentlyAddedCount,
   } = filters;
@@ -201,13 +202,13 @@ function App() {
   const lastCheckedAt = homeData?.lastCheckedAt ?? latestJobCheckedAt;
   // jobsSource is set by the scoped company-page API fetch — no need to mirror it into searchTerm.
   const isCompanyPage = currentView === 'jobs' && Boolean(jobsSource);
-  const companyTitleOptions = [...new Set(companyTitleSuggestions.map(normalizeJobTitle).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-    .slice(0, 20);
   const companyCareersPortal = jobsOrganization?.portal ?? (jobsSource ? companyPortal(jobsSource) : null);
-  const companyFilteredJobs = isCompanyPage && companyTitleFilter
-    ? filteredJobs.filter(job => normalizeJobTitle(job.job_title) === companyTitleFilter)
-    : filteredJobs;
+  const visibleSelectedCompanyNames = isCompanyPage && jobsSource
+    ? [jobsOrganization?.name ?? jobsSource]
+    : selectedCompanyNames;
+  const companyFilteredJobs = filteredJobs;
+  const allVisibleResultsUntilFilled = jobs.length > 0
+    && jobs.every(job => !job.closing_date && job.closing_date_status === 'open_until_filled');
   const selectedCompanySources = selectedCompanyNames.flatMap(name => companySummaries.find(company => company.name === name)?.sourceNames ?? [name]);
   const employerFilteredJobs = currentView === 'saved'
     ? companyFilteredJobs.filter(job => selectedCompanyNames.length === 0 || selectedCompanyNames.includes(jobsSource ?? '') || selectedCompanySources.includes(job.source))
@@ -226,8 +227,8 @@ function App() {
     || vehicleRequired
     || minSalary
     || showStudentJobs
+    || showAcademicJobs
     || listingTypeFilter
-    || companyTitleFilter
   );
   const hasJobFilters = hasClientOnlyFilters || deadlineDays !== null || newlyAdded || selectedCompanyNames.length > 0 || selectedEducationLevels.length > 0 || educationField.trim().length > 0 || selectedCareerStages.length > 0;
   // Prefer API totals whenever no client-only filters are active (includes deadline / newly-added / company scope).
@@ -326,6 +327,7 @@ function App() {
       setDeadlineDays(state.deadlineDays);
       setListingTypeFilter(state.listingTypeFilter);
       setShowStudentJobs(state.showStudentJobs);
+      setShowAcademicJobs(state.showAcademicJobs);
       setSortNewest(state.sortNewest);
       setNewlyAdded(state.newlyAdded);
       setSelectedCompanyNames(state.selectedCompanyNames);
@@ -357,7 +359,6 @@ function App() {
         setSelectedJob(null);
       } else if (path.startsWith('/companies/')) {
         setCurrentView('jobs');
-        setCompanyTitleFilter(null);
         setSelectedJob(null);
       } else if (path === '/companies') {
         setCurrentView('companies');
@@ -385,7 +386,7 @@ function App() {
     window.addEventListener('popstate', onPopState);
     handlePopState(!urlHydratedRef.current);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [jobs, refresh, setDeadlineDays, setListingTypeFilter, setLocationTerm, setMinSalary, setNewlyAdded, setSelectedCareerStages, setSelectedLanguages, setSelectedModes, setServerFilters, setShowStudentJobs, setSortNewest, setVehicleRequired]);
+  }, [jobs, refresh, setDeadlineDays, setListingTypeFilter, setLocationTerm, setMinSalary, setNewlyAdded, setSelectedCareerStages, setSelectedLanguages, setSelectedModes, setServerFilters, setShowAcademicJobs, setShowStudentJobs, setSortNewest, setVehicleRequired]);
 
   useEffect(() => {
     if (!urlHydratedRef.current || selectedJob || (currentView !== 'jobs' && currentView !== 'saved')) return;
@@ -400,6 +401,7 @@ function App() {
       deadlineDays,
       listingTypeFilter,
       showStudentJobs,
+      showAcademicJobs,
       sortNewest,
       newlyAdded,
       selectedCompanyNames,
@@ -407,21 +409,24 @@ function App() {
       educationField,
       selectedCareerStages,
     });
-  }, [currentView, selectedJob, searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, selectedCareerStages, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField]);
+  }, [currentView, selectedJob, searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, selectedCareerStages, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField]);
 
   useEffect(() => {
     if (!selectedJob) return;
     recordViewed(selectedJob);
     if (selectedJob.description) return;
-    loadDescription(selectedJob).then(description => {
-      if (description) setSelectedJob(prev => prev && prev.id === selectedJob.id ? { ...prev, description } : prev);
+    loadDescription(selectedJob).then(result => {
+      if (result) setSelectedJob(prev => prev && prev.id === selectedJob.id ? {
+        ...prev,
+        ...(result.description ? { description: result.description } : {}),
+        ...(result.detailsPending === undefined ? {} : { details_pending: result.detailsPending }),
+      } : prev);
     });
   }, [selectedJob, loadDescription, recordViewed]);
 
   const handleNavigate = (view: View, companyFilter?: string, companySlug?: string) => {
     setCurrentView(view);
     setSelectedJob(null);
-    setCompanyTitleFilter(null);
     window.scrollTo(0, 0);
     if (companyFilter) {
       setSearchTerm(companyFilter);
@@ -510,7 +515,7 @@ function App() {
 
   const reset = () => {
     setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setSelectedLanguages([]); setVehicleRequired(false); setMinSalary(null); setDeadlineDays(null); setListingTypeFilter(null); setSortNewest(false); setNewlyAdded(false);
-    setLocationTerm(''); setShowStudentJobs(false); setSelectedCareerStages([]); setSelectedCompanyTypes([]); setCompanyTitleFilter(null); setSelectedCompanyNames([]); setSelectedEducationLevels([]); setEducationField('');
+    setLocationTerm(''); setShowStudentJobs(false); setShowAcademicJobs(false); setSelectedCareerStages([]); setSelectedCompanyTypes([]); setSelectedCompanyNames([]); setSelectedEducationLevels([]); setEducationField('');
     setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], educationLevels: [], educationField: '', careerStages: [] });
     window.history.pushState(null, '', '/');
     refresh();
@@ -667,8 +672,9 @@ function App() {
               ) : (
                 <JobFiltersSidebar
                   headerHeight={headerHeight}
+                  jobs={jobs}
                   companyOptions={companySummaries.filter(company => Number(company.active_job_count) > 0)}
-                  selectedCompanyNames={selectedCompanyNames}
+                  selectedCompanyNames={visibleSelectedCompanyNames}
                   selectedEducationLevels={selectedEducationLevels}
                   educationField={educationField}
                   selectedCareerStages={selectedCareerStages}
@@ -680,6 +686,9 @@ function App() {
                   deadlineDays={deadlineDays}
                   listingTypeFilter={listingTypeFilter}
                   showStudentJobs={showStudentJobs}
+                  showAcademicJobs={showAcademicJobs}
+                  closingSoonDisabled={allVisibleResultsUntilFilled}
+                  savedView={currentView === 'saved'}
                   onMinSalaryChange={setMinSalary}
                   onLocationChange={setLocationTerm}
                   onModesChange={mode => setSelectedModes(prev => prev.includes(mode) ? prev.filter(value => value !== mode) : [...prev, mode])}
@@ -688,6 +697,7 @@ function App() {
                   onDeadlineChange={handleDeadlineChange}
                   onListingTypeChange={setListingTypeFilter}
                   onStudentJobsChange={() => setShowStudentJobs(!showStudentJobs)}
+                  onAcademicJobsChange={() => setShowAcademicJobs(!showAcademicJobs)}
                   onCareerStageChange={toggleCareerStage}
                   onCompanyChange={toggleCompanyFilter}
                   onEducationLevelChange={toggleEducationLevel}
@@ -702,37 +712,29 @@ function App() {
                   {currentView === 'companies' ? `${visibleCompanySummaries.length.toLocaleString()} ${companyStatus === 'hiring' ? 'hiring ' : ''}companies` : currentView === 'saved' ? `${educationFilteredJobs.length.toLocaleString()} saved jobs` : hasJobFilters ? `${displayedJobCount.toLocaleString()} matches found` : `${displayedJobCount.toLocaleString()} jobs available`}
                   </div>
                   {currentView === 'companies' && <div className="company-sort-options"><button className={companySort === 'alphabetical' ? 'active' : ''} onClick={() => setCompanySort('alphabetical')}>A–Z</button><button className={companySort === 'mostJobs' ? 'active' : ''} onClick={() => setCompanySort('mostJobs')}>Most jobs</button><button className={companySort === 'recent' ? 'active' : ''} onClick={() => setCompanySort('recent')}>Recently added</button></div>}
-                  {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => applyMostRecentSort(false)} onClosingSoon={() => applyClosingSoonSort(false)} onNewlyAdded={() => applyNewlyAddedSort(false)} />}
-                  {(currentView === 'jobs' || currentView === 'saved') && <CopyLinkButton label="Copy results link" />}
+                  {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} closingSoonDisabled={allVisibleResultsUntilFilled} onMostRecent={() => applyMostRecentSort(false)} onClosingSoon={() => applyClosingSoonSort(false)} onNewlyAdded={() => applyNewlyAddedSort(false)} />}
                 </div>
-                {(currentView === 'jobs' || currentView === 'saved') && <p className="filter-summary" aria-live="polite">{buildFilterSummary({ searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages })}</p>}
+                {(currentView === 'jobs' || currentView === 'saved') && hasJobFilters && buildFilterSummary({ searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages }) && <p className="filter-summary" aria-live="polite">{buildFilterSummary({ searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages })}</p>}
                 {isCompanyPage && (
                   <div className="company-page-header">
                     <div>
                       <h2 className="company-page-title">{jobsSource}</h2>
-                      {companyCareersPortal ? <a className="company-page-portal" href={companyCareersPortal} target="_blank" rel="noopener noreferrer">
+                      {companyCareersPortal && <a className="company-page-portal" href={companyCareersPortal} target="_blank" rel="noopener noreferrer">
                           <ExternalLink size={14} />
                           Visit Official Careers Site
-                        </a> : <p className="company-page-portal-missing">Official careers link not recorded</p>}
+                        </a>}
                       {jobsOrganization && jobsOrganization.children.length > 0 && <div className="company-child-links">
                         <span className="company-child-links-label">Includes</span>
                         {jobsOrganization.children.map(child => <a key={child.name} href={child.portal} target="_blank" rel="noopener noreferrer">{child.name} <ExternalLink size={12} /></a>)}
                       </div>}
                     </div>
-                    <CompanyTitleSuggestions
-                      titles={companyTitleOptions}
-                      selectedTitle={companyTitleFilter}
-                      onSelect={title => setCompanyTitleFilter(previous => previous === title ? null : title)}
-                      onClear={() => setCompanyTitleFilter(null)}
-                    />
                   </div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {(currentView === 'jobs' || currentView === 'saved') ? (
                     <>
                       {educationFilteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
-                      {currentView === 'saved' && <p className="saved-filter-note">Filters apply to saved jobs only. Recently viewed jobs stay separate.</p>}
-                      {educationFilteredJobs.length === 0 && <p className="saved-empty-state">{currentView === 'saved' ? (hasJobFilters ? 'No saved jobs match these filters.' : 'No saved jobs yet.') : 'No jobs match these filters.'}</p>}
+                      {educationFilteredJobs.length === 0 && <p className="saved-empty-state">{currentView === 'saved' ? (hasJobFilters ? 'No saved jobs match these filters.' : 'No saved jobs yet.') : (hasJobFilters ? 'No jobs match these filters.' : 'No jobs are currently available.')}</p>}
                       {currentView === 'saved' && <section className="recently-viewed-section">
                         <div className="recently-viewed-heading-row">
                           <h2 className="list-count-label recently-viewed-heading">Recently viewed</h2>

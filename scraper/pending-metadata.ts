@@ -1,5 +1,7 @@
 import { extractLabeledLocation, normalizeLocation } from './location';
 import { extractTitleDuration } from './title';
+import { classifyStudentRequirement } from './requirements';
+import { parseSalaryText } from './salary-format';
 
 export type PendingMetadata = {
   salaryText: string | null;
@@ -19,9 +21,9 @@ export function isUsablePendingLocation(value: string | null | undefined): boole
   });
 }
 
-const NUMBER = String.raw`\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?`;
+const NUMBER = String.raw`\d+(?:,\d{3})*(?:\.\d{1,2})?\s*[kKmM]?`;
 const AMOUNT = String.raw`\$\s*${NUMBER}`;
-const RANGE = new RegExp(String.raw`${AMOUNT}(?:\s*[-–—]\s*\$?\s*${NUMBER})?(?:\s*(?:/|per)\s*(?:hour|hr|year|yr|month|mo|week|day)|\s*(?:hourly|annual|yearly|bi[- ]weekly|biweekly))?`, 'gi');
+const RANGE = new RegExp(String.raw`${AMOUNT}(?:\s*(?:to|[-–—])\s*\$?\s*${NUMBER})?(?:\s*(?:/|per)\s*(?:hour|hr|year|yr|month|mo|week|day)|\s*(?:hourly|annual|yearly|bi[- ]weekly|biweekly))`, 'gi');
 
 /** Recover only obvious source text for the pending listing sidebar. */
 export function extractPendingMetadata(title: string | null | undefined, rawText: string): PendingMetadata {
@@ -32,17 +34,12 @@ export function extractPendingMetadata(title: string | null | undefined, rawText
     const start = match.index ?? 0;
     const context = normalized.slice(Math.max(0, start - 100), start + value.length + 100);
     if (/salary|wage|pay|rate|compensation|hourly|annual|per hour|per year/i.test(context)) {
-      salaryText = value;
+      salaryText = parseSalaryText(value)?.display ?? null;
       break;
     }
   }
 
-  const titleAndText = `${title ?? ''}\n${rawText}`;
-  const isStudent = /\b(?:student|co[- ]?op|intern(?:ship)?)\b/i.test(title ?? '')
-    || /\b(?:student|co[- ]?op|intern(?:ship)?)\s+(?:position|role|job|employment|placement|program|opportunity)\b/i.test(titleAndText)
-    || /\b(?:position|role|job)\s+for\s+(?:a\s+)?student\b/i.test(titleAndText)
-    ? 1
-    : null;
+  const isStudent = classifyStudentRequirement(title, rawText) ? 1 : null;
 
   const workdayLocation = normalized.match(/\b(?:apply\s*)?locations(?=[A-Z0-9])\s*(.+?)(?=(?:remote\s*type|time\s*type|posted\s*on|job\s*requisition|category\s*type|position\s*type|college\/administrative|faculty\/department|job\s*schedule|about\s+the\s+job)(?:\b|[A-Z0-9]|\s|$)|$)/i)?.[1] ?? '';
   const locationCandidate = (workdayLocation.split(/\s+-\s+/).pop() ?? workdayLocation)

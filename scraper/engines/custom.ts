@@ -5,7 +5,7 @@ import { saveRawJob } from '../db';
 import { EXCLUDED_GOVERNMENT_OF_CANADA_IDS, GOVERNMENT_OF_CANADA_FIXES, isRetiredGovernmentOfCanadaPage } from '../source-fixes';
 
 export function isOntarioPublicServiceBotChallenge(text: string): boolean {
-  return /(?:radware|hcaptcha|captcha|validate\.perfdrive\.com|security verification)/i.test(text);
+  return /(?:radware|hcaptcha|captcha|validate\.perfdrive\.com|security verification|activity and behavior on (?:this )?site made us think that you are a bot|incident id:\s*[a-f0-9-]{8,})/i.test(text);
 }
 
 // These federal postings are listed in GC Jobs but the employer's own page is

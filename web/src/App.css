@@ -57,11 +57,20 @@
 .filter-title { font-size: 0.75rem; font-weight: 700; color: #64748b; letter-spacing: normal; }
 .filter-options { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 .filter-note { margin: 0.35rem 0 0; color: #94a3b8; font-size: 0.7rem; line-height: 1.35; }
+.filter-search-wrap { position: relative; width: 100%; flex: 0 0 100%; }
+.filter-suggestions { position: absolute; z-index: 5; left: 0; right: 0; max-height: 12rem; overflow-y: auto; margin-top: 0.2rem; padding: 0.2rem; border: 1px solid #e2e8f0; border-radius: 6px; background: white; box-shadow: 0 8px 20px rgb(15 23 42 / 10%); }
+.filter-suggestion { display: block; width: 100%; padding: 0.4rem 0.45rem; border: 0; border-radius: 4px; background: white; color: #475569; font: inherit; font-size: 0.7rem; text-align: left; cursor: pointer; }
+.filter-suggestion:hover, .filter-suggestion:focus-visible { background: #f1f5f9; color: #0f172a; }
+.filter-selected-list { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.35rem; }
+.filter-selected { padding: 0.25rem 0.5rem; border: 1px solid #0f172a; border-radius: 4px; background: #0f172a; color: white; font: inherit; font-size: 0.65rem; font-weight: 600; cursor: pointer; }
 .filter-field-label { display: block; margin: 0.65rem 0 0.35rem; }
 .location-filter-input { width: 100%; box-sizing: border-box; padding: 0.4rem 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; color: #0f172a; background: white; font: inherit; font-size: 0.7rem; outline: none; }
 .filter-button { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; transition: all 0.1s ease; }
 .filter-button.active { border-color: #0f172a; background: #0f172a; color: white; }
+.filter-button:disabled, .list-sort-options button:disabled { opacity: 0.35; cursor: not-allowed; }
 .filter-heading { display: flex; align-items: baseline; gap: 0.5rem; height: 2.5rem; box-sizing: border-box; padding: 0.75rem 0; margin-bottom: 1rem; color: #0f172a; }
+.saved-filter-heading { display: block; height: auto; padding-bottom: 0.75rem; }
+.saved-filter-heading .saved-filter-note { margin: 0.35rem 0 0; }
 .filter-heading-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 .filter-reset-wrap { position: sticky; bottom: 0; margin-top: 1rem; padding: 0.75rem 0 0.25rem; background: white; }
 .filter-reset { width: 100%; padding: 0.4rem; border-radius: 6px; border: 1px solid #e2e8f0; background: transparent; color: #64748b; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
@@ -72,9 +81,12 @@
 .detail-main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; width: 100%; box-sizing: border-box; flex: 1; }
 .detail-grid { display: grid; grid-template-columns: 260px 1fr; gap: 4rem; align-items: start; }
 .detail-sidebar { display: flex; flex-direction: column; gap: 1.5rem; position: sticky; }
-.deadline-card { background: #fef2f2; padding: 1rem; border-radius: 12px; border: 1px solid #fee2e2; }
-.deadline-label { font-size: 0.55rem; font-weight: 800; color: #ef4444; text-transform: uppercase; margin-bottom: 0.2rem; }
-.deadline-value { font-size: 1.125rem; font-weight: 900; color: #b91c1c; }
+.deadline-card { background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #e2e8f0; }
+.deadline-card-urgent { background: #fef2f2; border-color: #fee2e2; }
+.deadline-label { font-size: 0.55rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 0.2rem; }
+.deadline-card-urgent .deadline-label { color: #ef4444; }
+.deadline-value { font-size: 1.125rem; font-weight: 900; color: #475569; }
+.deadline-card-urgent .deadline-value { color: #b91c1c; }
 .detail-actions { display: flex; gap: 0.5rem; }
 .copy-link-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; width: 100%; padding: 0.55rem 0.5rem; border: 1px solid #e2e8f0; border-radius: 8px; background: white; color: #64748b; font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 .detail-action { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.75rem 0.5rem; border-radius: 8px; font-weight: 700; font-size: 0.8125rem; }
@@ -142,7 +154,7 @@
 .detail-pending p { margin: 0.5rem 0 0; }
 .detail-pending-link { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.85rem; color: #334155; font-weight: 700; }
 
-.company-row { padding: 0.6rem 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.company-row { padding: 0.6rem 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: inherit; text-decoration: none; }
 .company-row.archived { opacity: 0.6; }
 .company-name { display: block; font-size: 1rem; font-weight: 700; }
 .company-child-summary { display: block; margin-top: 0.15rem; color: #64748b; font-size: 0.72rem; font-weight: 600; }
@@ -158,13 +170,6 @@
 .company-child-links { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem 0.75rem; margin-top: 0.8rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; }
 .company-child-links-label { color: #64748b; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 .company-child-links a { display: inline-flex; align-items: center; gap: 0.25rem; color: #2563eb; font-size: 0.75rem; font-weight: 600; text-decoration: none; }
-.company-title-suggestions { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; }
-.company-title-suggestions-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.55rem; }
-.company-title-suggestions h3 { margin: 0; color: #64748b; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-.company-title-clear { border: 0; padding: 0; background: transparent; color: #64748b; font: inherit; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
-.company-title-options { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.company-title-option { border: 1px solid #e2e8f0; border-radius: 999px; padding: 0.3rem 0.55rem; background: white; color: #475569; font: inherit; font-size: 0.7rem; font-weight: 600; cursor: pointer; }
-.company-title-option:hover, .company-title-option.active { border-color: #0f172a; background: #0f172a; color: white; }
 .list-sort-options { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
 .list-heading-row { position: sticky; top: 0; z-index: 10; display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding: 0.75rem 0; background: white; flex-wrap: wrap; }
 .list-count-label { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }

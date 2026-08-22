@@ -725,7 +725,10 @@ async function main() {
     throw new Error(`PENDING_BATCH must be one of: ${Object.keys(BATCHES).join(', ')}`);
   }
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--disable-blink-features=AutomationControlled']
+  });
   const context = await browser.newContext(BASE_CONFIG);
   const db = await initDb();
   let failed = false;

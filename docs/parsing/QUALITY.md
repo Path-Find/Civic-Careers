@@ -32,6 +32,26 @@ descriptions, or other job properties.
 
 ## 0. One fact, one spelling
 
+### Automated field filters
+
+Source-specific parser corrections stay scoped to that source and engine. A
+source-specific capture must not become a global extraction rule just because
+one posting exposed it. Separate from those corrections, the shared
+publication gate applies property-level safety filters to every source:
+
+- canonical length and format checks for structured fields;
+- forbidden source-label, portal-fragment, and boilerplate patterns only in
+  the property where they are invalid;
+- exact duplicate checks for fields that must remain semantically separate;
+- a fail-closed decision that keeps the row hidden when the structured data is
+  unsafe.
+
+When a new bad value is found, first classify it as either a source/engine
+extraction rule or a universally invalid field value. Add the former to the
+scoped parser and the latter to the shared field filter. Run a whole-corpus
+dry-run before applying any backfill; preserve the raw capture and show the
+proposed field-level changes for review.
+
 When a structured field has a canonical form, every listing uses that form — same token, same casing. Do not leave free-text variants that mean the same thing (`Toronto` vs `Toronto, ON` vs `Toronto, Ontario, Canada`; `English Essential` vs `English`).
 
 **Location** (always):
@@ -82,8 +102,9 @@ When a structured field has a canonical form, every listing uses that form — s
 
 **Salary period** (always):
 
-- Stored tokens only: `yearly` | `hourly` | `monthly` | `flat` (lowercase)
-- Synonyms: annual/per year/annum → `yearly`; hr/hrs/per hour → `hourly`; per month → `monthly`; lump sum/per course/stipend/honorarium/one-time → `flat`
+- Stored tokens only: `yearly` | `hourly` | `daily` | `monthly` | `biweekly` | `weekly` | `flat` (lowercase)
+- Synonyms: annual/per year/annum/yr → `yearly`; hr/hrs/per hour → `hourly`; day/daily/per day → `daily`; wk/per week → `weekly`; per month/mo → `monthly`; lump sum/per course/stipend/honorarium/one-time → `flat`
+- Public salary text always includes a qualifier and uses `$min-$max period`; whole-dollar amounts omit `.00`, and `K`/`M` shorthand is expanded when the source explicitly uses it.
 - Unknown defaults to `yearly` (existing parse policy)
 - Implemented by `normalizeSalaryPeriod()` in `scraper/validate.ts` (validate + parser write path)
 

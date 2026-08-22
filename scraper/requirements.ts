@@ -379,6 +379,22 @@ export function normalizeListingType(value: unknown, isInventory = false): Listi
 
 const EDUCATION_TERM = /\b(?:bachelor(?:['’]s)?(?:\s+degree)?|master(?:['’]s)?(?!\s+electrician)(?:\s+degree)?|ph\.?d\.?|doctor(?:ate|al)|diploma|degree\s+(?:in|from|required|or|program)|post[- ]secondary\s+(?:education|program|institution)|associate(?:['’]s)?|bscn|bsn|b\.?a\.?|m\.?a\.?|undergraduate\s+degree|graduate\s+degree)\b/i;
 const STUDENT_EDUCATION_TERM = /\b(?:current(?:ly)?\s+enrol(?:l(?:ed|ment)?|ment)?|registration\s+in\s+(?:a\s+)?co-?op\s+program|student\s+(?:status|enrolment|enrollment))\b/i;
+const STUDENT_TITLE_SIGNAL = /\b(?:student|co-?op)\s+(?:assistant|employee|intern(?:ship)?|placement|position|role|job|program|opportunity|worker|ambassador|researcher)\b|\b(?:co-?op|intern(?:ship)?)\s+(?:student|term|program|placement)\b|\b(?:summer|winter|fall|spring)\s+student\b/i;
+const STUDENT_ELIGIBILITY_SIGNAL = [
+  /\b(?:applicants?|candidates?)\s+(?:must|required to)\s+(?:be\s+)?(?:a\s+)?(?:full[- ]time|part[- ]time)?\s*(?:students?|co-?op|intern(?:ship)?)\b/i,
+  /\b(?:must|required to)\s+(?:be\s+)?(?:a\s+)?(?:full[- ]time|part[- ]time)?\s*(?:students?|co-?op|intern(?:ship)?)\b/i,
+  /\b(?:student|co-?op|intern(?:ship)?)\s+(?:eligibility|status)\s+(?:is\s+)?(?:required|necessary)\b/i,
+  /\b(?:currently\s+)?(?:enrol(?:l(?:ed|ment)?|ment)|register(?:ed|ation)?)\s+(?:as\s+)?(?:a\s+)?(?:full[- ]time|part[- ]time)?\s*students?\b/i,
+  /\b(?:student|co-?op)\s+(?:employment|placement)\s+program\b/i,
+  /\b(?:open|available|limited)\s+only\s+to\s+(?:current\s+)?(?:students?|co-?op|interns?)\b/i,
+];
+
+/** Classify student eligibility only when the title or source states it explicitly. */
+export function classifyStudentRequirement(title: string | null | undefined, rawText: string | null | undefined): boolean {
+  const normalizedTitle = String(title ?? '').replace(/\s+/g, ' ').trim();
+  const text = String(rawText ?? '').replace(/\s+/g, ' ').trim();
+  return STUDENT_TITLE_SIGNAL.test(normalizedTitle) || STUDENT_ELIGIBILITY_SIGNAL.some(signal => signal.test(text));
+}
 const EDUCATION_VERIFICATION = /\b(?:verification|proof)\s+of\s+(?:degree|education|educational|diploma|transcript|equivalenc(?:y|ies))\b/i;
 const EDUCATION_REQUIRED_CUE = /\b(?:required|minimum|must|completion|completed|successful|degree\s+in|diploma\s+in|equivalent|eligible|graduate|undergraduate|post[- ]secondary\s+(?:program|institution|education\s+in)|education\s+in)\b|\b(?:a|an|minimum|completion\s+of|completed|required)\s+post[- ]secondary\s+education\b/i;
 const EDUCATION_CONTEXT_ONLY = /^\s*(?:familiarity|knowledge|experience|proficiency|understanding|working knowledge|demonstrated|strong|excellent)\b/i;
@@ -553,7 +569,7 @@ export function normalizeBenefits(values: string[]): string[] {
   });
 }
 
-const ONGOING_TITLE_SIGNAL = /\b(?:ongoing recruitment|recruitment program|student employment program|talent pool|candidate pool|hiring pool|future opportunities|expression of interest|co-?op students?\s*[-–—:]\s*(?:various|multiple))\b/i;
+const ONGOING_TITLE_SIGNAL = /\b(?:ongoing recruitment|recruitment program|student employment program|talent pool|candidate pool|hiring pool|general application pool|future opportunities|expression of interest|co-?op students?\s*[-–—:]\s*(?:various|multiple))\b/i;
 // Federal "inventory" / talent-pool postings — flexible wording; do not require
 // the exact phrase "inventory for future vacancies" (many say "but to an inventory;").
 const INVENTORY_TEXT_SIGNALS: RegExp[] = [
@@ -573,6 +589,7 @@ const INVENTORY_TEXT_SIGNALS: RegExp[] = [
 ];
 const INVENTORY_TITLE_SIGNAL = /\b(?:applicant\s+pool|eligibility\s+list|inventory|talent\s+pool|periodic(?:\s+posting|\s+post)?)\b/i;
 const ONGOING_TEXT_SIGNALS: RegExp[] = [
+  /\bgeneral application pool\b/i,
   /\b(?:candidate|talent)\s+pool\b/i,
   /\b(?:general recruitment call|standing job posting)\b/i,
   /\b(?:pool of (?:qualified )?candidates?)\b[^.\n]{0,120}\b(?:future opportunities|future vacancies|future openings)\b/i,
@@ -906,7 +923,7 @@ const LICENSE_BODIES: Array<[string, RegExp]> = [
   ['CPBAO', /college of psychologists and behaviour analysts of ontario|\bCPBAO\b/i],
   ['CRPO', /college of registered psychotherapists of ontario|\bCRPO\b/i],
   ['OCSWSSW', /ontario college of social workers and social service workers/i],
-  ['CECE', /(?:ontario\s+)?college of early childhood educators/i],
+  ['CECE', /(?:ontario\s+)?college of early childhood educators|college of e\.?\s*c\.?\s*e\.?/i],
   ['CDO', /college of dietitians of ontario/i],
   ['OACETT', /\bOACETT\b/i],
   ['OPPI', /\bOPPI\b/i],
@@ -932,6 +949,7 @@ const LICENSE_ROLES: Array<[string, RegExp]> = [
   ['Psychotherapist', /psychotherapist/i],
   ['Lawyer', /\blawyer\b|barrister|solicitor/i],
   ['MLT', /\bgeneral MLT\b|\bmedical laboratory technologist\b|\bMLT\b/i],
+  ['Registered Early Childhood Educator (RECE)', /registered early childhood educator|\bRECE\b/i],
   ['Landscape Architect', /professional landscape architect|landscape architect/i],
   ['Architect (OAA)', /professional architect|\bOAA\b/i],
 ];
@@ -996,7 +1014,8 @@ function isNonLicenseJunk(value: string): boolean {
     // Vague fragments that never name a real credential (not "College of Nurses…").
     || /^registration with a college\s*$/i.test(value)
     || /^registration with regulated college\b/i.test(value)
-    || /\bregistered with the ontario ministry of skills and development\b/i.test(value);
+    || /\bregistered with the ontario ministry of skills and development\b/i.test(value)
+    || /\bregistered with the college of e\.?$/i.test(value);
 }
 
 function formatProfessionalLicense(role: string | null, body: string | null, eligible: boolean): string {

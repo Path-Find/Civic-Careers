@@ -22,7 +22,7 @@ Careers and how it should be normalized.
 These fields behave like checkboxes or dropdowns. The values below are the
 complete current vocabulary:
 
-- `salary_period`: `yearly`, `hourly`, `monthly`, `flat`
+- `salary_period`: `yearly`, `hourly`, `daily`, `monthly`, `biweekly`, `weekly`, `flat`
 - `work_model`: `On-site`, `Hybrid`, `Remote`
 - `employment_type`: `Full-time`, `Part-time`, `Contract`, `Permanent`,
   `Occasional`, `Seasonal`
@@ -76,8 +76,8 @@ not invent a taxonomy or turn a generic duty into a requirement:
 | `workplace_address` | Full source-stated street address or semicolon-separated addresses, or empty | Hidden map-only property; use only an explicit job worksite address, never a mailing/contact/application address, and do not expose it in the public job response |
 | `salary_min` | Number with no currency symbol or commas | Lower compensation bound |
 | `salary_max` | Number with no currency symbol or commas | Upper compensation bound |
-| `salary_period` | One of `hourly`, `yearly`, `monthly`, or `flat` | Choose an existing pay-interval value; never put the interval in the job body |
-| `salary_range` | Normalized human-readable fallback matching the numeric fields | Keep consistent with min/max/period; do not use it instead of the numeric fields |
+| `salary_period` | One of `hourly`, `daily`, `yearly`, `monthly`, `biweekly`, `weekly`, or `flat` | Choose an existing pay-interval value; never put the interval in the job body |
+| `salary_range` | Normalized human-readable fallback in `$min-$max period` form | Keep consistent with min/max/period; no spaces around the range hyphen, no `.00` for whole dollars, and never omit the pay period |
 | `work_model` | One of `On-site`, `Hybrid`, or `Remote` | Choose an existing value; do not infer remote status from a location |
 | `employment_type` | One of `Full-time`, `Part-time`, `Contract`, `Permanent`, `Occasional`, or `Seasonal` | Choose an existing value; temporary/term/casual source wording maps to `Contract` |
 | `duration` | Canonical value: `Permanent`, `Ongoing`, `Seasonal`, `Term`, `Term ending YYYY-MM-DD`, `Term ending Month YYYY` when the source provides only the end month, `N months`, `N years`, `Up to N months`, `N-month work year`, an academic term, or `YYYY-MM-DD to YYYY-MM-DD` | Contract/assignment term or date range; the UI displays this as `Term`; do not use for application closing dates |
@@ -111,6 +111,14 @@ not invent a taxonomy or turn a generic duty into a requirement:
 | `responsibility_tags` | JSON array using only the responsibility labels listed above | High-level summary of duties; do not add new labels ad hoc |
 | `qualification_tags` | JSON array using only the qualification labels listed above | High-level summary of qualifications; do not use it as a substitute for requirements |
 | `description` | Markdown with only genuinely additional narrative | `## Overview`, `## Responsibilities`, and `## Qualifications` as needed; no repeated location, pay, dates, employment type, duration, hours, availability, or structured requirements |
+
+**Area of study is a display/filter concept, not a separate stored field.** The
+source-backed `education_requirements` values retain the requirement wording,
+while the web filter extracts a canonical subject from it. Degree wording is
+not the subject: `BSc in Computer Science`, `Bachelor of Science in Computer
+Science`, and `Bachelor's degree in Computer Science` all produce the
+`Computer Science` option; `Bachelor`/`BSc`/`BA` are never area-of-study
+options themselves.
 
 ## Academic role card
 

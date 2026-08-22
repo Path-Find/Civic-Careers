@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createArchiveDb, createDb } from './_db.js';
 import { ORGANIZATION_GROUPS, organizationGroupForSlug, organizationGroupForSources } from '../src/modules/jobs/organizationMetadata.js';
+import { hasOversizedJobSection } from '../src/modules/jobs/descriptionQuality.js';
 
 const PUBLIC_CACHE = 's-maxage=86400, stale-while-revalidate=86400';
 function sourceTextValue(value: unknown): string {
@@ -15,28 +16,50 @@ function extractSourceAcademicCourse(value: unknown): string | null {
 
 function extractSourceAcademicSchedule(value: unknown): string | null {
   const text = sourceTextValue(value);
-  const label = text.search(/(?:course|class)\s+schedule\s*:/i);
-  if (label >= 0) {
-    const start = text.indexOf(':', label) + 1;
-    const remainder = text.slice(start).trim();
-    const end = remainder.search(/\s+-\s+-?\s*(?:requirements|work hours|course (?:title|code)|posting limited to|salary|location)\s*:/i);
-    const schedule = (end < 0 ? remainder : remainder.slice(0, end)).trim();
-    if (schedule) return schedule;
+  const label = text.match(/\b(?:course|class)\s+schedule\s*:\s*|\bhoraire\s*:\s*/i);
+  if (label?.index !== undefined) {
+    const remainder = text.slice(label.index + label[0].length).trim();
+    const end = remainder.search(/(?=\s*(?:requirements?|exigences?|work\s+hours?|heures?\s+(?:total|de\s+travail)|additional\s+information|information\s+additionnelle|course\s+(?:title|code)|posting\s+limited\s+to|salary|location|similar\s+jobs?|locations?|time\s+type|posted\s+on|time\s+left\s+to\s+apply)\s*:)/i);
+    const schedule = (end < 0 ? remainder : remainder.slice(0, end))
+      .replace(/^(?:[-–—]\s*)+/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (schedule.length > 0 && schedule.length <= 120) return schedule;
   }
   const semester = text.match(/\(((?:Fall|Winter|Spring|Summer)\s+Semester:\s*[^)]+)\)/i)?.[1]?.trim();
-  return semester || null;
+  return semester && semester.length <= 120 ? semester : null;
 }
 
 const closingDate = `COALESCE(
-  NULLIF(NULLIF(NULLIF(NULLIF(TRIM(jd.closing_date), ''), 'null'), 'NULL'), 'N/A'),
-  NULLIF(NULLIF(NULLIF(NULLIF(TRIM(raw.pending_closing_date), ''), 'null'), 'NULL'), 'N/A')
+  NULLIF(NULLIF(NULLIF(NULLIF(TRIM(raw.pending_closing_date), ''), 'null'), 'NULL'), 'N/A'),
+  NULLIF(NULLIF(NULLIF(NULLIF(TRIM(jd.closing_date), ''), 'null'), 'NULL'), 'N/A')
 )`;
+// Closing dates on Canadian employer postings are date-only values. Compare
+// them with the project's Toronto calendar date rather than the database
+// session's UTC date, which can hide a still-live posting after 00:00 UTC.
+const currentTorontoDate = `((CURRENT_TIMESTAMP AT TIME ZONE 'America/Toronto')::date)`;
 const sourceText = `LOWER(COALESCE(raw.title, '') || ' ' || COALESCE(raw.raw_text, ''))`;
+function badTitlePrefixCheck(column: string): string {
+  const bad = [
+    'skip to', 'view job details', 'view the job posting', 'apply now',
+    'click here', 'read more', 'search jobs', 'job description', 'no results',
+  ];
+  return bad.map(prefix => `LOWER(TRIM(${column})) LIKE '${prefix}%'`).join('\n  OR ');
+}
+// The raw scraped title (raw.title) is unfiltered -- it never goes through
+// publish-gate.ts's isUsableJobTitle check, since that check only runs when
+// a job is promoted into job_details. A job left pending (blocked by the
+// gate on some other field) still falls back to this raw title with zero
+// filtering, so portal chrome like "View Job Details" was showing live on
+// the site for pending jobs even after the gate existed for promoted ones.
 const publicTitle = `COALESCE(
-  CASE WHEN LOWER(TRIM(COALESCE(jd.job_title, ''))) LIKE 'skip to%' THEN NULL ELSE NULLIF(TRIM(jd.job_title), '') END,
-  CASE WHEN LOWER(TRIM(COALESCE(raw.title, ''))) LIKE 'skip to%' THEN NULL ELSE NULLIF(TRIM(raw.title), '') END
+  CASE WHEN ${badTitlePrefixCheck("COALESCE(jd.job_title, '')")} THEN NULL ELSE NULLIF(TRIM(jd.job_title), '') END,
+  CASE WHEN ${badTitlePrefixCheck("COALESCE(raw.title, '')")} THEN NULL ELSE NULLIF(TRIM(raw.title), '') END
 )`;
 const publicTitleVisibility = `AND ${publicTitle} IS NOT NULL`;
+// A raw scrape is not public approval. Only a soft- or fully-parsed row can
+// appear in public results; hidden rows remain available for repair from raw_jobs.
+const publicPublicationVisibility = `AND j.publication_status IN ('soft_parsed', 'fully_parsed')`;
 const explicitOpenUntilFilled = `(
   (${sourceText} LIKE '%until filled%' AND (
     ${sourceText} LIKE '%closing date%'
@@ -87,6 +110,7 @@ const effectiveInventory = `CASE WHEN COALESCE(jd.is_inventory, 0) = 1 OR ${effe
 const closingDateStatus = `CASE
   WHEN ${closingDate} IS NOT NULL THEN 'known'
   WHEN raw.pending_closing_date_status = 'blocked' THEN 'blocked'
+  WHEN raw.pending_closing_date_status = 'open_until_filled' THEN 'open_until_filled'
   WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN COALESCE(raw.pending_closing_date_status, 'not_checked')
   WHEN ${explicitOpenUntilFilled}
     OR ${sourceText} LIKE '%accepting applications until filled%' THEN 'open_until_filled'
@@ -98,16 +122,16 @@ const closingDateStatus = `CASE
     OR ${sourceText} LIKE '%closing date: none%' THEN 'invalid'
   ELSE 'not_checked'
 END`;
-// Public listings require a current/future source-backed deadline or an
-// explicit open-until-filled status. Other missing/uncertain statuses remain
-// hidden from public listings.
+// Public listings require a current/future source-backed deadline or the
+// normalized open-until-filled status. Soft-parsed rows without either signal
+// remain hidden until their pending application metadata is repaired.
 const publicDeadline = `AND ((${closingDate} IS NOT NULL
-  AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text)
+  AND LEFT(${closingDate}, 10) >= ${currentTorontoDate}::text)
   OR ${closingDateStatus} = 'open_until_filled')`;
-const currentPublicJobVisibility = `AND j.is_active = 1 ${publicTitleVisibility} ${publicDeadline}`;
+const currentPublicJobVisibility = `AND j.is_active = 1 ${publicPublicationVisibility} ${publicTitleVisibility} ${publicDeadline}`;
 
 const jobColumns = `
-  j.public_id AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.first_seen_at, j.scraped_at,
+  j.public_id AS rid, j.id, j.url, j.source, j.is_active, j.is_saved, j.publication_status, j.first_seen_at, j.scraped_at,
   j.scraped_at AS last_checked_at,
   ${publicTitle} AS job_title, jd.department, COALESCE(jd.location, raw.pending_location) AS location,
   raw.url AS details_url,
@@ -120,7 +144,7 @@ const jobColumns = `
   jd.work_model, ${effectiveEmploymentType} AS employment_type, ${effectiveDuration} AS duration,
   jd.hours, jd.availability,
   jd.academic_role_type, jd.academic_course, jd.academic_workload, jd.academic_office_hours,
-  jd.academic_supervisor, jd.academic_appointment_type, NULL AS academic_schedule,
+  jd.academic_supervisor, jd.academic_appointment_type, NULL AS academic_schedule, jd.academic_term,
   jd.is_unionized, jd.union_name, jd.benefits, jd.required_skills,
   jd.experience_requirements, jd.education_requirements, jd.license_requirements, jd.vehicle_required,
   jd.language_requirements, jd.security_check_required, jd.certification_requirements,
@@ -132,8 +156,8 @@ const jobJoins = `
   LEFT JOIN job_details jd ON j.id = jd.id
   LEFT JOIN raw_jobs raw ON j.id = raw.id`;
 
-const freshnessDate = `CASE WHEN COALESCE(jd.posted_at, raw.posted_at) IS NOT NULL AND LEFT(COALESCE(jd.posted_at, raw.posted_at), 10) <= CURRENT_DATE::text THEN LEFT(COALESCE(jd.posted_at, raw.posted_at), 10)::date ELSE j.first_seen_at::date END`;
-const visiblePending = publicTitleVisibility;
+const freshnessDate = `CASE WHEN COALESCE(jd.posted_at, raw.posted_at) IS NOT NULL AND LEFT(COALESCE(jd.posted_at, raw.posted_at), 10) <= ${currentTorontoDate}::text THEN LEFT(COALESCE(jd.posted_at, raw.posted_at), 10)::date ELSE j.first_seen_at::date END`;
+    const visiblePending = `${publicPublicationVisibility} ${publicTitleVisibility}`;
 
 /** Match web/src/utils.ts slugify — company URLs are /companies/{slug}. */
 function slugifySource(text: string): string {
@@ -198,11 +222,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       const placeholders = requestedIds.map(() => '?').join(', ');
       const [currentResult, archiveResult] = await Promise.all([
         db.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders})`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders}) ${currentPublicJobVisibility}`,
           args: requestedIds,
         }),
         archiveDb.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders})`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id IN (${placeholders}) ${currentPublicJobVisibility}`,
           args: requestedIds,
         }),
       ]);
@@ -215,16 +239,16 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       let result = await db.execute({
         sql: `SELECT jd.description, raw.raw_text,
                 CASE WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN 1 ELSE 0 END AS details_pending
-              FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
-              LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ?`,
+                FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
+              LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ? ${currentPublicJobVisibility}`,
         args: [id]
       });
       if (result.rows.length === 0) {
         result = await archiveDb.execute({
           sql: `SELECT jd.description, raw.raw_text,
                   CASE WHEN jd.id IS NULL OR raw.parsed_at IS NULL THEN 1 ELSE 0 END AS details_pending
-                FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
-                LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ?`,
+                  FROM jobs j LEFT JOIN job_details jd ON j.id = jd.id
+                LEFT JOIN raw_jobs raw ON j.id = raw.id WHERE j.id = ? ${currentPublicJobVisibility}`,
           args: [id]
         });
       }
@@ -238,7 +262,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         description: result.rows[0].description ?? null,
         academic_course: extractSourceAcademicCourse(result.rows[0].raw_text),
         academic_schedule: extractSourceAcademicSchedule(result.rows[0].raw_text),
-        details_pending: Number(result.rows[0].details_pending ?? 0),
+        details_pending: Number(result.rows[0].details_pending ?? 0) || (hasOversizedJobSection(String(result.rows[0].description ?? '')) ? 1 : 0),
       }));
       return;
     }
@@ -258,11 +282,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       if (result.rows.length === 0) {
         result = /^\d+$/.test(jobId)
           ? await archiveDb.execute({
-            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ?`,
+            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${publicPublicationVisibility}`,
             args: [jobId]
           })
           : await archiveDb.execute({
-            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
+            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ? ${publicPublicationVisibility}`,
             args: [jobId]
           });
       }
@@ -274,7 +298,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         });
         if (result.rows.length === 0) {
           result = await archiveDb.execute({
-            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ?`,
+            sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.id = ? ${publicPublicationVisibility}`,
             args: [jobId]
           });
         }
@@ -296,7 +320,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       });
       if (result.rows.length === 0) {
         result = await archiveDb.execute({
-          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ?`,
+          sql: `SELECT ${jobColumns} ${jobJoins} WHERE j.public_id = ? ${currentPublicJobVisibility}`,
           args: [rid]
         });
       }
@@ -329,13 +353,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         db.execute(`SELECT ${jobColumns} ${jobJoins}
           ${activeJobWhere}
           AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
-          AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '14 days')::date)::text
+          AND LEFT(${closingDate}, 10) >= ${currentTorontoDate}::text
+          AND LEFT(${closingDate}, 10) <= ((${currentTorontoDate} + INTERVAL '14 days')::date)::text
           ORDER BY LEFT(${closingDate}, 10) ASC LIMIT 10`),
         db.execute(`SELECT
           COUNT(*) AS available_job_count,
-          SUM(CASE WHEN ${freshnessDate} >= (CURRENT_DATE - INTERVAL '7 days')::date THEN 1 ELSE 0 END) AS recently_added_count,
+          SUM(CASE WHEN ${freshnessDate} >= (${currentTorontoDate} - INTERVAL '7 days')::date THEN 1 ELSE 0 END) AS recently_added_count,
           SUM(CASE WHEN ${closingDate} IS NOT NULL AND ${closingDate} != ''
-            AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '14 days')::date)::text THEN 1 ELSE 0 END) AS closing_soon_count,
+            AND LEFT(${closingDate}, 10) >= ${currentTorontoDate}::text
+            AND LEFT(${closingDate}, 10) <= ((${currentTorontoDate} + INTERVAL '14 days')::date)::text THEN 1 ELSE 0 END) AS closing_soon_count,
           MAX(j.scraped_at) AS last_checked_at
           ${jobJoins} ${activeJobWhere}`),
         nearbyCount,
@@ -392,8 +418,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           active_job_count: matchingRows.reduce((sum, row) => sum + Number(row.active_job_count ?? 0), 0),
           total_job_count: matchingRows.reduce((sum, row) => sum + Number(row.total_job_count ?? 0), 0),
           recent_job_count: matchingRows.reduce((sum, row) => sum + Number(row.recent_job_count ?? 0), 0),
-          latest_job_added_at: matchingRows.map(row => String(row.latest_job_added_at ?? '')).sort().at(-1) || null,
-          last_checked_at: matchingRows.map(row => String(row.last_checked_at ?? '')).sort().at(-1) || null,
+          latest_job_added_at: matchingRows.map(row => String(row.latest_job_added_at ?? '')).sort().slice(-1)[0] || null,
+          last_checked_at: matchingRows.map(row => String(row.last_checked_at ?? '')).sort().slice(-1)[0] || null,
         }];
       });
       const standaloneRows = result.rows
@@ -478,19 +504,19 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           filterClause += ` AND (${closingDate} IS NULL OR ${closingDate} = '')`;
         } else if (deadlineDays === 0) {
           filterClause += ` AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
-            AND LEFT(${closingDate}, 10) = CURRENT_DATE::text`;
+            AND LEFT(${closingDate}, 10) = ${currentTorontoDate}::text`;
         } else if (deadlineDays > 0) {
           // Inclusive: today through N days out (client: days >= 0 && days <= N).
           // Integer is floor-validated — safe to inline into SQLite date modifier.
           const days = Math.min(Math.floor(deadlineDays), 365);
           filterClause += ` AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
-            AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text
-            AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '${days} days')::date)::text`;
+            AND LEFT(${closingDate}, 10) >= ${currentTorontoDate}::text
+            AND LEFT(${closingDate}, 10) <= ((${currentTorontoDate} + INTERVAL '${days} days')::date)::text`;
         }
       }
 
       if (newlyAdded) {
-        filterClause += ` AND ${freshnessDate} >= (CURRENT_DATE - INTERVAL '7 days')::date`;
+        filterClause += ` AND ${freshnessDate} >= (${currentTorontoDate} - INTERVAL '7 days')::date`;
       }
 
       const educationText = `LOWER(COALESCE(jd.education_requirements, ''))`;
@@ -528,21 +554,6 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       const listArgs = [...filterArgs, limit, offset];
       const countArgs = [...filterArgs];
-      const titleSuggestions = sourceFilters.length > 0
-        ? db.execute({
-          sql: `SELECT DISTINCT COALESCE(jd.job_title, raw.title) AS title
-            ${jobJoins}
-            WHERE j.source IN (${sourceFilters.map(() => '?').join(', ')})
-              AND j.is_active = 1
-              ${visiblePending}
-              AND ${effectiveInventory} = 0
-              ${publicDeadline}
-              AND TRIM(COALESCE(jd.job_title, raw.title, '')) <> ''
-            ORDER BY LOWER(title), title
-            LIMIT 50`,
-          args: sourceFilters,
-        })
-        : Promise.resolve({ rows: [] as Array<Record<string, unknown>> });
       const [result, count] = await Promise.all([
         db.execute({
           sql: `SELECT ${jobColumns} ${jobJoins} ${activeJobWhere} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
@@ -564,9 +575,6 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         source: sourceGroup?.name ?? (sourceFilters.length === 1 ? sourceFilters[0] : null),
         sources: sourceFilters,
         organization: sourceGroup,
-        titleSuggestions: (await titleSuggestions).rows
-          .map(row => String(row.title ?? '').trim())
-          .filter(Boolean),
       }));
       return;
     }
@@ -576,6 +584,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         SELECT ${jobColumns}
         ${jobJoins}
         WHERE j.is_saved = 1
+          ${publicPublicationVisibility}
       `;
       const [currentSaved, archiveSaved] = await Promise.all([
         db.execute(savedSql),

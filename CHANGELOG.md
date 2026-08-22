@@ -7,6 +7,121 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Repaired 855 additional location values across current and archived jobs while preserving unresolved values for later source-specific review.
+
+- Canonicalized province-first locations such as `SK, Moose Jaw` to city-first storage and repaired the affected Defence Construction Canada records.
+
+- Standardized public salary and location displays, including compact ranges such as `$52K–$67K/year` and city-first Canadian locations.
+
+- Repaired syndicated Defence Construction Canada postings so their salary, employer name, and application links no longer inherit Government of Canada metadata.
+
+- Added a conservative structured-field backfill for missing language, certification, vehicle, education, experience, and skills data, with duplicate and oversized-capture guards.
+
+- Added a dry-run missing-field backfill that recovers safe blank metadata from preserved captures without overwriting populated values.
+
+- Normalized unambiguous employment-type values such as `FULL-TIME` and `Full Time` to the controlled display vocabulary.
+
+- Added read-only raw-capture replay and Playwright content audits so parser drift and dead/challenge pages are detected before publication.
+
+- Archived six stale City of Hamilton records whose direct pages no longer contained postings, preventing outdated academic listings from appearing as current jobs.
+
+- Added shared prose detection for structured skills and tags, repaired duplicated education/qualification values, and fixed Workday department captures that glued an `FT` marker and Campus header into the department.
+
+- Reconciled Ottawa raw and parsed titles from preserved source captures so source-specific Professor and Student Professor titles remain consistent without re-scraping.
+
+- Cleared academic panels from 119 current/archive postings whose titles did not support an academic appointment, while preserving source-backed course terms and legitimate research roles.
+
+- Added a read-only parser regression audit that samples current and archived postings across multiple sources and reuses the publication-quality gates without making paid AI calls or database changes.
+
+- Added a repeatable whole-corpus Availability audit and strict publication gate so nonstandard schedule prose, FTE metadata, and source fragments cannot reach public listings.
+
+- Added a conservative current/archive Availability backfill that canonicalizes recognized schedule values and clears unsafe captures without changing raw source text.
+
+- Added source-scoped uOttawa recovery for Workday course titles, academic periods, and course fields, including truncated title slugs and labelled raw-page metadata.
+
+- uOttawa course metadata recovery now rejects oversized labelled captures and distinguishes course-tied teaching roles from faculty or research roles that legitimately have no course term.
+
+- Structured list fields now fail publication when they contain portal/page prose or duplicate another structured list, preventing whole descriptions from being exposed as skills or tags.
+
+- Extended the duplicate-field backfill to remove contaminated list items and clear exact required-skills/software and responsibility/qualification duplicates across current and archived jobs.
+
+- The duplicate-field repair also clears required-skills values that exactly repeat education requirements, keeping each fact in one structured field.
+
+- Simplified public job reports into plain-language issue categories and added the live page plus current recorded details to the prefilled GitHub report.
+
+- Removed the redundant “Showing jobs closing within 14 days” sentence when the deadline control already communicates the active view.
+
+- Oversized Responsibilities and Qualifications sections now trigger “Details pending” instead of rendering potentially corrupted description text.
+
+- Kept Career stage as a sidebar filter without displaying “Student” as a job-detail metadata field.
+
+- Added official careers links for Shared Health Manitoba, Canada Post, the Government of Alberta, and the University of Saskatchewan.
+
+- Salary display now removes unnecessary `.00` decimals and uses exact compact `K` notation for clean yearly amounts such as `$110.5K-$143K`.
+
+- Moved the saved-jobs filter explanation into the sidebar beneath the Filters heading instead of placing it below the job list.
+
+- Company directory rows are now real links, so they support right-click, middle-click, and modifier-click opening while preserving in-app navigation for ordinary clicks.
+
+- Simplified the location and employer filters, aligned their search controls, and made salary thresholds compare supported pay periods using approximate yearly equivalents.
+
+- Repaired the truncated George Brown licence capture (`College of E`) and normalized Early Childhood Educator registration as `RECE (CECE)`; future truncated captures are rejected.
+
+- Removed academic context from 645 non-academic current/archive rows, limited the Academic roles filter and detail card to confirmed academic roles, and changed Area of study to canonical autocomplete options.
+
+- Added field-level publication filters and repeatable backfills for duplicated academic metadata, invalid availability fragments, and non-canonical pending salaries; future contaminated rows stay hidden instead of reaching the public site.
+
+- Normalized salary ranges to one consistent `$min-$max period` format, expanded shorthand qualifiers such as `hr`, `wk`, and `yr`, and removed stale unqualified pending salary fallbacks.
+
+- Removed portal alert-setting text from job hours before publication and cleaned 486 current plus 37 archived records.
+
+- Added university-specific course-code and term normalization for Brock, TMU, uOttawa, U of T, and York, and repaired current academic fields without treating requisition IDs as courses.
+
+- Removed the unsolicited results-link control and redundant empty-results copy.
+
+- Replaced the growing employer list with searchable suggestions and added location suggestions as users type.
+
+- Limited company job-title suggestions to titles shared by at least three available jobs.
+
+- Fixed fixed-term contract wording being left in public job titles instead of being moved into duration metadata.
+
+- Added an automated post-scrape quality pass that refreshes metadata, applies shared and source-specific title cleanup, fills missing active deadlines, and enforces publication states before jobs reach the public site.
+
+- Company pages now load their job results correctly in Postgres; VIA TGF and other source-scoped pages no longer fail on title suggestions.
+
+- Fixed grouped company API output for Vercel’s supported TypeScript target.
+
+- Public deadline checks now use Toronto’s calendar date, keeping same-day Canadian postings visible until the local date ends.
+
+- Restored four archived/hidden listings only after their individual source URLs were verified live; dead archived listings remain hidden.
+
+- Public listings now prefer newer source-captured closing dates over stale parsed dates, preventing valid jobs from being hidden as expired.
+
+- Recovered current listings that had been incorrectly archived, including 55 Njoyn postings stored as bot-page captures; incomplete records remain soft-parsed with “Details pending.”
+
+- Active source listings now receive the required closing metadata: an exact date when available or the “Until filled” fallback otherwise; incomplete soft-parsed rows remain hidden for repair.
+
+- Added enforced hidden, soft-parsed, and fully parsed publication states: corrupt or unusable listings are removed from public results, while safe partial parses remain visible with pending details.
+- Repaired publication states across the current and archive Neon stores, hiding 52 current corrupt listings without deleting their preserved raw captures.
+- Prevented a zero-result source scrape from archiving every existing posting for that employer; the source run now fails closed for review.
+- Fixed a generic salary/hours fallback truncating any dollar amount at its decimal point ("$33.83" was being stored as "$33") — the "stop at sentence end" boundary was treating every period as a sentence end, including the one inside a decimal number.
+- Extended the field-gluing fix to the remaining 8 mechanical parsers (SuccessFactors, City of Toronto, ADP, Dayforce, Njoyn, Hamilton, Government of Canada) covering every active source, closing out the systematic sweep started earlier tonight. Added a length backstop (matching the publish-gate ceilings) as the real safety net: different cities/institutions on the same platform use different field-label vocabularies, so no fixed label list fully covers every source — the backstop leaves a field unset rather than swallowing hundreds of characters of unrelated text when no known label is found nearby. Full-data validation against 522 real postings across all 41 affected sources found this brought remaining corruption to zero.
+- Fixed the same field-gluing bug in parseWorkday (University of Ottawa, Brock, and 8 other Workday sources) as the earlier PeopleSoft fix — department/salary/hours/closing-date captures now stop at the next known field label instead of running on into whatever follows.
+- Fixed normalizeDepartment truncating real department names at any hyphen, even inside a single hyphenated word ("On-Site Team" was becoming "On", "Office of Equity and Anti-Racism" was becoming "...and Anti"). This function is shared by nearly every mechanical parser, so the fix applies broadly, not just to Workday sources.
+- Fixed a gap that let "View Job Details" and similar portal button text keep showing as a live job title even after tonight's earlier title-quality fixes: pending jobs (not yet promoted) fall back to displaying their raw, unfiltered scraped title, which never went through the same usability check promoted jobs get. Now applies the same bad-title filter to that fallback too.
+- Fixed the root cause of the union-field corruption: PeopleSoft sources (Calgary, TMU, TransLink, Western, Winnipeg, McMaster, Durham/Niagara Region, Fleming) render their pay/position info as one line with no newlines between labels, so a capture bounded only by newline swallowed every field after it. Also fixed "Exempt" being wrongly treated as a real union name instead of a non-union label.
+- The "Student/Co-op" badge was checking the entire raw posting text for the word "student", which matched department names ("Student Systems"), software modules ("Student Financials"), and roles that supervise students rather than being for one — 615 of 700 flagged jobs had no "student" wording in the title at all, including "Nurse Practitioner" and "Research Scientist". Now only checks the title.
+- Academic job titles that bundled a term ("Fall 2026"), union prefix ("CUPE - ..."), or course code ("MBAB 5P11") into the title now have those pulled into their own fields and shown as badges next to a cleaned-up title, instead of staying jumbled into the title text.
+- Extended the publish-quality gate to also catch a corrupted union field: found and removed 10 live jobs (9 City of Calgary, 1 other) whose "union" field held the entire raw posting (position type, pay grade, hours) instead of a union name — same unbounded-capture bug class as the department/title corruption fixed earlier, just not covered by that check.
+- Hardened the publish-quality gate after a full-data validation pass against every archived job turned up real false positives: the "employment status in title" check was rejecting genuine role names like "Contract Compliance Officer" and "Contract Academic Staff" (208 archive titles matched, 164 were false positives); the "garbled text" check was rejecting real camelCase names like "ServiceNow", "PeopleSoft", and "AccessAbility"; and the department field's colon check was rejecting legitimate academic naming like "UTM: Anthropology". All three now require stronger evidence before flagging a job.
+- Removed 1,193 public jobs whose department/title/salary/hours/location field had swallowed unrelated text from the raw posting (e.g. an entire job description dumped into "department"), or whose title was a portal button label ("View Job Details"), a cookie-consent banner, or a reposting/status annotation. Affected both tonight's mechanical backfill and some pre-existing AI-parsed jobs.
+- Added a reusable publish-quality gate (`scraper/publish-gate.ts`) and audit script (`scraper/audit-mechanical-publish.ts`) so this can be re-run and checked going forward instead of relying on manual review.
+- Salary is now displayed as a clean `$min - $max period` string derived from the parsed numeric salary fields, instead of the raw source text (which sometimes carried its own label, e.g. "Hourly Range:").
+- Fixed false-positive bot-challenge rejections on SuccessFactors and Njoyn detail pages containing static robot-check/hCaptcha widgets, restoring TTC and Carleton University listings.
+- Resolved Radware anti-bot blocks on Njoyn and SuccessFactors search pages by disabling automated browser flags and isolating browser contexts per task.
+- Fixed parameter boundary unescaping for Kingston RSS feed URLs, restoring 18 active jobs.
+- Promoted Algoma University, VIA Rail Canada, VIA TGF Inc., and City of Ottawa (Jobs2Web) from pending to active.
+- Fixed a Postgres query ambiguity bug in the `recordParseFailure` helper.
 - Added a range-based closing date parser (`Posting Period`) to recover deadlines from City of Toronto and similar job postings.
 - Introduced deterministic board-specific metadata parsers in `board-parsers.ts` for Hamilton (BambooHR), Toronto (SuccessFactors), Workday, Ontario Health atHome (iCIMS), Taleo (Oakville/Humber/Seneca/OCAD), Dayforce (TRCA/IO), Njoyn (Vaughan/Oshawa/Queen's/Carleton), ADP (Markham/Aurora/Sarnia/Clarington), and SuccessFactors (Shared Health Manitoba/Mississauga/Halton/Ottawa/TTC) to extract department, work model, union status, duration, and salary details.
 - Refactored salary parsing to extract up to 4 decimal places, allowing accurate preservation of paramedic and specialized collective agreement wage rates.

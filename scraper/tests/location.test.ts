@@ -16,6 +16,7 @@ test('bare Canadian cities get province codes', () => {
 
 test('already canonical form is preserved (with casing fix)', () => {
   assert.equal(normalizeLocation('Toronto, ON'), 'Toronto, ON');
+  assert.equal(normalizeLocation('SK, Moose Jaw'), 'Moose Jaw, SK');
   assert.equal(normalizeLocation('toronto, on'), 'Toronto, ON');
   assert.equal(normalizeLocation('Winnipeg, MB'), 'Winnipeg, MB');
 });

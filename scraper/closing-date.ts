@@ -128,3 +128,16 @@ export function extractClosingDateStatus(rawText: string): { date: string | null
   if (INVALID_CLOSING_VALUE.test(text) || INVALID_CLOSING_DATE.test(text)) return { date: null, status: 'invalid' };
   return { date: null, status: 'not_checked' };
 }
+
+/**
+ * Every source capture is still present on the source's active board. When
+ * that board supplies no usable last-application date, normalize the pending
+ * public metadata to the product's required fallback phrase: Until filled.
+ * The raw text remains available for later review; this is a publication
+ * property, not a claim that the source used those exact words.
+ */
+export function normalizeActiveClosingDateStatus(rawText: string): { date: string | null; status: ClosingDateStatus } {
+  const extracted = extractClosingDateStatus(rawText);
+  if (extracted.date || extracted.status === 'open_until_filled') return extracted;
+  return { date: null, status: 'open_until_filled' };
+}

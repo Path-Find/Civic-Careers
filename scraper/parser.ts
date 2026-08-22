@@ -1,10 +1,10 @@
-import { deactivateExpiredJobs, discardRawJob, initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, recordParseFailure, clearParseFailure, countStalledParseFailures } from './db';
+import { deactivateExpiredJobs, discardRawJob, initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, recordParseFailure, clearParseFailure, countStalledParseFailures, setPublicationStatus } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, notifyDiscord } from './utils';
 import { classifyRawCapture } from './capture-quality';
 import { normalizeDuration } from './duration';
 import { extractLabeledLocation, normalizeLocation } from './location';
-import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from './title';
+import { extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from './title';
 import { normalizeEmploymentType, normalizeSalaryPeriod, normalizeUnionFields, normalizeWorkModel } from './validate';
 import {
   dedupeSkillsAgainstSoftware,
@@ -23,14 +23,20 @@ import {
   requirementFlagToDb,
   splitLanguageOutOfSkills,
   stripStructuredQualBullets,
+  classifyStudentRequirement,
 } from './requirements';
 import { cleanJobDescription, removePlaceholderSections, stripStructuredBenefitRestatements } from './cleanup_description';
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 import { BENEFIT_OVERRIDES } from './benefit-fixes';
 import { extractStartDate } from './start-date';
 import { extractAcademicSchedule } from './academic-context';
+import { isAcademicJob } from './academic-context';
 import { sourceMetadataFixFor } from './source-metadata-fixes';
 import { classifyCareerStage } from './career-stage';
+import { formatSalaryDisplay } from './salary-format';
+import { evaluateJobQuality } from './quality-pipeline';
+import { normalizeActiveClosingDateStatus } from './closing-date';
+import { splitHoursAndAvailability } from './hours-availability';
 
 const CONCURRENCY = Number(process.env.PARSER_CONCURRENCY ?? 2);
 const ENABLE_DEEPSEEK_PARSER = process.env.ENABLE_DEEPSEEK_PARSER === 'true';
@@ -121,7 +127,7 @@ async function main() {
         const vehicleRequired = vehicleFromDescription === true
           ? true
           : (vehicleFromAI ?? vehicleFromDescription);
-        const isStudent = sourceFix?.isStudent ?? (aiResult.is_student ? 1 : 0);
+        const isStudent = sourceFix?.isStudent ?? (classifyStudentRequirement(finalTitle, raw.raw_text) ? 1 : 0);
         const careerStage = classifyCareerStage({ title: finalTitle, rawText: raw.raw_text, isStudent });
         description = stripStructuredQualBullets(description, {
           licenses: structuredRequirements.license_requirements,
@@ -142,6 +148,67 @@ async function main() {
           ?? securityFromLabel;
         const parsedLocation = normalizeLocation(aiResult.location);
         const location = sourceMetadataFix?.location || parsedLocation || extractLabeledLocation(raw.raw_text);
+        const unionFields = normalizeUnionFields(aiResult.union_name, aiResult.is_unionized);
+        const pendingClosing = normalizeActiveClosingDateStatus(raw.raw_text);
+        const academicAllowed = isAcademicJob(raw.source, finalTitle, aiResult.academic_role_type);
+        const academicRoleType = academicAllowed ? aiResult.academic_role_type : null;
+        const academicCourse = academicAllowed
+          ? (aiResult.academic_course || extractSourceAcademicCourseFromRaw(raw.source, raw.raw_text) || extractSourceAcademicCourse(raw.source, raw.title ?? aiResult.job_title))
+          : '';
+        const academicWorkload = academicAllowed ? aiResult.academic_workload : '';
+        const academicOfficeHours = academicAllowed ? aiResult.academic_office_hours : '';
+        const academicSupervisor = academicAllowed ? aiResult.academic_supervisor : '';
+        const academicAppointmentType = academicAllowed ? aiResult.academic_appointment_type : '';
+        const academicSchedule = academicAllowed ? (extractAcademicSchedule(raw.raw_text) || aiResult.academic_schedule || '') : '';
+        const duration = sourceMetadataFix?.duration ?? normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || '');
+        const academicTerm = extractSourceAcademicTermFromRaw(raw.source, raw.raw_text)
+          || extractSourceAcademicTerm(raw.source, raw.title ?? aiResult.job_title);
+        const parsedSchedule = splitHoursAndAvailability(
+          sourceMetadataFix?.hours ?? aiResult.hours,
+          aiResult.availability,
+        );
+        const quality = evaluateJobQuality({
+          source: raw.source,
+          title: finalTitle,
+          rawText: raw.raw_text,
+          url: raw.url,
+          applicationUrl: raw.application_url,
+          closingDate: aiResult.closing_date || pendingClosing.date,
+          closingDateStatus: aiResult.closing_date ? 'known' : pendingClosing.status,
+          department: sourceMetadataFix?.department ?? aiResult.department,
+          hours: parsedSchedule.hours,
+          salary: sourceMetadataFix?.salaryRange ?? formatSalaryDisplay(
+            aiResult.salary_min ?? null,
+            aiResult.salary_max ?? null,
+            normalizeSalaryPeriod(aiResult.salary_period),
+          ),
+          location,
+          unionName: unionFields.union_name,
+          availability: parsedSchedule.availability,
+          duration,
+          academicCourse,
+          academicSchedule,
+          academicTerm,
+          academicWorkload,
+          academicOfficeHours,
+          requiredSkills: JSON.stringify(finalSkills),
+          softwareRequirements: JSON.stringify(finalSoftwareRequirements),
+          responsibilityTags: JSON.stringify(aiResult.responsibility_tags),
+          qualificationTags: JSON.stringify(aiResult.qualification_tags),
+          educationRequirements: JSON.stringify(sourceMetadataFix?.educationRequirements ?? sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),
+        });
+        if (quality.status === 'hidden') {
+          await setPublicationStatus(db, raw.id, 'hidden');
+          await recordParseFailure(db, {
+            id: raw.id,
+            url: raw.url,
+            source: raw.source,
+            reason: `permanent: quality gate: ${quality.reasons.join('; ')}`,
+          });
+          failedSources.add(raw.source);
+          process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ⛔ (${raw.source} ${raw.id}: ${quality.reasons.join('; ')})`);
+          return;
+        }
         const listingType = normalizeListingType(
           extractListingType(`${raw.raw_text}\n${description}`, raw.title ?? aiResult.job_title, aiResult.is_inventory),
           aiResult.is_inventory,
@@ -154,9 +221,11 @@ async function main() {
           department: sourceMetadataFix?.department ?? aiResult.department,
           location,
           workplace_address: aiResult.workplace_address,
-          salary_range: sourceMetadataFix?.salaryRange ?? ((aiResult.salary_min || aiResult.salary_max)
-            ? `${aiResult.salary_min ?? ''} - ${aiResult.salary_max ?? ''} (${aiResult.salary_period})`
-            : ''),
+          salary_range: sourceMetadataFix?.salaryRange ?? formatSalaryDisplay(
+            aiResult.salary_min ?? null,
+            aiResult.salary_max ?? null,
+            normalizeSalaryPeriod(aiResult.salary_period),
+          ),
           description,
           closing_date: aiResult.closing_date || '',
           is_inventory: isInventory ? 1 : 0,
@@ -167,21 +236,20 @@ async function main() {
           salary_period: sourceMetadataFix?.salaryPeriod ?? normalizeSalaryPeriod(aiResult.salary_period),
           work_model: normalizeWorkModel(aiResult.work_model, finalTitle),
           employment_type: sourceMetadataFix?.employmentType ?? normalizeEmploymentType(aiResult.employment_type),
-          duration: sourceMetadataFix?.duration ?? normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || ''),
-          hours: sourceMetadataFix?.hours ?? aiResult.hours,
-          availability: aiResult.availability,
-          academic_role_type: aiResult.academic_role_type,
-          academic_course: aiResult.academic_course,
-          academic_workload: aiResult.academic_workload,
-          academic_office_hours: aiResult.academic_office_hours,
-          academic_supervisor: aiResult.academic_supervisor,
-          academic_appointment_type: aiResult.academic_appointment_type,
-          academic_schedule: extractAcademicSchedule(raw.raw_text) || aiResult.academic_schedule,
+          duration,
+          hours: parsedSchedule.hours,
+          availability: parsedSchedule.availability,
+          academic_role_type: academicRoleType,
+          academic_course: academicCourse,
+          academic_workload: academicWorkload,
+          academic_office_hours: academicOfficeHours,
+          academic_supervisor: academicSupervisor,
+          academic_appointment_type: academicAppointmentType,
+          academic_schedule: academicSchedule,
+          academic_term: academicTerm,
           experience_requirements: JSON.stringify(sourceMetadataFix?.experienceRequirements ?? structuredRequirements.experience_requirements),
-          ...(() => {
-            const u = normalizeUnionFields(aiResult.union_name, aiResult.is_unionized);
-            return { is_unionized: u.is_unionized ? 1 : 0, union_name: u.union_name };
-          })(),
+          is_unionized: unionFields.is_unionized ? 1 : 0,
+          union_name: unionFields.union_name,
           benefits: JSON.stringify(finalBenefits),
           required_skills: JSON.stringify(finalSkills),
           education_requirements: JSON.stringify(sourceMetadataFix?.educationRequirements ?? sourceFix?.educationRequirements ?? structuredRequirements.education_requirements),

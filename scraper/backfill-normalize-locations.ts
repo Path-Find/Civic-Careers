@@ -10,15 +10,17 @@ import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import { normalizeLocation } from './location';
+import { extractLabeledLocation, normalizeLocation } from './location';
 
 dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
 const ACTIVE_ONLY = process.argv.includes('--active-only');
+const SOURCE_ONLY = process.argv.find(arg => arg.startsWith('--source='))?.slice('--source='.length) ?? '';
 
 type Change = {
   id: string;
+  store: 'current' | 'archive';
   source: string;
   title: string;
   is_active: number;
@@ -27,17 +29,25 @@ type Change = {
 };
 
 async function main() {
-  const db = await initDb();
-
-  const query = await db.execute(`
-    SELECT j.id, j.source, j.is_active, d.job_title, d.location
+  const db = await initDb() as any;
+  const archive = db as { executeArchive?: (statement: unknown) => Promise<{ rows: any[] }> };
+  const queryText = `
+    SELECT j.id, j.source, j.is_active, d.job_title, d.location, r.raw_text
     FROM jobs j
     JOIN job_details d ON d.id = j.id
+    LEFT JOIN raw_jobs r ON r.id = j.id
     WHERE d.location IS NOT NULL
       AND trim(d.location) != ''
       ${ACTIVE_ONLY ? 'AND j.is_active = 1' : ''}
+      ${SOURCE_ONLY ? 'AND j.source = ?' : ''}
     ORDER BY j.source, j.id
-  `);
+  `;
+  const currentRows = (await db.execute({ sql: queryText, args: SOURCE_ONLY ? [SOURCE_ONLY] : [] })).rows
+    .map((row: any) => ({ ...row, store: 'current' as const }));
+  const archiveRows = archive.executeArchive
+    ? (await archive.executeArchive({ sql: queryText, args: SOURCE_ONLY ? [SOURCE_ONLY] : [] })).rows
+      .map((row: any) => ({ ...row, store: 'archive' as const }))
+    : [];
 
   const changes: Change[] = [];
   const unmapped: { id: string; source: string; from: string }[] = [];
@@ -45,9 +55,15 @@ async function main() {
   let alreadyCanonical = 0;
   let emptied = 0;
 
-  for (const row of query.rows) {
+  const allRows = [...currentRows, ...archiveRows];
+  for (const row of allRows) {
     const from = String(row.location ?? '').trim();
-    const to = normalizeLocation(from);
+    const normalized = normalizeLocation(from);
+    const recovered = !normalized ? extractLabeledLocation(String(row.raw_text ?? '')) : '';
+    // Never erase a populated location during this repair pass. If neither
+    // the stored value nor the preserved source can be normalized, retain the
+    // original for a later source-specific review.
+    const to = normalized || recovered || from;
     if (to) {
       resultDist.set(to, (resultDist.get(to) ?? 0) + 1);
     }
@@ -55,14 +71,12 @@ async function main() {
       alreadyCanonical++;
       continue;
     }
-    if (!to && from) {
-      // Became empty — either junk strip or unmapped bare city
-      const probe = normalizeLocation(from);
-      if (!probe) unmapped.push({ id: String(row.id), source: String(row.source), from });
-      emptied++;
+    if (to === from && from && !normalized && !recovered) {
+      unmapped.push({ id: String(row.id), source: String(row.source), from });
     }
     changes.push({
       id: String(row.id),
+      store: row.store,
       source: String(row.source),
       title: String(row.job_title ?? ''),
       is_active: Number(row.is_active ?? 0),
@@ -71,7 +85,7 @@ async function main() {
     });
   }
 
-  console.log(`Rows with location: ${query.rows.length}`);
+  console.log(`Rows with location: ${allRows.length}`);
   console.log(`Already canonical: ${alreadyCanonical}`);
   console.log(`Would change: ${changes.length}${APPLY ? ' (applying)' : ' (dry-run)'}`);
   console.log(`Of which emptied: ${emptied}`);
@@ -87,17 +101,24 @@ async function main() {
   }
 
   if (APPLY && changes.length) {
+    const client = db as any;
     const BATCH = 50;
-    for (let i = 0; i < changes.length; i += BATCH) {
-      const slice = changes.slice(i, i + BATCH);
-      await db.batch(
-        slice.map((c) => ({
-          sql: `UPDATE job_details SET location = ? WHERE id = ?`,
-          args: [c.to || null, c.id],
-        })),
-        'write',
+    let applied = 0;
+    for (const store of ['current', 'archive'] as const) {
+      const storeChanges = changes.filter(change => change.store === store);
+      for (let i = 0; i < storeChanges.length; i += BATCH) {
+      const slice = storeChanges.slice(i, i + BATCH);
+      const statements = slice.map((c) => ({
+        sql: `UPDATE job_details SET location = ? WHERE id = ? AND location = ?`,
+        args: [c.to || null, c.id, c.from],
+      }));
+      const executeBatch = store === 'archive' ? client.batchArchive?.bind(client) : client.batch.bind(client);
+      await executeBatch(
+        statements,
       );
-      process.stdout.write(`\rApplied ${Math.min(i + BATCH, changes.length)}/${changes.length}`);
+      applied += slice.length;
+      process.stdout.write(`\rApplied ${applied}/${changes.length}`);
+      }
     }
     console.log('\nDone.');
   }
@@ -107,7 +128,7 @@ async function main() {
   const md = [
     '# Location normalize 2026-08-04',
     '',
-    `- Rows scanned: ${query.rows.length}`,
+    `- Rows scanned: ${allRows.length}`,
     `- Already canonical: ${alreadyCanonical}`,
     `- Changed: ${changes.length}${APPLY ? ' (applied)' : ' (dry-run only)'}`,
     `- Emptied (junk or unmapped): ${emptied}`,

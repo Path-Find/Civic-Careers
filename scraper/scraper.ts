@@ -62,6 +62,8 @@ const TASKS: ScrapeTask[] = [
 
   // 3. Crown Corps & Conservation
   { engine: 'jobs2web', label: 'CMHC', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.cmhc-schl.gc.ca/search/', 'CMHC') },
+  { engine: 'jobs2web', label: 'VIA TGF Inc.', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://carrieres-careers.altotrain.ca/search/', 'VIA TGF Inc.') },
+  { engine: 'jobs2web', label: 'VIA Rail Canada', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.viarail.ca/search/', 'VIA Rail Canada') },
   { engine: 'dayforce', label: 'TRCA', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/trca/CANDIDATEPORTAL', 'TRCA') },
   { engine: 'dayforce', label: 'Infrastructure Ontario', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/en-US/infrastructureontario/CANDIDATEPORTAL', 'Infrastructure Ontario') },
   { engine: 'bamboohr', label: 'CreateTO', run: (db, ctx) => scrapeCreateTO(db, ctx) },
@@ -116,7 +118,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'jibe', label: 'City of Thunder Bay', run: (db, ctx) => scrapeJibe(db, ctx, 'https://careers.thunderbay.ca/careers-home/jobs', 'City of Thunder Bay', 'thunderbay') },
 
   // 9. Eastern Ontario
-  { engine: 'successfactors', label: 'City of Ottawa', run: (db, ctx) => scrapeSuccessFactors(db, ctx, 'https://career47.sapsf.com/careers/cityofottawa/search', 'City of Ottawa', 'https://career47.sapsf.com') },
+  { engine: 'jobs2web', label: 'City of Ottawa (Jobs2Web)', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs-emplois.ottawa.ca/city-jobs/search/', 'City of Ottawa (Jobs2Web)') },
   { engine: 'rss', label: 'City of Kingston', run: (db, ctx) => scrapeRSS(db, ctx, 'https://careers.cityofkingston.ca/CL2/net/ResumeProcessing/RssFeedOutput.aspx?CLID=61577&lang=1', 'City of Kingston', 'kingston', 'https://careers.cityofkingston.ca/CL2/xweb/xweb.asp?CLID=61577&page=joblisting&lang=1') },
   { engine: 'jazzhr', label: 'City of Belleville', run: (db, ctx) => scrapeJazzHR(db, ctx, 'https://cityofbelleville.applytojob.com/apply/', 'City of Belleville', 'belleville') },
   { engine: 'workland', label: 'City of Cornwall', run: (db, ctx) => scrapeWorkland(db, ctx, 'https://atlas.workland.com/careers/cornwall/jobs?page=1', 'City of Cornwall', 'cornwall') },
@@ -135,6 +137,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'workday', label: 'Algonquin College', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://algonquincollege.wd3.myworkdayjobs.com/CareerOpportunities', 'Algonquin College') },
   { engine: 'workday', label: 'Fanshawe College', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://fanshawec.wd3.myworkdayjobs.com/fanshawecareers', 'Fanshawe College') },
   { engine: 'njoyn', label: 'Carleton University', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://carleton.njoyn.com/CL2/xweb/xweb.asp?CLID=53443&page=joblisting&lang=1', 'Carleton University') },
+  { engine: 'adp', label: 'Algoma University', run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=325cbdb8-d490-4480-ae8d-d332911ec006&ccId=19000101_000001&lang=en_CA', 'Algoma University') },
   { engine: 'taleo', label: 'OCAD University', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=OCADU&cws=37', 'OCAD University') },
   { engine: 'taleo', label: 'Humber College', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://humber.taleo.net/careersection/hbr_ex/jobsearch.ftl?lang=en', 'Humber College') },
   { engine: 'njoyn', label: "Queen's University", run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://queensu.njoyn.com/cl4/xweb/xweb.asp?page=joblisting&CLID=74827', "Queen's University") },
@@ -171,8 +174,10 @@ async function main() {
   }
 
   console.log(`Launching browser (headless: ${headless})...`);
-  const browser = await chromium.launch({ headless });
-  const context = await browser.newContext(BASE_CONFIG);
+  const browser = await chromium.launch({
+    headless,
+    args: ['--disable-blink-features=AutomationControlled']
+  });
   const db = await initDb();
 
   console.log(`--- STARTING SCRAPE RUN${engineFilter ? ` (engine: ${engineFilter})` : ''} — ${tasks.length} source(s) ---`);
@@ -197,9 +202,10 @@ async function main() {
 
   const results: { label: string; status: 'success' | 'blocked' | 'failed'; error?: string }[] = [];
   for (const task of tasks) {
+    const taskContext = await browser.newContext(BASE_CONFIG);
     try {
       const taskStartedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
-      await task.run(db, context);
+      await task.run(db, taskContext);
       await cleanupExpiredJobsForSource(db, task.label, taskStartedAt);
       await db.execute({
         sql: `INSERT INTO source_scrape_status (source, last_successful_scrape_at, last_status)
@@ -221,6 +227,8 @@ async function main() {
         args: [task.label, externallyBlocked ? 'blocked' : 'failed'],
       }).catch(statusErr => console.error(`[${task.label}] Failed to record status:`, statusErr));
       results.push({ label: task.label, status: externallyBlocked ? 'blocked' : 'failed', error: errorMessage });
+    } finally {
+      await taskContext.close();
     }
   }
 

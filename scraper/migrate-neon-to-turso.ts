@@ -25,7 +25,7 @@ const BATCH_SIZE = 100;
 const apply = process.argv.includes('--apply');
 
 const plans: TablePlan[] = [
-  { name: 'jobs', keyColumn: 'id', columns: ['id', 'url', 'source', 'is_active', 'is_saved', 'first_seen_at', 'scraped_at', 'verified_at', 'public_id'] },
+  { name: 'jobs', keyColumn: 'id', columns: ['id', 'url', 'source', 'is_active', 'is_saved', 'first_seen_at', 'scraped_at', 'verified_at', 'publication_status', 'public_id'] },
   { name: 'raw_jobs', keyColumn: 'id', columns: ['id', 'url', 'source', 'raw_text', 'title', 'first_seen_at', 'scraped_at', 'parsed_at', 'posted_at', 'application_url', 'pending_salary_text', 'pending_is_student', 'pending_duration', 'pending_closing_date', 'pending_closing_date_status', 'pending_location'] },
   { name: 'job_details', keyColumn: 'id', columns: ['id', 'job_title', 'department', 'location', 'workplace_address', 'salary_range', 'description', 'closing_date', 'is_inventory', 'listing_type', 'is_student', 'salary_min', 'salary_max', 'salary_period', 'work_model', 'employment_type', 'duration', 'hours', 'availability', 'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours', 'academic_supervisor', 'academic_appointment_type', 'academic_schedule', 'is_unionized', 'union_name', 'benefits', 'required_skills', 'experience_requirements', 'education_requirements', 'license_requirements', 'vehicle_required', 'language_requirements', 'security_check_required', 'certification_requirements', 'software_requirements', 'medical_requirements', 'responsibility_tags', 'qualification_tags', 'posted_at', 'parser_version', 'start_date', 'career_stage'] },
   { name: 'parse_failures', keyColumn: 'id', columns: ['id', 'url', 'source', 'reason', 'attempt_count', 'last_failed_at'] },

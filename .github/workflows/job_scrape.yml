@@ -117,6 +117,22 @@ jobs:
       - name: Install dependencies
         run: cd scraper && npm ci
 
+      - name: Refresh pending metadata from captured postings
+        env:
+          NEON_CURRENT_DATABASE_URL: ${{ secrets.NEON_CURRENT_DATABASE_URL }}
+          NEON_ARCHIVE_DATABASE_URL: ${{ secrets.NEON_ARCHIVE_DATABASE_URL }}
+          TURSO_URL: ${{ secrets.TURSO_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: cd scraper && npm run backfill-pending-metadata -- --apply
+
+      - name: Fill missing active closing metadata
+        env:
+          NEON_CURRENT_DATABASE_URL: ${{ secrets.NEON_CURRENT_DATABASE_URL }}
+          NEON_ARCHIVE_DATABASE_URL: ${{ secrets.NEON_ARCHIVE_DATABASE_URL }}
+          TURSO_URL: ${{ secrets.TURSO_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: cd scraper && npm run backfill-pending-closing-status -- --apply
+
       - name: Promote readable scraped postings
         env:
           NEON_CURRENT_DATABASE_URL: ${{ secrets.NEON_CURRENT_DATABASE_URL }}
@@ -124,3 +140,19 @@ jobs:
           TURSO_URL: ${{ secrets.TURSO_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: cd scraper && npm run backfill-metadata-only -- --apply
+
+      - name: Normalize active job titles
+        env:
+          NEON_CURRENT_DATABASE_URL: ${{ secrets.NEON_CURRENT_DATABASE_URL }}
+          NEON_ARCHIVE_DATABASE_URL: ${{ secrets.NEON_ARCHIVE_DATABASE_URL }}
+          TURSO_URL: ${{ secrets.TURSO_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: cd scraper && npm run backfill-normalize-titles -- --active-only --apply
+
+      - name: Enforce publication quality states
+        env:
+          NEON_CURRENT_DATABASE_URL: ${{ secrets.NEON_CURRENT_DATABASE_URL }}
+          NEON_ARCHIVE_DATABASE_URL: ${{ secrets.NEON_ARCHIVE_DATABASE_URL }}
+          TURSO_URL: ${{ secrets.TURSO_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: cd scraper && npm run repair-publication-status -- --apply

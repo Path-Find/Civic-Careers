@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  normalizeDepartment,
   normalizeEmploymentType,
   normalizeAcademicRoleType,
   normalizeRequirementFlag,
@@ -10,6 +11,22 @@ import {
   normalizeWorkModel,
   validateParsedJob,
 } from '../validate';
+
+describe('normalizeDepartment', () => {
+  it('keeps a real hyphenated compound word intact', () => {
+    // A dash with no surrounding whitespace used to be treated the same as a
+    // "- trailing clause" separator, truncating "On-Site Team" to "On" and
+    // "Anti-Racism" to "Anti".
+    assert.equal(normalizeDepartment('On-Site Team'), 'On-Site Team');
+    assert.equal(normalizeDepartment('Seniors and Long-Term Care'), 'Seniors and Long-Term Care');
+    assert.equal(normalizeDepartment('Office of Equity and Anti-Racism'), 'Office of Equity and Anti-Racism');
+  });
+
+  it('still drops a trailing "- clause" separated by real whitespace', () => {
+    assert.equal(normalizeDepartment('Human Resources - Job Opportunity'), 'Human Resources');
+    assert.equal(normalizeDepartment('Finance - Campus Name Here'), 'Finance');
+  });
+});
 
 const BASE = {
   job_title: 'Planner I',
@@ -180,7 +197,7 @@ describe('validateParsedJob', () => {
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'per hour' })?.salary_period, 'hourly');
     });
 
-    it('normalizes salary_period: monthly variants', () => {
+  it('normalizes salary_period: monthly variants', () => {
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'monthly' })?.salary_period, 'monthly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'Monthly' })?.salary_period, 'monthly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'per month' })?.salary_period, 'monthly');
@@ -205,6 +222,11 @@ describe('validateParsedJob', () => {
       assert.equal(normalizeSalaryPeriod(''), 'yearly');
       assert.equal(normalizeSalaryPeriod('unknown'), 'yearly');
     });
+  });
+
+  it('normalizes weekly salary periods', () => {
+    assert.equal(normalizeSalaryPeriod('weekly'), 'weekly');
+    assert.equal(normalizeSalaryPeriod('bi-weekly'), 'biweekly');
   });
 
   describe('work_model normalization', () => {

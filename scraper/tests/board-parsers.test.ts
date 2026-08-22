@@ -13,8 +13,35 @@ import {
   parseTechnomedia,
   parseJobs2Web,
   parseGovernmentOfCanada,
+  parseDefenceConstructionCanada,
   parsePeopleSoft,
 } from '../board-parsers';
+
+test('parseDefenceConstructionCanada prefers the labelled salary range over allowances', () => {
+  const result = parseDefenceConstructionCanada(`
+Position Description
+Administrative Assistant
+Location
+SK, Moose Jaw
+Salary Range:
+$51,566 - $67,035
+Employment status:
+Continuing
+Flexible work option:
+Onsite 5 days/week
+Closing Date:
+28/08/2026
+Benefits include a $400 annual wellness allowance.
+  `);
+  assert.equal(result.salary, '$51,566-$67,035 year');
+  assert.equal(result.salaryMin, 51566);
+  assert.equal(result.salaryMax, 67035);
+  assert.equal(result.salaryPeriod, 'yearly');
+  assert.equal(result.location, 'SK, Moose Jaw');
+  assert.equal(result.employmentType, 'Permanent');
+  assert.equal(result.workModel, 'On-site');
+  assert.equal(result.closingDate, '2026-08-28');
+});
 
 test('parseHamilton extracts structured fields correctly', () => {
   const rawText = `
@@ -82,6 +109,32 @@ Posting Closing Date:September 18, 2026
   assert.equal(result.closingDate, '2026-09-18');
 });
 
+test('parseWorkday stops a field at the next label with no newline between them (University of Ottawa case)', () => {
+  // Real uOttawa postings glue "Department:X Campus:Y Union Affiliation:Z
+  // Date Posted...:" together with no newlines at all -- the exact bug
+  // behind the original department-corruption incident tonight.
+  const rawText = 'Department:On-Site TeamCampus:Fauteux Hall, Main Campus, Morisset Hall, Roger Guindon HallUnion Affiliation:SSUODate Posted (YYYY/MM/DD):2026/08/13Applications must be received BEFORE (YYYY/MM/DD):Salary Grade:SSUO Grade 08Salary Range:$68,149.00 - $86,083.00';
+  const result = parseWorkday(rawText);
+  assert.equal(result.department, 'On-Site Team');
+  assert.equal(result.salary, '$68,149.00 - $86,083.00');
+});
+
+test('parseWorkday removes the glued FT marker before a Campus label', () => {
+  const parsed = parseWorkday('Faculty/Department:Department of Physics_FTCampus:Main CampusDate Posted (YYYY/MM/DD):2025/12/10');
+  assert.equal(parsed.department, 'Department of Physics');
+});
+
+test('parseWorkday still runs into free-form prose when no known label follows (known residual gap)', () => {
+  // When a field is the LAST labeled one before free-form description text
+  // begins, there is no next label to bound the capture at. This case is
+  // still protected by publish-gate.ts's length check at promotion time
+  // (held pending, never published) -- board-parsers.ts fixes reduce how
+  // often that happens, but do not eliminate it entirely.
+  const rawText = 'Salary Range:$68,149.00 - $86,083.00Make your mark with the Faculty of Health.';
+  const result = parseWorkday(rawText);
+  assert.notEqual(result.salary, '$68,149.00 - $86,083.00');
+});
+
 test('parseOntarioHealthAtHome extracts structured fields correctly', () => {
   const rawText = `
 Status: Full-Time or Part-Time
@@ -106,7 +159,7 @@ Vacancy Type: Temporary
 Application Deadline: August 31, 2026 
   `;
   const result = parseADP(rawText);
-  assert.equal(result.salary, '$23.22 To $43.23 Hourly');
+  assert.equal(result.salary, '$23.22-$43.23 hour');
   assert.equal(result.salaryMin, 23.22);
   assert.equal(result.salaryMax, 43.23);
   assert.equal(result.salaryPeriod, 'hourly');
@@ -114,6 +167,15 @@ Application Deadline: August 31, 2026
   assert.equal(result.employmentType, 'Contract');
   assert.equal(result.duration, 'Contract');
   assert.equal(result.closingDate, '2026-08-31');
+});
+
+test('parseADP stops salary and extracts hours when ADP glues prose after the pay period', () => {
+  const result = parseADP('ApplySalary Range: $25.60 To $32.00 HourlyThe Corporation of the Town of Midland invites applications... 40 hours/week');
+  assert.equal(result.salary, '$25.60-$32 hour');
+  assert.equal(result.salaryMin, 25.60);
+  assert.equal(result.salaryMax, 32);
+  assert.equal(result.salaryPeriod, 'hourly');
+  assert.equal(result.hours, '40 hours per week');
 });
 
 test('parseDayforce extracts structured fields correctly', () => {
@@ -308,4 +370,17 @@ Closing Date: 2026-09-15
   assert.equal(result.closingDate, '2026-09-15');
 });
 
+test('parsePeopleSoft stops a field at the next label even with no newline between them (City of Calgary case)', () => {
+  // Real Calgary postings glue the whole "Position and Pay Information"
+  // block into one line with no newlines between labels at all. A capture
+  // bounded only by newline used to swallow every field after it.
+  const rawText = 'Position and Pay InformationBusiness Unit: Water ServicesUnion: CUPE Local 38Position Type: 1 Temporary (up to 18 months) Compensation: Pay Grade 9 $41.49 - 55.51 per hourHours of work: Standard 35 hour work weekDays of work: This position works a 5-day work week.Location: VariousAudience: Internal/ExternalApply By: September 4, 2026Job ID: 314587';
+  const result = parsePeopleSoft(rawText);
+  assert.equal(result.unionName, 'CUPE Local 38');
+});
 
+test('parsePeopleSoft correctly identifies a non-union "Exempt" position without swallowing the rest of the posting', () => {
+  const rawText = 'Position and Pay InformationBusiness Unit: VariousUnion: ExemptPosition Type: Permanent and Temporary Compensation: Salary will be based on the position.Hours of work: Standard 35 hour work week';
+  const result = parsePeopleSoft(rawText);
+  assert.equal(result.isUnionized, 0);
+});

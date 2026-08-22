@@ -37,7 +37,12 @@ export function normalizeDepartment(value: string | null | undefined): string {
   let cleaned = value
     .replace(/\(\d+\)/g, '')
     .replace(/\s*[-–—]\s*Job Opportunity.*/i, '')
-    .replace(/\s*[-–—].*/, '')
+    // A dash with real whitespace on both sides is a trailing "- clause" to
+    // drop (e.g. "Finance - Campus Name"). Zero-or-more whitespace here used
+    // to also match a hyphen INSIDE a single compound word with no spaces
+    // around it, truncating real department names like "On-Site Team" to
+    // "On" and "Office of Equity and Anti-Racism" to "...and Anti".
+    .replace(/\s+[-–—]\s+.*/, '')
     .replace(/^General$/i, '')
     .replace(/&/g, ' & ')
     .replace(/\s+/g, ' ')
@@ -127,7 +132,7 @@ function isNonUnionLabel(name: string): boolean {
   // Explicit non-membership labels only — do NOT treat "Non-Academic Staff Association" as non-union.
   if (/^union\s*\/\s*non[-\s]?union$/i.test(name)) return true;
   if (/^non[-\s]?union(?:ized)?\b/i.test(name)) return true;
-  if (/^(none|n\/?a|no|not unionized|non-affiliated|non-bargaining|non\s+spécifié|non\s+specifie|unspecified|tbd|unknown|work[-\s]?study)$/i.test(name)) {
+  if (/^(none|n\/?a|no|not unionized|non-affiliated|non-bargaining|non\s+spécifié|non\s+specifie|unspecified|tbd|unknown|work[-\s]?study|exempt)$/i.test(name)) {
     return true;
   }
   if (/^(mgmt\s+)?non[-\s]?union(?:\s*\/\s*non\s*mpe)?(?:,\s*management)?$/i.test(name)) return true;
@@ -175,10 +180,10 @@ export function normalizeUnionFields(unionName: unknown, isUnionized: unknown): 
 }
 
 /**
- * Canonical salary_period tokens: yearly | hourly | monthly | flat.
+ * Canonical salary_period tokens: yearly | hourly | daily | monthly | biweekly | weekly | flat.
  * Unknown/empty defaults to yearly (existing product policy).
  */
-export type SalaryPeriod = 'yearly' | 'hourly' | 'monthly' | 'flat';
+export type SalaryPeriod = 'yearly' | 'hourly' | 'daily' | 'monthly' | 'biweekly' | 'weekly' | 'flat';
 
 export function normalizeSalaryPeriod(v: unknown): SalaryPeriod {
   const s = coerceString(v).toLowerCase().replace(/[\s_-]+/g, ' ').trim();
@@ -196,6 +201,9 @@ export function normalizeSalaryPeriod(v: unknown): SalaryPeriod {
   }
 
   if (/\bhour|\bhrs?\b|\/\s*hr|per\s*hour/.test(s) || s === 'hr' || s === 'hrs') return 'hourly';
+  if (/\bday|daily|per\s*day/.test(s)) return 'daily';
+  if (/bi[ -]?weekly|every\s+two\s+weeks?/.test(s)) return 'biweekly';
+  if (/\bweek|\/\s*wk|per\s*week/.test(s)) return 'weekly';
   if (/\bmonth|\/\s*mo|per\s*month/.test(s)) return 'monthly';
   if (/\byear|annual|annum|\/\s*yr|per\s*year/.test(s)) return 'yearly';
 

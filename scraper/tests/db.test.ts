@@ -120,17 +120,19 @@ test('saveRawJob creates a shell listing without marking it parsed', async () =>
     posted_at: '2026-08-10',
   });
 
-  assert.equal(statements.length, 2);
+  assert.equal(statements.length, 3);
   assert.match(statements[0].sql, /parsed_at/i);
   assert.match(statements[0].sql, /pending_closing_date_status/i);
   assert.match(statements[0].sql, /pending_closing_date = COALESCE\(NULLIF\(TRIM\(excluded\.pending_closing_date\), ''\), raw_jobs\.pending_closing_date\)/i);
-  assert.match(statements[0].sql, /raw_jobs\.pending_closing_date_status = 'known'/i);
+  assert.match(statements[0].sql, /excluded\.pending_closing_date_status = 'open_until_filled'/i);
   assert.match(statements[0].sql, /'blocked'/i);
   assert.match(statements[0].sql, /NULL/i);
-  assert.equal(statements[0].args?.[11], 'not_checked');
+  assert.equal(statements[0].args?.[11], 'open_until_filled');
   assert.equal(statements[0].args?.[8], null);
   assert.match(statements[1].sql, /INSERT INTO jobs/i);
-  assert.match(statements[1].sql, /ON CONFLICT\(id\) DO NOTHING/i);
+  assert.match(statements[1].sql, /ON CONFLICT\(id\) DO UPDATE/i);
+  assert.match(statements[2].sql, /publication_status/i);
+  assert.equal(statements[2].args?.[0], 'soft_parsed');
 });
 
 test('saveRawJob recovers a source title when the scraper did not provide one', async () => {
@@ -170,7 +172,7 @@ test('savePendingJob publishes a PDF link without queueing it for parsing', asyn
     closing_date: '2026-08-20',
   });
 
-  assert.equal(statements.length, 2);
+  assert.equal(statements.length, 3);
   assert.match(statements[0].sql, /raw_text/i);
   assert.match(statements[0].sql, /CURRENT_TIMESTAMP/i);
   assert.deepEqual(statements[0].args?.slice(0, 5), [
@@ -182,6 +184,8 @@ test('savePendingJob publishes a PDF link without queueing it for parsing', asyn
   ]);
   assert.equal(statements[0].args?.[9], 'known');
   assert.match(statements[1].sql, /ON CONFLICT\(id\) DO UPDATE/i);
+  assert.match(statements[2].sql, /publication_status/i);
+  assert.equal(statements[2].args?.[0], 'job-pdf-1');
 });
 
 test('promotePendingJobs inserts only raw rows that are still unparsed and have no shell', async () => {

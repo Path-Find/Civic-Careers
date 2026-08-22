@@ -1,10 +1,12 @@
 import { createClient, Client } from '@libsql/client';
 import dotenv from 'dotenv';
 import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeSourceJobTitle } from './title';
+import { evaluateJobQuality } from './quality-pipeline';
 import { extractPendingMetadata } from './pending-metadata';
-import { extractClosingDateStatus } from './closing-date';
+import { normalizeActiveClosingDateStatus } from './closing-date';
 import { classifyRawCapture } from './capture-quality';
 import { createNeonDatabaseClient, NeonDatabaseClient } from './neon-db';
+import { canonicalSourceForRaw, defenceConstructionApplicationUrl } from './source-fixes';
 dotenv.config({ quiet: true });
 
 // After this many failed parse attempts, a job is excluded from getUnparsedJobs
@@ -151,6 +153,12 @@ async function initializeDbOnce(): Promise<Client> {
   `);
 
   try {
+    await client.execute(`ALTER TABLE jobs ADD COLUMN publication_status TEXT NOT NULL DEFAULT 'hidden'`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+
+  try {
     await client.execute(`ALTER TABLE jobs ADD COLUMN first_seen_at DATETIME`);
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
@@ -264,7 +272,7 @@ async function initializeDbOnce(): Promise<Client> {
     'language_requirements', 'security_check_required', 'certification_requirements',
     'software_requirements', 'medical_requirements', 'hours', 'availability',
     'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours',
-    'academic_supervisor', 'academic_appointment_type', 'academic_schedule',
+    'academic_supervisor', 'academic_appointment_type', 'academic_schedule', 'academic_term',
   ]) {
     try {
       await client.execute(`ALTER TABLE job_details ADD COLUMN ${column} ${column.endsWith('_required') ? 'INTEGER' : 'TEXT'}`);
@@ -381,6 +389,7 @@ export async function saveJobDetails(client: Client, job: {
   academic_supervisor?: string;
   academic_appointment_type?: string;
   academic_schedule?: string;
+  academic_term?: string | null;
   experience_requirements?: string;
   is_unionized?: number;
   union_name?: string;
@@ -400,6 +409,7 @@ export async function saveJobDetails(client: Client, job: {
   posted_at?: string | null;
   start_date?: string | null;
   career_stage?: string | null;
+  publication_status?: 'soft_parsed' | 'fully_parsed';
 }) {
   await asNeonClient(client)?.restoreIfArchived(job.id);
   await client.execute({
@@ -407,7 +417,7 @@ export async function saveJobDetails(client: Client, job: {
       id, job_title, department, location, workplace_address, salary_range, description, closing_date,
       is_inventory, listing_type, is_student, salary_min, salary_max, salary_period,
       work_model, employment_type, duration, experience_requirements, is_unionized, union_name, benefits, required_skills,
-      hours, availability, academic_role_type, academic_course, academic_workload, academic_office_hours, academic_supervisor, academic_appointment_type, academic_schedule,
+      hours, availability, academic_role_type, academic_course, academic_workload, academic_office_hours, academic_supervisor, academic_appointment_type, academic_schedule, academic_term,
       education_requirements, license_requirements, vehicle_required, language_requirements,
       security_check_required, certification_requirements, software_requirements, medical_requirements,
       responsibility_tags, qualification_tags, parser_version, posted_at, start_date, career_stage
@@ -417,7 +427,7 @@ export async function saveJobDetails(client: Client, job: {
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?
+      ?, ?, ?, ?, ?
     )
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
@@ -445,6 +455,7 @@ export async function saveJobDetails(client: Client, job: {
       academic_supervisor = COALESCE(NULLIF(excluded.academic_supervisor, ''), job_details.academic_supervisor),
       academic_appointment_type = COALESCE(NULLIF(excluded.academic_appointment_type, ''), job_details.academic_appointment_type),
       academic_schedule = COALESCE(NULLIF(excluded.academic_schedule, ''), job_details.academic_schedule),
+      academic_term = COALESCE(NULLIF(excluded.academic_term, ''), job_details.academic_term),
       experience_requirements = excluded.experience_requirements,
       is_unionized = excluded.is_unionized,
       union_name = excluded.union_name,
@@ -474,6 +485,7 @@ export async function saveJobDetails(client: Client, job: {
       job.required_skills ?? null,
       job.hours ?? null, job.availability ?? null, job.academic_role_type ?? null, job.academic_course ?? null,
       job.academic_workload ?? null, job.academic_office_hours ?? null, job.academic_supervisor ?? null, job.academic_appointment_type ?? null, job.academic_schedule ?? null,
+      job.academic_term ?? null,
       job.education_requirements ?? null, job.license_requirements ?? null,
       job.vehicle_required ?? null, job.language_requirements ?? null, job.security_check_required ?? null,
       job.certification_requirements ?? null, job.software_requirements ?? null, job.medical_requirements ?? null,
@@ -482,6 +494,12 @@ export async function saveJobDetails(client: Client, job: {
     ],
   });
   // Full AI (or full-details) rewrite invalidates prior human verification.
+  await client.execute({
+    sql: `UPDATE jobs SET publication_status = ? WHERE id = ?`,
+    // A details write is not the same thing as a completed parse. The parser
+    // marks the row fully parsed only after raw_jobs.parsed_at is committed.
+    args: [job.publication_status ?? 'soft_parsed', job.id],
+  });
   await client.execute({
     sql: `UPDATE jobs SET verified_at = NULL WHERE id = ? AND verified_at IS NOT NULL`,
     args: [job.id],
@@ -498,19 +516,31 @@ export async function saveRawJob(client: Client, job: {
   posted_at?: string | null;
 }): Promise<boolean> {
   await asNeonClient(client)?.restoreIfArchived(job.id);
-  const captureQuality = classifyRawCapture(job.source, job.raw_text);
+  const source = canonicalSourceForRaw(job.source, job.raw_text);
+  const applicationUrl = defenceConstructionApplicationUrl(job.raw_text) ?? job.application_url;
+  const captureQuality = classifyRawCapture(source, job.raw_text);
   if (!captureQuality.valid) {
     await discardRawJob(client, job.id);
     return false;
   }
 
   const suppliedTitle = job.title?.trim() || '';
-  const sourceTitle = (isUsableJobTitle(suppliedTitle) ? suppliedTitle : extractRawJobTitle(job.source, job.raw_text) || extractUrlJobTitle(job.application_url ?? job.url, job.raw_text)) || null;
-  const title = sourceTitle ? normalizeSourceJobTitle(job.source, sourceTitle) : null;
+  const sourceTitle = (isUsableJobTitle(suppliedTitle) ? suppliedTitle : extractRawJobTitle(source, job.raw_text) || extractUrlJobTitle(applicationUrl ?? job.url, job.raw_text)) || null;
+  const pendingClosing = normalizeActiveClosingDateStatus(job.raw_text);
+  const quality = evaluateJobQuality({
+    source,
+    title: sourceTitle,
+    rawText: job.raw_text,
+    url: job.url,
+    applicationUrl,
+    closingDate: pendingClosing.date,
+    closingDateStatus: pendingClosing.status,
+  });
+  const title = quality.title || null;
   const pending = extractPendingMetadata(sourceTitle, job.raw_text);
-  const pendingClosing = extractClosingDateStatus(job.raw_text);
   const pendingClosingDate = pendingClosing.date;
   const pendingClosingDateStatus = pendingClosing.status;
+  const publicationStatus = quality.status;
   await client.batch([
     {
       sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_location, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
@@ -529,20 +559,25 @@ export async function saveRawJob(client: Client, job: {
           pending_closing_date_status = CASE
             WHEN excluded.pending_closing_date IS NOT NULL AND TRIM(excluded.pending_closing_date) <> '' THEN 'known'
             WHEN raw_jobs.pending_closing_date IS NOT NULL AND TRIM(raw_jobs.pending_closing_date) <> '' THEN 'known'
-            WHEN raw_jobs.pending_closing_date_status = 'known' THEN 'known'
-            WHEN raw_jobs.pending_closing_date_status IN ('not_listed', 'open_until_filled', 'invalid', 'blocked') THEN raw_jobs.pending_closing_date_status
-            ELSE 'not_checked'
+            WHEN excluded.pending_closing_date_status = 'open_until_filled' THEN 'open_until_filled'
+            WHEN raw_jobs.pending_closing_date_status = 'blocked' THEN 'blocked'
+            ELSE 'open_until_filled'
           END,
           scraped_at = CURRENT_TIMESTAMP,
           posted_at = COALESCE(excluded.posted_at, raw_jobs.posted_at)`,
-      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location ?? null, pending.duration, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
+      args: [job.id, job.url, applicationUrl ?? null, source, job.raw_text, title, pending.salaryText, pending.isStudent, pending.location ?? null, pending.duration, pendingClosingDate, pendingClosingDateStatus, job.posted_at ?? null],
     },
     {
       sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
         SELECT id, COALESCE(application_url, url), source, 1, first_seen_at, scraped_at
         FROM raw_jobs WHERE id = ?
-        ON CONFLICT(id) DO NOTHING`,
+        ON CONFLICT(id) DO UPDATE SET source = excluded.source, url = COALESCE(excluded.url, jobs.url), scraped_at = excluded.scraped_at`,
       args: [job.id],
+    },
+    {
+      sql: `UPDATE jobs SET publication_status = ?
+            WHERE id = ? AND EXISTS (SELECT 1 FROM raw_jobs WHERE id = ? AND parsed_at IS NULL)`,
+      args: [publicationStatus, job.id, job.id],
     },
   ], 'write');
   return true;
@@ -561,9 +596,15 @@ export async function savePendingJob(client: Client, job: {
   await asNeonClient(client)?.restoreIfArchived(job.id);
   const suppliedTitle = job.title?.trim() || '';
   const sourceTitle = isUsableJobTitle(suppliedTitle) ? suppliedTitle : null;
-  const title = sourceTitle ? normalizeSourceJobTitle(job.source, sourceTitle) : null;
+  const quality = evaluateJobQuality({
+    source: job.source,
+    title: sourceTitle,
+    closingDate: job.closing_date,
+    closingDateStatus: job.closing_date ? 'known' : 'open_until_filled',
+  });
+  const title = quality.title || null;
   const pending = extractPendingMetadata(sourceTitle, '');
-  const pendingClosingDateStatus = job.closing_date ? 'known' : 'not_checked';
+  const pendingClosingDateStatus = job.closing_date ? 'known' : 'open_until_filled';
   await client.batch([
     {
       sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_salary_text, pending_is_student, pending_duration, pending_closing_date, pending_closing_date_status, first_seen_at, scraped_at, parsed_at, posted_at)
@@ -580,7 +621,7 @@ export async function savePendingJob(client: Client, job: {
           pending_closing_date = COALESCE(excluded.pending_closing_date, raw_jobs.pending_closing_date),
           pending_closing_date_status = CASE
             WHEN excluded.pending_closing_date IS NOT NULL AND TRIM(excluded.pending_closing_date) <> '' THEN 'known'
-            ELSE COALESCE(raw_jobs.pending_closing_date_status, 'not_checked')
+            ELSE excluded.pending_closing_date_status
           END,
           scraped_at = CURRENT_TIMESTAMP,
           parsed_at = CURRENT_TIMESTAMP,
@@ -598,6 +639,7 @@ export async function savePendingJob(client: Client, job: {
           scraped_at = excluded.scraped_at`,
       args: [job.id],
     },
+    { sql: `UPDATE jobs SET publication_status = '${quality.status}' WHERE id = ?`, args: [job.id] },
   ], 'write');
 }
 
@@ -703,9 +745,16 @@ export async function getUnparsedJobs(client: Client, excludedSources: string[] 
 }
 
 export async function markJobParsed(client: Client, id: string) {
+  await client.batch([
+    { sql: `UPDATE raw_jobs SET parsed_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [id] },
+    { sql: `UPDATE jobs SET publication_status = 'fully_parsed' WHERE id = ?`, args: [id] },
+  ], 'write');
+}
+
+export async function setPublicationStatus(client: Client, id: string, status: 'hidden' | 'soft_parsed' | 'fully_parsed') {
   await client.execute({
-    sql: `UPDATE raw_jobs SET parsed_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    args: [id],
+    sql: `UPDATE jobs SET publication_status = ?, is_active = CASE WHEN ? = 'hidden' THEN 0 ELSE 1 END WHERE id = ?`,
+    args: [status, status, id],
   });
 }
 
@@ -725,7 +774,7 @@ export async function recordParseFailure(client: Client, failure: { id: string; 
           VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
           ON CONFLICT(id) DO UPDATE SET
             reason = excluded.reason,
-            attempt_count = attempt_count + 1,
+            attempt_count = parse_failures.attempt_count + 1,
             last_failed_at = CURRENT_TIMESTAMP`,
     args: [failure.id, failure.url, failure.source, failure.reason],
   });
@@ -808,6 +857,13 @@ export async function cleanupExpiredJobsForSource(
   if (neon) {
     await neon.moveSourceMissingJobsToArchive(source, runStartedAt);
     return;
+  }
+  const touched = await client.execute({
+    sql: `SELECT COUNT(*) AS count FROM raw_jobs WHERE source = ? AND scraped_at >= ?`,
+    args: [source, runStartedAt],
+  });
+  if (Number(touched.rows[0]?.count ?? 0) === 0) {
+    throw new Error(`[${source}] No postings were captured; refusing to archive existing jobs for this source.`);
   }
   await client.execute({
     sql: `UPDATE jobs SET is_active = 0

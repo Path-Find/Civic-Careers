@@ -8,6 +8,7 @@ import {
   normalizeUnionFields,
 } from './validate';
 import { PEOPLE_SOFT_SOURCES } from './title';
+import { parseSalaryText } from './salary-format';
 
 export interface ExtractedBoardMetadata {
   title?: string;
@@ -25,6 +26,27 @@ export interface ExtractedBoardMetadata {
   salaryMin?: number | null;
   salaryMax?: number | null;
   salaryPeriod?: string | null;
+}
+
+// Shared fix for the field-gluing bug: many portals render their "label:
+// value" block as one line with no newline between fields at all in some
+// postings (e.g. "Union: ExemptPosition Type: Permanent..."). A capture
+// bounded only by `[^\n]+` silently swallows every field after it into the
+// one being captured. `boundedField` stops at whichever comes first: the
+// next known label in the same block, a newline, or the end of the text.
+//
+// Different tenants of the same platform (Workday, SuccessFactors, etc.)
+// customize their own field-label vocabulary, so a label list built from one
+// source's samples doesn't generalize to another -- a full-data validation
+// pass found real remaining corruption this way (e.g. Mississauga's
+// SuccessFactors instance uses "Grade:"/"Work Location:" where Shared Health
+// Manitoba's uses "Site:"/"City:"). The length cap below (180, matching
+// publish-gate.ts's ceilings) is the real backstop: if no known label is
+// found within it, the match simply fails and the field is left unset --
+// safer than silently capturing hundreds of characters of glued-on text.
+function boundedField(label: string, otherLabelsInBlock: string[]): RegExp {
+  const nextLabel = `(?=\\s*(?:${otherLabelsInBlock.join('|')})\\s*:|\\n|$)`;
+  return new RegExp(`${label}:\\s*([^\\n]{1,180}?)${nextLabel}`, 'i');
 }
 
 function parseSalaryMinMax(range: string): { min: number | null; max: number | null } {
@@ -46,8 +68,13 @@ function parseSalaryMinMax(range: string): { min: number | null; max: number | n
 export function parseHamilton(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
+  // Hamilton's BambooHR raw text can run with zero newlines (the source of
+  // the original title-corruption incident tonight), so these fields are
+  // bounded by the next known label, not just newline.
+  const HAMILTON_FIELD_LABELS = ['Union', 'Close date', 'Duration', 'Job Type', 'Salary'];
+
   // Extract Union
-  const unionMatch = rawText.match(/Union:\s*([^\n]+)/i);
+  const unionMatch = rawText.match(boundedField('Union', HAMILTON_FIELD_LABELS));
   if (unionMatch) {
     const rawUnion = unionMatch[1].trim();
     const normalizedUnion = normalizeUnionFields(rawUnion, !/non-?union/i.test(rawUnion));
@@ -64,7 +91,7 @@ export function parseHamilton(rawText: string): ExtractedBoardMetadata {
   }
 
   // Extract Duration
-  const durationMatch = rawText.match(/Duration:\s*([^\n]+)/i);
+  const durationMatch = rawText.match(boundedField('Duration', HAMILTON_FIELD_LABELS));
   if (durationMatch) {
     metadata.duration = durationMatch[1].trim();
     metadata.employmentType = 'Contract';
@@ -96,23 +123,33 @@ export function parseHamilton(rawText: string): ExtractedBoardMetadata {
 /**
  * Parser for City of Toronto (SuccessFactors Layout).
  */
+const CITY_OF_TORONTO_FIELD_LABELS = [
+  'Division\\s*&\\s*Section', 'Work Location', 'Job Type\\s*&\\s*Duration',
+  'Salary Range', 'Shift Information', 'Affiliation', 'Posting Period',
+  'Number of Positions', 'Job Classification', 'Posting Date',
+];
+
+function cityOfTorontoField(label: string): RegExp {
+  return boundedField(label, CITY_OF_TORONTO_FIELD_LABELS);
+}
+
 export function parseCityOfToronto(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   // Department
-  const deptMatch = rawText.match(/Division\s*&\s*Section:\s*([^\n]+)/i);
+  const deptMatch = rawText.match(cityOfTorontoField('Division\\s*&\\s*Section'));
   if (deptMatch) {
     metadata.department = normalizeDepartment(deptMatch[1]);
   }
 
   // Location
-  const locMatch = rawText.match(/Work Location:\s*([^\n]+)/i);
+  const locMatch = rawText.match(cityOfTorontoField('Work Location'));
   if (locMatch) {
     metadata.location = locMatch[1].trim();
   }
 
   // Job Type & Duration
-  const typeDurationMatch = rawText.match(/Job Type\s*&\s*Duration:\s*([^\n]+)/i);
+  const typeDurationMatch = rawText.match(cityOfTorontoField('Job Type\\s*&\\s*Duration'));
   if (typeDurationMatch) {
     const val = typeDurationMatch[1];
     metadata.employmentType = normalizeEmploymentType(val);
@@ -125,7 +162,7 @@ export function parseCityOfToronto(rawText: string): ExtractedBoardMetadata {
   }
 
   // Salary Range
-  const salaryMatch = rawText.match(/Salary Range:\s*([^\n]+)/i);
+  const salaryMatch = rawText.match(cityOfTorontoField('Salary Range'));
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
@@ -136,13 +173,13 @@ export function parseCityOfToronto(rawText: string): ExtractedBoardMetadata {
   }
 
   // Shift Information / Hours
-  const shiftMatch = rawText.match(/Shift Information:\s*([^\n]+)/i);
+  const shiftMatch = rawText.match(cityOfTorontoField('Shift Information'));
   if (shiftMatch) {
     metadata.hours = shiftMatch[1].trim();
   }
 
   // Affiliation / Union
-  const unionMatch = rawText.match(/Affiliation:\s*([^\n]+)/i);
+  const unionMatch = rawText.match(cityOfTorontoField('Affiliation'));
   if (unionMatch) {
     const rawUnion = unionMatch[1].trim();
     const normalizedUnion = normalizeUnionFields(rawUnion, !/non-?union/i.test(rawUnion));
@@ -151,7 +188,7 @@ export function parseCityOfToronto(rawText: string): ExtractedBoardMetadata {
   }
 
   // Posting Period
-  const periodMatch = rawText.match(/Posting Period:\s*([^\n]+)/i);
+  const periodMatch = rawText.match(cityOfTorontoField('Posting Period'));
   if (periodMatch) {
     metadata.closingDate = extractClosingDate(periodMatch[0]);
   }
@@ -162,24 +199,46 @@ export function parseCityOfToronto(rawText: string): ExtractedBoardMetadata {
 /**
  * Parser for Workday engine sites (Waterloo, Brock, Algonquin, etc.).
  */
+// Workday's "Department:...Campus:...Union Affiliation:..." section (seen on
+// University of Ottawa, Brock, and others) glues fields together with no
+// newline, the same way PeopleSoft does -- this is the exact pattern behind
+// tonight's original department-corruption incident.
+const WORKDAY_FIELD_LABELS = [
+  'Department', 'Campus', 'Date Posted \\(YYYY/MM/DD\\)',
+  'Applications must be received BEFORE \\(YYYY/MM/DD\\)', 'Union Affiliation',
+  'Job Family', 'Job Type', 'Salary Grade', 'Salary Range', 'Hiring Range',
+  'Scheduled Weekly Hours', 'Term', 'Length of Contract',
+  'Posting Closing Date', 'Closing Date', 'Note',
+];
+
+function workdayField(label: string): RegExp {
+  return boundedField(label, WORKDAY_FIELD_LABELS);
+}
+
 export function parseWorkday(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   // Location and Time Type
-  const workdayHeaderMatch = rawText.match(/locations\s*(.*?)\s*time type\s*(.*?)\s*posted on/i);
+  // Length-capped: some postings' header omits "time type" entirely, so the
+  // lazy .*? would otherwise run until the next occurrence of that phrase
+  // anywhere later in the document, swallowing the whole posting in between.
+  const workdayHeaderMatch = rawText.match(/locations\s*(.{0,80}?)\s*time type\s*(.{0,40}?)\s*posted on/i);
   if (workdayHeaderMatch) {
     metadata.location = workdayHeaderMatch[1].trim();
     metadata.employmentType = normalizeEmploymentType(workdayHeaderMatch[2]);
   }
 
   // Department
-  const deptMatch = rawText.match(/Department:\s*([^\n]+)/i);
+  const deptMatch = rawText.match(workdayField('Department'));
   if (deptMatch) {
-    metadata.department = normalizeDepartment(deptMatch[1]);
+    // Some Workday tenants glue the FT marker to the next Campus label:
+    // `Department of Physics_FTCampus:Main Campus`. The marker is not part
+    // of the department and must not become the start of a page-sized capture.
+    metadata.department = normalizeDepartment(deptMatch[1].replace(/[_\s]+FT$/i, ''));
   }
 
   // Salary
-  const salaryMatch = rawText.match(/Salary Range:\s*([^\n]+)/i) || rawText.match(/Hiring Range:\s*([^\n]+)/i);
+  const salaryMatch = rawText.match(workdayField('Salary Range')) || rawText.match(workdayField('Hiring Range'));
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
@@ -190,13 +249,13 @@ export function parseWorkday(rawText: string): ExtractedBoardMetadata {
   }
 
   // Scheduled Weekly Hours
-  const hoursMatch = rawText.match(/Scheduled Weekly Hours:\s*([^\n]+)/i);
+  const hoursMatch = rawText.match(workdayField('Scheduled Weekly Hours'));
   if (hoursMatch) {
     metadata.hours = hoursMatch[1].trim();
   }
 
   // Term / Length of Contract
-  const termMatch = rawText.match(/Term:\s*([^\n]+)/i) || rawText.match(/Length of Contract:\s*([^\n]+)/i);
+  const termMatch = rawText.match(workdayField('Term')) || rawText.match(workdayField('Length of Contract'));
   if (termMatch) {
     const term = termMatch[1].trim();
     if (term && !/^(?:n\/?a|none)$/i.test(term)) {
@@ -206,7 +265,7 @@ export function parseWorkday(rawText: string): ExtractedBoardMetadata {
   }
 
   // Closing date
-  const closingMatch = rawText.match(/Posting Closing Date:\s*([^\n]+)/i) || rawText.match(/Closing Date:\s*([^\n]+)/i);
+  const closingMatch = rawText.match(workdayField('Posting Closing Date')) || rawText.match(workdayField('Closing Date'));
   if (closingMatch) {
     metadata.closingDate = extractClosingDate(closingMatch[0]);
   }
@@ -262,28 +321,39 @@ export function parseOntarioHealthAtHome(rawText: string): ExtractedBoardMetadat
 /**
  * Parser for ADP Workforce Now.
  */
+const ADP_FIELD_LABELS = [
+  'Salary Range', 'Department\\s*(?:and\\s*Commission)?', 'Vacancy\\s*Type',
+  'Employment\\s*Type', 'Application\\s*Deadline', 'Affiliation',
+  'Requisition ID', 'Location', 'Posting Date', 'Vacancy Reason', 'Union',
+];
+
 export function parseADP(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   // Salary Range
-  const salaryMatch = rawText.match(/Salary Range:\s*([^\n]+)/i);
-  if (salaryMatch) {
-    const range = salaryMatch[1].trim();
-    metadata.salary = range;
-    const parsed = parseSalaryMinMax(range);
-    metadata.salaryMin = parsed.min;
-    metadata.salaryMax = parsed.max;
-    metadata.salaryPeriod = normalizeSalaryPeriod(range);
+  // ADP sometimes glues the first sentence of the posting directly onto the
+  // pay period (`HourlyThe Corporation...`), so a label-bounded capture cannot
+  // safely stop there. Extract the first explicit range and period instead.
+  const salaryLabel = rawText.match(/Salary\s+Range\s*:\s*([\s\S]{1,180})/i);
+  const parsedSalary = parseSalaryText(salaryLabel?.[1]);
+  if (parsedSalary) {
+    metadata.salary = parsedSalary.display;
+    metadata.salaryMin = parsedSalary.min;
+    metadata.salaryMax = parsedSalary.max;
+    metadata.salaryPeriod = parsedSalary.period;
   }
 
+  const hoursMatch = rawText.match(/\b(\d{1,3}(?:\.\d{1,2})?)\s+hours?\s*(?:per\s+week|\/\s*week)\b/i);
+  if (hoursMatch) metadata.hours = `${hoursMatch[1]} hours per week`;
+
   // Department
-  const deptMatch = rawText.match(/Department\s*(?:and\s*Commission)?:\s*([^\n]+)/i);
+  const deptMatch = rawText.match(boundedField('Department\\s*(?:and\\s*Commission)?', ADP_FIELD_LABELS));
   if (deptMatch) {
     metadata.department = normalizeDepartment(deptMatch[1]);
   }
 
   // Vacancy Type / Employment Type
-  const typeMatch = rawText.match(/(?:Vacancy|Employment)\s*Type:\s*([^\n]+)/i)
+  const typeMatch = rawText.match(boundedField('(?:Vacancy|Employment)\\s*Type', ADP_FIELD_LABELS))
     || rawText.match(/\b(Temporary\s+Part\s+Time|Temporary\s+Full\s+Time|Part\s+Time|Full\s+Time)\b/i);
   if (typeMatch) {
     const val = typeMatch[1].trim();
@@ -296,7 +366,7 @@ export function parseADP(rawText: string): ExtractedBoardMetadata {
   }
 
   // Closing date
-  const closingMatch = rawText.match(/Application\s*Deadline:\s*([^\n]+)/i);
+  const closingMatch = rawText.match(boundedField('Application\\s*Deadline', ADP_FIELD_LABELS));
   if (closingMatch) {
     metadata.closingDate = extractClosingDate(closingMatch[0]);
   }
@@ -307,11 +377,16 @@ export function parseADP(rawText: string): ExtractedBoardMetadata {
 /**
  * Parser for Dayforce candidate portal.
  */
+const DAYFORCE_FIELD_LABELS = [
+  'Rate\\s+of\\s+Pay', 'Salary\\s+Range', 'Employment\\s*type', 'Duration\\s+of\\s+employment',
+  'Duration', 'Hours\\s+of\\s+work', 'Work\\s+location', 'Location', 'Business\\s*unit', 'Division',
+];
+
 export function parseDayforce(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   // Rate of Pay / Salary
-  const salaryMatch = rawText.match(/(?:Rate\s+of\s+Pay|Salary\s+Range):\s*([^\n]+)/i)
+  const salaryMatch = rawText.match(boundedField('(?:Rate\\s+of\\s+Pay|Salary\\s+Range)', DAYFORCE_FIELD_LABELS))
     || rawText.match(/Rate\s+of\s+Pay\s*[:\-]?\s*([^.!]{3,100})/i);
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
@@ -323,33 +398,36 @@ export function parseDayforce(rawText: string): ExtractedBoardMetadata {
   }
 
   // Employment Type
-  const typeMatch = rawText.match(/Employment\s*type:\s*([^\n]+)/i);
+  const typeMatch = rawText.match(boundedField('Employment\\s*type', DAYFORCE_FIELD_LABELS));
   if (typeMatch) {
     const val = typeMatch[1].trim();
     metadata.employmentType = normalizeEmploymentType(val);
   }
 
   // Duration
-  const durationMatch = rawText.match(/Duration\s+of\s+employment:\s*([^\n]+)/i) || rawText.match(/Duration:\s*([^\n]+)/i);
+  const durationMatch = rawText.match(boundedField('Duration\\s+of\\s+employment', DAYFORCE_FIELD_LABELS))
+    || rawText.match(boundedField('Duration', DAYFORCE_FIELD_LABELS));
   if (durationMatch) {
     metadata.duration = durationMatch[1].trim();
     metadata.employmentType = 'Contract';
   }
 
   // Hours
-  const hoursMatch = rawText.match(/Hours\s+of\s+work:\s*([^\n]+)/i);
+  const hoursMatch = rawText.match(boundedField('Hours\\s+of\\s+work', DAYFORCE_FIELD_LABELS));
   if (hoursMatch) {
     metadata.hours = hoursMatch[1].trim();
   }
 
   // Location
-  const locMatch = rawText.match(/Work\s+location:\s*([^\n]+)/i) || rawText.match(/Location\s*[:\-]?\s*([^\n]+)/i);
+  const locMatch = rawText.match(boundedField('Work\\s+location', DAYFORCE_FIELD_LABELS))
+    || rawText.match(boundedField('Location', DAYFORCE_FIELD_LABELS));
   if (locMatch) {
     metadata.location = locMatch[1].trim();
   }
 
   // Department / Division / Business Unit
-  const deptMatch = rawText.match(/Business\s*unit:\s*([^\n]+)/i) || rawText.match(/Division:\s*([^\n]+)/i);
+  const deptMatch = rawText.match(boundedField('Business\\s*unit', DAYFORCE_FIELD_LABELS))
+    || rawText.match(boundedField('Division', DAYFORCE_FIELD_LABELS));
   if (deptMatch) {
     metadata.department = normalizeDepartment(deptMatch[1]);
   }
@@ -360,11 +438,13 @@ export function parseDayforce(rawText: string): ExtractedBoardMetadata {
 /**
  * Parser for Njoyn engine sites (Vaughan, Oshawa, Queen's, Carleton, etc.).
  */
+const NJOYN_FIELD_LABELS = ['Salary', 'Job\\s*Type', 'Hours\\s+of\\s+work', 'Union', 'Vacancy\\s*Type', 'JD#'];
+
 export function parseNjoyn(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   // Salary
-  const salaryMatch = rawText.match(/Salary:\s*([^\n]+)/i);
+  const salaryMatch = rawText.match(boundedField('Salary', NJOYN_FIELD_LABELS));
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
@@ -375,20 +455,20 @@ export function parseNjoyn(rawText: string): ExtractedBoardMetadata {
   }
 
   // Job Type
-  const typeMatch = rawText.match(/Job\s*Type:\s*([^\n]+)/i);
+  const typeMatch = rawText.match(boundedField('Job\\s*Type', NJOYN_FIELD_LABELS));
   if (typeMatch) {
     const val = typeMatch[1].trim();
     metadata.employmentType = normalizeEmploymentType(val);
   }
 
   // Hours of work
-  const hoursMatch = rawText.match(/Hours\s+of\s+work:\s*([^\n]+)/i);
+  const hoursMatch = rawText.match(boundedField('Hours\\s+of\\s+work', NJOYN_FIELD_LABELS));
   if (hoursMatch) {
     metadata.hours = hoursMatch[1].trim();
   }
 
   // Union
-  const unionMatch = rawText.match(/Union:\s*([^\n]+)/i);
+  const unionMatch = rawText.match(boundedField('Union', NJOYN_FIELD_LABELS));
   if (unionMatch) {
     const rawUnion = unionMatch[1].trim();
     const normalizedUnion = normalizeUnionFields(rawUnion, !/non-?union/i.test(rawUnion));
@@ -397,7 +477,7 @@ export function parseNjoyn(rawText: string): ExtractedBoardMetadata {
   }
 
   // Vacancy Type / Duration
-  const vacancyMatch = rawText.match(/Vacancy\s*Type:\s*([^\n]+)/i);
+  const vacancyMatch = rawText.match(boundedField('Vacancy\\s*Type', NJOYN_FIELD_LABELS));
   if (vacancyMatch) {
     const val = vacancyMatch[1].trim();
     if (/temp|contract/i.test(val)) {
@@ -463,11 +543,21 @@ export function parseTaleo(rawText: string): ExtractedBoardMetadata {
 /**
  * Parser for SuccessFactors platform sites (Shared Health Manitoba, Mississauga, Halton Region, Ottawa, TTC).
  */
+const SUCCESS_FACTORS_FIELD_LABELS = [
+  'Salary', 'Department\\s*/\\s*Unit', 'Department', 'Site', 'City', 'Union',
+  'Posting\\s+End\\s+Date', 'Work\\s+Arrangement', 'FTE', 'Requisition ID',
+  'Position Number', 'Shift',
+];
+
+function successFactorsField(label: string): RegExp {
+  return boundedField(label, SUCCESS_FACTORS_FIELD_LABELS);
+}
+
 export function parseSuccessFactors(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   // Salary
-  const salaryMatch = rawText.match(/Salary:\s*([^\n]+)/i);
+  const salaryMatch = rawText.match(successFactorsField('Salary'));
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
@@ -478,19 +568,19 @@ export function parseSuccessFactors(rawText: string): ExtractedBoardMetadata {
   }
 
   // Department
-  const deptMatch = rawText.match(/Department\s*(?:\/\s*Unit)?:\s*([^\n]+)/i);
+  const deptMatch = rawText.match(successFactorsField('Department\\s*(?:/\\s*Unit)?'));
   if (deptMatch) {
     metadata.department = normalizeDepartment(deptMatch[1]);
   }
 
   // Location / City / Site
-  const locMatch = rawText.match(/Site:\s*([^\n]+)/i) || rawText.match(/City:\s*([^\n]+)/i);
+  const locMatch = rawText.match(successFactorsField('Site')) || rawText.match(successFactorsField('City'));
   if (locMatch) {
     metadata.location = locMatch[1].trim();
   }
 
   // Union
-  const unionMatch = rawText.match(/Union:\s*([^\n]+)/i);
+  const unionMatch = rawText.match(successFactorsField('Union'));
   if (unionMatch) {
     const rawUnion = unionMatch[1].trim();
     const normalizedUnion = normalizeUnionFields(rawUnion, !/non-?union/i.test(rawUnion));
@@ -499,19 +589,19 @@ export function parseSuccessFactors(rawText: string): ExtractedBoardMetadata {
   }
 
   // Closing date
-  const closingMatch = rawText.match(/Posting\s+End\s+Date:\s*([^\n]+)/i);
+  const closingMatch = rawText.match(successFactorsField('Posting\\s+End\\s+Date'));
   if (closingMatch) {
     metadata.closingDate = extractClosingDate(closingMatch[0]);
   }
 
   // Work Arrangement
-  const arrangementMatch = rawText.match(/Work\s+Arrangement:\s*([^\n]+)/i);
+  const arrangementMatch = rawText.match(successFactorsField('Work\\s+Arrangement'));
   if (arrangementMatch) {
     metadata.workModel = normalizeWorkModel(arrangementMatch[1]);
   }
 
   // FTE / Hours
-  const fteMatch = rawText.match(/FTE:\s*([^\n]+)/i);
+  const fteMatch = rawText.match(successFactorsField('FTE'));
   if (fteMatch) {
     metadata.hours = `FTE: ${fteMatch[1].trim()}`;
   }
@@ -614,7 +704,8 @@ export function parseGovernmentOfCanada(rawText: string): ExtractedBoardMetadata
     metadata.closingDate = extractClosingDate(closingMatch[0]);
   }
 
-  const salaryMatch = rawText.match(/Salary\s*\n+\s*([^\n]+)/i) || rawText.match(/Salary:\s*([^\n]+)/i);
+  const salaryMatch = rawText.match(/Salary\s*\n+\s*([^\n]+)/i)
+    || rawText.match(boundedField('Salary', ['Closing date', 'Location', 'Reference number', 'Selection process number', 'Who can apply']));
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
@@ -624,7 +715,10 @@ export function parseGovernmentOfCanada(rawText: string): ExtractedBoardMetadata
     metadata.salaryPeriod = normalizeSalaryPeriod(range);
   }
 
-  const locMatch = rawText.match(/Location\s*\n+([\s\S]+?)(?=\n\s*(?:Salary|Reference number|Selection process number|Who can apply|$))/i);
+  // Some postings render an empty Location section (all whitespace), in
+  // which case this used to keep consuming through the blank lines until it
+  // hit unrelated page chrome much further down (a "job alert" widget).
+  const locMatch = rawText.match(/Location\s*\n+([\s\S]{1,600}?)(?=\n\s*(?:Salary|Reference number|Selection process number|Who can apply|Select how often|Create Alert|$))/i);
   if (locMatch) {
     const locLines = locMatch[1]
       .split('\n')
@@ -638,20 +732,60 @@ export function parseGovernmentOfCanada(rawText: string): ExtractedBoardMetadata
   return metadata;
 }
 
+/** DCC is syndicated through GC Jobs but uses a distinct Taleo field layout. */
+export function parseDefenceConstructionCanada(rawText: string): ExtractedBoardMetadata {
+  const metadata: ExtractedBoardMetadata = {};
+  const salary = rawText.match(/Salary\s+Range\s*:\s*([^\n]+)/i)?.[1]?.trim();
+  const parsedSalary = salary ? parseSalaryText(salary, 'yearly') : null;
+  if (parsedSalary) {
+    metadata.salary = parsedSalary.display;
+    metadata.salaryMin = parsedSalary.min;
+    metadata.salaryMax = parsedSalary.max;
+    metadata.salaryPeriod = parsedSalary.period;
+  }
+  const location = rawText.match(/\bLocation\s*(?::\s*|\n+\s*)([^\n]+)/i)?.[1]?.trim();
+  if (location) metadata.location = location;
+  const employment = rawText.match(/Employment\s+status\s*:\s*([^\n]+)/i)?.[1]?.trim();
+  if (employment) metadata.employmentType = normalizeEmploymentType(employment);
+  const workModel = rawText.match(/Flexible\s+work\s+option\s*:\s*([^\n]+)/i)?.[1]?.trim();
+  if (workModel) metadata.workModel = normalizeWorkModel(workModel);
+  const closing = rawText.match(/Closing\s+Date\s*:\s*([^\n]+)/i)?.[1]?.trim();
+  if (closing) metadata.closingDate = extractClosingDate(`Closing Date: ${closing}`);
+  return metadata;
+}
+
 /**
  * Parser for PeopleSoft Fluid tenant postings.
  */
+// PeopleSoft sources (Calgary, TMU, TransLink, Western, Winnipeg, McMaster,
+// Durham/Niagara Region, Fleming) render their "Position and Pay Information"
+// block as label-glued text with no newline between fields at all in some
+// postings (e.g. "Union: ExemptPosition Type: Permanent and Temporary
+// Compensation: ..."). A capture bounded only by `[^\n]+` silently swallows
+// every field after it into the one being captured. Bound each capture with
+// a lookahead for the next known label instead, so it stops at whichever
+// comes first: the next label, a newline, or the end of the text.
+const PEOPLE_SOFT_FIELD_LABELS = [
+  'Business Unit', 'Union', 'Position Type', 'Compensation', 'Hours of work',
+  'Days of work', 'Location', 'Audience', 'Apply By', 'Job ID', 'Department',
+  'Salary Range', 'Salary', 'Closing Date', 'Affiliation', 'Bargaining Unit',
+];
+
+function peopleSoftField(label: string): RegExp {
+  return boundedField(label, PEOPLE_SOFT_FIELD_LABELS);
+}
+
 export function parsePeopleSoft(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
-  const deptMatch = rawText.match(/Department:\s*([^\n]+)/i) || rawText.match(/Department\s*\n+([^\n]+)/i);
+  const deptMatch = rawText.match(peopleSoftField('Department')) || rawText.match(/Department\s*\n+([^\n]+)/i);
   if (deptMatch) {
     metadata.department = normalizeDepartment(deptMatch[1]);
   }
 
-  const salaryMatch = rawText.match(/Salary Range:\s*([^\n]+)/i)
+  const salaryMatch = rawText.match(peopleSoftField('Salary Range'))
     || rawText.match(/Salary\s*Range\s*\n+([^\n]+)/i)
-    || rawText.match(/Salary:\s*([^\n]+)/i);
+    || rawText.match(peopleSoftField('Salary'));
   if (salaryMatch) {
     const range = salaryMatch[1].trim();
     metadata.salary = range;
@@ -661,15 +795,15 @@ export function parsePeopleSoft(rawText: string): ExtractedBoardMetadata {
     metadata.salaryPeriod = normalizeSalaryPeriod(range);
   }
 
-  const closingMatch = rawText.match(/(?:Closing Date|Closing\s+Date\s*:\s*)([^\n]+)/i)
+  const closingMatch = rawText.match(peopleSoftField('Closing Date'))
     || rawText.match(/Closing Date\s*\n+([^\n]+)/i);
   if (closingMatch) {
     metadata.closingDate = extractClosingDate(closingMatch[0]);
   }
 
-  const unionMatch = rawText.match(/Affiliation:\s*([^\n]+)/i)
-    || rawText.match(/Union:\s*([^\n]+)/i)
-    || rawText.match(/Bargaining Unit:\s*([^\n]+)/i);
+  const unionMatch = rawText.match(peopleSoftField('Affiliation'))
+    || rawText.match(peopleSoftField('Union'))
+    || rawText.match(peopleSoftField('Bargaining Unit'));
   if (unionMatch) {
     const rawUnion = unionMatch[1].trim();
     const isUnion = !/non-?union|management|exempt/i.test(rawUnion);
@@ -716,6 +850,9 @@ export function extractBoardSpecificMetadata(source: string, rawText: string): E
   // Government of Canada
   if (source === 'Government of Canada') {
     return parseGovernmentOfCanada(rawText);
+  }
+  if (source === 'Defence Construction Canada') {
+    return parseDefenceConstructionCanada(rawText);
   }
 
   // PeopleSoft sources
