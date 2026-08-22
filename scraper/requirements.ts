@@ -923,7 +923,7 @@ const LICENSE_BODIES: Array<[string, RegExp]> = [
   ['CPBAO', /college of psychologists and behaviour analysts of ontario|\bCPBAO\b/i],
   ['CRPO', /college of registered psychotherapists of ontario|\bCRPO\b/i],
   ['OCSWSSW', /ontario college of social workers and social service workers/i],
-  ['CECE', /(?:ontario\s+)?college of early childhood educators/i],
+  ['CECE', /(?:ontario\s+)?college of early childhood educators|college of e\.?\s*c\.?\s*e\.?/i],
   ['CDO', /college of dietitians of ontario/i],
   ['OACETT', /\bOACETT\b/i],
   ['OPPI', /\bOPPI\b/i],
@@ -949,6 +949,7 @@ const LICENSE_ROLES: Array<[string, RegExp]> = [
   ['Psychotherapist', /psychotherapist/i],
   ['Lawyer', /\blawyer\b|barrister|solicitor/i],
   ['MLT', /\bgeneral MLT\b|\bmedical laboratory technologist\b|\bMLT\b/i],
+  ['Registered Early Childhood Educator (RECE)', /registered early childhood educator|\bRECE\b/i],
   ['Landscape Architect', /professional landscape architect|landscape architect/i],
   ['Architect (OAA)', /professional architect|\bOAA\b/i],
 ];
@@ -1013,7 +1014,8 @@ function isNonLicenseJunk(value: string): boolean {
     // Vague fragments that never name a real credential (not "College of Nurses…").
     || /^registration with a college\s*$/i.test(value)
     || /^registration with regulated college\b/i.test(value)
-    || /\bregistered with the ontario ministry of skills and development\b/i.test(value);
+    || /\bregistered with the ontario ministry of skills and development\b/i.test(value)
+    || /\bregistered with the college of e\.?$/i.test(value);
 }
 
 function formatProfessionalLicense(role: string | null, body: string | null, eligible: boolean): string {

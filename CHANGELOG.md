@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Repaired the truncated George Brown licence capture (`College of E`) and normalized Early Childhood Educator registration as `RECE (CECE)`; future truncated captures are rejected.
+
 - Removed academic context from 645 non-academic current/archive rows, limited the Academic roles filter and detail card to confirmed academic roles, and changed Area of study to canonical autocomplete options.
 
 - Added field-level publication filters and repeatable backfills for duplicated academic metadata, invalid availability fragments, and non-canonical pending salaries; future contaminated rows stay hidden instead of reaching the public site.

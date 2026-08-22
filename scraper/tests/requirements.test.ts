@@ -469,6 +469,14 @@ test('compacts wordy driver licence requirements', () => {
   );
 });
 
+test('expands abbreviated Early Childhood Educator registration and rejects truncated captures', () => {
+  assert.deepEqual(
+    extractLicenseRequirements('Must be currently registered with the College of E.C.E. (RECE).'),
+    ['RECE (CECE)'],
+  );
+  assert.deepEqual(normalizeProfessionalLicenseRequirements(['registered with the College of E']), []);
+});
+
 test('keeps driver licences under Vehicle, not Licences', () => {
   const description = '## Qualifications\n- P.Eng. in Ontario or eligible\n- Must have a valid Ontario Class "G" driver\'s licence\n';
   assert.deepEqual(extractLicenseRequirements(description), ['P.Eng. (Ontario) or eligible', 'Ontario Class G']);

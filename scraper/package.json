@@ -14,6 +14,7 @@
     "backfill-normalize-salaries": "npx tsx backfill-normalize-salaries.ts",
     "backfill-stale-pending-salary": "npx tsx backfill-stale-pending-salary.ts",
     "backfill-clear-nonacademic-context": "npx tsx backfill-clear-nonacademic-context.ts",
+    "backfill-invalid-license-fields": "npx tsx backfill-invalid-license-fields.ts",
     "backfill-deduplicate-fields": "npx tsx backfill-deduplicate-fields.ts",
     "repair-publication-status": "npx tsx repair-publication-status.ts",
     "audit:quality": "npx tsx audit-quality.ts",
