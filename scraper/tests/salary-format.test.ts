@@ -3,20 +3,20 @@ import test from 'node:test';
 import { formatSalaryDisplay, isCanonicalSalary, parseSalaryText } from '../salary-format';
 
 test('formats an hourly range', () => {
-  assert.equal(formatSalaryDisplay(19, 24.5, 'hourly'), '$19 - $24.50 hourly');
+  assert.equal(formatSalaryDisplay(19, 24.5, 'hourly'), '$19-$24.50 hour');
 });
 
 test('formats a yearly range with thousands separators', () => {
-  assert.equal(formatSalaryDisplay(68149, 86083, 'yearly'), '$68,149 - $86,083 yearly');
+  assert.equal(formatSalaryDisplay(68149, 86083, 'yearly'), '$68,149-$86,083 year');
 });
 
 test('formats a single amount (min equals max)', () => {
-  assert.equal(formatSalaryDisplay(50000, 50000, 'yearly'), '$50,000 yearly');
+  assert.equal(formatSalaryDisplay(50000, 50000, 'yearly'), '$50,000 year');
 });
 
 test('formats a single amount when only one bound is known', () => {
-  assert.equal(formatSalaryDisplay(25, null, 'hourly'), '$25 hourly');
-  assert.equal(formatSalaryDisplay(null, 30, 'hourly'), '$30 hourly');
+  assert.equal(formatSalaryDisplay(25, null, 'hourly'), '$25 hour');
+  assert.equal(formatSalaryDisplay(null, 30, 'hourly'), '$30 hour');
 });
 
 test('returns empty string when no amounts are known', () => {
@@ -24,7 +24,7 @@ test('returns empty string when no amounts are known', () => {
 });
 
 test('omits the period suffix when period is null', () => {
-  assert.equal(formatSalaryDisplay(19, 24.5, null), '$19 - $24.50');
+  assert.equal(formatSalaryDisplay(19, 24.5, null), '$19-$24.50');
 });
 
 test('extracts a clean range from glued source prose', () => {
@@ -32,7 +32,7 @@ test('extracts a clean range from glued source prose', () => {
     min: 25.60,
     max: 32,
     period: 'hourly',
-    display: '$25.60 - $32 hourly',
+    display: '$25.60-$32 hour',
   });
 });
 
@@ -41,13 +41,31 @@ test('collapses a period repeated after both ends of a source range', () => {
     min: 48.02,
     max: 49.45,
     period: 'hourly',
-    display: '$48.02 - $49.45 hourly',
+    display: '$48.02-$49.45 hour',
+  });
+});
+
+test('expands K shorthand and normalizes yr to year', () => {
+  assert.deepEqual(parseSalaryText('$4K – $5K / yr'), {
+    min: 4000,
+    max: 5000,
+    period: 'yearly',
+    display: '$4,000-$5,000 year',
+  });
+});
+
+test('normalizes hr to hour and preserves real cents', () => {
+  assert.deepEqual(parseSalaryText('$20.11/hr'), {
+    min: 20.11,
+    max: 20.11,
+    period: 'hourly',
+    display: '$20.11 hour',
   });
 });
 
 test('only canonical dollar ranges pass the salary display filter', () => {
-  assert.equal(isCanonicalSalary('$25.60 - $32 hourly'), true);
+  assert.equal(isCanonicalSalary('$25.60-$32 hour'), true);
   assert.equal(isCanonicalSalary('$25.60 To $32.00 HourlyThe Corporation'), false);
   assert.equal(isCanonicalSalary('25.60 - 32.00 (hourly)'), false);
-  assert.equal(isCanonicalSalary('$77,461 - $131,811 biweekly'), true);
+  assert.equal(isCanonicalSalary('$77,461-$131,811 biweekly'), true);
 });

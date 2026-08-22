@@ -21,7 +21,7 @@ export function isUsablePendingLocation(value: string | null | undefined): boole
   });
 }
 
-const NUMBER = String.raw`\d+(?:,\d{3})*(?:\.\d{1,2})?`;
+const NUMBER = String.raw`\d+(?:,\d{3})*(?:\.\d{1,2})?\s*[kKmM]?`;
 const AMOUNT = String.raw`\$\s*${NUMBER}`;
 const RANGE = new RegExp(String.raw`${AMOUNT}(?:\s*(?:to|[-–—])\s*\$?\s*${NUMBER})?(?:\s*(?:/|per)\s*(?:hour|hr|year|yr|month|mo|week|day)|\s*(?:hourly|annual|yearly|bi[- ]weekly|biweekly))`, 'gi');
 

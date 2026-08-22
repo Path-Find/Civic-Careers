@@ -1,10 +1,10 @@
 import { normalizeSalaryPeriod, type SalaryPeriod } from './validate';
 
-const MONEY = String.raw`\$\s*\d+(?:,\d{3})*(?:\.\d{1,4})?`;
+const MONEY = String.raw`\$\s*\d+(?:,\d{3})*(?:\.\d{1,4})?\s*[kKmM]?`;
 // The source may glue the next sentence directly onto the period
 // (`HourlyThe Corporation`), so the period cannot require a trailing word
 // boundary. The amount itself is still anchored by the dollar token.
-const PERIOD = /(?:hourly|per\s+hour|\/\s*hour|hr|hrs|bi[- ]?weekly|every\s+two\s+weeks?|weekly|per\s+week|monthly|per\s+month|mo|yearly|annual|annually|per\s+year|per\s+annum|flat|per\s+course|per\s+assignment|per\s+project|stipend|honorarium)/i;
+const PERIOD = /(?:hourly|per\s+hour|\/\s*hour|hr|hrs|daily|per\s+day|\/\s*day|day|bi[- ]?weekly|every\s+two\s+weeks?|weekly|per\s+week|monthly|per\s+month|mo|yearly|annual|annually|per\s+year|per\s+annum|\/\s*yr|yr|flat|per\s+course|per\s+assignment|per\s+project|stipend|honorarium)/i;
 
 export type ParsedSalary = {
   min: number;
@@ -19,7 +19,13 @@ export function parseSalaryText(raw: string | null | undefined, periodHint?: str
   if (!text) return null;
 
   const amounts = [...text.matchAll(new RegExp(MONEY, 'g'))]
-    .map(match => Number(match[0].replace(/[$,\s]/g, '')))
+    .map(match => {
+      const token = match[0].replace(/[$,\s]/g, '');
+      const suffix = token.slice(-1).toLowerCase();
+      const multiplier = suffix === 'k' ? 1_000 : suffix === 'm' ? 1_000_000 : 1;
+      const number = suffix === 'k' || suffix === 'm' ? token.slice(0, -1) : token;
+      return Number(number) * multiplier;
+    })
     .filter(Number.isFinite);
   if (amounts.length === 0) return null;
 
@@ -32,7 +38,7 @@ export function parseSalaryText(raw: string | null | undefined, periodHint?: str
 }
 
 export function isCanonicalSalary(value: string | null | undefined): boolean {
-  return /^\$\d[\d,]*(?:\.\d{1,4})?(?:\s+-\s+\$\d[\d,]*(?:\.\d{1,4})?)?\s+(?:hourly|monthly|biweekly|weekly|yearly|flat)$/i.test(String(value ?? '').trim());
+  return /^\$\d[\d,]*(?:\.\d{1,4})?(?:-\$\d[\d,]*(?:\.\d{1,4})?)?\s+(?:hour|day|month|biweekly|week|year|flat)$/i.test(String(value ?? '').trim());
 }
 
 /**
@@ -45,10 +51,20 @@ export function formatSalaryAmount(n: number): string {
   return n % 1 === 0 ? `$${n.toLocaleString()}` : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+const DISPLAY_PERIOD: Record<SalaryPeriod, string> = {
+  hourly: 'hour',
+  daily: 'day',
+  monthly: 'month',
+  biweekly: 'biweekly',
+  weekly: 'week',
+  yearly: 'year',
+  flat: 'flat',
+};
+
 export function formatSalaryDisplay(min: number | null, max: number | null, period: string | null): string {
   if (min === null && max === null) return '';
   const range = min !== null && max !== null && min !== max
-    ? `${formatSalaryAmount(min)} - ${formatSalaryAmount(max)}`
+    ? `${formatSalaryAmount(min)}-${formatSalaryAmount(max)}`
     : formatSalaryAmount((min ?? max) as number);
-  return period ? `${range} ${period}` : range;
+  return period ? `${range} ${DISPLAY_PERIOD[period as SalaryPeriod] ?? period}` : range;
 }

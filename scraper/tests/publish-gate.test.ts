@@ -131,7 +131,7 @@ test('passes a clean, ordinary job', () => {
     title: 'Recreation Programmer',
     department: 'Parks and Recreation',
     hours: '35',
-    salary: '$55,000 - $65,000 yearly',
+    salary: '$55,000-$65,000 year',
     location: 'Hamilton, ON',
   });
   assert.equal(reason, null);

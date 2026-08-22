@@ -102,8 +102,9 @@ When a structured field has a canonical form, every listing uses that form — s
 
 **Salary period** (always):
 
-- Stored tokens only: `yearly` | `hourly` | `monthly` | `flat` (lowercase)
-- Synonyms: annual/per year/annum → `yearly`; hr/hrs/per hour → `hourly`; per month → `monthly`; lump sum/per course/stipend/honorarium/one-time → `flat`
+- Stored tokens only: `yearly` | `hourly` | `daily` | `monthly` | `biweekly` | `weekly` | `flat` (lowercase)
+- Synonyms: annual/per year/annum/yr → `yearly`; hr/hrs/per hour → `hourly`; day/daily/per day → `daily`; wk/per week → `weekly`; per month/mo → `monthly`; lump sum/per course/stipend/honorarium/one-time → `flat`
+- Public salary text always includes a qualifier and uses `$min-$max period`; whole-dollar amounts omit `.00`, and `K`/`M` shorthand is expanded when the source explicitly uses it.
 - Unknown defaults to `yearly` (existing parse policy)
 - Implemented by `normalizeSalaryPeriod()` in `scraper/validate.ts` (validate + parser write path)
 

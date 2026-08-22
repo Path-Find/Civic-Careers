@@ -240,16 +240,24 @@ export const renderMarkdown = (md: string | null): string => {
 };
 
 export const formatSalary = (job: { salary_min: number | null; salary_max: number | null; salary_period: string | null; salary_range?: string | null }): string | null => {
-  const { salary_min: min, salary_max: max, salary_period: period } = job;
+  const toNumber = (value: number | string | null | undefined): number | null => {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = typeof value === 'number' ? value : Number(String(value).replace(/[$,\s]/g, ''));
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const min = toNumber(job.salary_min);
+  const max = toNumber(job.salary_max);
+  const period = String(job.salary_period ?? '').trim().toLowerCase();
   if (min === null && max === null) return null;
-  if (!period || !['hourly', 'monthly', 'biweekly', 'weekly', 'yearly', 'flat'].includes(period)) return null;
+  if (!['hourly', 'daily', 'monthly', 'biweekly', 'weekly', 'yearly', 'flat'].includes(period)) return null;
   const fmt = (n: number) => n % 1 === 0
     ? `$${n.toLocaleString()}`
-    : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+    : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const displayPeriod: Record<string, string> = { hourly: 'hour', daily: 'day', monthly: 'month', biweekly: 'biweekly', weekly: 'week', yearly: 'year', flat: 'flat' };
   const range = min !== null && max !== null && min !== max
-    ? `${fmt(min)} - ${fmt(max)}`
+    ? `${fmt(min)}-${fmt(max)}`
     : fmt((min ?? max) as number);
-  return `${range} ${period}`;
+  return `${range} ${displayPeriod[period]}`;
 };
 
 export const daysUntilClose = (dateStr: string | null): number | null => {

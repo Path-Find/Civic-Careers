@@ -127,7 +127,7 @@ Vacancy Type: Temporary
 Application Deadline: August 31, 2026 
   `;
   const result = parseADP(rawText);
-  assert.equal(result.salary, '$23.22 - $43.23 hourly');
+  assert.equal(result.salary, '$23.22-$43.23 hour');
   assert.equal(result.salaryMin, 23.22);
   assert.equal(result.salaryMax, 43.23);
   assert.equal(result.salaryPeriod, 'hourly');
@@ -139,7 +139,7 @@ Application Deadline: August 31, 2026
 
 test('parseADP stops salary and extracts hours when ADP glues prose after the pay period', () => {
   const result = parseADP('ApplySalary Range: $25.60 To $32.00 HourlyThe Corporation of the Town of Midland invites applications... 40 hours/week');
-  assert.equal(result.salary, '$25.60 - $32 hourly');
+  assert.equal(result.salary, '$25.60-$32 hour');
   assert.equal(result.salaryMin, 25.60);
   assert.equal(result.salaryMax, 32);
   assert.equal(result.salaryPeriod, 'hourly');
