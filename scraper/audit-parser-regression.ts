@@ -11,6 +11,8 @@
 import dotenv from 'dotenv';
 import { initDb } from './db';
 import { evaluateJobQuality, type QualityEvaluation } from './quality-pipeline';
+import { extractBoardSpecificMetadata } from './board-parsers';
+import { classifyRawCapture } from './capture-quality';
 
 dotenv.config({ quiet: true });
 
@@ -32,9 +34,11 @@ type Row = {
   pending_closing_date_status: string | null;
   job_title: string | null;
   department: string | null;
+  location: string | null;
   hours: string | null;
   salary_range: string | null;
-  location: string | null;
+  employment_type: string | null;
+  work_model: string | null;
   union_name: string | null;
   availability: string | null;
   duration: string | null;
@@ -56,6 +60,7 @@ const SAMPLE_QUERY = `
   SELECT j.id, j.source, j.url, raw.application_url, raw.raw_text,
     raw.pending_closing_date, raw.pending_closing_date_status,
     d.job_title, d.department, d.hours, d.salary_range, d.location,
+    d.employment_type, d.work_model,
     d.union_name, d.availability, d.duration, d.academic_course,
     d.academic_schedule, d.academic_term, d.academic_workload,
     d.academic_office_hours, d.education_requirements, d.required_skills,
@@ -106,6 +111,31 @@ function evaluate(row: Row): QualityEvaluation {
   });
 }
 
+function comparable(value: unknown): string {
+  return String(value ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function replay(row: Row): Array<{ field: string; parsed: string; stored: string }> {
+  const rawText = String(row.raw_text ?? '').trim();
+  if (!rawText || !classifyRawCapture(row.source, rawText).valid) return [];
+  const parsed = extractBoardSpecificMetadata(row.source, rawText);
+  const pairs: Array<[string, unknown, unknown]> = [
+    ['department', parsed.department, row.department],
+    ['location', parsed.location, row.location],
+    ['employment_type', parsed.employmentType, row.employment_type],
+    ['work_model', parsed.workModel, row.work_model],
+    ['hours', parsed.hours, row.hours],
+    ['salary_range', parsed.salary, row.salary_range],
+    ['duration', parsed.duration, row.duration],
+    ['union_name', parsed.unionName, row.union_name],
+    ['closing_date', parsed.closingDate, row.closing_date],
+  ];
+  return pairs
+    .filter(([, parsedValue]) => comparable(parsedValue))
+    .filter(([, parsedValue, storedValue]) => comparable(parsedValue) !== comparable(storedValue))
+    .map(([field, parsedValue, storedValue]) => ({ field, parsed: String(parsedValue), stored: String(storedValue ?? '') }));
+}
+
 function normalizeRows(rows: any[], store: Row['store']): Row[] {
   return rows.map(row => ({
     ...row,
@@ -145,6 +175,19 @@ async function main() {
     ...archived.filter(row => row.source === source).slice(0, limit),
   ]);
   const failures = selected.map(row => ({ row, evaluation: evaluate(row) })).filter(item => item.evaluation.reasons.length > 0);
+  const replayMismatches = selected.flatMap(row => replay(row).map(mismatch => ({
+    row,
+    ...mismatch,
+    kind: mismatch.stored ? 'normalization_or_stale_row' : 'parsed_value_not_stored',
+  })));
+  const mismatchesByField = replayMismatches.reduce<Record<string, number>>((result, mismatch) => {
+    result[mismatch.field] = (result[mismatch.field] ?? 0) + 1;
+    return result;
+  }, {});
+  const mismatchesByKind = replayMismatches.reduce<Record<string, number>>((result, mismatch) => {
+    result[mismatch.kind] = (result[mismatch.kind] ?? 0) + 1;
+    return result;
+  }, {});
   const byReason = failures.reduce<Record<string, number>>((result, item) => {
     for (const reason of item.evaluation.reasons) result[reason] = (result[reason] ?? 0) + 1;
     return result;
@@ -161,6 +204,22 @@ async function main() {
     },
     failures: failures.length,
     failuresByReason: byReason,
+    deterministicReplay: {
+      rowsChecked: selected.filter(row => String(row.raw_text ?? '').trim() && classifyRawCapture(row.source, String(row.raw_text ?? '')).valid).length,
+      mismatches: replayMismatches.length,
+      mismatchesByField,
+      mismatchesByKind,
+      examples: replayMismatches.slice(0, 50).map(({ row, field, parsed, stored, kind }) => ({
+        store: row.store,
+        source: row.source,
+        id: row.id,
+        title: row.job_title,
+        field,
+        kind,
+        parsed,
+        stored,
+      })),
+    },
     examples: failures.slice(0, 50).map(({ row, evaluation }) => ({
       store: row.store,
       source: row.source,
