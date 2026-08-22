@@ -16,6 +16,7 @@ dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
 const ACTIVE_ONLY = process.argv.includes('--active-only');
+const SOURCE_ONLY = process.argv.find(arg => arg.startsWith('--source='))?.slice('--source='.length) ?? '';
 
 type Change = {
   id: string;
@@ -29,15 +30,16 @@ type Change = {
 async function main() {
   const db = await initDb();
 
-  const query = await db.execute(`
+  const query = await db.execute({ sql: `
     SELECT j.id, j.source, j.is_active, d.job_title, d.location
     FROM jobs j
     JOIN job_details d ON d.id = j.id
     WHERE d.location IS NOT NULL
       AND trim(d.location) != ''
       ${ACTIVE_ONLY ? 'AND j.is_active = 1' : ''}
+      ${SOURCE_ONLY ? 'AND j.source = ?' : ''}
     ORDER BY j.source, j.id
-  `);
+  `, args: SOURCE_ONLY ? [SOURCE_ONLY] : [] });
 
   const changes: Change[] = [];
   const unmapped: { id: string; source: string; from: string }[] = [];

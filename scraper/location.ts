@@ -551,6 +551,13 @@ export function normalizeLocation(raw: string | null | undefined): string {
     return PLACE_ALIASES[lower];
   }
 
+  // Some boards emit province-first values such as "SK, Moose Jaw".
+  // Canonical storage is always city-first: "Moose Jaw, SK".
+  const provinceFirst = s.match(/^(AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)\s*,\s*(.+)$/i);
+  if (provinceFirst) {
+    s = `${provinceFirst[2]}, ${provinceFirst[1]}`;
+  }
+
   const parts = splitMulti(s);
   const normalized = parts.map((p) => normalizeOnePlace(p)).filter(Boolean);
   return dedupeJoin(normalized);

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Canonicalized province-first locations such as `SK, Moose Jaw` to city-first storage and repaired the affected Defence Construction Canada records.
+
 - Standardized public salary and location displays, including compact ranges such as `$52K–$67K/year` and city-first Canadian locations.
 
 - Repaired syndicated Defence Construction Canada postings so their salary, employer name, and application links no longer inherit Government of Canada metadata.
