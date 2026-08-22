@@ -19,6 +19,7 @@
     "repair-publication-status": "npx tsx repair-publication-status.ts",
     "audit:quality": "npx tsx audit-quality.ts",
     "audit:availability": "npx tsx audit-availability.ts",
+    "backfill:availability": "npx tsx backfill-availability.ts",
     "report:university-of-ottawa": "npx tsx report-university-of-ottawa.ts",
     "backfill:academic-metadata": "npx tsx backfill-source-academic-metadata.ts",
     "backfill:student-requirement": "npx tsx backfill-student-requirement.ts",
