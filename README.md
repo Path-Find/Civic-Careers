@@ -1,6 +1,6 @@
 # Civic Careers
 
-A Canadian public-sector job discovery feed that collects official postings into a single searchable interface. Ontario is the core coverage area, with additional employers elsewhere in Canada.
+A Canadian public-sector job discovery feed that collects official postings into a single searchable interface, with employers and institutions covered across the country.
 
 ## Problem
 
@@ -19,11 +19,11 @@ Government job postings are scattered across dozens of incompatible portals — 
 ## Stack
 
 - **Scraper**: Playwright, TypeScript
-- **AI**: DeepSeek V4-Flash
-- **Database**: Turso/libSQL (with SQLite-compatible local tooling)
+- **Parsing**: TypeScript source adapters, deterministic normalizers, and publication-quality gates
+- **Database**: Neon Postgres, with separate current and archive databases
 - **API**: Express
 - **Frontend**: React, Vite, TypeScript
-- **Automation**: GitHub Actions
+- **Automation**: GitHub Actions for scheduled source runs and isolated source trials
 
 ---
 

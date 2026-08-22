@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added a read-only parser regression audit that samples current and archived postings across multiple sources and reuses the publication-quality gates without making paid AI calls or database changes.
+
 - Added a repeatable whole-corpus Availability audit and strict publication gate so nonstandard schedule prose, FTE metadata, and source fragments cannot reach public listings.
 
 - Added a conservative current/archive Availability backfill that canonicalizes recognized schedule values and clears unsafe captures without changing raw source text.
