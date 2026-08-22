@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Removed the unsolicited results-link control and redundant empty-results copy.
+
+- Replaced the growing employer list with searchable suggestions and added location suggestions as users type.
+
 - Company pages now load their job results correctly in Postgres; VIA TGF and other source-scoped pages no longer fail on title suggestions.
 
 - Public deadline checks now use Toronto’s calendar date, keeping same-day Canadian postings visible until the local date ends.

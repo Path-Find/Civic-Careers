@@ -15,7 +15,6 @@ import { CompanyDirectory } from './modules/jobs/components/CompanyDirectory';
 import { CompanyTitleSuggestions } from './modules/jobs/components/CompanyTitleSuggestions';
 import { CompanyFiltersSidebar } from './modules/jobs/components/CompanyFiltersSidebar';
 import { ListSortControls } from './modules/jobs/components/ListSortControls';
-import { CopyLinkButton } from './modules/jobs/components/CopyLinkButton';
 import { EDUCATION_LEVELS, matchesEducationField, matchesEducationLevel, type EducationLevel } from './modules/jobs/educationFilters';
 import { buildFilterSummary } from './modules/jobs/filterSummary';
 import { companyPortal, companyTypes, type CompanyType } from './modules/jobs/companyTypes';
@@ -667,6 +666,7 @@ function App() {
               ) : (
                 <JobFiltersSidebar
                   headerHeight={headerHeight}
+                  jobs={jobs}
                   companyOptions={companySummaries.filter(company => Number(company.active_job_count) > 0)}
                   selectedCompanyNames={selectedCompanyNames}
                   selectedEducationLevels={selectedEducationLevels}
@@ -703,9 +703,8 @@ function App() {
                   </div>
                   {currentView === 'companies' && <div className="company-sort-options"><button className={companySort === 'alphabetical' ? 'active' : ''} onClick={() => setCompanySort('alphabetical')}>A–Z</button><button className={companySort === 'mostJobs' ? 'active' : ''} onClick={() => setCompanySort('mostJobs')}>Most jobs</button><button className={companySort === 'recent' ? 'active' : ''} onClick={() => setCompanySort('recent')}>Recently added</button></div>}
                   {currentView === 'jobs' && <ListSortControls sortNewest={sortNewest} deadlineDays={deadlineDays} newlyAdded={newlyAdded} onMostRecent={() => applyMostRecentSort(false)} onClosingSoon={() => applyClosingSoonSort(false)} onNewlyAdded={() => applyNewlyAddedSort(false)} />}
-                  {(currentView === 'jobs' || currentView === 'saved') && <CopyLinkButton label="Copy results link" />}
                 </div>
-                {(currentView === 'jobs' || currentView === 'saved') && <p className="filter-summary" aria-live="polite">{buildFilterSummary({ searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages })}</p>}
+                {(currentView === 'jobs' || currentView === 'saved') && hasJobFilters && <p className="filter-summary" aria-live="polite">{buildFilterSummary({ searchTerm, locationTerm, minSalary, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, sortNewest, newlyAdded, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages })}</p>}
                 {isCompanyPage && (
                   <div className="company-page-header">
                     <div>
@@ -732,7 +731,7 @@ function App() {
                     <>
                       {educationFilteredJobs.map(job => <JobRow key={job.id} job={job} onClick={() => handleSelectJob(job)} />)}
                       {currentView === 'saved' && <p className="saved-filter-note">Filters apply to saved jobs only. Recently viewed jobs stay separate.</p>}
-                      {educationFilteredJobs.length === 0 && <p className="saved-empty-state">{currentView === 'saved' ? (hasJobFilters ? 'No saved jobs match these filters.' : 'No saved jobs yet.') : 'No jobs match these filters.'}</p>}
+                      {educationFilteredJobs.length === 0 && <p className="saved-empty-state">{currentView === 'saved' ? (hasJobFilters ? 'No saved jobs match these filters.' : 'No saved jobs yet.') : (hasJobFilters ? 'No jobs match these filters.' : 'No jobs are currently available.')}</p>}
                       {currentView === 'saved' && <section className="recently-viewed-section">
                         <div className="recently-viewed-heading-row">
                           <h2 className="list-count-label recently-viewed-heading">Recently viewed</h2>
