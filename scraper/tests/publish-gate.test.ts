@@ -36,6 +36,13 @@ test('rejects a portal CTA label captured as the title', () => {
   assert.equal(getPublishBlockReason({ title: 'View the Job Posting [PDF]' }), 'unusable title');
 });
 
+test('rejects a portal alert setting captured as the title', () => {
+  assert.equal(
+    getPublishBlockReason({ title: 'Workload n (in days) to receive an alert:' }),
+    'unusable title',
+  );
+});
+
 test('rejects a cookie-banner capture used as the title', () => {
   const reason = getPublishBlockReason({
     title: 'We value your privacyWe use cookies to enhance your browsing experience, serve personalised ads or content, and analyse our traffic.',
@@ -53,6 +60,13 @@ test('rejects employment-status words in the title', () => {
   assert.equal(getPublishBlockReason({ title: 'Float Care Coordinator, Temporary Full-Time, Ottawa Civic Hospital' }), 'employment-status words in title');
   assert.equal(getPublishBlockReason({ title: 'Library Assistant - Temporary Part-Time' }), 'employment-status words in title');
   assert.equal(getPublishBlockReason({ title: 'Senior Library Technician (Temporary Contract)' }), 'employment-status words in title');
+});
+
+test('rejects duration phrases left in a soft-parsed title', () => {
+  assert.equal(
+    getPublishBlockReason({ title: 'Gardener - 12-Month Contract with Possibility of Extension' }),
+    'duration metadata in title',
+  );
 });
 
 test('does not flag a real role name that happens to contain a status word (archive false-positive sweep)', () => {

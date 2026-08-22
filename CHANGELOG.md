@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replaced the growing employer list with searchable suggestions and added location suggestions as users type.
 
+- Fixed fixed-term contract wording being left in public job titles instead of being moved into duration metadata.
+
+- Added an automated post-scrape quality pass that refreshes metadata, applies shared and source-specific title cleanup, fills missing active deadlines, and enforces publication states before jobs reach the public site.
+
 - Company pages now load their job results correctly in Postgres; VIA TGF and other source-scoped pages no longer fail on title suggestions.
 
 - Public deadline checks now use Toronto’s calendar date, keeping same-day Canadian postings visible until the local date ends.

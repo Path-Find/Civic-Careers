@@ -79,6 +79,12 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeJobTitle('Student Visitor Services Attendant - INVENTORY'), 'Student Visitor Services Attendant');
     assert.equal(normalizeJobTitle('Instructor (Sports) - Part-time'), 'Instructor (Sports)');
     assert.equal(normalizeJobTitle('Facility Attendant - Services - Part-Time'), 'Facility Attendant - Services');
+    assert.equal(
+      normalizeJobTitle('Gardener - 12-Month Contract with Possibility of Extension'),
+      'Gardener',
+    );
+    assert.equal(normalizeJobTitle('Assurance Specialist, Structures - 12 Month Contract'), 'Assurance Specialist, Structures');
+    assert.equal(normalizeJobTitle('Junior Planner, Development – 1 Vacancy'), 'Junior Planner, Development');
   });
 
   it('moves parenthetical union markers out of the display title', () => {
@@ -134,6 +140,10 @@ describe('normalizeJobTitle', () => {
       normalizeSourceJobTitle('Humber College', 'Nursing Lab Specialist (2 Positions) - FHLS - FT Support'),
       'Nursing Lab Specialist',
     );
+    assert.equal(
+      normalizeSourceJobTitle('Government of Canada', 'Manufacturing Execution System (MES) Software Specialist (#25689)'),
+      'Manufacturing Execution System (MES) Software Specialist',
+    );
   });
 
   it('does not strip bare Temporary proper-name prefixes', () => {
@@ -166,6 +176,10 @@ describe('normalizeJobTitle', () => {
     assert.equal(extractTitleDuration('House Technician II (Temporary, up to 6 months)'), 'up to 6 months');
     assert.equal(extractTitleDuration('Recreation Facilities Attendant I - Arenas (Permanent, On-Call)'), 'Permanent');
     assert.equal(extractTitleDuration('Senior Copywriter Specialist (12 months contract)'), '12 months contract');
+    assert.equal(
+      extractTitleDuration('Gardener - 12-Month Contract with Possibility of Extension'),
+      '12-Month Contract with Possibility of Extension',
+    );
   });
 });
 
@@ -173,6 +187,7 @@ describe('isUsableJobTitle', () => {
   it('rejects portal navigation headings but keeps real roles', () => {
     assert.equal(isUsableJobTitle('Skip to Main Content'), false);
     assert.equal(isUsableJobTitle('Skip To Job Description'), false);
+    assert.equal(isUsableJobTitle('Workload n (in days) to receive an alert:'), false);
     assert.equal(isUsableJobTitle('Associate Director, Finance and Administration'), true);
   });
 });

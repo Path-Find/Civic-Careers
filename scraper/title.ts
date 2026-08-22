@@ -135,6 +135,11 @@ function stripTrailingConnectorPunctuation(title: string): string {
     .trim();
 }
 
+// Boards sometimes append a fixed-term contract description to the title
+// instead of exposing it as a separate duration field.
+const TRAILING_DURATION_METADATA = /\s*[-–—]\s*((?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?)(?:\s+(?:contract|term|assignment|position))?(?:\s+with\s+(?:the\s+)?possibility\s+of\s+extension)?|(?:temporary|permanent|contract|term)\s+assignment)\s*$/i;
+const TRAILING_VACANCY_METADATA = /\s*[-–—]\s*\d+\s+vacanc(?:y|ies)\s*$/i;
+
 // Course-code extraction only fires for sources that are actually academic institutions.
 // The pattern (letters + alphanumeric number) also matches non-academic requisition IDs
 // like "JR38550" or "REQ2024-0891" — stripping those from a municipal job title would be
@@ -212,6 +217,8 @@ export function normalizeJobTitle(title: string | null | undefined): string {
 
   // Trailing dash inventory / employment
   t = t.replace(/\s*[-–—]\s*inventory\s*$/i, '').trim();
+  t = t.replace(TRAILING_VACANCY_METADATA, '').trim();
+  t = t.replace(TRAILING_DURATION_METADATA, '').trim();
   t = t.replace(/\s*[-–—]\s*(?:re[-\s]?post(?:ing)?|periodic(?:\s+posting|\s+post)?)\s*$/i, '').trim();
   t = t.replace(
     /\s*[-–—]\s*(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term|fixed[-\s]?term(?:\s+contract)?|limited\s+term\s+contract)\s*$/i,
@@ -265,6 +272,12 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     ).trim();
   }
 
+  if (source === 'Government of Canada') {
+    // The federal jobs portal appends its internal requisition number as
+    // `(#12345)`. It is source metadata, not part of the public title.
+    normalized = normalized.replace(/\s*\(\s*#\d{3,}\s*\)\s*$/i, '').trim();
+  }
+
   return normalized || normalizeJobTitle(title);
 }
 
@@ -272,7 +285,7 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
 export function isUsableJobTitle(title: string | null | undefined): boolean {
   const normalized = normalizeJobTitle(title);
   if (!normalized) return false;
-  return !/^(?:skip\s+to\b|search\s+jobs?\b|job\s+description|no\s+results?\b|frequently\s+asked\b|view\s+(?:the\s+)?job(?:\s+(?:details|posting))?\b|apply\s+now\b|click\s+here\b|read\s+more\b|see\s+details\b|job\s+details\b)/i.test(normalized);
+  return !/^(?:skip\s+to\b|search\s+jobs?\b|job\s+description|no\s+results?\b|frequently\s+asked\b|view\s+(?:the\s+)?job(?:\s+(?:details|posting))?\b|apply\s+now\b|click\s+here\b|read\s+more\b|see\s+details\b|job\s+details\b|workload\s*(?:n\s*)?\(in\s+days\)\s+to\s+receive\s+an\s+alert\b)/i.test(normalized);
 }
 
 /**
@@ -310,8 +323,12 @@ export function extractTitleDuration(title: string | null | undefined): string |
   const original = String(title ?? '').replace(/\s+/g, ' ').trim();
   if (!original) return null;
 
+  const trailingDuration = original.match(TRAILING_DURATION_METADATA)?.[1];
+  if (trailingDuration) return trailingDuration.replace(/\s+/g, ' ').trim();
+
   const metadata = [
     ...[...original.matchAll(/\(([^()]*)\)/g)].map(match => match[1]),
+    original.match(TRAILING_DURATION_METADATA)?.[1] ?? '',
     original.match(/(?:^|\s[-–—,;]\s)([^-–—,;]+)$/)?.[1] ?? '',
     original.match(/^(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term)\s*[,;]\s*(.+)$/i)?.[0] ?? '',
     original.match(/\b(?:term|permanent|temporary|contract)\s*$/i)?.[0] ?? '',

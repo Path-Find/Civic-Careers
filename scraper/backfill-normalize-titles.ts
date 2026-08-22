@@ -1,5 +1,5 @@
 /**
- * Strip employment/duration/inventory noise from job_details.job_title.
+ * Normalize source and parsed titles in both current and archive stores.
  *
  * Usage:
  *   npx tsx backfill-normalize-titles.ts           # dry-run
@@ -8,83 +8,106 @@
  */
 import { initDb } from './db';
 import dotenv from 'dotenv';
-import { normalizeJobTitle } from './title';
+import { normalizeSourceJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
 const ACTIVE_ONLY = process.argv.includes('--active-only');
 
+type QueryRow = Record<string, unknown>;
+type Statement = string | { sql: string; args?: unknown[] };
+type Execute = (statement: Statement) => Promise<{ rows: QueryRow[] }>;
 type Change = {
   id: string;
   source: string;
   is_active: number;
+  field: 'raw' | 'details';
   from: string;
   to: string;
 };
 
+const QUERY = `
+  SELECT j.id, j.source, j.is_active, r.title AS raw_title, d.job_title AS detail_title
+  FROM jobs j
+  LEFT JOIN raw_jobs r ON r.id = j.id
+  LEFT JOIN job_details d ON d.id = j.id
+  WHERE (r.title IS NOT NULL AND trim(r.title) != '')
+     OR (d.job_title IS NOT NULL AND trim(d.job_title) != '')
+     ${ACTIVE_ONLY ? 'AND j.is_active = 1' : ''}
+  ORDER BY j.source, j.id
+`;
+
+function findChanges(rows: QueryRow[]): Change[] {
+  return rows.flatMap(row => {
+    const source = String(row.source ?? '');
+    const changes: Change[] = [];
+    for (const [field, value] of [['raw', row.raw_title], ['details', row.detail_title]] as const) {
+      const from = String(value ?? '');
+      if (!from.trim()) continue;
+      const to = normalizeSourceJobTitle(source, from);
+      if (from !== to) changes.push({
+        id: String(row.id),
+        source,
+        is_active: Number(row.is_active ?? 0),
+        field,
+        from,
+        to,
+      });
+    }
+    return changes;
+  });
+}
+
+function statementFor(change: Change): { sql: string; args: unknown[] } {
+  return {
+    sql: change.field === 'raw'
+      ? 'UPDATE raw_jobs SET title = ? WHERE id = ?'
+      : 'UPDATE job_details SET job_title = ? WHERE id = ?',
+    args: [change.to, change.id],
+  };
+}
+
 async function main() {
   const db = await initDb();
+  const stores: Array<{
+    label: string;
+    read: Execute;
+    write: (changes: Change[]) => Promise<void>;
+  }> = [{
+    label: 'current',
+    read: statement => db.execute(statement),
+    write: async changes => {
+      for (let i = 0; i < changes.length; i += 500) {
+        await db.batch(changes.slice(i, i + 500).map(statementFor), 'write');
+      }
+    },
+  }];
 
-  const query = await db.execute(`
-    SELECT j.id, j.source, j.is_active, d.job_title
-    FROM jobs j
-    JOIN job_details d ON d.id = j.id
-    WHERE d.job_title IS NOT NULL
-      AND trim(d.job_title) != ''
-      ${ACTIVE_ONLY ? 'AND j.is_active = 1' : ''}
-    ORDER BY j.source, j.id
-  `);
-
-  const changes: Change[] = [];
-  let already = 0;
-
-  for (const row of query.rows) {
-    const from = String(row.job_title ?? '');
-    const to = normalizeJobTitle(from);
-    if (from === to) {
-      already++;
-      continue;
-    }
-    changes.push({
-      id: String(row.id),
-      source: String(row.source),
-      is_active: Number(row.is_active ?? 0),
-      from,
-      to,
+  const archiveExecute = (db as unknown as { executeArchive?: Execute }).executeArchive;
+  if (archiveExecute) {
+    stores.push({
+      label: 'archive',
+      read: statement => archiveExecute.call(db, statement),
+      write: async changes => {
+        for (const change of changes) await archiveExecute.call(db, statementFor(change));
+      },
     });
   }
 
-  console.log(`Rows with title: ${query.rows.length}`);
-  console.log(`Already clean: ${already}`);
-  console.log(`Would change: ${changes.length}${APPLY ? ' (applying)' : ' (dry-run)'}`);
-  console.log(`Active among changes: ${changes.filter(c => c.is_active === 1).length}`);
-
-  console.log('\nSample changes (up to 40):');
-  for (const c of changes.slice(0, 40)) {
-    console.log(`  ${JSON.stringify(c.from)} → ${JSON.stringify(c.to)}`);
-  }
-
-  if (APPLY && changes.length) {
-    const BATCH = 50;
-    for (let i = 0; i < changes.length; i += BATCH) {
-      const slice = changes.slice(i, i + BATCH);
-      await db.batch(
-        slice.map((c) => ({
-          sql: 'UPDATE job_details SET job_title = ? WHERE id = ?',
-          args: [c.to, c.id],
-        })),
-        'write',
-      );
-      console.log(`  wrote ${Math.min(i + BATCH, changes.length)}/${changes.length}`);
+  for (const store of stores) {
+    const result = await store.read(QUERY);
+    const changes = findChanges(result.rows);
+    console.log(`[Title normalization:${store.label}] ${APPLY ? 'Applying' : 'Dry run'}: ${changes.length} field change(s) across ${result.rows.length} row(s).`);
+    console.log(`[Title normalization:${store.label}] Active among changes: ${changes.filter(change => change.is_active === 1).length}`);
+    for (const change of changes.slice(0, 40)) {
+      console.log(`  [${change.field}] ${change.source}: ${JSON.stringify(change.from)} → ${JSON.stringify(change.to)}`);
     }
-    console.log('Done.');
-  } else if (!APPLY) {
-    console.log('\nDry run complete. Re-run with --apply to write to Turso.');
+    if (APPLY && changes.length) await store.write(changes);
   }
 }
 
-main().catch((err) => {
-  console.error(err);
+main().catch(error => {
+  console.error(error);
   process.exit(1);
 });

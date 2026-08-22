@@ -75,16 +75,14 @@ function classify(row: Row): Decision {
     return { id: row.id, from: row.publication_status ?? 'NULL', active: row.is_active, to: 'hidden', reason: 'missing application closing metadata' };
   }
 
-  const blockReason = hasDetails
-    ? getPublishBlockReason({
-      title,
-      department: row.department,
-      hours: row.hours,
-      salary: row.salary_range,
-      location: row.location,
-      unionName: row.union_name,
-    })
-    : null;
+  const blockReason = getPublishBlockReason({
+    title,
+    department: row.department,
+    hours: row.hours,
+    salary: row.salary_range,
+    location: row.location,
+    unionName: row.union_name,
+  });
   if (blockReason) {
     return { id: row.id, from: row.publication_status ?? 'NULL', active: row.is_active, to: 'hidden', reason: blockReason };
   }

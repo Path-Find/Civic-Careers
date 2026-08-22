@@ -10,6 +10,8 @@
     "backfill-software": "npx tsx backfill-software.ts",
     "backfill-posted-dates": "npx tsx backfill-posted-dates.ts",
     "backfill-metadata-only": "npx tsx backfill-metadata-only.ts",
+    "backfill-normalize-titles": "npx tsx backfill-normalize-titles.ts",
+    "repair-publication-status": "npx tsx repair-publication-status.ts",
     "backfill-benefits": "npx tsx backfill-benefits.ts",
     "backfill-source-metadata": "npx tsx backfill-source-metadata.ts",
     "promote-pending-jobs": "npx tsx promote-pending-jobs.ts",

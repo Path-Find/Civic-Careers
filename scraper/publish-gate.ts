@@ -9,7 +9,7 @@
  * to silently auto-correct a suspect field — a wrong guess published is worse
  * than a real job left pending.
  */
-import { isUsableJobTitle } from './title';
+import { isUsableJobTitle, normalizeJobTitle } from './title';
 
 export interface PublishGateDetails {
   title: string;
@@ -97,6 +97,8 @@ const TITLE_STATUS_WORDS = new RegExp(
   'i',
 );
 
+const TITLE_DURATION_PHRASES = /\b(?:\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?))\s+(?:contract|term|assignment|position)\b(?:\s+with\s+(?:the\s+)?possibility\s+of\s+extension)?/i;
+
 // Words that mark a title as a reposting/administrative annotation rather
 // than the actual role name, or portal chrome (cookie banner, etc.) captured
 // in place of a real title. Add more as one-liners here.
@@ -110,8 +112,12 @@ export function getPublishBlockReason(details: PublishGateDetails): string | nul
   if (corruptField) return `corrupted field: ${corruptField}`;
 
   if (!isUsableJobTitle(details.title)) return 'unusable title';
+  if (TITLE_DURATION_PHRASES.test(details.title)) return 'duration metadata in title';
   if (TITLE_STATUS_WORDS.test(details.title)) return 'employment-status words in title';
   if (TITLE_FLAGGED_WORDS.test(details.title)) return 'flagged word in title';
+
+  const normalizedTitle = normalizeJobTitle(details.title);
+  if (normalizedTitle !== details.title.replace(/\s+/g, ' ').trim()) return 'un-normalized title metadata';
 
   return null;
 }

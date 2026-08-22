@@ -9,7 +9,7 @@ import { initDb } from './db';
 import dotenv from 'dotenv';
 import { extractPendingMetadata, isUsablePendingLocation } from './pending-metadata';
 import { normalizeActiveClosingDateStatus } from './closing-date';
-import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle } from './title';
+import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle, normalizeSourceJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
@@ -36,18 +36,19 @@ async function main() {
     FROM raw_jobs r
     JOIN jobs j ON j.id = r.id
     LEFT JOIN job_details d ON d.id = r.id
-    WHERE r.parsed_at IS NULL AND d.id IS NULL
+    WHERE (r.parsed_at IS NULL OR d.id IS NULL)
       AND COALESCE(r.pending_closing_date_status, 'not_checked') <> 'blocked'
       ${INCLUDE_INACTIVE ? '' : 'AND j.is_active = 1'}
   `);
   const updates = result.rows.map(row => {
     const suppliedTitle = String(row.title ?? '');
     const rawText = String(row.raw_text ?? '');
-    const title = isUsableJobTitle(suppliedTitle)
-      ? normalizeJobTitle(suppliedTitle)
+    const sourceTitle = isUsableJobTitle(suppliedTitle)
+      ? suppliedTitle
       : extractRawJobTitle(String(row.source ?? ''), rawText)
         || extractUrlJobTitle(String(row.application_url ?? row.url ?? ''), rawText);
-    const pending = extractPendingMetadata(title, rawText);
+    const title = normalizeSourceJobTitle(String(row.source ?? ''), sourceTitle);
+    const pending = extractPendingMetadata(sourceTitle, rawText);
     const closing = normalizeActiveClosingDateStatus(rawText);
     const existingClosingDate = String(row.pending_closing_date ?? '').trim();
     return {
@@ -73,13 +74,14 @@ async function main() {
 
   await db.batch(updates.map(row => ({
     sql: `UPDATE raw_jobs
-          SET title = ?, pending_salary_text = ?, pending_is_student = ?, pending_duration = COALESCE(NULLIF(TRIM(pending_duration), ''), ?), pending_location = ?, pending_closing_date = COALESCE(NULLIF(TRIM(pending_closing_date), ''), ?), pending_closing_date_status = ?
-          WHERE id = ? AND parsed_at IS NULL
+          SET title = ?, pending_salary_text = ?, pending_is_student = ?, pending_duration = COALESCE(NULLIF(TRIM(pending_duration), ''), ?), pending_location = ?, pending_closing_date = COALESCE(NULLIF(TRIM(pending_closing_date), ''), ?), pending_closing_date_status = ?, parsed_at = CASE WHEN NOT EXISTS (SELECT 1 FROM job_details WHERE job_details.id = raw_jobs.id) THEN NULL ELSE parsed_at END
+          WHERE id = ?
+            AND (parsed_at IS NULL OR NOT EXISTS (SELECT 1 FROM job_details WHERE job_details.id = raw_jobs.id))
             AND COALESCE(pending_closing_date_status, 'not_checked') <> 'blocked'
-            AND NOT EXISTS (SELECT 1 FROM job_details WHERE job_details.id = raw_jobs.id)`,
+            `,
     args: [row.title, row.salaryText, row.isStudent, row.duration, row.location ?? null, row.closingDate, row.closingDateStatus, row.id],
   })), 'write');
-  console.log(`[Pending metadata] Updated ${updates.length} pending rows; all remain unparsed.`);
+  console.log(`[Pending metadata] Updated ${updates.length} pending/incomplete rows; full-detail rows were not rewritten.`);
 }
 
 main().catch(error => {
