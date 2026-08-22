@@ -31,6 +31,10 @@ const closingDate = `COALESCE(
   NULLIF(NULLIF(NULLIF(NULLIF(TRIM(raw.pending_closing_date), ''), 'null'), 'NULL'), 'N/A'),
   NULLIF(NULLIF(NULLIF(NULLIF(TRIM(jd.closing_date), ''), 'null'), 'NULL'), 'N/A')
 )`;
+// Closing dates on Canadian employer postings are date-only values. Compare
+// them with the project's Toronto calendar date rather than the database
+// session's UTC date, which can hide a still-live posting after 00:00 UTC.
+const currentTorontoDate = `((CURRENT_TIMESTAMP AT TIME ZONE 'America/Toronto')::date)`;
 const sourceText = `LOWER(COALESCE(raw.title, '') || ' ' || COALESCE(raw.raw_text, ''))`;
 function badTitlePrefixCheck(column: string): string {
   const bad = [
@@ -119,7 +123,7 @@ END`;
 // normalized open-until-filled status. Soft-parsed rows without either signal
 // remain hidden until their pending application metadata is repaired.
 const publicDeadline = `AND ((${closingDate} IS NOT NULL
-  AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text)
+  AND LEFT(${closingDate}, 10) >= ${currentTorontoDate}::text)
   OR ${closingDateStatus} = 'open_until_filled')`;
 const currentPublicJobVisibility = `AND j.is_active = 1 ${publicPublicationVisibility} ${publicTitleVisibility} ${publicDeadline}`;
 
@@ -149,7 +153,7 @@ const jobJoins = `
   LEFT JOIN job_details jd ON j.id = jd.id
   LEFT JOIN raw_jobs raw ON j.id = raw.id`;
 
-const freshnessDate = `CASE WHEN COALESCE(jd.posted_at, raw.posted_at) IS NOT NULL AND LEFT(COALESCE(jd.posted_at, raw.posted_at), 10) <= CURRENT_DATE::text THEN LEFT(COALESCE(jd.posted_at, raw.posted_at), 10)::date ELSE j.first_seen_at::date END`;
+const freshnessDate = `CASE WHEN COALESCE(jd.posted_at, raw.posted_at) IS NOT NULL AND LEFT(COALESCE(jd.posted_at, raw.posted_at), 10) <= ${currentTorontoDate}::text THEN LEFT(COALESCE(jd.posted_at, raw.posted_at), 10)::date ELSE j.first_seen_at::date END`;
     const visiblePending = `${publicPublicationVisibility} ${publicTitleVisibility}`;
 
 /** Match web/src/utils.ts slugify — company URLs are /companies/{slug}. */
@@ -346,15 +350,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         db.execute(`SELECT ${jobColumns} ${jobJoins}
           ${activeJobWhere}
           AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
-          AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text
-          AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '14 days')::date)::text
+          AND LEFT(${closingDate}, 10) >= ${currentTorontoDate}::text
+          AND LEFT(${closingDate}, 10) <= ((${currentTorontoDate} + INTERVAL '14 days')::date)::text
           ORDER BY LEFT(${closingDate}, 10) ASC LIMIT 10`),
         db.execute(`SELECT
           COUNT(*) AS available_job_count,
-          SUM(CASE WHEN ${freshnessDate} >= (CURRENT_DATE - INTERVAL '7 days')::date THEN 1 ELSE 0 END) AS recently_added_count,
+          SUM(CASE WHEN ${freshnessDate} >= (${currentTorontoDate} - INTERVAL '7 days')::date THEN 1 ELSE 0 END) AS recently_added_count,
           SUM(CASE WHEN ${closingDate} IS NOT NULL AND ${closingDate} != ''
-            AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text
-            AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '14 days')::date)::text THEN 1 ELSE 0 END) AS closing_soon_count,
+            AND LEFT(${closingDate}, 10) >= ${currentTorontoDate}::text
+            AND LEFT(${closingDate}, 10) <= ((${currentTorontoDate} + INTERVAL '14 days')::date)::text THEN 1 ELSE 0 END) AS closing_soon_count,
           MAX(j.scraped_at) AS last_checked_at
           ${jobJoins} ${activeJobWhere}`),
         nearbyCount,
@@ -497,19 +501,19 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           filterClause += ` AND (${closingDate} IS NULL OR ${closingDate} = '')`;
         } else if (deadlineDays === 0) {
           filterClause += ` AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
-            AND LEFT(${closingDate}, 10) = CURRENT_DATE::text`;
+            AND LEFT(${closingDate}, 10) = ${currentTorontoDate}::text`;
         } else if (deadlineDays > 0) {
           // Inclusive: today through N days out (client: days >= 0 && days <= N).
           // Integer is floor-validated — safe to inline into SQLite date modifier.
           const days = Math.min(Math.floor(deadlineDays), 365);
           filterClause += ` AND ${closingDate} IS NOT NULL AND ${closingDate} != ''
-            AND LEFT(${closingDate}, 10) >= CURRENT_DATE::text
-            AND LEFT(${closingDate}, 10) <= ((CURRENT_DATE + INTERVAL '${days} days')::date)::text`;
+            AND LEFT(${closingDate}, 10) >= ${currentTorontoDate}::text
+            AND LEFT(${closingDate}, 10) <= ((${currentTorontoDate} + INTERVAL '${days} days')::date)::text`;
         }
       }
 
       if (newlyAdded) {
-        filterClause += ` AND ${freshnessDate} >= (CURRENT_DATE - INTERVAL '7 days')::date`;
+        filterClause += ` AND ${freshnessDate} >= (${currentTorontoDate} - INTERVAL '7 days')::date`;
       }
 
       const educationText = `LOWER(COALESCE(jd.education_requirements, ''))`;

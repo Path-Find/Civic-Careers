@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Public deadline checks now use Toronto’s calendar date, keeping same-day Canadian postings visible until the local date ends.
+
+- Restored four archived/hidden listings only after their individual source URLs were verified live; dead archived listings remain hidden.
+
 - Public listings now prefer newer source-captured closing dates over stale parsed dates, preventing valid jobs from being hidden as expired.
 
 - Recovered current listings that had been incorrectly archived, including 55 Njoyn postings stored as bot-page captures; incomplete records remain soft-parsed with “Details pending.”
