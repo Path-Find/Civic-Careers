@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Added field-level publication filters and a repeatable backfill for duplicated academic metadata, invalid availability fragments, and non-canonical pending salaries; future contaminated rows stay hidden instead of reaching the public site.
+- Added field-level publication filters and repeatable backfills for duplicated academic metadata, invalid availability fragments, and non-canonical pending salaries; future contaminated rows stay hidden instead of reaching the public site.
 
 - Normalized salary ranges to one consistent `$min-$max period` format, expanded shorthand qualifiers such as `hr`, `wk`, and `yr`, and removed stale unqualified pending salary fallbacks.
 

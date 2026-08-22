@@ -41,6 +41,10 @@ test('normalizeAvailability drops labour-relations prose', () => {
   assert.equal(normalizeAvailability('r the ratification'), '');
 });
 
+test('normalizeAvailability drops application-document prose', () => {
+  assert.equal(normalizeAvailability('r you add each document'), '');
+});
+
 test('split does not invent availability from credit notes', () => {
   assert.deepEqual(
     splitHoursAndAvailability('39 hours (3 credits)', '(3 credits)'),

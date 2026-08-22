@@ -51,7 +51,7 @@ function equal(left: string | null, right: string | null): boolean {
 function isForbiddenAvailability(value: string | null): boolean {
   // This is a field-level quality rule, not a source-specific parser rule:
   // labour-relations prose is never a work schedule for any employer.
-  return /\bratification\b/i.test(String(value ?? ''));
+  return /\bratification\b|\bdocument(?:s)?\b/i.test(String(value ?? ''));
 }
 
 function changesFor(rows: Row[]): Change[] {

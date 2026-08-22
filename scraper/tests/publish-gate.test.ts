@@ -74,6 +74,13 @@ test('rejects labour-relations prose captured as availability', () => {
   );
 });
 
+test('rejects application-document prose captured as availability', () => {
+  assert.equal(
+    getPublishBlockReason({ title: 'Payroll Specialist', availability: 'r you add each document' }),
+    'corrupted field: availability',
+  );
+});
+
 test('rejects a cookie-banner capture used as the title', () => {
   const reason = getPublishBlockReason({
     title: 'We value your privacyWe use cookies to enhance your browsing experience, serve personalised ads or content, and analyse our traffic.',
