@@ -1,4 +1,6 @@
+import type { MouseEvent } from 'react';
 import type { CompanySummary } from '../../../types/jobs';
+import { slugify } from '../../../utils';
 
 const COMPANY_DISPLAY_NAMES: Record<string, string> = {
   CMHC: 'Canada Mortgage and Housing Corporation',
@@ -26,11 +28,18 @@ export function CompanyDirectory({ companies, sort, showArchived, onSelectCompan
   });
   const activeCompanies = sortCompanies(companies.filter(company => Number(company.active_job_count) > 0));
   const inactiveCompanies = sortCompanies(companies.filter(company => Number(company.active_job_count) === 0));
+  const companyHref = (company: CompanySummary) => `/companies/${company.organizationSlug ?? slugify(company.name)}`;
+  const handleCompanyClick = (event: MouseEvent<HTMLAnchorElement>, company: CompanySummary) => {
+    if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+      event.preventDefault();
+      onSelectCompany(company);
+    }
+  };
   return <>
-    {activeCompanies.map(company => <div className="company-row" key={company.name} onClick={() => onSelectCompany(company)}><div><span className="company-name">{companyDisplayName(company.name)}</span>{company.children && company.children.length > 0 && <span className="company-child-summary">Includes {company.children.map(child => child.name).join(', ')}</span>}</div><span className="company-count">{company.active_job_count} positions</span></div>)}
+    {activeCompanies.map(company => <a className="company-row" key={company.name} href={companyHref(company)} onClick={event => handleCompanyClick(event, company)}><div><span className="company-name">{companyDisplayName(company.name)}</span>{company.children && company.children.length > 0 && <span className="company-child-summary">Includes {company.children.map(child => child.name).join(', ')}</span>}</div><span className="company-count">{company.active_job_count} positions</span></a>)}
     {showArchived && inactiveCompanies.length > 0 && <>
       <div className="company-section-label">Not currently hiring</div>
-      {inactiveCompanies.map(company => <div className="company-row archived" key={company.name} onClick={() => onSelectCompany(company)}><div><span className="company-name">{companyDisplayName(company.name)}</span>{company.children && company.children.length > 0 && <span className="company-child-summary">Includes {company.children.map(child => child.name).join(', ')}</span>}</div><span className="company-count">{company.total_job_count} positions (archived)</span></div>)}
+      {inactiveCompanies.map(company => <a className="company-row archived" key={company.name} href={companyHref(company)} onClick={event => handleCompanyClick(event, company)}><div><span className="company-name">{companyDisplayName(company.name)}</span>{company.children && company.children.length > 0 && <span className="company-child-summary">Includes {company.children.map(child => child.name).join(', ')}</span>}</div><span className="company-count">{company.total_job_count} positions (archived)</span></a>)}
     </>}
   </>;
 }
