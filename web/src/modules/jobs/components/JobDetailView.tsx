@@ -7,12 +7,12 @@ import { pendingDetailAction } from '../pendingDetailAction';
 import type { Job, JobDetails, View } from '../../../types/jobs';
 
 const REPORT_REASONS = [
-  'Wrong title or parser output',
-  'Wrong field or job details',
-  'Wrong academic or student classification',
+  'Wrong job title',
+  'Wrong job details',
+  'Wrong academic or student information',
   'Wrong deadline or availability',
   'Wrong application link',
-  'Duplicate or should be hidden',
+  'Duplicate or should not be listed',
   'Other',
 ] as const;
 
