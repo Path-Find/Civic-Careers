@@ -60,6 +60,13 @@ test('rejects a portal alert setting captured as the title', () => {
   );
 });
 
+test('rejects a portal alert setting captured as hours', () => {
+  assert.equal(
+    getPublishBlockReason({ title: 'Site Operations Coordinator', hours: 'n (in days) to receive an alert:' }),
+    'corrupted field: hours',
+  );
+});
+
 test('rejects a cookie-banner capture used as the title', () => {
   const reason = getPublishBlockReason({
     title: 'We value your privacyWe use cookies to enhance your browsing experience, serve personalised ads or content, and analyse our traffic.',

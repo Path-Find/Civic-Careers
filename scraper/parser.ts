@@ -35,6 +35,7 @@ import { sourceMetadataFixFor } from './source-metadata-fixes';
 import { classifyCareerStage } from './career-stage';
 import { evaluateJobQuality } from './quality-pipeline';
 import { normalizeActiveClosingDateStatus } from './closing-date';
+import { splitHoursAndAvailability } from './hours-availability';
 
 const CONCURRENCY = Number(process.env.PARSER_CONCURRENCY ?? 2);
 const ENABLE_DEEPSEEK_PARSER = process.env.ENABLE_DEEPSEEK_PARSER === 'true';
@@ -158,6 +159,10 @@ async function main() {
         const academicSupervisor = academicAllowed ? aiResult.academic_supervisor : '';
         const academicAppointmentType = academicAllowed ? aiResult.academic_appointment_type : '';
         const academicSchedule = academicAllowed ? (extractAcademicSchedule(raw.raw_text) || aiResult.academic_schedule || '') : '';
+        const parsedSchedule = splitHoursAndAvailability(
+          sourceMetadataFix?.hours ?? aiResult.hours,
+          aiResult.availability,
+        );
         const quality = evaluateJobQuality({
           source: raw.source,
           title: finalTitle,
@@ -167,13 +172,13 @@ async function main() {
           closingDate: aiResult.closing_date || pendingClosing.date,
           closingDateStatus: aiResult.closing_date ? 'known' : pendingClosing.status,
           department: sourceMetadataFix?.department ?? aiResult.department,
-          hours: sourceMetadataFix?.hours ?? aiResult.hours,
+          hours: parsedSchedule.hours,
           salary: sourceMetadataFix?.salaryRange ?? ((aiResult.salary_min || aiResult.salary_max)
             ? `${aiResult.salary_min ?? ''} - ${aiResult.salary_max ?? ''} (${aiResult.salary_period})`
             : ''),
           location,
           unionName: unionFields.union_name,
-          availability: aiResult.availability,
+          availability: parsedSchedule.availability,
           academicSchedule,
           academicWorkload,
           academicOfficeHours,
@@ -217,8 +222,8 @@ async function main() {
           work_model: normalizeWorkModel(aiResult.work_model, finalTitle),
           employment_type: sourceMetadataFix?.employmentType ?? normalizeEmploymentType(aiResult.employment_type),
           duration: sourceMetadataFix?.duration ?? normalizeDuration(aiResult.duration || extractWorkYearDuration(description) || ''),
-          hours: sourceMetadataFix?.hours ?? aiResult.hours,
-          availability: aiResult.availability,
+          hours: parsedSchedule.hours,
+          availability: parsedSchedule.availability,
           academic_role_type: academicRoleType,
           academic_course: academicCourse,
           academic_workload: academicWorkload,
