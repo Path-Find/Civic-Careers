@@ -415,8 +415,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           active_job_count: matchingRows.reduce((sum, row) => sum + Number(row.active_job_count ?? 0), 0),
           total_job_count: matchingRows.reduce((sum, row) => sum + Number(row.total_job_count ?? 0), 0),
           recent_job_count: matchingRows.reduce((sum, row) => sum + Number(row.recent_job_count ?? 0), 0),
-          latest_job_added_at: matchingRows.map(row => String(row.latest_job_added_at ?? '')).sort().at(-1) || null,
-          last_checked_at: matchingRows.map(row => String(row.last_checked_at ?? '')).sort().at(-1) || null,
+          latest_job_added_at: matchingRows.map(row => String(row.latest_job_added_at ?? '')).sort().slice(-1)[0] || null,
+          last_checked_at: matchingRows.map(row => String(row.last_checked_at ?? '')).sort().slice(-1)[0] || null,
         }];
       });
       const standaloneRows = result.rows
