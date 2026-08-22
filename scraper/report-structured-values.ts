@@ -5,7 +5,7 @@ import { QUICK_SCAN_TAGS } from '../shared/quick-scan-tags';
 dotenv.config({ quiet: true });
 
 const CONTROLLED_VALUES = {
-  salary_period: ['yearly', 'hourly', 'monthly', 'flat'],
+  salary_period: ['yearly', 'hourly', 'monthly', 'biweekly', 'weekly', 'flat'],
   work_model: ['On-site', 'Hybrid', 'Remote'],
   employment_type: ['Full-time', 'Part-time', 'Contract', 'Permanent', 'Occasional', 'Seasonal'],
   listing_type: ['regular', 'ongoing_recruitment', 'inventory'],

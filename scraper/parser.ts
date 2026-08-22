@@ -33,6 +33,7 @@ import { extractAcademicSchedule } from './academic-context';
 import { isAcademicJob } from './academic-context';
 import { sourceMetadataFixFor } from './source-metadata-fixes';
 import { classifyCareerStage } from './career-stage';
+import { formatSalaryDisplay } from './salary-format';
 import { evaluateJobQuality } from './quality-pipeline';
 import { normalizeActiveClosingDateStatus } from './closing-date';
 import { splitHoursAndAvailability } from './hours-availability';
@@ -173,9 +174,11 @@ async function main() {
           closingDateStatus: aiResult.closing_date ? 'known' : pendingClosing.status,
           department: sourceMetadataFix?.department ?? aiResult.department,
           hours: parsedSchedule.hours,
-          salary: sourceMetadataFix?.salaryRange ?? ((aiResult.salary_min || aiResult.salary_max)
-            ? `${aiResult.salary_min ?? ''} - ${aiResult.salary_max ?? ''} (${aiResult.salary_period})`
-            : ''),
+          salary: sourceMetadataFix?.salaryRange ?? formatSalaryDisplay(
+            aiResult.salary_min ?? null,
+            aiResult.salary_max ?? null,
+            normalizeSalaryPeriod(aiResult.salary_period),
+          ),
           location,
           unionName: unionFields.union_name,
           availability: parsedSchedule.availability,
@@ -208,9 +211,11 @@ async function main() {
           department: sourceMetadataFix?.department ?? aiResult.department,
           location,
           workplace_address: aiResult.workplace_address,
-          salary_range: sourceMetadataFix?.salaryRange ?? ((aiResult.salary_min || aiResult.salary_max)
-            ? `${aiResult.salary_min ?? ''} - ${aiResult.salary_max ?? ''} (${aiResult.salary_period})`
-            : ''),
+          salary_range: sourceMetadataFix?.salaryRange ?? formatSalaryDisplay(
+            aiResult.salary_min ?? null,
+            aiResult.salary_max ?? null,
+            normalizeSalaryPeriod(aiResult.salary_period),
+          ),
           description,
           closing_date: aiResult.closing_date || '',
           is_inventory: isInventory ? 1 : 0,

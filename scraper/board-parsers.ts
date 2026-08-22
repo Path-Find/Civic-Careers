@@ -8,6 +8,7 @@ import {
   normalizeUnionFields,
 } from './validate';
 import { PEOPLE_SOFT_SOURCES } from './title';
+import { parseSalaryText } from './salary-format';
 
 export interface ExtractedBoardMetadata {
   title?: string;
@@ -327,15 +328,20 @@ export function parseADP(rawText: string): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   // Salary Range
-  const salaryMatch = rawText.match(boundedField('Salary Range', ADP_FIELD_LABELS));
-  if (salaryMatch) {
-    const range = salaryMatch[1].trim();
-    metadata.salary = range;
-    const parsed = parseSalaryMinMax(range);
-    metadata.salaryMin = parsed.min;
-    metadata.salaryMax = parsed.max;
-    metadata.salaryPeriod = normalizeSalaryPeriod(range);
+  // ADP sometimes glues the first sentence of the posting directly onto the
+  // pay period (`HourlyThe Corporation...`), so a label-bounded capture cannot
+  // safely stop there. Extract the first explicit range and period instead.
+  const salaryLabel = rawText.match(/Salary\s+Range\s*:\s*([\s\S]{1,180})/i);
+  const parsedSalary = parseSalaryText(salaryLabel?.[1]);
+  if (parsedSalary) {
+    metadata.salary = parsedSalary.display;
+    metadata.salaryMin = parsedSalary.min;
+    metadata.salaryMax = parsedSalary.max;
+    metadata.salaryPeriod = parsedSalary.period;
   }
+
+  const hoursMatch = rawText.match(/\b(\d{1,3}(?:\.\d{1,2})?)\s+hours?\s*(?:per\s+week|\/\s*week)\b/i);
+  if (hoursMatch) metadata.hours = `${hoursMatch[1]} hours per week`;
 
   // Department
   const deptMatch = rawText.match(boundedField('Department\\s*(?:and\\s*Commission)?', ADP_FIELD_LABELS));

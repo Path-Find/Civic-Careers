@@ -38,7 +38,7 @@ import { classifyRawCapture } from './capture-quality';
 import { formatCapturedDescription } from './fallback-description';
 import { extractBoardSpecificMetadata } from './board-parsers';
 import { evaluateJobQuality } from './quality-pipeline';
-import { formatSalaryDisplay } from './salary-format';
+import { formatSalaryDisplay, parseSalaryText } from './salary-format';
 
 dotenv.config({ quiet: true });
 
@@ -128,7 +128,9 @@ function buildDetails(row: RawRow) {
   // amount ("$33.83"), truncating it to "$33" -- (?:[^.!]|\.(?=\d)) allows a
   // period through only when it's followed by a digit (a decimal point, not
   // a sentence end). Same fix applied to `hours` for the same reason.
-  const salary = row.raw_text.match(/(?:salary\s*(?:range)?|pay\s*rate?s?|hourly\s*rate|compensation)\s*[:\-]?\s*((?:[^.!]|\.(?=\d)){3,100}(?:\$|per\s+(?:hour|annum|year)|annual|hourly)(?:[^.!]|\.(?=\d)){0,40})/i)?.[1]?.trim() || '';
+  const salaryCapture = row.raw_text.match(/(?:salary\s*(?:range)?|pay\s*rate?s?|hourly\s*rate|compensation)\s*[:\-]?\s*([^\n]{3,180})/i)?.[1] || '';
+  const parsedSalary = parseSalaryText(salaryCapture);
+  const salary = parsedSalary?.display || '';
   const employmentType = row.raw_text.match(/\b(permanent\s+(?:full[- ]time|part[- ]time)|temporary\s+(?:full[- ]time|part[- ]time)|full[- ]time|part[- ]time|casual|contract)\b/i)?.[1] || '';
   const hours = row.raw_text.match(/(?:hours?\s+of\s+work|hours?\s+per\s+week|weekly\s+hours?\s+of\s+work|fte)\s*[:\-]?\s*((?:[^.;]|\.(?=\d)){3,100})/i)?.[1]?.trim() || '';
 
@@ -147,9 +149,9 @@ function buildDetails(row: RawRow) {
     duration: null as string | null,
     isUnionized: null as number | null,
     unionName: null as string | null,
-    salaryMin: null as number | null,
-    salaryMax: null as number | null,
-    salaryPeriod: null as string | null,
+    salaryMin: parsedSalary?.min ?? null,
+    salaryMax: parsedSalary?.max ?? null,
+    salaryPeriod: parsedSalary?.period ?? null,
     academicTerm: academicMeta.academicTerm,
     academicCourse: extractSourceAcademicCourse(row.source, sourceTitle) || academicMeta.academicCourse,
     academicTerm: extractSourceAcademicTerm(row.source, sourceTitle) || academicMeta.academicTerm,

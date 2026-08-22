@@ -197,7 +197,7 @@ describe('validateParsedJob', () => {
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'per hour' })?.salary_period, 'hourly');
     });
 
-    it('normalizes salary_period: monthly variants', () => {
+  it('normalizes salary_period: monthly variants', () => {
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'monthly' })?.salary_period, 'monthly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'Monthly' })?.salary_period, 'monthly');
       assert.equal(validateParsedJob({ ...BASE, salary_period: 'per month' })?.salary_period, 'monthly');
@@ -222,6 +222,11 @@ describe('validateParsedJob', () => {
       assert.equal(normalizeSalaryPeriod(''), 'yearly');
       assert.equal(normalizeSalaryPeriod('unknown'), 'yearly');
     });
+  });
+
+  it('normalizes weekly salary periods', () => {
+    assert.equal(normalizeSalaryPeriod('weekly'), 'weekly');
+    assert.equal(normalizeSalaryPeriod('bi-weekly'), 'biweekly');
   });
 
   describe('work_model normalization', () => {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatSalaryDisplay } from '../salary-format';
+import { formatSalaryDisplay, isCanonicalSalary, parseSalaryText } from '../salary-format';
 
 test('formats an hourly range', () => {
   assert.equal(formatSalaryDisplay(19, 24.5, 'hourly'), '$19 - $24.50 hourly');
@@ -25,4 +25,20 @@ test('returns empty string when no amounts are known', () => {
 
 test('omits the period suffix when period is null', () => {
   assert.equal(formatSalaryDisplay(19, 24.5, null), '$19 - $24.50');
+});
+
+test('extracts a clean range from glued source prose', () => {
+  assert.deepEqual(parseSalaryText('$25.60 To $32.00 HourlyThe Corporation of the Town of Midland invites applications'), {
+    min: 25.60,
+    max: 32,
+    period: 'hourly',
+    display: '$25.60 - $32 hourly',
+  });
+});
+
+test('only canonical dollar ranges pass the salary display filter', () => {
+  assert.equal(isCanonicalSalary('$25.60 - $32 hourly'), true);
+  assert.equal(isCanonicalSalary('$25.60 To $32.00 HourlyThe Corporation'), false);
+  assert.equal(isCanonicalSalary('25.60 - 32.00 (hourly)'), false);
+  assert.equal(isCanonicalSalary('$77,461 - $131,811 biweekly'), true);
 });

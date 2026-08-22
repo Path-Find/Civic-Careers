@@ -128,6 +128,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
     && details.type
     && details.duration
     && details.type.trim().toLowerCase() === details.duration.trim().toLowerCase()));
+  const visibleMetadata = metadata.filter(item => item.value);
   const requirementMetadata: DetailMetadata[] = [
     { label: 'Experience', value: details.experience },
     { label: 'Education', value: details.education },
@@ -162,7 +163,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
           <button className="detail-action save-button" onClick={event => onToggleSave(job, event)}><Bookmark size={14} fill={job.is_saved ? '#0f172a' : 'transparent'} />{job.is_saved ? 'Saved' : 'Save'}</button>
         </div>
         <CopyLinkButton label="Copy job link" />
-        <div className="detail-metadata">{metadata.filter(item => item.value).map(item => <div key={item.label}><div className="metadata-label">{item.label}</div><MetadataValue item={item} /></div>)}</div>
+        {visibleMetadata.length > 0 && <div className="detail-metadata">{visibleMetadata.map(item => <div key={item.label}><div className="metadata-label">{item.label}</div><MetadataValue item={item} /></div>)}</div>}
         <button className="detail-action report-button" onClick={() => setShowReportDialog(true)}>Report a problem</button>
       </div>
       <div className="detail-content">

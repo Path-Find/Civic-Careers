@@ -9,8 +9,9 @@ import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import { splitHoursAndAvailability } from './hours-availability';
+import { normalizeHours, splitHoursAndAvailability } from './hours-availability';
 import { getPublishBlockReason } from './publish-gate';
+import { extractBoardSpecificMetadata } from './board-parsers';
 
 dotenv.config({ quiet: true });
 
@@ -21,10 +22,11 @@ async function main() {
   const db = await initDb();
 
   const query = await db.execute(`
-    SELECT j.id, j.source, d.job_title, d.hours, d.availability, d.department,
+    SELECT j.id, j.source, r.raw_text, d.job_title, d.hours, d.availability, d.department,
            d.salary_range, d.location, d.union_name, d.academic_schedule,
            d.academic_workload, d.academic_office_hours
     FROM jobs j
+    JOIN raw_jobs r ON r.id = j.id
     JOIN job_details d ON d.id = j.id
     WHERE (d.hours IS NOT NULL AND trim(d.hours) != '')
        OR (d.availability IS NOT NULL AND trim(d.availability) != '')
@@ -58,7 +60,20 @@ async function main() {
     }
     const fromH = String(row.hours ?? '').trim();
     const fromA = String(row.availability ?? '').trim();
-    const { hours: toH, availability: toA } = splitHoursAndAvailability(fromH, fromA);
+    const rawText = String(row.raw_text ?? '');
+    const directHours = rawText.match(/\b(?:(?:up\s+to|maximum|max\.?)\s+)?\d{1,3}(?:\.\d{1,2})?\s+hours?\s*(?:per\s+week|\/\s*week|a\s+week)\b/i);
+    const labelledHours = rawText.match(/(?:scheduled\s+weekly\s+hours?|weekly\s+hours?|hours?\s+of\s+work)\s*:\s*(\d{1,3}(?:\.\d{1,2})?)/i);
+    const boardHours = extractBoardSpecificMetadata(String(row.source ?? ''), rawText).hours ?? '';
+    // Prefer a source sentence or a board value that normalizes to a real
+    // quantity. Some board parsers expose only a bare number (e.g. Workday's
+    // `Scheduled Weekly Hours:8`); never let that replace a valid existing
+    // canonical value with an empty string.
+    const recoveredHours = directHours
+      ? normalizeHours(directHours[0])
+      : labelledHours
+        ? `${labelledHours[1]} hours per week`
+        : normalizeHours(boardHours);
+    const { hours: toH, availability: toA } = splitHoursAndAvailability(recoveredHours || fromH, fromA);
     if (toH === fromH && toA === fromA) continue;
     changes.push({
       id: String(row.id),

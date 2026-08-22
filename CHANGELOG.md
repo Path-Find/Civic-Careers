@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Normalized salary ranges to clean dollar values with explicit pay periods and stopped empty job-detail metadata blocks from rendering.
+
 - Removed portal alert-setting text from job hours before publication and cleaned 486 current plus 37 archived records.
 
 - Added university-specific course-code and term normalization for Brock, TMU, uOttawa, U of T, and York, and repaired current academic fields without treating requisition IDs as courses.

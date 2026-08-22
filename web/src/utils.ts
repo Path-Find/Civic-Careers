@@ -241,12 +241,15 @@ export const renderMarkdown = (md: string | null): string => {
 
 export const formatSalary = (job: { salary_min: number | null; salary_max: number | null; salary_period: string | null; salary_range?: string | null }): string | null => {
   const { salary_min: min, salary_max: max, salary_period: period } = job;
-  if (!min && !max) return job.salary_range || null;
-  const fmt = (n: number) => period === 'hourly' ? `$${n}/hr` : period === 'flat' ? `$${Math.round(n).toLocaleString()}` : `$${Math.round(n / 1000)}K`;
-  const periodLabel = period === 'hourly' ? '' : period === 'monthly' ? ' / mo' : period === 'flat' ? ' flat' : ' / yr';
-  if (min !== null && max !== null && min === max) return `${fmt(min)}${periodLabel}`;
-  if (min && max) return `${fmt(min)} – ${fmt(max)}${periodLabel}`;
-  return `${fmt((min ?? max)!)}${periodLabel}`;
+  if (min === null && max === null) return null;
+  if (!period || !['hourly', 'monthly', 'biweekly', 'weekly', 'yearly', 'flat'].includes(period)) return null;
+  const fmt = (n: number) => n % 1 === 0
+    ? `$${n.toLocaleString()}`
+    : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  const range = min !== null && max !== null && min !== max
+    ? `${fmt(min)} - ${fmt(max)}`
+    : fmt((min ?? max) as number);
+  return `${range} ${period}`;
 };
 
 export const daysUntilClose = (dateStr: string | null): number | null => {

@@ -22,7 +22,7 @@ Careers and how it should be normalized.
 These fields behave like checkboxes or dropdowns. The values below are the
 complete current vocabulary:
 
-- `salary_period`: `yearly`, `hourly`, `monthly`, `flat`
+- `salary_period`: `yearly`, `hourly`, `monthly`, `biweekly`, `weekly`, `flat`
 - `work_model`: `On-site`, `Hybrid`, `Remote`
 - `employment_type`: `Full-time`, `Part-time`, `Contract`, `Permanent`,
   `Occasional`, `Seasonal`
@@ -76,7 +76,7 @@ not invent a taxonomy or turn a generic duty into a requirement:
 | `workplace_address` | Full source-stated street address or semicolon-separated addresses, or empty | Hidden map-only property; use only an explicit job worksite address, never a mailing/contact/application address, and do not expose it in the public job response |
 | `salary_min` | Number with no currency symbol or commas | Lower compensation bound |
 | `salary_max` | Number with no currency symbol or commas | Upper compensation bound |
-| `salary_period` | One of `hourly`, `yearly`, `monthly`, or `flat` | Choose an existing pay-interval value; never put the interval in the job body |
+| `salary_period` | One of `hourly`, `yearly`, `monthly`, `biweekly`, `weekly`, or `flat` | Choose an existing pay-interval value; never put the interval in the job body |
 | `salary_range` | Normalized human-readable fallback matching the numeric fields | Keep consistent with min/max/period; do not use it instead of the numeric fields |
 | `work_model` | One of `On-site`, `Hybrid`, or `Remote` | Choose an existing value; do not infer remote status from a location |
 | `employment_type` | One of `Full-time`, `Part-time`, `Contract`, `Permanent`, `Occasional`, or `Seasonal` | Choose an existing value; temporary/term/casual source wording maps to `Contract` |

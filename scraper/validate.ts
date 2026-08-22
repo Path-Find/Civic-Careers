@@ -180,10 +180,10 @@ export function normalizeUnionFields(unionName: unknown, isUnionized: unknown): 
 }
 
 /**
- * Canonical salary_period tokens: yearly | hourly | monthly | flat.
+ * Canonical salary_period tokens: yearly | hourly | monthly | biweekly | weekly | flat.
  * Unknown/empty defaults to yearly (existing product policy).
  */
-export type SalaryPeriod = 'yearly' | 'hourly' | 'monthly' | 'flat';
+export type SalaryPeriod = 'yearly' | 'hourly' | 'monthly' | 'biweekly' | 'weekly' | 'flat';
 
 export function normalizeSalaryPeriod(v: unknown): SalaryPeriod {
   const s = coerceString(v).toLowerCase().replace(/[\s_-]+/g, ' ').trim();
@@ -201,6 +201,8 @@ export function normalizeSalaryPeriod(v: unknown): SalaryPeriod {
   }
 
   if (/\bhour|\bhrs?\b|\/\s*hr|per\s*hour/.test(s) || s === 'hr' || s === 'hrs') return 'hourly';
+  if (/bi[ -]?weekly|every\s+two\s+weeks?/.test(s)) return 'biweekly';
+  if (/\bweek|\/\s*wk|per\s*week/.test(s)) return 'weekly';
   if (/\bmonth|\/\s*mo|per\s*month/.test(s)) return 'monthly';
   if (/\byear|annual|annum|\/\s*yr|per\s*year/.test(s)) return 'yearly';
 

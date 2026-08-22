@@ -35,7 +35,7 @@ export interface ParsedJob {
     workplace_address: string;
     salary_min: number | null;
     salary_max: number | null;
-    salary_period: 'yearly' | 'hourly' | 'monthly' | 'flat';
+    salary_period: 'yearly' | 'hourly' | 'monthly' | 'biweekly' | 'weekly' | 'flat';
     closing_date: string | null;
     work_model: 'Hybrid' | 'Remote' | 'On-site';
     employment_type: 'Full-time' | 'Part-time' | 'Contract' | 'Permanent' | 'Occasional' | 'Seasonal';
@@ -113,7 +113,7 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
       "workplace_address": "Full street address or addresses only when the source explicitly identifies the job's work location. Empty string when only a city/campus is provided, or when the address is only a mailing/contact/application address. Never infer an address.",
       "salary_min": number | null,
       "salary_max": number | null,
-      "salary_period": "yearly" | "hourly" | "monthly" | "flat" (flat = a single lump-sum payment for the whole assignment, not a recurring rate — use for per-course, per-assignment, stipend, honorarium, or one-time project fees. e.g. '$7,887.59 per half course' is flat, NOT yearly, even though it's the only pay mentioned),
+      "salary_period": "yearly" | "hourly" | "monthly" | "biweekly" | "weekly" | "flat" (flat = a single lump-sum payment for the whole assignment, not a recurring rate — use for per-course, per-assignment, stipend, honorarium, or one-time project fees. e.g. '$7,887.59 per half course' is flat, NOT yearly, even though it's the only pay mentioned),
       "work_model": "Hybrid" | "Remote" | "On-site",
       "employment_type": "Full-time" | "Part-time" | "Contract" | "Permanent" | "Occasional" (use Occasional for substitute, on-call, or occasional teaching roles),
       "duration": "Length of contract if applicable",
