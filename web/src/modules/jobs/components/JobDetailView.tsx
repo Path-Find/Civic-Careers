@@ -7,18 +7,16 @@ import { pendingDetailAction } from '../pendingDetailAction';
 import type { Job, JobDetails, View } from '../../../types/jobs';
 
 const REPORT_REASONS = [
-  'This is a student job',
-  'This is a talent pool',
-  'This is a recruitment program',
-  'Issue with application link',
-  'Issue with Job Description',
-  'Issue with job details (location, salary, work mode, employment type, term)',
-  'Issue with requirements',
-  'Issue with closing date',
-  'Duplicate job',
+  'Wrong title or parser output',
+  'Wrong field or job details',
+  'Wrong academic or student classification',
+  'Wrong deadline or availability',
+  'Wrong application link',
+  'Duplicate or should be hidden',
+  'Other',
 ] as const;
 
-function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
+function ReportDialog({ job, details, onClose }: { job: Job; details: JobDetails; onClose: () => void }) {
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
   const [note, setNote] = useState('');
   const [reportStatus, setReportStatus] = useState<'idle' | 'opened' | 'blocked'>('idle');
@@ -36,8 +34,17 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
       `Job title: ${job.job_title}`,
       `Source: ${job.source}`,
       `Civic Careers job ID: ${job.id}`,
+      `Public job page: ${window.location.href}`,
       `Apply URL: ${job.url}`,
       `Original posting URL: ${job.details_url ?? 'Not available'}`,
+      '',
+      'Current structured values:',
+      `- Location: ${job.location ?? 'empty'}`,
+      `- Salary: ${details.salary ?? 'empty'}`,
+      `- Closing date: ${job.closing_date ?? (job.closing_date_status === 'open_until_filled' ? 'Until filled' : 'empty')}`,
+      `- Student requirement: ${details.studentRequirement ?? 'empty'}`,
+      `- Academic role: ${details.academicRole ?? 'empty'}`,
+      `- Career stage: ${job.career_stage ?? 'empty'}`,
     ].filter(Boolean).join('\n');
     const reportUrl = `https://github.com/ryanphanna/Civic-Careers/issues/new?title=${encodeURIComponent(`Report job: ${job.source} — ${job.job_title}`)}&labels=data-quality,frontend,user-reported&body=${encodeURIComponent(body)}`;
     const reportWindow = window.open(reportUrl, '_blank', 'noopener,noreferrer');
@@ -50,7 +57,7 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
         <h2 id="report-dialog-title">Report a problem</h2>
         <button type="button" className="report-dialog-close" onClick={onClose} aria-label="Close report dialog">×</button>
       </div>
-      <p>Select all reasons that apply, or describe another problem below.</p>
+      <p>Select the quickest matching category. You can choose more than one, then add only the detail that needs fixing.</p>
       {reportStatus === 'opened' && <p className="report-dialog-status" role="status">GitHub opened in a new tab. Review the prefilled report and submit it there.</p>}
       {reportStatus === 'blocked' && <p className="report-dialog-status report-dialog-status-error" role="alert">GitHub could not open. Allow pop-ups for Civic Careers, then try again.</p>}
       <div className="report-reasons">
@@ -59,8 +66,8 @@ function ReportDialog({ job, onClose }: { job: Job; onClose: () => void }) {
           <span>{reason}</span>
         </label>)}
       </div>
-      <label className="report-note-label" htmlFor="report-note">Additional details (optional)</label>
-      <textarea id="report-note" className="report-note" value={note} onChange={event => setNote(event.target.value)} rows={4} />
+      <label className="report-note-label" htmlFor="report-note">What should be fixed? (optional)</label>
+      <textarea id="report-note" className="report-note" value={note} onChange={event => setNote(event.target.value)} placeholder="Example: the title contains the course term; move it to Academic term." rows={4} />
       <div className="report-dialog-actions">
         <button type="button" className="report-dialog-cancel" onClick={onClose}>Cancel</button>
         <button type="button" className="report-dialog-submit" onClick={submit} disabled={selectedReasons.length === 0 && !note.trim()}>Open GitHub report</button>
@@ -225,6 +232,6 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
         </div>
       </div>
     </div>
-    {showReportDialog && <ReportDialog job={job} onClose={() => setShowReportDialog(false)} />}
+    {showReportDialog && <ReportDialog job={job} details={details} onClose={() => setShowReportDialog(false)} />}
   </main>;
 }
