@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Archived six stale City of Hamilton records whose direct pages no longer contained postings, preventing outdated academic listings from appearing as current jobs.
+
 - Added shared prose detection for structured skills and tags, repaired duplicated education/qualification values, and fixed Workday department captures that glued an `FT` marker and Campus header into the department.
 
 - Reconciled Ottawa raw and parsed titles from preserved source captures so source-specific Professor and Student Professor titles remain consistent without re-scraping.
