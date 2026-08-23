@@ -661,7 +661,7 @@ export function extractSourceAcademicTermFromRaw(source: string | null | undefin
 export function isUsableJobTitle(title: string | null | undefined): boolean {
   const normalized = normalizeJobTitle(title);
   if (!normalized) return false;
-  return !/^(?:skip\s+to\b|search\s+jobs?\b|job\s+description|no\s+results?\b|frequently\s+asked\b|view\s+(?:the\s+)?job(?:\s+(?:details|posting))?\b|apply\s+now\b|click\s+here\b|read\s+more\b|see\s+details\b|job\s+details\b|workload\s*(?:n\s*)?\(in\s+days\)\s+to\s+receive\s+an\s+alert\b)/i.test(normalized);
+  return !/^(?:skip\s+to\b|search\s+jobs?\b|job\s+description|no\s+results?\b|frequently\s+asked\b|view\s+(?:the\s+)?job(?:\s+(?:details|posting))?\b|apply\s+now\b|click\s+here\b|read\s+more\b|see\s+details\b|job\s+details\b|workload\s*(?:n\s*)?\(in\s+days\)\s+to\s+receive\s+an\s+alert\b|an\s+academic\s+strike\s+is\s+in\s+effect\b)/i.test(normalized);
 }
 
 /**

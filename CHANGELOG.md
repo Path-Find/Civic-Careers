@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Repaired a Sheridan posting whose title had been replaced by an academic-strike banner, and added that banner to the shared public-title safety filter.
+
 - Removed Government of Canada `Bilingual` title markers from 15 current public titles so language requirements remain structured instead of being repeated in the role name.
 
 - Normalized the TDSB eligible-to-hire posting title to `Occasional Teacher` while keeping the recruitment/eligibility context in the source data.

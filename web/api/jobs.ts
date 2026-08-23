@@ -43,6 +43,7 @@ function badTitlePrefixCheck(column: string): string {
   const bad = [
     'skip to', 'view job details', 'view the job posting', 'apply now',
     'click here', 'read more', 'search jobs', 'job description', 'no results',
+    'an academic strike is in effect',
   ];
   return bad.map(prefix => `LOWER(TRIM(${column})) LIKE '${prefix}%'`).join('\n  OR ');
 }

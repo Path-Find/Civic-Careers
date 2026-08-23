@@ -321,6 +321,7 @@ describe('isUsableJobTitle', () => {
     assert.equal(isUsableJobTitle('Skip to Main Content'), false);
     assert.equal(isUsableJobTitle('Skip To Job Description'), false);
     assert.equal(isUsableJobTitle('Workload n (in days) to receive an alert:'), false);
+    assert.equal(isUsableJobTitle('An academic strike is in effect at all Ontario Colleges, including Sheridan.'), false);
     assert.equal(isUsableJobTitle('Associate Director, Finance and Administration'), true);
   });
 });
