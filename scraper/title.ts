@@ -417,6 +417,9 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     // The federal jobs portal appends its internal requisition number as
     // `(#12345)`. It is source metadata, not part of the public title.
     normalized = normalized.replace(/\s*\(\s*#\d{3,}\s*\)\s*$/i, '').trim();
+    // Classification groups and levels (PM-01, EC-04, AS-03, etc.) are also
+    // source metadata. Keep the role name as the public title.
+    normalized = normalized.replace(/^[A-Z]{2,5}-\d{2}\s+/i, '').trim();
   }
 
   if (source === 'Metrolinx') {

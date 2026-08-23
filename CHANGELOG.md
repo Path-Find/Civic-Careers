@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Stripped Government of Canada classification prefixes such as `PM-01` from public job titles while preserving the source classification in the posting details.
+
 - Removed annual recruitment-year metadata from public titles while retaining the recruitment classification, and repaired current uOttawa ATPUO pending titles into role titles with course and term metadata.
 
 - Reconciled current and archived publication statuses against the shared quality gate; 158 current and 431 archived rows were hidden or corrected without deleting their raw captures.

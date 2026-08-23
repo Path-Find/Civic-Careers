@@ -162,6 +162,7 @@ describe('normalizeJobTitle', () => {
       normalizeSourceJobTitle('Government of Canada', 'Manufacturing Execution System (MES) Software Specialist (#25689)'),
       'Manufacturing Execution System (MES) Software Specialist',
     );
+    assert.equal(normalizeSourceJobTitle('Government of Canada', 'PM-01 Client Support Centre Agent'), 'Client Support Centre Agent');
     assert.equal(
       normalizeSourceJobTitle('University of Ottawa', 'APTPUO---Winter-2027---API5135D_JR37962---Ethics and Moral Reasoning'),
       'Ethics and Moral Reasoning',
