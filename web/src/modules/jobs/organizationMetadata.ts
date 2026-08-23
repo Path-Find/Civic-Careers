@@ -38,6 +38,11 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
   },
 ];
 
+/** Convert an internal source identity into the employer label shown to users. */
+export function publicOrganizationName(name: string): string {
+  return name.replace(/\s*\(Jobs2Web\)\s*$/i, '').trim();
+}
+
 export function organizationGroupForSlug(slug: string): OrganizationGroup | null {
   return ORGANIZATION_GROUPS.find(group => group.slug === slug) ?? null;
 }

@@ -5,6 +5,7 @@ import type { ListingTypeFilter } from '../../../types/jobs';
 import type { CompanySummary, Job } from '../../../types/jobs';
 import { EDUCATION_LEVELS, educationFieldOptions, type EducationLevel } from '../educationFilters';
 import { CAREER_STAGES, type CareerStage } from '../careerStage';
+import { publicOrganizationName } from '../organizationMetadata';
 
 function FilterSection({ title, children }: { title: string; children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -77,7 +78,7 @@ export function JobFiltersSidebar({
   const [activeSearch, setActiveSearch] = useState<'location' | 'company' | 'education' | null>(null);
   const selectedLocations = useMemo(() => locationTerm.split(/[,;]+/).map(value => value.trim()).filter(Boolean), [locationTerm]);
   const companySuggestions = useMemo(() => companyOptions
-    .map(company => company.name)
+    .map(company => publicOrganizationName(company.name))
     .filter(name => !selectedCompanyNames.includes(name))
     .filter(name => name.toLowerCase().includes(companyQuery.trim().toLowerCase()))
     .slice(0, 8), [companyOptions, companyQuery, selectedCompanyNames]);

@@ -1,6 +1,7 @@
 import type { MouseEvent } from 'react';
 import type { CompanySummary } from '../../../types/jobs';
 import { slugify } from '../../../utils';
+import { publicOrganizationName } from '../organizationMetadata';
 
 const COMPANY_DISPLAY_NAMES: Record<string, string> = {
   CMHC: 'Canada Mortgage and Housing Corporation',
@@ -9,7 +10,7 @@ const COMPANY_DISPLAY_NAMES: Record<string, string> = {
 };
 
 function companyDisplayName(name: string): string {
-  return COMPANY_DISPLAY_NAMES[name] ?? name;
+  return COMPANY_DISPLAY_NAMES[name] ?? publicOrganizationName(name);
 }
 
 export function CompanyDirectory({ companies, sort, showArchived, onSelectCompany }: {
