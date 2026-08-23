@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Long Responsibilities sections now reliably trigger the existing Details pending state, including jobs whose description was already loaded in the results view.
+
 - Audited departments database-wide, cleared a current Milton salary capture from the department field, and added Workday/publication checks for future source-label contamination.
 
 - Corrected Northumberland County’s `registered nurse rn` titles to `Registered Nurse (RN)` and removed the stray URL-derived `2` suffix.

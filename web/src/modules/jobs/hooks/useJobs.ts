@@ -237,7 +237,6 @@ export function useJobs() {
   }, []);
 
   const loadDescription = useCallback(async (job: Job) => {
-    if (job.description) return;
     try {
       const response = await fetch(`${API}/api/jobs?id=${job.id}`);
       const data = await response.json();
