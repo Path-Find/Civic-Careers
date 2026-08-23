@@ -476,6 +476,20 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     }
   }
 
+  if (source === 'University of Northern British Columbia') {
+    // UNBC prefixes titles with internal faculty-area posting IDs such as
+    // `FAPT21-26`, `FANU03-26`, and `FACRC01-26`. FAPT postings are all
+    // course instructors; the course name belongs in academic_course, not in
+    // the public title.
+    const unbcTitle = normalized.replace(/^FA[A-Z]*\s*\d{1,3}-\d{2}\s*[-–—:]?\s*/i, '').trim();
+    if (/^(?:FAPT\s*\d{1,3}-\d{2}\s+)?Part-Time Instructor\b/i.test(String(title ?? ''))
+      || /^FAPT\s*\d{1,3}-\d{2}\b/i.test(String(title ?? ''))) {
+      normalized = 'Part-Time Instructor';
+    } else {
+      normalized = unbcTitle;
+    }
+  }
+
   if (source === 'York University') {
     const courseCode = extractAcademicCourseCode(title, source);
     if (courseCode) normalized = normalized.replace(courseCode, '').trim();
@@ -516,6 +530,17 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
 export function extractSourceAcademicCourse(source: string | null | undefined, title: string | null | undefined): string {
   const value = String(title ?? '').replace(/\s+/g, ' ').trim();
   if (!value || !/university|college|polytechnic|institut/i.test(String(source ?? ''))) return '';
+  if (source === 'University of Northern British Columbia') {
+    const courseTitle = value
+      .replace(/^FA[A-Z]*\s*\d{1,3}-\d{2}\s*[-–—:]?\s*/i, '')
+      .replace(/^Part-Time Instructor\s*[-–—:]?\s*/i, '')
+      .trim();
+    if (!courseTitle) return '';
+    const code = courseTitle.match(/^(?:[A-Z]{2,6}\s?\d{3}(?:-\d)?(?:\s*\/\s*[A-Z]{2,6}\s?\d{3}(?:-\d)?)?|[A-Z][A-Za-z]+(?:\s+[A-Za-z]+){0,5}\s+\d{3}-\d)\b/)?.[0]?.trim() ?? '';
+    if (!code) return courseTitle;
+    const remainder = courseTitle.slice(code.length).replace(/^\s*[-–—:]+\s*/, '').trim();
+    return remainder ? `${code} — ${remainder}` : code;
+  }
   const coursePattern = SOURCE_COURSE_CODE_PATTERNS[source]
     ?? /\b[A-Z]{2,8}\s?\d[A-Z0-9]{2,7}(?:\s*\/\s*(?:[A-Z]{2,8}\s?)?\d[A-Z0-9]{2,7})?(?:\s*\([^)]{1,24}\))?/gi;
   const codeMatch = [...value.matchAll(new RegExp(coursePattern.source, 'gi'))]

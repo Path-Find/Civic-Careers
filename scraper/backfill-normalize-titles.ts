@@ -5,6 +5,7 @@
  *   npx tsx backfill-normalize-titles.ts           # dry-run
  *   npx tsx backfill-normalize-titles.ts --apply   # write
  *   npx tsx backfill-normalize-titles.ts --active-only
+ *   npx tsx backfill-normalize-titles.ts --source="University of Northern British Columbia"
  */
 import { initDb } from './db';
 import dotenv from 'dotenv';
@@ -15,6 +16,7 @@ dotenv.config({ quiet: true });
 const APPLY = process.argv.includes('--apply');
 const ACTIVE_ONLY = process.argv.includes('--active-only');
 const CURRENT_ONLY = process.argv.includes('--current-only');
+const SOURCE_FILTER = process.argv.find(argument => argument.startsWith('--source='))?.slice('--source='.length) ?? '';
 
 type QueryRow = Record<string, unknown>;
 type Statement = string | { sql: string; args?: unknown[] };
@@ -33,9 +35,10 @@ const QUERY = `
   FROM jobs j
   LEFT JOIN raw_jobs r ON r.id = j.id
   LEFT JOIN job_details d ON d.id = j.id
-  WHERE (r.title IS NOT NULL AND trim(r.title) != '')
-     OR (d.job_title IS NOT NULL AND trim(d.job_title) != '')
+  WHERE ((r.title IS NOT NULL AND trim(r.title) != '')
+     OR (d.job_title IS NOT NULL AND trim(d.job_title) != ''))
      ${ACTIVE_ONLY ? 'AND j.is_active = 1' : ''}
+     ${SOURCE_FILTER ? `AND j.source = '${SOURCE_FILTER.replace(/'/g, "''")}'` : ''}
   ORDER BY j.source, j.id
 `;
 

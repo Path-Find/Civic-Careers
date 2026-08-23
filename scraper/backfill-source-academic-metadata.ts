@@ -21,6 +21,14 @@ const STORED_COURSE_PATTERNS: Record<string, RegExp> = {
   'University of Ottawa': /^(?!JR|REQ)[A-Z]{2,6}\s?(?!20\d{2}\b)\d{3,5}[A-Z]?(?:\d{2})?(?:\s—\s.*)?$/i,
   'University of Toronto': /^(?!LEC\d{3,4}\b)[A-Z]{3,5}\d{3,4}[A-Z0-9]{0,3}(?:\s—\s.*)?$/i,
   'York University': /^[A-Z]{2,5}\s\d{3,4}(?:\s*\/\s*(?:[A-Z]{2,5}\s?)?\d{3,4})?(?:\s—\s.*)?$/i,
+  'University of Northern British Columbia': /^(?:[A-Z]{2,6}\s?\d{3}(?:-\d)?(?:\s*\/\s*[A-Z]{2,6}\s?\d{3}(?:-\d)?)?|[A-Z][A-Za-z]+(?:\s+[A-Za-z]+){0,5}\s+\d{3}-\d)(?:\s—\s.*)?$/i,
+};
+
+const UNBC_COURSE_OVERRIDES: Record<string, string> = {
+  // The source title contained only the course name and was lost from the
+  // preserved title capture during the first cleanup pass.
+  'J0825-0285': 'Early Modern Literature in English',
+  'J0726-0383': 'First Nations Studies 390-3 — Seminar in First Nations Studies',
 };
 
 function isStoredCourseValid(source: string, course: string): boolean {
@@ -101,7 +109,14 @@ async function main() {
       // Reconcile old poisoned values as well as filling blanks. A known
       // source-specific format is the safety boundary for clearing a value;
       // unknown academic sources retain their existing field untouched.
-      const repairedCourse = course || (isStoredCourseValid(source, storedCourse) ? storedCourse : '');
+      let repairedCourse = course || (isStoredCourseValid(source, storedCourse) ? storedCourse : '');
+      if (source === 'University of Northern British Columbia') {
+        repairedCourse = UNBC_COURSE_OVERRIDES[String(row.id)]
+          || (/^Part-Time Instructor$/i.test(title) ? repairedCourse : '');
+        repairedCourse = repairedCourse
+          .replace(/^Studies\s+390\s+—\s+3:\s*/i, 'First Nations Studies 390-3 — ')
+          .replace(/^CPSC\s+100\s+—\s+&\s+CPSC\s+321$/i, 'CPSC 100 & CPSC 321');
+      }
       if (repairedCourse !== storedCourse) {
         courseChanges += 1;
         writes.push({ sql: 'UPDATE job_details SET academic_course = ? WHERE id = ?', args: [repairedCourse || null, String(row.id)] });

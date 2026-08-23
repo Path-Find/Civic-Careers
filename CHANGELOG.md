@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added UNBC-specific title cleanup that removes internal posting IDs and keeps course names out of public job titles.
+
 - Made Area of study a separate filter section instead of nesting it under Education.
 
 - Location autocomplete now excludes malformed and non-canonical values, showing only city/province-formatted locations.
