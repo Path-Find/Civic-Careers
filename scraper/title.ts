@@ -545,6 +545,20 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
   return normalized || normalizeJobTitle(title);
 }
 
+/** Recover the actual roles when a source uses a generic campaign title. */
+export function normalizeSourceJobTitleFromRaw(
+  source: string | null | undefined,
+  title: string | null | undefined,
+  rawText: string | null | undefined,
+): string {
+  const normalized = normalizeSourceJobTitle(source, title);
+  if (source === 'City of Burlington'
+    && /Adult Recreation Services Unit is currently accepting applications[\s\S]{0,300}Program Leader\/Instructor,?\s*RCC[\s\S]{0,100}Specialized Program Instructor,?\s*RCC/i.test(String(rawText ?? ''))) {
+    return 'Program Leader/Instructor and Specialized Program Instructor';
+  }
+  return normalized;
+}
+
 /** Recover a source-labelled course code/section for the academic_course field. */
 export function extractSourceAcademicCourse(source: string | null | undefined, title: string | null | undefined): string {
   const value = String(title ?? '').replace(/\s+/g, ' ').trim();

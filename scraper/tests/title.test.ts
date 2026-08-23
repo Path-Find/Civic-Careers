@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractAndStripAcademicMetadata, extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from '../title';
+import { extractAndStripAcademicMetadata, extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle, normalizeSourceJobTitleFromRaw } from '../title';
 
 describe('isEmploymentOrDurationParen', () => {
   it('matches employment and duration parentheticals', () => {
@@ -165,6 +165,14 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'PM-01 Client Support Centre Agent'), 'Client Support Centre Agent');
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'Team Leader - IT Business Line Advisory Services - Bilingual'), 'Team Leader - IT Business Line Advisory Services');
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'Bilingual Senior Specialist, Security Applications'), 'Senior Specialist, Security Applications');
+    assert.equal(
+      normalizeSourceJobTitleFromRaw(
+        'City of Burlington',
+        'Program Staff for Adult 19+ and 55+ Programs',
+        'The Adult Recreation Services Unit is currently accepting applications for the following positions: Program Leader/Instructor, RCC Specialized Program Instructor, RCC',
+      ),
+      'Program Leader/Instructor and Specialized Program Instructor',
+    );
     assert.equal(
       normalizeSourceJobTitle('Toronto District School Board', 'TDSB Teaching - Elementary/Secondary - Occasional Teaching/Eligible to Hire'),
       'Occasional Teacher',

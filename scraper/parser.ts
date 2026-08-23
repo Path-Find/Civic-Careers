@@ -4,7 +4,7 @@ import { githubRunUrl, notifyDiscord } from './utils';
 import { classifyRawCapture } from './capture-quality';
 import { normalizeDuration } from './duration';
 import { extractLabeledLocation, normalizeLocation, normalizeSourceLocation } from './location';
-import { extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from './title';
+import { extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle, normalizeSourceJobTitleFromRaw } from './title';
 import { normalizeEmploymentType, normalizeSalaryPeriod, normalizeUnionFields, normalizeWorkModel } from './validate';
 import {
   dedupeSkillsAgainstSoftware,
@@ -95,7 +95,7 @@ async function main() {
         const sourceTitle = isUsableJobTitle(raw.title)
           ? normalizeSourceJobTitle(raw.source, raw.title)
           : normalizeSourceJobTitle(raw.source, extractRawJobTitle(raw.source, raw.raw_text) || extractUrlJobTitle(raw.application_url ?? raw.url, raw.raw_text));
-        const finalTitle = isUsableJobTitle(aiTitle) ? aiTitle : sourceTitle;
+        const finalTitle = normalizeSourceJobTitleFromRaw(raw.source, isUsableJobTitle(aiTitle) ? aiTitle : sourceTitle, raw.raw_text);
         const sourceFix = GOVERNMENT_OF_CANADA_FIXES[raw.id];
         const sourceMetadataFix = sourceMetadataFixFor(raw.id, raw.raw_text);
         let description = sourceMetadataFix?.description || sourceFix?.description || cleanJobDescription(aiResult.clean_description, aiResult.job_title, raw.source);

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Replaced Burlington’s generic adult-program posting title with the two actual roles named in the posting, and added a source-specific rule to keep future copies accurate.
+
 - Normalized the public employer label for Jobs2Web-backed Ottawa postings so users see `City of Ottawa`, while the internal source identity remains available for routing and provenance.
 
 - Repaired a Sheridan posting whose title had been replaced by an academic-strike banner, and added that banner to the shared public-title safety filter.
