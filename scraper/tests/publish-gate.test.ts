@@ -56,6 +56,14 @@ test('does not flag a legitimate colon in an academic department name', () => {
     getPublishBlockReason({ title: 'Research Assistant', department: "Master's in Development Practice: Indigenous Development" }),
     null,
   );
+  assert.equal(getPublishBlockReason({ title: 'Accommodation Consultant', department: 'AccessAbility Services' }), null);
+});
+
+test('allows a legitimate multi-course academic appointment', () => {
+  assert.equal(getPublishBlockReason({
+    title: 'Counselling Psychology Instructor',
+    academicCourse: 'CNPS 3310 Theories of Counselling, CNPS 3320 Career Counselling and Career Education, CNPS 3330 Cultural Considerations in Counselling, CNPS 4300 Counselling Relationships and Basic Skills, CNPS 4310 The Reflective Practitioner, CNPS 4330 Group Facilitation',
+  }), null);
 });
 
 test('rejects a title that swallowed the rest of the posting (City of Hamilton case)', () => {

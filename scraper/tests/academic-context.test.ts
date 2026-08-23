@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractAcademicSchedule, isAcademicJob, isLikelyAcademicCourse } from '../academic-context';
+import { extractAcademicSchedule, isAcademicJob, isLikelyAcademicCourse, normalizeAcademicOfficeHours } from '../academic-context';
 
 test('extractAcademicSchedule stops at French uOttawa labels', () => {
   const raw = 'Course Schedule: - - - 10 et 17 septembre 2026Requirements:Diplome universitaire en physiotherapieHeures total: 6Horaire:10 et 17 septembre 2026 14h30-17h30Additional Information and/or Comments:Boilerplate';
@@ -9,6 +9,13 @@ test('extractAcademicSchedule stops at French uOttawa labels', () => {
 
 test('extractAcademicSchedule rejects swallowed posting text over the field limit', () => {
   assert.equal(extractAcademicSchedule(`Course Schedule: ${'a'.repeat(121)}`), '');
+});
+
+test('cuts a glued posting label from office hours', () => {
+  assert.equal(
+    normalizeAcademicOfficeHours('office hours to assist students outside of class timePosting limited to:Professeur à temps-partiel régulier'),
+    'office hours to assist students outside of class time',
+  );
 });
 
 test('does not classify university support jobs as academic roles', () => {

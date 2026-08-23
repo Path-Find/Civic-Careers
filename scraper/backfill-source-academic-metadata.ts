@@ -53,7 +53,7 @@ async function main() {
   const query = `
     SELECT j.id, j.source, r.title AS raw_title, r.raw_text, d.job_title AS detail_title,
            d.academic_course, d.academic_term
-           ,d.department
+           ,d.department, d.academic_office_hours
     FROM jobs j
     LEFT JOIN raw_jobs r ON r.id = j.id
     LEFT JOIN job_details d ON d.id = j.id
@@ -70,6 +70,7 @@ async function main() {
     let courseChanges = 0;
     let termChanges = 0;
     let departmentChanges = 0;
+    let officeHoursChanges = 0;
     const writes: Array<{ sql: string; args: unknown[] }> = [];
 
     for (const row of result.rows) {
@@ -82,6 +83,7 @@ async function main() {
       const rawText = String(row.raw_text ?? '');
       const storedCourse = String(row.academic_course ?? '').trim();
       const storedDepartment = String(row.department ?? '').trim();
+      const storedOfficeHours = String(row.academic_office_hours ?? '').trim();
       let title = normalizeSourceJobTitle(source, sourceTitle);
       // Never use the record ID as academic evidence. PeopleSoft, Workday,
       // and hashed source IDs resemble course codes closely enough to poison
@@ -135,9 +137,17 @@ async function main() {
           writes.push({ sql: 'UPDATE job_details SET department = ? WHERE id = ?', args: [repairedDepartment || null, String(row.id)] });
         }
       }
+      const repairedOfficeHours = storedOfficeHours
+        .replace(/Posting\s+limited\s+to\s*:.*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (repairedOfficeHours !== storedOfficeHours) {
+        officeHoursChanges += 1;
+        writes.push({ sql: 'UPDATE job_details SET academic_office_hours = ? WHERE id = ?', args: [repairedOfficeHours || null, String(row.id)] });
+      }
     }
 
-    console.log(`[Source academic metadata:${store.label}] ${APPLY ? 'Applying' : 'Dry run'}: ${titleChanges} title change(s), ${courseChanges} course field(s), ${termChanges} term field(s), ${departmentChanges} department field(s).`);
+    console.log(`[Source academic metadata:${store.label}] ${APPLY ? 'Applying' : 'Dry run'}: ${titleChanges} title change(s), ${courseChanges} course field(s), ${termChanges} term field(s), ${departmentChanges} department field(s), ${officeHoursChanges} office-hours field(s).`);
     if (APPLY && writes.length > 0) await store.batch(writes);
   }
 }

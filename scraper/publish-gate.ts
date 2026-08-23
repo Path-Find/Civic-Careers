@@ -71,7 +71,10 @@ const SCALAR_FIELD_LENGTH_CEILING: Record<string, number> = {
   unionName: 150,
   availability: 120,
   duration: 120,
-  academicCourse: 240,
+  // Some university postings legitimately list several courses in one
+  // appointment. Keep the gate high enough for that list while still
+  // catching whole-page captures.
+  academicCourse: 500,
   academicSchedule: 120,
   academicTerm: 120,
   academicWorkload: 120,
@@ -97,7 +100,12 @@ function corruptedScalarField(details: PublishGateDetails): string | null {
     const value = (details as unknown as Record<string, unknown>)[field];
     if (typeof value !== 'string' || !value) continue;
     if (value.length > ceiling) return field;
-    if (hasSquishedSentenceJoin(value)) return field;
+    // Department names commonly contain deliberate PascalCase names such as
+    // AccessAbility; unlike prose fields, that is not evidence of a glued
+    // capture. The length ceiling still catches a department that swallowed
+    // the rest of the posting.
+    if (field !== 'department' && hasSquishedSentenceJoin(value)) return field;
+    if (field === 'department' && /(?:^|,)[A-Z][a-z]{2,},[A-Z][a-z]{2,}[A-Z][a-z]{5,}/.test(value)) return field;
     if (FIELDS_REJECT_COLON.has(field) && value.includes(':')) return field;
     if (field === 'availability' && /\bratification\b|\bdocument(?:s)?\b/i.test(value)) return field;
     if (field === 'salary' && !isCanonicalSalary(value)) return field;

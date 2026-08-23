@@ -29,7 +29,7 @@ import { cleanJobDescription, removePlaceholderSections, stripStructuredBenefitR
 import { GOVERNMENT_OF_CANADA_FIXES } from './source-fixes';
 import { BENEFIT_OVERRIDES } from './benefit-fixes';
 import { extractStartDate } from './start-date';
-import { extractAcademicSchedule } from './academic-context';
+import { extractAcademicSchedule, normalizeAcademicOfficeHours } from './academic-context';
 import { isAcademicJob } from './academic-context';
 import { sourceMetadataFixFor } from './source-metadata-fixes';
 import { classifyCareerStage } from './career-stage';
@@ -156,7 +156,7 @@ async function main() {
           ? (aiResult.academic_course || extractSourceAcademicCourseFromRaw(raw.source, raw.raw_text) || extractSourceAcademicCourse(raw.source, raw.title ?? aiResult.job_title))
           : '';
         const academicWorkload = academicAllowed ? aiResult.academic_workload : '';
-        const academicOfficeHours = academicAllowed ? aiResult.academic_office_hours : '';
+        const academicOfficeHours = academicAllowed ? normalizeAcademicOfficeHours(aiResult.academic_office_hours) : '';
         const academicSupervisor = academicAllowed ? aiResult.academic_supervisor : '';
         const academicAppointmentType = academicAllowed ? aiResult.academic_appointment_type : '';
         const academicSchedule = academicAllowed ? (extractAcademicSchedule(raw.raw_text) || aiResult.academic_schedule || '') : '';

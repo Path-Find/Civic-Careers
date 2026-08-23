@@ -94,6 +94,9 @@ export function normalizeAcademicOfficeHours(value: unknown): string {
   if (!normalized) return '';
   if (/^(?:office|consultation|student[- ]contact|lab) hours?$/i.test(normalized)) return '';
   normalized = normalizeUnits(normalized)
+    // Workday captures can glue the next labelled field directly onto the
+    // office-hours sentence (for example, "...class timePosting limited to:").
+    .replace(/Posting\s+limited\s+to\s*:.*/i, '')
     .replace(/\s+/g, ' ')
     .trim();
   return normalized;

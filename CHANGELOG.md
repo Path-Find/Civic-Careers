@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed three structured-field quality failures: legitimate PascalCase departments and multi-course academic appointments no longer get blocked, and glued Ottawa office-hours captures are cleaned before publication.
+
 - Added a Chatham-Kent source-specific location repair for glued multi-arena addresses, storing the region as `Chatham-Kent, ON`.
 
 - Selected Location, Employer, and Area of study filters now appear below their search inputs.
