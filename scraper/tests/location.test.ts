@@ -97,6 +97,17 @@ test('repairs glued Chatham-Kent arena locations by source signal', () => {
   assert.equal(normalizeSourceLocation('Other source', 'Location: Various municipal arenas'), '');
 });
 
+test('uses Shared Health city instead of facility name for location', () => {
+  assert.equal(
+    normalizeSourceLocation('Shared Health Manitoba', 'City: Winnipeg Site: St. Boniface Hospital Department / Unit: Intensive Care'),
+    'Winnipeg, MB',
+  );
+  assert.equal(
+    normalizeSourceLocation('Shared Health Manitoba', 'Work Location: Boundary Trails Health Centre City: Winkler Hiring Status: Temporary'),
+    'Winkler, MB',
+  );
+});
+
 test('dedupes repeated cities', () => {
   assert.equal(normalizeLocation('Toronto; Toronto, ON'), 'Toronto, ON');
 });

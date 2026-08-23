@@ -568,6 +568,14 @@ export function normalizeSourceLocation(source: string | null | undefined, rawTe
   if (source === 'Municipality of Chatham-Kent' && /Location:\s*Various municipal arenas/i.test(String(rawText ?? ''))) {
     return 'Chatham-Kent, ON';
   }
+  if (source === 'Shared Health Manitoba') {
+    // Shared Health labels the facility as "Site" but separately provides the
+    // actual city. Store the city in the canonical location field; the site
+    // remains available in the source text/department context.
+    const text = String(rawText ?? '').replace(/\s+/g, ' ');
+    const city = text.match(/\bCity\s*:\s*(.+?)(?=\s+(?:Site|Employer|Department(?:\s*\/\s*Unit)?|Job\s+Stream|Union|Anticipated\s+Start\s+Date|FTE|Hiring\s+Status|Employment\s+arrangement|Work\s+Location|Position)\s*:?|$)/i)?.[1]?.replace(/[\u200B\u00A0]/g, ' ').trim() ?? '';
+    return normalizeLocation(city) || normalizeLocation(`${city}, MB`);
+  }
   return '';
 }
 

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Audited Shared Health Manitoba’s 538 jobs, repaired 475 facility-based locations to their source-listed cities, and corrected two malformed role titles.
+
 - Removed leading FTE workload metadata from the Shared Health `Class 5 Maintenance Lead` title and added a shared rule for future titles.
 
 - Repaired five Algonquin Hours values that had swallowed `Anticipated Start Date`, and added a Workday boundary plus quality check for future captures.

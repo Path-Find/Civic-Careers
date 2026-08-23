@@ -447,6 +447,13 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     normalized = 'Registered Nurse (RN)';
   }
 
+  if (source === 'Shared Health Manitoba') {
+    // This source has emitted duplicate classification digits and, for one
+    // facility, an FTE/shift/site suffix in the display heading.
+    normalized = normalized.replace(/^Cook\s+1\s+1$/i, 'Cook I');
+    normalized = normalized.replace(/^Licensed Practical Nurse\s+0\.\d+\s+[A-Z/]+\s+[A-Za-z]+(?:\s+\d+){3}$/i, 'Licensed Practical Nurse');
+  }
+
   if (source === 'Metrolinx') {
     // Metrolinx appends location, shift pattern, pay annotation, and pool
     // status to the same heading. Those belong in structured fields, not the
