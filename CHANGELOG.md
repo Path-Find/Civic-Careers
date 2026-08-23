@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Removed Government of Canada `Bilingual` title markers from 15 current public titles so language requirements remain structured instead of being repeated in the role name.
+
 - Normalized the TDSB eligible-to-hire posting title to `Occasional Teacher` while keeping the recruitment/eligibility context in the source data.
 
 - Stripped Government of Canada classification prefixes such as `PM-01` from public job titles while preserving the source classification in the posting details.

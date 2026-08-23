@@ -163,6 +163,8 @@ describe('normalizeJobTitle', () => {
       'Manufacturing Execution System (MES) Software Specialist',
     );
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'PM-01 Client Support Centre Agent'), 'Client Support Centre Agent');
+    assert.equal(normalizeSourceJobTitle('Government of Canada', 'Team Leader - IT Business Line Advisory Services - Bilingual'), 'Team Leader - IT Business Line Advisory Services');
+    assert.equal(normalizeSourceJobTitle('Government of Canada', 'Bilingual Senior Specialist, Security Applications'), 'Senior Specialist, Security Applications');
     assert.equal(
       normalizeSourceJobTitle('Toronto District School Board', 'TDSB Teaching - Elementary/Secondary - Occasional Teaching/Eligible to Hire'),
       'Occasional Teacher',

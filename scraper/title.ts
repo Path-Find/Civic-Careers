@@ -420,6 +420,12 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     // Classification groups and levels (PM-01, EC-04, AS-03, etc.) are also
     // source metadata. Keep the role name as the public title.
     normalized = normalized.replace(/^[A-Z]{2,5}-\d{2}\s+/i, '').trim();
+    // Federal language markers belong in language_requirements, not in the
+    // public role title, whether the source puts them first or last.
+    normalized = normalized
+      .replace(/^Bilingual\s+/i, '')
+      .replace(/\s*[-–—,]\s*Bilingual\s*$/i, '')
+      .trim();
   }
 
   if (source === 'Toronto District School Board'
