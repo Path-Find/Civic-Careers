@@ -143,6 +143,7 @@ describe('normalizeJobTitle', () => {
     );
     assert.equal(normalizeJobTitle('JOB ID 32166: Process Supervisor'), 'Process Supervisor');
     assert.equal(normalizeJobTitle('Job Posting - Mechanic, Municipal Garage'), 'Mechanic, Municipal Garage');
+    assert.equal(normalizeJobTitle('0.5 FTE Class 5 Maintenance Lead'), 'Class 5 Maintenance Lead');
     assert.equal(
       normalizeJobTitle('Expression of Interest: Enterprise CRM Application Administrator / Developer (Salesforce)'),
       'Enterprise CRM Application Administrator / Developer (Salesforce)',

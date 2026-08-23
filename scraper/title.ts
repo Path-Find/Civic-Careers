@@ -262,6 +262,9 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   t = t.replace(/^job\s+posting\s*[-–—:]\s*/i, '').trim();
   // Posting-intent labels are metadata, not part of the role name.
   t = t.replace(/^expression\s+of\s+interest\s*:\s*/i, '').trim();
+  // A leading FTE value is workload metadata, not the role name. Keep FTE
+  // values inside meaningful title parentheticals unchanged.
+  t = t.replace(/^\d+(?:\.\d+)?\s*FTE\s+/i, '').trim();
 
   // Meta parentheticals anywhere: (Part-Time), (2 Year Contract), (Casual), …
   t = t.replace(/\s*\(([^)]*)\)/g, (full, inner: string) => (
