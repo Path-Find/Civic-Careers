@@ -484,7 +484,7 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     const unbcTitle = normalized.replace(/^FA[A-Z]*\s*\d{1,3}-\d{2}\s*[-–—:]?\s*/i, '').trim();
     if (/^(?:FAPT\s*\d{1,3}-\d{2}\s+)?Part-Time Instructor\b/i.test(String(title ?? ''))
       || /^FAPT\s*\d{1,3}-\d{2}\b/i.test(String(title ?? ''))) {
-      normalized = 'Part-Time Instructor';
+      normalized = 'Instructor';
     } else {
       normalized = unbcTitle;
     }

@@ -179,7 +179,7 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeSourceJobTitle('Brock University', 'Front Counter 2 (Winter) Sessional'), 'Front Counter 2');
     assert.equal(extractSourceAcademicTerm('Brock University', 'Front Counter 2 (Winter) Sessional'), 'Winter');
     assert.equal(normalizeSourceJobTitle('University of Northern British Columbia', 'FANU03-26 - Assistant Professor (0.7 FTE), MScN Nurse Practitioner (Prince George)'), 'Assistant Professor (0.7 FTE), MScN Nurse Practitioner (Prince George)');
-    assert.equal(normalizeSourceJobTitle('University of Northern British Columbia', 'FAPT21-26 Part-Time Instructor NRSG 410 Professional Practice: Mental Health and Addictions Nursing'), 'Part-Time Instructor');
+    assert.equal(normalizeSourceJobTitle('University of Northern British Columbia', 'FAPT21-26 Part-Time Instructor NRSG 410 Professional Practice: Mental Health and Addictions Nursing'), 'Instructor');
     assert.equal(normalizeSourceJobTitle('University of Northern British Columbia', 'FACRC01-26 - Canada Research Chair Tier 2: Indigenous Planning'), 'Canada Research Chair Tier 2: Indigenous Planning');
   });
 

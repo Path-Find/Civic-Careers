@@ -112,7 +112,7 @@ async function main() {
       let repairedCourse = course || (isStoredCourseValid(source, storedCourse) ? storedCourse : '');
       if (source === 'University of Northern British Columbia') {
         repairedCourse = UNBC_COURSE_OVERRIDES[String(row.id)]
-          || (/^Part-Time Instructor$/i.test(title) ? repairedCourse : '');
+          || (/^Instructor$/i.test(title) ? repairedCourse : '');
         repairedCourse = repairedCourse
           .replace(/^Studies\s+390\s+—\s+3:\s*/i, 'First Nations Studies 390-3 — ')
           .replace(/^CPSC\s+100\s+—\s+&\s+CPSC\s+321$/i, 'CPSC 100 & CPSC 321');
