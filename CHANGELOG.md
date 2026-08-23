@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Filter suggestions now appear only for the search field currently being used, preventing employer options from appearing under Location.
+
 - Removed unrequested explanatory sentences from the filter sidebar so it shows the controls without extra instructions.
 
 - Hardened salary parsing so incidental allowances cannot become the salary, ranges keep both bounds, and pay periods are taken only from the salary capture.
