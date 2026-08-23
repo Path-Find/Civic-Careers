@@ -27,6 +27,13 @@ function SuggestionList({ suggestions, onSelect }: { suggestions: string[]; onSe
   </div>;
 }
 
+function isCanonicalLocation(value: string): boolean {
+  return value.split(';').every(part => {
+    const location = part.trim();
+    return /^[^,;]{2,80},\s*(?:AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)$/i.test(location);
+  });
+}
+
 export function JobFiltersSidebar({
   headerHeight, jobs, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, closingSoonDisabled, savedView,
   onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onAcademicJobsChange, onCareerStageChange, onCompanyChange, onEducationLevelChange, onEducationFieldChange, onReset,
@@ -76,7 +83,7 @@ export function JobFiltersSidebar({
     .slice(0, 8), [companyOptions, companyQuery, selectedCompanyNames]);
   const locationSuggestions = useMemo(() => [...new Set(jobs
     .map(job => job.location?.trim() ?? '')
-    .filter(location => location.length > 0 && location.length <= 100))]
+    .filter(location => location.length > 0 && location.length <= 100 && isCanonicalLocation(location)))]
     .filter(location => !selectedLocations.includes(location) && location.toLowerCase().includes(locationQuery.trim().toLowerCase()))
     .slice(0, 8), [jobs, selectedLocations, locationQuery]);
   const educationSuggestions = useMemo(() => educationFieldOptions(jobs.map(job => job.education_requirements))
