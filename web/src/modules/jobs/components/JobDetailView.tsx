@@ -12,6 +12,7 @@ const REPORT_REASONS = [
   'Wrong academic or student information',
   'Wrong deadline or availability',
   'Wrong application link',
+  'Position has been filled',
   'Duplicate or should not be listed',
   'Other',
 ] as const;
