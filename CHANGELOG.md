@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Recovered four title-only Shared Health locations from explicit city names and added a safe source-specific fallback for future incomplete captures.
+
 - Added a clear `Position has been filled` option to the public job-report flow.
 
 - Audited Shared Health Manitoba’s 538 jobs, repaired 475 facility-based locations to their source-listed cities, and corrected two malformed role titles.

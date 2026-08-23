@@ -3,7 +3,7 @@ import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, notifyDiscord } from './utils';
 import { classifyRawCapture } from './capture-quality';
 import { normalizeDuration } from './duration';
-import { extractLabeledLocation, normalizeLocation, normalizeSourceLocation } from './location';
+import { extractLabeledLocation, normalizeLocation, normalizeSourceLocation, normalizeSourceLocationFromTitle } from './location';
 import { extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, extractUrlJobTitle, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle, normalizeSourceJobTitleFromRaw } from './title';
 import { normalizeEmploymentType, normalizeSalaryPeriod, normalizeUnionFields, normalizeWorkModel } from './validate';
 import {
@@ -147,7 +147,9 @@ async function main() {
           ?? normalizeSecurityCheckRequired(aiResult.security_check_required)
           ?? securityFromLabel;
         const parsedLocation = normalizeLocation(aiResult.location);
-        const location = sourceMetadataFix?.location || normalizeSourceLocation(raw.source, raw.raw_text) || parsedLocation || extractLabeledLocation(raw.raw_text);
+        const location = sourceMetadataFix?.location || normalizeSourceLocation(raw.source, raw.raw_text)
+          || normalizeSourceLocationFromTitle(raw.source, finalTitle)
+          || parsedLocation || extractLabeledLocation(raw.raw_text);
         const unionFields = normalizeUnionFields(aiResult.union_name, aiResult.is_unionized);
         const pendingClosing = normalizeActiveClosingDateStatus(raw.raw_text);
         const academicAllowed = isAcademicJob(raw.source, finalTitle, aiResult.academic_role_type);

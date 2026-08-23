@@ -10,7 +10,7 @@ import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import { extractLabeledLocation, normalizeLocation, normalizeSourceLocation } from './location';
+import { extractLabeledLocation, normalizeLocation, normalizeSourceLocation, normalizeSourceLocationFromTitle } from './location';
 
 dotenv.config({ quiet: true });
 
@@ -36,8 +36,7 @@ async function main() {
     FROM jobs j
     JOIN job_details d ON d.id = j.id
     LEFT JOIN raw_jobs r ON r.id = j.id
-    WHERE d.location IS NOT NULL
-      AND trim(d.location) != ''
+    WHERE 1 = 1
       ${ACTIVE_ONLY ? 'AND j.is_active = 1' : ''}
       ${SOURCE_ONLY ? 'AND j.source = ?' : ''}
     ORDER BY j.source, j.id
@@ -58,7 +57,9 @@ async function main() {
   const allRows = [...currentRows, ...archiveRows];
   for (const row of allRows) {
     const from = String(row.location ?? '').trim();
-    const normalized = normalizeSourceLocation(String(row.source ?? ''), String(row.raw_text ?? '')) || normalizeLocation(from);
+    const normalized = normalizeSourceLocation(String(row.source ?? ''), String(row.raw_text ?? ''))
+      || normalizeSourceLocationFromTitle(String(row.source ?? ''), String(row.job_title ?? ''))
+      || normalizeLocation(from);
     const recovered = !normalized ? extractLabeledLocation(String(row.raw_text ?? '')) : '';
     // Never erase a populated location during this repair pass. If neither
     // the stored value nor the preserved source can be normalized, retain the

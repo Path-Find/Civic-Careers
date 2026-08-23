@@ -1,8 +1,8 @@
 # Location normalize 2026-08-04
 
-- Rows scanned: 513
-- Already canonical: 513
-- Changed: 0 (dry-run only)
+- Rows scanned: 538
+- Already canonical: 534
+- Changed: 4 (applied)
 - Emptied (junk or unmapped): 0
 
 ## Top canonical values (post-normalize count among scanned)
@@ -17,12 +17,12 @@
 - 8 `Thompson, MB`
 - 8 `Swan River, MB`
 - 8 `Altona, MB`
+- 7 `Selkirk, MB`
 - 7 `Flin Flon, MB`
 - 7 `Morris, MB`
 - 7 `Ste. Anne, MB`
 - 6 `Churchill, MB`
 - 6 `Crystal City, MB`
-- 5 `Selkirk, MB`
 - 5 `Swan Lake, MB`
 - 5 `Dauphin, MB`
 - 5 `Vita, MB`
@@ -35,3 +35,7 @@
 
 ## Sample rewrites
 
+- `` → `Gimli, MB`
+- `` → `Gimli, MB`
+- `` → `Selkirk, MB`
+- `` → `Selkirk, MB`

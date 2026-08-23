@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractLabeledLocation, normalizeLocation, normalizeSourceLocation } from '../location';
+import { extractLabeledLocation, normalizeLocation, normalizeSourceLocation, normalizeSourceLocationFromTitle } from '../location';
 import { extractPendingMetadata } from '../pending-metadata';
 
 test('bare Canadian cities get province codes', () => {
@@ -110,6 +110,12 @@ test('uses Shared Health city instead of facility name for location', () => {
 
 test('dedupes repeated cities', () => {
   assert.equal(normalizeLocation('Toronto; Toronto, ON'), 'Toronto, ON');
+});
+
+test('recovers explicit Shared Health cities from title-only captures', () => {
+  assert.equal(normalizeSourceLocationFromTitle('Shared Health Manitoba', 'Licensed Practical Nurse 0.8 D/E Gimli 1'), 'Gimli, MB');
+  assert.equal(normalizeSourceLocationFromTitle('Shared Health Manitoba', 'Licensed Practical Nurse 0.7 D/E Selkirk'), 'Selkirk, MB');
+  assert.equal(normalizeSourceLocationFromTitle('Shared Health Manitoba', 'Registered Nurse'), '');
 });
 
 test('recovers compact labelled source locations', () => {

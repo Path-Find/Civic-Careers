@@ -579,6 +579,13 @@ export function normalizeSourceLocation(source: string | null | undefined, rawTe
   return '';
 }
 
+/** Recover a Manitoba city when an old Shared Health capture has no body text. */
+export function normalizeSourceLocationFromTitle(source: string | null | undefined, title: string | null | undefined): string {
+  if (source !== 'Shared Health Manitoba') return '';
+  const city = String(title ?? '').match(/\b(Winnipeg|Selkirk|Gimli|Brandon|Thompson|The Pas|Swan Lake|Steinbach|Winkler|Portage(?:\s+La)?\s+Prairie)\b/i)?.[1] ?? '';
+  return city ? normalizeLocation(`${city}, MB`) : '';
+}
+
 /** Recover a labelled source location when the AI parser leaves it empty. */
 export function extractLabeledLocation(rawText: string | null | undefined): string {
   if (!rawText) return '';
