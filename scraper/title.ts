@@ -422,6 +422,11 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     normalized = normalized.replace(/^[A-Z]{2,5}-\d{2}\s+/i, '').trim();
   }
 
+  if (source === 'Toronto District School Board'
+    && /^TDSB\s+Teaching\s*[-–—:]\s*Elementary\/Secondary\s*[-–—:]\s*Occasional\s+Teaching(?:\s*\/\s*Eligible\s+to\s+Hire)?$/i.test(normalized)) {
+    normalized = 'Occasional Teacher';
+  }
+
   if (source === 'Metrolinx') {
     // Metrolinx appends location, shift pattern, pay annotation, and pool
     // status to the same heading. Those belong in structured fields, not the

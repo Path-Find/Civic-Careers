@@ -164,6 +164,10 @@ describe('normalizeJobTitle', () => {
     );
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'PM-01 Client Support Centre Agent'), 'Client Support Centre Agent');
     assert.equal(
+      normalizeSourceJobTitle('Toronto District School Board', 'TDSB Teaching - Elementary/Secondary - Occasional Teaching/Eligible to Hire'),
+      'Occasional Teacher',
+    );
+    assert.equal(
       normalizeSourceJobTitle('University of Ottawa', 'APTPUO---Winter-2027---API5135D_JR37962---Ethics and Moral Reasoning'),
       'Ethics and Moral Reasoning',
     );

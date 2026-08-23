@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Normalized the TDSB eligible-to-hire posting title to `Occasional Teacher` while keeping the recruitment/eligibility context in the source data.
+
 - Stripped Government of Canada classification prefixes such as `PM-01` from public job titles while preserving the source classification in the posting details.
 
 - Removed annual recruitment-year metadata from public titles while retaining the recruitment classification, and repaired current uOttawa ATPUO pending titles into role titles with course and term metadata.
