@@ -242,7 +242,7 @@ test('keeps existing education when only verification is newly detected', () => 
     '## Qualifications\n- Provide proof of education at screening',
     { education_requirements: ['Bachelor\'s degree in Education'] },
   );
-  assert.deepEqual(result.education_requirements, ["Bachelor's degree in Education", 'Education verification']);
+  assert.deepEqual(result.education_requirements, ["Bachelor's in Education", 'Education verification']);
 });
 
 test('extracts named software and ignores ambiguous categories', () => {
@@ -313,7 +313,7 @@ test('recognizes named web technologies in required qualifications', () => {
 test('extracts required education and drops optional degrees from the same line', () => {
   assert.deepEqual(extractEducationRequirements(`## Qualifications
 - Bachelor's degree in Corporate Communications, Media Relations, Public Relations, or related field (Master's preferred)
-`), ["Bachelor's degree in Corporate Communications, Media Relations, Public Relations, or related field"]);
+`), ["Bachelor's in Corporate Communications, Media Relations, Public Relations, or related field"]);
 });
 
 test('strips Education:/classification/stream prefixes from education requirements', () => {
@@ -402,7 +402,7 @@ test('separates education and licence clauses from a combined requirement', () =
 `;
   assert.deepEqual(extractEducationRequirements(description), [
     'University degree in engineering',
-    "Bachelor's degree or college diploma in a related field",
+    "Bachelor's or college diploma in a related field",
   ]);
   assert.deepEqual(extractLicenseRequirements(description), [
     'P.Eng. (Ontario)',
@@ -814,7 +814,7 @@ test('moves named benefits out of skills only when the source puts them in benef
     benefits: ['pension'],
     required_skills: ['OMERS', "Class G driver's licence", 'Microsoft Office'],
   });
-  assert.deepEqual(result.education_requirements, ["Bachelor's degree in communications"]);
+  assert.deepEqual(result.education_requirements, ["Bachelor's in communications"]);
   assert.deepEqual(result.license_requirements, []);
   assert.deepEqual(result.benefits, ['Pension', 'OMERS']);
   assert.deepEqual(result.required_skills, ['Microsoft Office']);

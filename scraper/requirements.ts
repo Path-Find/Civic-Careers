@@ -851,10 +851,10 @@ export function compactEducationRequirement(value: string): string {
 
   // Bachelor / Master / College short forms when field is present or not.
   if (/^bachelor(?:['’]s)?(?:\s+degree)?(?:\s+in\s+.+)?$/i.test(s)) {
-    return s.replace(/^bachelor(?:['’]s)?(?:\s+degree)?/i, "Bachelor's degree").replace(/^bachelor's degree$/i, "Bachelor's degree");
+    return s.replace(/^bachelor(?:['’]s)?(?:\s+degree)?/i, "Bachelor's");
   }
   if (/^master(?:['’]s)?(?:\s+degree)?(?:\s+in\s+.+)?$/i.test(s)) {
-    return s.replace(/^master(?:['’]s)?(?:\s+degree)?/i, "Master's degree");
+    return s.replace(/^master(?:['’]s)?(?:\s+degree)?/i, "Master's");
   }
   if (/^undergraduate degree(?:\s+in\s+.+)?$/i.test(s)) {
     return s.replace(/^undergraduate degree/i, "Bachelor's degree");
@@ -872,6 +872,8 @@ export function compactEducationRequirement(value: string): string {
 
   // Pure combination-only / empty after combo strips — drop entirely.
   if (!s || /^(?:an?\s+)?acceptable combination\b/i.test(s) || /^OR\b/i.test(s)) return '';
+  s = s.replace(/\bBachelor(?:'s|’s)?\s+degree\b/gi, "Bachelor's")
+    .replace(/\bMaster(?:'s|’s)?\s+degree\b/gi, "Master's");
   s = s.charAt(0).toUpperCase() + s.slice(1);
   // If still a novel-length wall, fall back to first clause.
   if (s.length > 160) {

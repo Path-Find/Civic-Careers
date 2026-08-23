@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Normalized 166 Education values to use concise Bachelor’s/Master’s labels while keeping currently enrolled requirements separate from Student/Co-op job classification.
+
 - Recovered four title-only Shared Health locations from explicit city names and added a safe source-specific fallback for future incomplete captures.
 
 - Added a clear `Position has been filled` option to the public job-report flow.
