@@ -143,6 +143,10 @@ describe('normalizeJobTitle', () => {
     );
     assert.equal(normalizeJobTitle('JOB ID 32166: Process Supervisor'), 'Process Supervisor');
     assert.equal(normalizeJobTitle('Job Posting - Mechanic, Municipal Garage'), 'Mechanic, Municipal Garage');
+    assert.equal(
+      normalizeJobTitle('Expression of Interest: Enterprise CRM Application Administrator / Developer (Salesforce)'),
+      'Enterprise CRM Application Administrator / Developer (Salesforce)',
+    );
   });
 
   it('cleans source-specific title metadata', () => {

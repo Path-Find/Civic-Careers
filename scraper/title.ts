@@ -260,6 +260,8 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   // the employer's internal posting number.
   t = t.replace(/^job\s+id\s*#?\s*\d+\s*:\s*/i, '').trim();
   t = t.replace(/^job\s+posting\s*[-–—:]\s*/i, '').trim();
+  // Posting-intent labels are metadata, not part of the role name.
+  t = t.replace(/^expression\s+of\s+interest\s*:\s*/i, '').trim();
 
   // Meta parentheticals anywhere: (Part-Time), (2 Year Contract), (Casual), …
   t = t.replace(/\s*\(([^)]*)\)/g, (full, inner: string) => (
