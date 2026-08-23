@@ -1,10 +1,461 @@
 # Hours / availability normalize 2026-08-04
 
-Scanned: 1326
-Updated: 5
+Scanned: 465
+Updated: 456
 
-- `Expression-of-Interest--Enterprise-CRM-Administrator---Business-Analyst--Salesforce-_R176243-1` hours `36.25Anticipated Start Date:July 24, 2026` → `36.25 hours per week`; availability `` → `(empty)`
-- `Expression-of-Interest--Enterprise-CRM-Application-Administrator---Developer--Salesforce-_R176244` hours `36.25Anticipated Start Date:July 24, 2026` → `36.25 hours per week`; availability `` → `(empty)`
-- `Part-time-Professor---Apprenticeship-Training--Automotive-and-Mechanical-Trades---Sheet-Metal--ACCE-_R173713` hours `0Anticipated Start Date:January 05, 2026` → `(empty)`; availability `` → `(empty)`
-- `Part-time-Professor--Construction-Trades-and-Building-Systems---Welding_R170728` hours `0Anticipated Start Date:` → `(empty)`; availability `` → `(empty)`
-- `Part-time-Technician--Casual--Media-Arts-and-Design_R176309` hours `0Anticipated Start Date:` → `(empty)`; availability `` → `(empty)`
+- `585607917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `592984917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Mon-Fri`
+- `596482617` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `597621917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `597830017` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `598215017` hours `40 hours per week` → `40 hours per week`; availability `` → `Evenings; Weekends`
+- `598422017` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `598443317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `598718017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `598739517` hours `7.75 hours` → `7.75 hours`; availability `` → `Weekends`
+- `598742117` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `598764617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `598807717` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `598923517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends; Holidays`
+- `598941817` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `599074817` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Nights; Weekends`
+- `599464217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `599465617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `599467117` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `599469617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `599470417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `599471217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `599524417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `599675217` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `599841817` hours `11.63 hours` → `11.63 hours`; availability `` → `Evenings; Nights; Weekends`
+- `599946217` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `599980717` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Nights; Weekends`
+- `599981517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Nights; Weekends`
+- `599981617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings`
+- `600016017` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `600109917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `600129317` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `600175517` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights`
+- `600195317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `600231717` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `600379517` hours `8.00 hours` → `8.00 hours`; availability `` → `Evenings; Weekends`
+- `600381517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `600497217` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `600616617` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `600646417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `600745417` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `600820517` hours `Up to 7.75 hours per week` → `Up to 7.75 hours per week`; availability `` → `Daytime`
+- `600889417` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `600895117` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `600905317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `600907317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `600952117` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `600954417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `600956017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `600957517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `600958217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601029317` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `601032517` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601040017` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `601059317` hours `11.63 hours` → `11.63 hours`; availability `` → `Evenings; Weekends`
+- `601072917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601076517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601102717` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601123617` hours `7.50 hours` → `7.50 hours`; availability `` → `Daytime`
+- `601136117` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601141217` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `601142017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601150217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601157817` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601163217` hours `8 hours` → `8 hours`; availability `` → `Evenings; Weekends`
+- `601191517` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `601222917` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601225117` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601243217` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `601252017` hours `11.63 hours` → `11.63 hours`; availability `` → `Evenings; Weekends`
+- `601252817` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601254317` hours `11.63 hours` → `11.63 hours`; availability `` → `Evenings; Nights; Weekends`
+- `601255317` hours `11.63 hours` → `11.63 hours`; availability `` → `Evenings; Nights; Weekends`
+- `601255917` hours `11.63 hours` → `11.63 hours`; availability `` → `Evenings; Nights; Weekends`
+- `601257217` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601258017` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601259217` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601259417` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601259517` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601260417` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601260817` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601316517` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `601348617` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `601382417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601402417` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601426717` hours `12.00 hours` → `12.00 hours`; availability `` → `Evenings; Nights; Weekends`
+- `601442717` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends; Holidays`
+- `601461317` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601462117` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601466017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings`
+- `601508217` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601510517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601513217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601563217` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601563517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601570917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601578817` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601621917` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `601623117` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `601654017` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601656317` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601657217` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `601664917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Nights; Weekends`
+- `601682217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `601686717` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `601695417` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601697717` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `601709917` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `601716617` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `601818517` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `601820417` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `601822217` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `601824317` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `601836117` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601854217` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `601854717` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `601875017` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601877817` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `601920317` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `601974117` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `601985317` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602006117` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602010917` hours `8.00 hours` → `8.00 hours`; availability `` → `Daytime`
+- `602039017` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `602077517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602089417` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `602095817` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602097617` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `602098217` hours `8 hours` → `8 hours`; availability `` → `Evenings; Nights`
+- `602099217` hours `8 hours` → `8 hours`; availability `` → `Evenings; Nights`
+- `602099917` hours `8 hours` → `8 hours`; availability `` → `Evenings; Nights`
+- `602100517` hours `8 hours` → `8 hours`; availability `` → `Evenings; Nights`
+- `602101117` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602137817` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602177717` hours `5.25 hours` → `5.25 hours`; availability `` → `Evenings; Weekends`
+- `602179717` hours `11.63 hours` → `11.63 hours`; availability `` → `Evenings; Weekends`
+- `602182417` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602210217` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602226817` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends; Holidays`
+- `602229617` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602246217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602248317` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602251417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends; Holidays`
+- `602256117` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights`
+- `602266817` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602279617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602281517` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `602327117` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602405317` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602422717` hours `12.00 hours` → `12.00 hours`; availability `` → `Evenings; Nights; Weekends`
+- `602430317` hours `11.63 hours` → `11.63 hours`; availability `` → `Evenings; Nights; Weekends`
+- `602447517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602481817` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `602489017` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `602497917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Nights; Weekends`
+- `602516317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602525017` hours `8.00 hours` → `8.00 hours`; availability `` → `Evenings; Weekends`
+- `602565117` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `602577017` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `602577517` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `602578417` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `602578717` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `602580617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602581117` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `602581917` hours `12.00 hours` → `12.00 hours`; availability `` → `Daytime; Weekends`
+- `602585717` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602608717` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602630517` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `602640417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602652117` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602653417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602659017` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `602659217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602660817` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602661417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602670817` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602675117` hours `12 hours` → `12 hours`; availability `` → `Evenings; Weekends`
+- `602677417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602678117` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602678517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602679417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602679517` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602680317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602700017` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `602700917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602701617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602707017` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `602708617` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `602722317` hours `8.00 hours` → `8.00 hours`; availability `` → `Nights; Weekends`
+- `602725617` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `602747017` hours `Up to 8.0 hours per week` → `Up to 8.0 hours per week`; availability `` → `Evenings; Weekends`
+- `602748517` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `602753717` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602755317` hours `8.0 hours` → `8.0 hours`; availability `` → `Evenings; Weekends`
+- `602763217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602764017` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `602764617` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `602765517` hours `5.5 hours` → `5.5 hours`; availability `` → `Evenings; Weekends`
+- `602768317` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `602770417` hours `11.60 hours` → `11.60 hours`; availability `` → `Nights; Weekends`
+- `602773117` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `602801817` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `602812917` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `602816017` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602848517` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602889517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Nights; Weekends`
+- `602895217` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `602896317` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `602898517` hours `12 hours` → `12 hours`; availability `` → `Nights; Weekends`
+- `602899017` hours `6.0 hours` → `6.0 hours`; availability `` → `Evenings; Weekends`
+- `602901917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602915817` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `602916517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602918017` hours `12 hours` → `12 hours`; availability `` → `Nights; Weekends`
+- `602920717` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602922517` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602929517` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602932317` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `602932917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `602933617` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `602949217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Nights; Weekends`
+- `602953117` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `602958617` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `602961317` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603042717` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603048817` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603055917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603056417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603073717` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `603081417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603102017` hours `8.00 hours` → `8.00 hours`; availability `` → `Daytime; Weekends`
+- `603120217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603133017` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `603159617` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `603163317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603171917` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603173117` hours `7.75 hours` → `7.75 hours`; availability `Evenings; Weekends; On-call` → `Evenings; Weekends`
+- `603175517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603193317` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603206417` hours `625 hours` → `11.625 hours`; availability `Nights; Weekends` → `Nights; Weekends`
+- `603214817` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `603250317` hours `8 hours` → `8 hours`; availability `` → `Evenings; Weekends`
+- `603259417` hours `7 hours` → `7 hours`; availability `` → `Evenings; Weekends`
+- `603262717` hours `9.70 hours` → `9.70 hours`; availability `` → `Daytime; Weekends`
+- `603279817` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603289217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603289317` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `603291017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings`
+- `603322517` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights`
+- `603324017` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603326717` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603328417` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `603342617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603347117` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `603348517` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `603348717` hours `7.50 hours` → `7.50 hours`; availability `` → `Evenings; Weekends`
+- `603353217` hours `7.75 hours` → `7.75 hours`; availability `Nights; Weekends; On-call` → `Nights; Weekends`
+- `603353717` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings`
+- `603358617` hours `8.25 hours` → `8.25 hours`; availability `` → `Evenings; Nights; Weekends`
+- `603371617` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603415917` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `603416417` hours `8.00 hours` → `8.00 hours`; availability `` → `Daytime`
+- `603417217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603429917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603436017` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `603438117` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `603439717` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603473017` hours `7.50 hours` → `7.50 hours`; availability `` → `Daytime`
+- `603475017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603481217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603482517` hours `11.05 hours` → `11.05 hours`; availability `` → `Evenings; Weekends`
+- `603482817` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603488217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603496917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603501117` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603502017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603504217` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `603508517` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603512717` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `603524117` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `603526517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Nights; Weekends`
+- `603529717` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603529917` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603547017` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `603555617` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `603570117` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `603592417` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `603593717` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `603598617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603601917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `603603017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603603417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603604317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603609017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603614917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603635017` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603643917` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `603647717` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603706017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603733517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603737217` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603745217` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603745917` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603746517` hours `8.0 hours` → `8.0 hours`; availability `` → `Evenings; Weekends`
+- `603746617` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603747717` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603748617` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603750917` hours `8.00 hours` → `8.00 hours`; availability `` → `Evenings; Weekends`
+- `603752117` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603752917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603777317` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603786317` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603791617` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603826917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `603830917` hours `7.50 hours` → `7.50 hours`; availability `` → `Daytime`
+- `603834517` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603839317` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603844217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603850117` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `603850617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603875617` hours `7.27 hours` → `7.27 hours`; availability `` → `Evenings; Weekends`
+- `603889917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603910217` hours `8.00 hours` → `8.00 hours`; availability `` → `Daytime; Weekends`
+- `603915917` hours `9.69 hours` → `9.69 hours`; availability `` → `Daytime; Weekends`
+- `603917517` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `603921217` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603921617` hours `5.0 hours` → `5.0 hours`; availability `` → `Daytime; Weekends`
+- `603922117` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603924217` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `603924817` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights`
+- `603925417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603941817` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603947117` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `603948717` hours `11.63 hours` → `11.63 hours`; availability `` → `Daytime`
+- `603952517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `603956317` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `603959417` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `603961717` hours `8 hours` → `8 hours`; availability `` → `Evenings; Weekends`
+- `603981917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `603993817` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604008617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604012417` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604013017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604015517` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604043017` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `604043217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604046017` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `604046617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604046917` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `604048017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604048217` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `604048617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604049717` hours `11.63 hours` → `11.63 hours`; availability `` → `Evenings; Weekends`
+- `604063617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604069117` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `604085517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604086617` hours `7.50 hours` → `7.50 hours`; availability `` → `Daytime`
+- `604087917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604102517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604108917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604112017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604122917` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `604123917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604125317` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `604126817` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604143117` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `604144817` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `604150317` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604163417` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `604177017` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `604184817` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights`
+- `604195117` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `604201617` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `604203917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604204617` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights`
+- `604224617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604235717` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `604242917` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `604246117` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604277917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `604281717` hours `4 hours` → `4 hours`; availability `` → `Daytime; Weekends`
+- `604325417` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604337117` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `604345317` hours `7.0 hours` → `7.0 hours`; availability `` → `Evenings; Weekends`
+- `604347817` hours `11.63 hours` → `11.63 hours`; availability `` → `Nights; Weekends`
+- `604361917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604367017` hours `8.00 hours` → `8.00 hours`; availability `` → `Evenings; Weekends`
+- `604371117` hours `7.75 hours` → `7.75 hours`; availability `Nights; Weekends; On-call` → `Evenings; Weekends`
+- `604386817` hours `8 hours` → `8 hours`; availability `` → `Evenings; Weekends`
+- `604400017` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `604404317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604411117` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604416617` hours `7.75 hours` → `7.75 hours`; availability `Daytime; Evenings; Weekends` → `Evenings; Weekends`
+- `604435817` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604437817` hours `8.25 hours` → `8.25 hours`; availability `` → `Nights; Weekends`
+- `604438017` hours `8.00 hours` → `8.00 hours`; availability `` → `Evenings; Weekends`
+- `604500217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604525017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604526517` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604529017` hours `7.50 hours` → `7.50 hours`; availability `` → `Daytime; Weekends`
+- `604533417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends; Holidays`
+- `604534417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends; Holidays`
+- `604538317` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `604538517` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `604550417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Nights; Weekends`
+- `604552917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604554117` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `604565117` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `604574717` hours `625 hours` → `11.625 hours`; availability `` → `Daytime; Weekends`
+- `604592417` hours `Up to 8 hours per week` → `Up to 8 hours per week`; availability `` → `Evenings; Nights; Weekends`
+- `604593217` hours `Up to 8 hours per week` → `Up to 8 hours per week`; availability `` → `Nights; Weekends`
+- `604627517` hours `7.50 hours` → `7.50 hours`; availability `` → `Daytime; Weekends`
+- `604630817` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604653617` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604676517` hours `7.50 hours` → `7.50 hours`; availability `` → `Evenings; Weekends`
+- `604690117` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `604696017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604703017` hours `7.50 hours` → `7.50 hours`; availability `` → `Daytime`
+- `604710317` hours `8.0 hours` → `8.0 hours`; availability `` → `Evenings; Weekends`
+- `604711017` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604734317` hours `7.75 hours` → `7.75 hours`; availability `` → `Nights; Weekends`
+- `604746217` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604753217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604786417` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604801917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604802117` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime; Weekends`
+- `604826317` hours `625 hours` → `11.625 hours`; availability `` → `Nights; Weekends`
+- `604830117` hours `625 hours` → `11.625 hours`; availability `` → `Daytime; Weekends`
+- `604838917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `604860317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604880017` hours `12 hours` → `12 hours`; availability `` → `Nights; Weekends`
+- `604918217` hours `8.00 hours` → `8.00 hours`; availability `` → `Daytime; Weekends`
+- `604975417` hours `7.50 hours` → `7.50 hours`; availability `` → `Evenings; Weekends`
+- `604976917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `604999117` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `605017117` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `605022317` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `605048817` hours `11.50 hours` → `11.50 hours`; availability `` → `Evenings; Weekends`
+- `605053117` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `605054417` hours `12 hours` → `12 hours`; availability `` → `Nights; Weekends`
+- `605055717` hours `12 hours` → `12 hours`; availability `` → `Nights`
+- `605056417` hours `12 hours` → `12 hours`; availability `` → `Nights; Weekends`
+- `605056717` hours `12 hours` → `12 hours`; availability `` → `Nights; Weekends`
+- `605057917` hours `12 hours` → `12 hours`; availability `` → `Nights; Weekends`
+- `605063117` hours `7.50 hours` → `7.50 hours`; availability `` → `Daytime; Weekends`
+- `605064917` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `605066617` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `605076117` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `605079117` hours `12.00 hours` → `12.00 hours`; availability `` → `Nights; Weekends`
+- `605084217` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Nights; Weekends`
+- `605102317` hours `7.50 hours` → `7.50 hours`; availability `` → `Evenings; Weekends`
+- `605118917` hours `7.75 hours` → `7.75 hours`; availability `` → `Daytime`
+- `605119217` hours `6.75 hours` → `6.75 hours`; availability `` → `Daytime; Weekends`
+- `605123317` hours `7.75 hours` → `7.75 hours`; availability `` → `Evenings; Weekends`
+- `605124017` hours `8.00 hours` → `8.00 hours`; availability `` → `Daytime`
+- `605140317` hours `7.75 hours` → `7.75 hours`; availability `Daytime; On-call` → `Daytime`

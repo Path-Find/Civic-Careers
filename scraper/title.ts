@@ -130,6 +130,7 @@ const SOURCE_COURSE_CODE_PATTERNS: Record<string, RegExp> = {
   // `STA258H5S LEC103`; do not promote it to academic_course.
   'University of Toronto': /\b(?!LEC\d{3,4}\b)[A-Z]{3,5}\d{3,4}[A-Z0-9]{0,3}\b/gi,
   'York University': /\b[A-Z]{2,5}\s\d{3,4}(?:\s*\/\s*(?:[A-Z]{2,5}\s?)?\d{3,4})?\b/gi,
+  'University of Winnipeg': /\b[A-Z]{2,8}[- ]\d{3,5}[A-Z]?\b/gi,
 };
 
 /** Extract a course code from a title, e.g. "Teaching Assistant MBAB 5P11 Fall D" → "MBAB 5P11". */
@@ -577,6 +578,17 @@ export function normalizeSourceJobTitleFromRaw(
     && /Adult Recreation Services Unit is currently accepting applications[\s\S]{0,300}Program Leader\/Instructor,?\s*RCC[\s\S]{0,100}Specialized Program Instructor,?\s*RCC/i.test(String(rawText ?? ''))) {
     return 'Program Leader/Instructor and Specialized Program Instructor';
   }
+  if (source === 'City of Oshawa' && /^J\d{4}-\d{4,5}$/i.test(normalized)) {
+    const vacancy = String(rawText ?? '').match(/\bVacancy\s*:\s*([^\n]+)/i)?.[1]?.trim() ?? '';
+    if (vacancy) return vacancy;
+  }
+  if (source === 'University of Ottawa') {
+    const classification = String(rawText ?? '').match(/Job\s+Classification\s*:\s*([^\n]+)/i)?.[1] ?? '';
+    if (/teaching\s+assistant|demonstrator|lab\s+monitor/i.test(classification)) return 'Teaching Assistant';
+    if (/professor|instructor/i.test(classification)) return 'Course Instructor';
+    if (/\bCourse\s+Code\s*:/i.test(String(rawText ?? ''))
+      && (/^A?TPUO\b/i.test(String(rawText ?? '')) || /^(?:A?TPUO|[A-Z][A-Z\s-]{5,})/i.test(String(title ?? '')))) return 'Course Instructor';
+  }
   return normalized;
 }
 
@@ -613,6 +625,8 @@ export function extractSourceAcademicCourse(source: string | null | undefined, t
       .replace(/\s+[-–—]\s*(?:Academic|Teaching) Assistant\b.*$/i, '')
       .replace(/\s+\b[A-Z]{2}\b(?:\s+\d+\s+roles?)?\s*$/i, '')
       .trim();
+  } else if (source === 'University of Winnipeg') {
+    remainder = remainder.replace(/^\([^)]*\):\s*/, '').trim();
   } else {
     remainder = remainder.replace(/\s+[-–—]\s*Sessional\s+(?:Lecturer|Instructional Assistant)\s*$/i, '').trim();
   }
@@ -629,6 +643,20 @@ export function extractSourceAcademicCourse(source: string | null | undefined, t
     : code;
 }
 
+/** Remove known record-ID artefacts that must never become course metadata. */
+export function normalizeSourceAcademicCourse(source: string | null | undefined, value: string | null | undefined): string {
+  const course = String(value ?? '').replace(/\s+/g, ' ').trim();
+  if (!course) return '';
+  if (source === 'Durham College' && /^(?:Welding|Learning|Trades)\s+\d+$/i.test(course)) return '';
+  if (source === 'OCAD University' && /^Studies\s+\d+$/i.test(course)) return '';
+  if (source === 'Seneca College' && /^Senior\s+\d+$/i.test(course)) return '';
+  if (/^(?:neogov|psft|lever|ca|imaging|jr\d+)\s+[a-f0-9-]+$/i.test(course)) return '';
+  if (source === 'University of Guelph' && /^[A-Za-z]+\s+[0-9a-f]{8}\s+—\s+[0-9]{2}$/i.test(course)) return '';
+  if (source === 'University of Winnipeg' && /^[A-Za-z]+\s+[0-9a-f]{8}\s+—\s+[0-9a-f]{4}$/i.test(course)) return '';
+  if (source === 'University of Northern British Columbia' && /^(?:Instructor|Professor|Lecturer)$/i.test(course)) return '';
+  return course.replace(/[)\]]+$/g, '').trim();
+}
+
 /** Recover uOttawa's labelled course metadata when the Workday title was truncated. */
 export function extractSourceAcademicCourseFromRaw(source: string | null | undefined, rawText: string | null | undefined): string {
   if (source !== 'University of Ottawa' || !rawText) return '';
@@ -636,7 +664,8 @@ export function extractSourceAcademicCourseFromRaw(source: string | null | undef
   const title = String(rawText).match(/\bCourse Title:\s*([^\r\n]+?)(?=Course Code:|Section:|Course Description:|$)/i)?.[1]?.trim() ?? '';
   const normalizedCode = code.replace(/\s+/g, ' ').trim();
   if (!/^(?!JR|REQ)[A-Z]{2,6}\s*-?\s*\d{3,5}[A-Z]?(?:\d{2})?$/i.test(normalizedCode)) return '';
-  return title ? `${normalizedCode} — ${title}` : normalizedCode;
+  const cleanTitle = title.replace(new RegExp(`^${normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*[,;:-]?\s*`, 'i'), '').trim();
+  return cleanTitle ? `${normalizedCode} — ${cleanTitle}` : normalizedCode;
 }
 
 /** Recover abbreviated PeopleSoft terms such as TMU's `F26` into the term field. */

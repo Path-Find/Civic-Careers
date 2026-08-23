@@ -18,6 +18,7 @@
     "backfill-deduplicate-fields": "npx tsx backfill-deduplicate-fields.ts",
     "repair-publication-status": "npx tsx repair-publication-status.ts",
     "audit:quality": "npx tsx audit-quality.ts",
+    "spot-check": "npx tsx spot-check.ts",
     "audit:availability": "npx tsx audit-availability.ts",
     "audit:parser-regression": "npx tsx audit-parser-regression.ts",
     "audit:live-content": "npx tsx audit-live-content.ts",

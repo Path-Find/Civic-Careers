@@ -9,7 +9,7 @@ import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import { normalizeHours, splitHoursAndAvailability } from './hours-availability';
+import { normalizeAvailability, normalizeHours, splitHoursAndAvailability } from './hours-availability';
 import { getPublishBlockReason } from './publish-gate';
 import { extractBoardSpecificMetadata } from './board-parsers';
 
@@ -17,6 +17,7 @@ dotenv.config({ quiet: true });
 
 const APPLY = process.argv.includes('--apply');
 const QUALITY_ONLY = process.argv.includes('--quality-only');
+const SOURCE_FILTER = process.argv.find(argument => argument.startsWith('--source='))?.slice('--source='.length) ?? '';
 
 async function main() {
   const db = await initDb();
@@ -28,8 +29,9 @@ async function main() {
     FROM jobs j
     JOIN raw_jobs r ON r.id = j.id
     JOIN job_details d ON d.id = j.id
-    WHERE (d.hours IS NOT NULL AND trim(d.hours) != '')
-       OR (d.availability IS NOT NULL AND trim(d.availability) != '')
+    WHERE ((d.hours IS NOT NULL AND trim(d.hours) != '')
+       OR (d.availability IS NOT NULL AND trim(d.availability) != ''))
+    ${SOURCE_FILTER ? `AND j.source = '${SOURCE_FILTER.replace(/'/g, "''")}'` : ''}
     ORDER BY j.source, j.id
   `);
 
@@ -63,7 +65,8 @@ async function main() {
     const rawText = String(row.raw_text ?? '');
     const directHours = rawText.match(/\b(?:(?:up\s+to|maximum|max\.?)\s+)?\d{1,3}(?:\.\d{1,2})?\s+hours?\s*(?:per\s+week|\/\s*week|a\s+week)\b/i);
     const labelledHours = rawText.match(/(?:scheduled\s+weekly\s+hours?|weekly\s+hours?|hours?\s+of\s+work)\s*:\s*(\d{1,3}(?:\.\d{1,2})?)/i);
-    const boardHours = extractBoardSpecificMetadata(String(row.source ?? ''), rawText).hours ?? '';
+    const boardMetadata = extractBoardSpecificMetadata(String(row.source ?? ''), rawText);
+    const boardHours = boardMetadata.hours ?? '';
     // Prefer a source sentence or a board value that normalizes to a real
     // quantity. Some board parsers expose only a bare number (e.g. Workday's
     // `Scheduled Weekly Hours:8`); never let that replace a valid existing
@@ -73,7 +76,13 @@ async function main() {
       : labelledHours
         ? labelledHours[1] === '0' ? '' : `${labelledHours[1]} hours per week`
         : normalizeHours(boardHours);
-    const { hours: toH, availability: toA } = splitHoursAndAvailability(recoveredHours || fromH, fromA);
+    const normalizedPair = splitHoursAndAvailability(recoveredHours || fromH, fromA);
+    const toH = String(row.source ?? '') === 'Shared Health Manitoba' && /^\d+\.\d{3} hours$/.test(boardHours)
+      ? boardHours
+      : normalizedPair.hours;
+    const toA = String(row.source ?? '') === 'Shared Health Manitoba' && boardMetadata.availability
+      ? normalizeAvailability(boardMetadata.availability)
+      : normalizedPair.availability;
     if (toH === fromH && toA === fromA) continue;
     changes.push({
       id: String(row.id),

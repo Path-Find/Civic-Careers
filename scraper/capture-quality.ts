@@ -62,5 +62,11 @@ export function classifyRawCapture(source: string, rawText: string): RawCaptureQ
     return { valid: false, issue: 'generic_portal' };
   }
 
+  if (source === 'Toronto Metropolitan University'
+    && (text.match(/Search Results/gi)?.length ?? 0) >= 10
+    && !/\b(?:responsibilities|qualifications|requirements|salary\s*[:\-]|location\s*[:\-]|job\s+summary)\b/i.test(text)) {
+    return { valid: false, issue: 'generic_portal' };
+  }
+
   return { valid: true };
 }

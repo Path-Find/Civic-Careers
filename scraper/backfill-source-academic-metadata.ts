@@ -6,7 +6,7 @@
  */
 import dotenv from 'dotenv';
 import { initDb } from './db';
-import { extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, normalizeSourceJobTitle } from './title';
+import { extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, normalizeSourceAcademicCourse, normalizeSourceJobTitle } from './title';
 
 dotenv.config({ quiet: true });
 
@@ -111,7 +111,7 @@ async function main() {
       // Reconcile old poisoned values as well as filling blanks. A known
       // source-specific format is the safety boundary for clearing a value;
       // unknown academic sources retain their existing field untouched.
-      let repairedCourse = course || (isStoredCourseValid(source, storedCourse) ? storedCourse : '');
+      let repairedCourse = normalizeSourceAcademicCourse(source, course || (isStoredCourseValid(source, storedCourse) ? storedCourse : ''));
       if (source === 'University of Northern British Columbia') {
         repairedCourse = UNBC_COURSE_OVERRIDES[String(row.id)]
           || (/^Instructor$/i.test(title) ? repairedCourse : '');
