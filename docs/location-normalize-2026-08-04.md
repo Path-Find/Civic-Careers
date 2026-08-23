@@ -1,8 +1,8 @@
 # Location normalize 2026-08-04
 
 - Rows scanned: 9645
-- Already canonical: 9644
-- Changed: 1 (dry-run only)
+- Already canonical: 9645
+- Changed: 0 (dry-run only)
 - Emptied (junk or unmapped): 0
 
 ## Top canonical values (post-normalize count among scanned)
@@ -35,4 +35,3 @@
 
 ## Sample rewrites
 
-- `99 Regina Street, Waterloo, ON` → `Waterloo, ON`
