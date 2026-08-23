@@ -114,9 +114,10 @@ function corruptedScalarField(details: PublishGateDetails): string | null {
     if (field === 'availability' && /\bratification\b|\bdocument(?:s)?\b/i.test(value)) return field;
     if (field === 'salary' && !isCanonicalSalary(value)) return field;
     if (field === 'availability' && !isCanonicalAvailability(value)) return field;
+    if (field === 'hours' && /anticipated\s+start\s+date\s*:/i.test(value)) return field;
     if (field === 'hours' || field === 'availability' || field === 'academicSchedule' || field === 'academicWorkload' || field === 'academicOfficeHours') {
       if (field === 'hours' && /receive\s+an\s+alert|^n\s*\(/i.test(value)) return field;
-      if (/\b(?:department|location|salary|requirements?|exigences?|work\s+modality|work\s+hours?|hours?|workload|schedule|status|vacanc(?:y|ies)|additional\s+information|information\s+additionnelle)\s*:/i.test(value)) return field;
+      if (/\b(?:department|location|salary|requirements?|exigences?|work\s+modality|work\s+hours?|hours?|workload|schedule|status|vacanc(?:y|ies)|anticipated\s+start\s+date|additional\s+information|information\s+additionnelle)\s*:/i.test(value)) return field;
     }
     if (field === 'educationRequirements' && /\beducation\s*(?:do\s+i\s+need)?\s*[?:]/i.test(value)) return field;
   }

@@ -71,7 +71,7 @@ async function main() {
     const recoveredHours = directHours
       ? normalizeHours(directHours[0])
       : labelledHours
-        ? `${labelledHours[1]} hours per week`
+        ? labelledHours[1] === '0' ? '' : `${labelledHours[1]} hours per week`
         : normalizeHours(boardHours);
     const { hours: toH, availability: toA } = splitHoursAndAvailability(recoveredHours || fromH, fromA);
     if (toH === fromH && toA === fromA) continue;

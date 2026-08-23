@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Repaired five Algonquin Hours values that had swallowed `Anticipated Start Date`, and added a Workday boundary plus quality check for future captures.
+
 - Removed `Expression of Interest:` posting labels from two Algonquin CRM titles and added a shared rule for future titles.
 
 - Removed `Appendix D/Temporary Assignment` metadata from the Algonquin Student Information Systems Architect title and added a shared rule for future postings.

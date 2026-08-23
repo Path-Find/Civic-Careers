@@ -211,7 +211,7 @@ const WORKDAY_FIELD_LABELS = [
   'Applications must be received BEFORE \\(YYYY/MM/DD\\)', 'Union Affiliation',
   'Job Family', 'Job Type', 'Salary Grade', 'Salary Range', 'Hiring Range',
   'Salary',
-  'Scheduled Weekly Hours', 'Term', 'Length of Contract',
+  'Scheduled Weekly Hours', 'Anticipated Start Date', 'Term', 'Length of Contract',
   'Posting Closing Date', 'Closing Date', 'Note',
 ];
 

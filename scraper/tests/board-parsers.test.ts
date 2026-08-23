@@ -92,7 +92,7 @@ Skip to main contentCurriculum Developer page is loadedCurriculum DeveloperApply
 Department:Mechanical & Transportation Technology
 Position Type:Part-Time
 Salary Range:$25.00-$100.00-Hourly
-Scheduled Weekly Hours:8
+Scheduled Weekly Hours:8Anticipated Start Date:July 24, 2026
 Length of Contract:3 months
 Posting Closing Date:September 18, 2026
   `;

@@ -115,6 +115,13 @@ test('rejects a portal alert setting captured as hours', () => {
   );
 });
 
+test('rejects a start-date label glued onto hours', () => {
+  assert.equal(
+    getPublishBlockReason({ title: 'CRM Administrator', hours: '36.25Anticipated Start Date:July 24, 2026' }),
+    'corrupted field: hours',
+  );
+});
+
 test('rejects labour-relations prose captured as availability', () => {
   assert.equal(
     getPublishBlockReason({ title: 'Course Instructor', availability: 'r the ratification' }),
