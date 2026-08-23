@@ -63,6 +63,17 @@ test('normalizes hr to hour and preserves real cents', () => {
   });
 });
 
+test('does not borrow a distant pay period or truncate a labelled range', () => {
+  assert.equal(parseSalaryText('Salary Range: $87,604 - $100,527. Salary paid annually.'), null);
+  assert.deepEqual(parseSalaryText('$51,566 - $67,035 Benefits include a $400 annual wellness allowance.'), null);
+  assert.deepEqual(parseSalaryText('$20.54/hourThe Corporation offers benefits and annual leave'), {
+    min: 20.54,
+    max: 20.54,
+    period: 'hourly',
+    display: '$20.54 hour',
+  });
+});
+
 test('only canonical dollar ranges pass the salary display filter', () => {
   assert.equal(isCanonicalSalary('$25.60-$32 hour'), true);
   assert.equal(isCanonicalSalary('$25.60 To $32.00 HourlyThe Corporation'), false);

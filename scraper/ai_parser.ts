@@ -16,7 +16,7 @@ const ENABLE_DEEPSEEK_PARSER = process.env.ENABLE_DEEPSEEK_PARSER === 'true';
 // old parses may no longer match what the current prompt would produce. Stamped
 // onto every job_details row so stale-version jobs can be found and selectively
 // reparsed via reparse-stale.ts instead of reparsing (and re-billing) everything.
-export const PARSER_VERSION = 8;
+export const PARSER_VERSION = 9;
 
 export type AcademicRoleType =
     | 'faculty'
@@ -152,6 +152,7 @@ export async function parseJobWithAI(description: string, titleHint?: string): P
     ACADEMIC ROLE RULE (strict): Set academic_role_type only when the posting clearly describes an academic appointment or course-based academic role. Use faculty for professor, lecturer, or faculty appointments; teaching_assistant for teaching/academic assistants, tutors, markers, lab demonstrators, or course assistants; research_assistant for research assistants; research_associate for research associate appointments; postdoctoral for postdoctoral roles; academic_instructor for instructors teaching at a university or college; and course_staff for course coordinators or comparable course-specific staff. A university or college employer alone is not enough. Do not classify municipal recreation instructors, trainers, program instructors, or university administrative/support roles as academic. Use null when the evidence is unclear. Extract the academic context fields only when the source states them; do not infer a course, supervisor, hours, office hours, workload, or appointment type from the title or employer.
 
     CONSTRAINTS:
+    - Salary extraction: use only the posting's explicitly labelled salary/pay/rate field or an immediately adjacent salary line. Ignore every incidental dollar amount in benefits, allowances, reimbursements, bonuses, wellness or work-from-home programs, and examples. For a labelled range, use both bounds exactly; do not truncate a bound at a comma or confuse an allowance with the salary. If no explicit salary period is attached to the salary itself, return salary_min = null, salary_max = null, salary_period = "yearly" only when the source explicitly says the salary is annual/yearly; otherwise return all three salary values as null. Never borrow a period from a later sentence.
     - If salary is a range like "$96,566.00 - $132,880.00", salary_min = 96566, salary_max = 132880.
     - If salary is hourly, keep it hourly (do not multiply).
     - work_model: check the job TITLE as well as the body. Delivery-format words anywhere — 'Online', 'Virtual', 'Remote', 'Distance', 'e-Learning', 'Asynchronous' — mean Remote, even if they only appear as a title suffix like "Course Name (Online)". 'Hybrid' or 'blended' means Hybrid. Only use On-site when none of these signals appear anywhere.
