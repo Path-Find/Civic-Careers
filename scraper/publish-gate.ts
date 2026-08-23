@@ -106,6 +106,10 @@ function corruptedScalarField(details: PublishGateDetails): string | null {
     // the rest of the posting.
     if (field !== 'department' && hasSquishedSentenceJoin(value)) return field;
     if (field === 'department' && /(?:^|,)[A-Z][a-z]{2,},[A-Z][a-z]{2,}[A-Z][a-z]{5,}/.test(value)) return field;
+    // A department may legitimately contain a colon (for example, "UTM:
+    // Anthropology"), but these are source-field labels, not department
+    // names. Catch them explicitly without rejecting academic naming.
+    if (field === 'department' && /(?:^|\b)(?:salary|pay\s+range|employment\s+group|position\s+type|close\s+date|posting\s+date|job\s+type|hours?|responsibilit(?:y|ies)|qualifications?)\s*:/i.test(value)) return field;
     if (FIELDS_REJECT_COLON.has(field) && value.includes(':')) return field;
     if (field === 'availability' && /\bratification\b|\bdocument(?:s)?\b/i.test(value)) return field;
     if (field === 'salary' && !isCanonicalSalary(value)) return field;

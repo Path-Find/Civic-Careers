@@ -119,6 +119,11 @@ test('parseWorkday stops a field at the next label with no newline between them 
   assert.equal(result.salary, '$68,149.00 - $86,083.00');
 });
 
+test('parseWorkday does not capture a salary label as the department', () => {
+  const parsed = parseWorkday('Job Type:PermanentDepartment:Salary: $79,576.00 - $99,471.00Close Date: August 29, 2026');
+  assert.equal(parsed.department, undefined);
+});
+
 test('parseWorkday removes the glued FT marker before a Campus label', () => {
   const parsed = parseWorkday('Faculty/Department:Department of Physics_FTCampus:Main CampusDate Posted (YYYY/MM/DD):2025/12/10');
   assert.equal(parsed.department, 'Department of Physics');

@@ -45,8 +45,11 @@ export interface ExtractedBoardMetadata {
 // found within it, the match simply fails and the field is left unset --
 // safer than silently capturing hundreds of characters of glued-on text.
 function boundedField(label: string, otherLabelsInBlock: string[]): RegExp {
-  const nextLabel = `(?=\\s*(?:${otherLabelsInBlock.join('|')})\\s*:|\\n|$)`;
-  return new RegExp(`${label}:\\s*([^\\n]{1,180}?)${nextLabel}`, 'i');
+  const nextLabelPattern = `(?:${otherLabelsInBlock.join('|')})\\s*:`;
+  const nextLabel = `(?=\\s*${nextLabelPattern}|\\n|$)`;
+  // If a field is followed immediately by another label, leave the first
+  // field unset rather than treating that label and its value as the value.
+  return new RegExp(`${label}:\\s*(?!${nextLabelPattern})([^\\n]{1,180}?)${nextLabel}`, 'i');
 }
 
 function parseSalaryMinMax(range: string): { min: number | null; max: number | null } {
@@ -207,6 +210,7 @@ const WORKDAY_FIELD_LABELS = [
   'Department', 'Campus', 'Date Posted \\(YYYY/MM/DD\\)',
   'Applications must be received BEFORE \\(YYYY/MM/DD\\)', 'Union Affiliation',
   'Job Family', 'Job Type', 'Salary Grade', 'Salary Range', 'Hiring Range',
+  'Salary',
   'Scheduled Weekly Hours', 'Term', 'Length of Contract',
   'Posting Closing Date', 'Closing Date', 'Note',
 ];

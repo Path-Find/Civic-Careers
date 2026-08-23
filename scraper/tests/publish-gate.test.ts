@@ -59,6 +59,13 @@ test('does not flag a legitimate colon in an academic department name', () => {
   assert.equal(getPublishBlockReason({ title: 'Accommodation Consultant', department: 'AccessAbility Services' }), null);
 });
 
+test('rejects source labels captured as the department', () => {
+  assert.equal(
+    getPublishBlockReason({ title: 'Zoning Officer', department: 'Salary: $79,576.00 - $99,471.00' }),
+    'corrupted field: department',
+  );
+});
+
 test('allows a legitimate multi-course academic appointment', () => {
   assert.equal(getPublishBlockReason({
     title: 'Counselling Psychology Instructor',
