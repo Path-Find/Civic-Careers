@@ -100,6 +100,10 @@ describe('normalizeJobTitle', () => {
       normalizeJobTitle('Field Placement Support Officer (Appendix D/Temporary Assignment: September 2026 – September 2027)'),
       'Field Placement Support Officer',
     );
+    assert.equal(
+      normalizeJobTitle('Student Information Systems Architect - Appendix D/Temporary Assignment'),
+      'Student Information Systems Architect',
+    );
     assert.equal(normalizeJobTitle('Relief School Crossing Guard (Up to 6)'), 'Relief School Crossing Guard');
     assert.equal(normalizeJobTitle('School Crossing Guard - GENERAL APPLICATION POOL'), 'School Crossing Guard');
   });

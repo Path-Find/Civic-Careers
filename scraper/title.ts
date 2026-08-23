@@ -284,6 +284,10 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   // signal separately.
   t = t.replace(/\s*[-–—]\s*\d{4}\s+recruitment\s*$/i, '').trim();
   t = t.replace(TRAILING_DURATION_METADATA, '').trim();
+  // Appendix/temporary-assignment markers are listing metadata, not part of
+  // the public role name (for example, "Role - Appendix D/Temporary
+  // Assignment").
+  t = t.replace(/\s*[-–—]\s*(?:appendix\s+[A-Z0-9]+\s*\/\s*)?temporary\s+assignment\s*$/i, '').trim();
   t = t.replace(/\s*[-–—]\s*(?:re[-\s]?post(?:ing)?|periodic(?:\s+posting|\s+post)?)\s*$/i, '').trim();
   t = t.replace(/\s*[-–—]\s*(?:reaffichage|réaffichage)\s*$/i, '').trim();
   t = t.replace(

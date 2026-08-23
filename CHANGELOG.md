@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Removed `Appendix D/Temporary Assignment` metadata from the Algonquin Student Information Systems Architect title and added a shared rule for future postings.
+
 - Long Responsibilities sections now reliably trigger the existing Details pending state, including jobs whose description was already loaded in the results view.
 
 - Audited departments database-wide, cleared a current Milton salary capture from the department field, and added Workday/publication checks for future source-label contamination.
