@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractLabeledLocation, normalizeLocation } from '../location';
+import { extractLabeledLocation, normalizeLocation, normalizeSourceLocation } from '../location';
 import { extractPendingMetadata } from '../pending-metadata';
 
 test('bare Canadian cities get province codes', () => {
@@ -90,6 +90,11 @@ test('St. Catharines casing', () => {
 
 test('unmapped bare place does not invent a province', () => {
   assert.equal(normalizeLocation('Someunknownville'), '');
+});
+
+test('repairs glued Chatham-Kent arena locations by source signal', () => {
+  assert.equal(normalizeSourceLocation('Municipality of Chatham-Kent', 'Location: Various municipal arenas'), 'Chatham-Kent, ON');
+  assert.equal(normalizeSourceLocation('Other source', 'Location: Various municipal arenas'), '');
 });
 
 test('dedupes repeated cities', () => {

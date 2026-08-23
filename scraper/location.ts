@@ -563,6 +563,14 @@ export function normalizeLocation(raw: string | null | undefined): string {
   return dedupeJoin(normalized);
 }
 
+/** Source-specific location recovery for layouts whose address list is glued together. */
+export function normalizeSourceLocation(source: string | null | undefined, rawText: string | null | undefined): string {
+  if (source === 'Municipality of Chatham-Kent' && /Location:\s*Various municipal arenas/i.test(String(rawText ?? ''))) {
+    return 'Chatham-Kent, ON';
+  }
+  return '';
+}
+
 /** Recover a labelled source location when the AI parser leaves it empty. */
 export function extractLabeledLocation(rawText: string | null | undefined): string {
   if (!rawText) return '';

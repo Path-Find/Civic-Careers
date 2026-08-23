@@ -10,7 +10,7 @@ import { initDb } from './db';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import { extractLabeledLocation, normalizeLocation } from './location';
+import { extractLabeledLocation, normalizeLocation, normalizeSourceLocation } from './location';
 
 dotenv.config({ quiet: true });
 
@@ -58,7 +58,7 @@ async function main() {
   const allRows = [...currentRows, ...archiveRows];
   for (const row of allRows) {
     const from = String(row.location ?? '').trim();
-    const normalized = normalizeLocation(from);
+    const normalized = normalizeSourceLocation(String(row.source ?? ''), String(row.raw_text ?? '')) || normalizeLocation(from);
     const recovered = !normalized ? extractLabeledLocation(String(row.raw_text ?? '')) : '';
     // Never erase a populated location during this repair pass. If neither
     // the stored value nor the preserved source can be normalized, retain the
