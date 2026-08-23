@@ -433,6 +433,11 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     normalized = 'Occasional Teacher';
   }
 
+  if (source === 'Northumberland County'
+    && /^registered\s+nurse\s+rn(?:\s+2)?$/i.test(normalized)) {
+    normalized = 'Registered Nurse (RN)';
+  }
+
   if (source === 'Metrolinx') {
     // Metrolinx appends location, shift pattern, pay annotation, and pool
     // status to the same heading. Those belong in structured fields, not the

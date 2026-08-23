@@ -177,6 +177,8 @@ describe('normalizeJobTitle', () => {
       normalizeSourceJobTitle('Toronto District School Board', 'TDSB Teaching - Elementary/Secondary - Occasional Teaching/Eligible to Hire'),
       'Occasional Teacher',
     );
+    assert.equal(normalizeSourceJobTitle('Northumberland County', 'registered nurse rn'), 'Registered Nurse (RN)');
+    assert.equal(normalizeSourceJobTitle('Northumberland County', 'registered nurse rn 2'), 'Registered Nurse (RN)');
     assert.equal(
       normalizeSourceJobTitle('University of Ottawa', 'APTPUO---Winter-2027---API5135D_JR37962---Ethics and Moral Reasoning'),
       'Ethics and Moral Reasoning',
