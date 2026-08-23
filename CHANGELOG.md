@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Hardened salary parsing so incidental allowances cannot become the salary, ranges keep both bounds, and pay periods are taken only from the salary capture.
 
+- Made salary backfills accept a source-specific period correction only when its bounds match the stored salary, preventing stale yearly labels without importing unrelated dollar amounts.
+
 - Repaired 855 additional location values across current and archived jobs while preserving unresolved values for later source-specific review.
 
 - Canonicalized province-first locations such as `SK, Moose Jaw` to city-first storage and repaired the affected Defence Construction Canada records.

@@ -50,6 +50,28 @@ function resolveSalary(row: Row): { display: string; min: number | null; max: nu
   const currentMin = row.salary_min == null ? null : Number(row.salary_min);
   const currentMax = row.salary_max == null ? null : Number(row.salary_max);
   const currentPeriod = periodFrom(row.salary_period) || periodFrom(row.salary_range);
+  const source = String(row.source ?? '');
+  const rawText = String(row.raw_text ?? '');
+  const board = extractBoardSpecificMetadata(source, rawText);
+  const boardMin = board.salaryMin == null ? null : Number(board.salaryMin);
+  const boardMax = board.salaryMax == null ? null : Number(board.salaryMax);
+  // `salaryPeriod` defaults to yearly in several board parsers when the source
+  // salary has no qualifier. Only trust a correction when the captured salary
+  // text itself contains the explicit period.
+  const boardPeriod = source === 'City of Winnipeg' ? periodFrom(board.salary) : null;
+
+  // A source-specific parser may correct a stale period, but it must agree
+  // with the stored bounds before it is allowed to replace them. This is what
+  // repairs rows such as Winnipeg's biweekly salary that was previously
+  // mislabeled yearly, without trusting a parser capture that found the wrong
+  // dollar amount elsewhere in the page.
+  if (Number.isFinite(currentMin) && Number.isFinite(currentMax)
+    && boardMin !== null && boardMax !== null
+    && boardMin === currentMin && boardMax === currentMax
+    && boardPeriod) {
+    return { min: currentMin, max: currentMax, period: boardPeriod, display: formatSalaryDisplay(currentMin, currentMax, boardPeriod) };
+  }
+
   if (Number.isFinite(currentMin) || Number.isFinite(currentMax)) {
     const min = Number.isFinite(currentMin) ? currentMin : currentMax;
     const max = Number.isFinite(currentMax) ? currentMax : currentMin;
@@ -58,9 +80,6 @@ function resolveSalary(row: Row): { display: string; min: number | null; max: nu
     }
   }
 
-  const source = String(row.source ?? '');
-  const rawText = String(row.raw_text ?? '');
-  const board = extractBoardSpecificMetadata(source, rawText);
   if (board.salaryMin != null || board.salaryMax != null) {
     const min = board.salaryMin ?? board.salaryMax!;
     const max = board.salaryMax ?? board.salaryMin!;
