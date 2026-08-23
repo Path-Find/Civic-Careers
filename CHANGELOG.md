@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Removed unrequested explanatory sentences from the filter sidebar so it shows the controls without extra instructions.
+
 - Hardened salary parsing so incidental allowances cannot become the salary, ranges keep both bounds, and pay periods are taken only from the salary capture.
 
 - Made salary backfills accept a source-specific period correction only when its bounds match the stored salary, preventing stale yearly labels without importing unrelated dollar amounts.

@@ -96,7 +96,6 @@ export function JobFiltersSidebar({
     </FilterSection>}
     <FilterSection title="Salary Min (yearly equivalent)">
       {[50000, 75000, 100000, 125000].map(value => <FilterButton key={value} label={`$${value / 1000}k+`} active={minSalary === value} onClick={() => onMinSalaryChange(minSalary === value ? null : value)} />)}
-      <p className="filter-note">Hourly, daily, weekly, biweekly, and monthly pay is converted to an approximate yearly equivalent. Flat or unclear pay is excluded.</p>
     </FilterSection>
     <FilterSection title="Work Mode">{['In-person', 'Hybrid', 'Remote'].map(mode => <FilterButton key={mode} label={mode} active={selectedModes.includes(mode)} onClick={() => onModesChange(mode)} />)}</FilterSection>
     <FilterSection title="Language">{['English', 'French'].map(language => <FilterButton key={language} label={language} active={selectedLanguages.includes(language)} onClick={() => onLanguageChange(language)} />)}</FilterSection>
@@ -105,8 +104,7 @@ export function JobFiltersSidebar({
       {EDUCATION_LEVELS.map(level => <FilterButton key={level.value} label={level.label} active={selectedEducationLevels.includes(level.value)} onClick={() => onEducationLevelChange(level.value)} />)}
       <label className="filter-title filter-field-label" htmlFor="education-field-filter">Area of study</label>
       {educationField && <div className="filter-selected-list"><button type="button" className="filter-selected" onClick={() => onEducationFieldChange('')}>{educationField} ×</button></div>}
-      <div className="filter-search-wrap"><input id="education-field-filter" className="location-filter-input" value={educationQuery} onChange={event => setEducationQuery(event.target.value)} placeholder="Search areas of study" aria-describedby="education-field-note" /><SuggestionList suggestions={educationQuery.trim() ? educationSuggestions : []} onSelect={value => { onEducationFieldChange(value); setEducationQuery(''); }} /></div>
-      <p id="education-field-note" className="filter-note">Select a standardized area of study.</p>
+      <div className="filter-search-wrap"><input id="education-field-filter" className="location-filter-input" value={educationQuery} onChange={event => setEducationQuery(event.target.value)} placeholder="Search areas of study" /><SuggestionList suggestions={educationQuery.trim() ? educationSuggestions : []} onSelect={value => { onEducationFieldChange(value); setEducationQuery(''); }} /></div>
     </FilterSection>
     <FilterSection title="Deadline"><FilterButton label="Today" active={deadlineDays === 0} onClick={() => onDeadlineChange(deadlineDays === 0 ? null : 0)} disabled={closingSoonDisabled} /><FilterButton label="Within 7 days" active={deadlineDays === 7} onClick={() => onDeadlineChange(deadlineDays === 7 ? null : 7)} disabled={closingSoonDisabled} /><FilterButton label="Within 14 days" active={deadlineDays === 14} onClick={() => onDeadlineChange(deadlineDays === 14 ? null : 14)} disabled={closingSoonDisabled} /><FilterButton label="Within 30 days" active={deadlineDays === 30} onClick={() => onDeadlineChange(deadlineDays === 30 ? null : 30)} disabled={closingSoonDisabled} />{closingSoonDisabled && <p className="filter-note">These jobs are open until filled, so no closing-date filter applies.</p>}</FilterSection>
     <FilterSection title="Job Type">
@@ -118,7 +116,6 @@ export function JobFiltersSidebar({
     </FilterSection>
     <FilterSection title="Career stage">
       {CAREER_STAGES.map(stage => <FilterButton key={stage.value} label={stage.label} active={selectedCareerStages.includes(stage.value)} onClick={() => onCareerStageChange(stage.value)} />)}
-      <p className="filter-note">We only show a career stage when the posting makes it clear.</p>
     </FilterSection>
     <div className="filter-reset-wrap"><button className="filter-reset" onClick={onReset}>Reset filters</button></div>
   </aside>;
