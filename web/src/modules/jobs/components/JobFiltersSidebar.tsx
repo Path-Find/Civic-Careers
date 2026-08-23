@@ -110,7 +110,8 @@ export function JobFiltersSidebar({
     <FilterSection title="Vehicle"><FilterButton label="Vehicle required" active={vehicleRequired} onClick={onVehicleRequiredChange} /></FilterSection>
     <FilterSection title="Education">
       {EDUCATION_LEVELS.map(level => <FilterButton key={level.value} label={level.label} active={selectedEducationLevels.includes(level.value)} onClick={() => onEducationLevelChange(level.value)} />)}
-      <label className="filter-title filter-field-label" htmlFor="education-field-filter">Area of study</label>
+    </FilterSection>
+    <FilterSection title="Area of study">
       {educationField && <div className="filter-selected-list"><button type="button" className="filter-selected" onClick={() => onEducationFieldChange('')}>{educationField} ×</button></div>}
       <div className="filter-search-wrap"><input id="education-field-filter" className="location-filter-input" value={educationQuery} onFocus={() => setActiveSearch('education')} onChange={event => setEducationQuery(event.target.value)} placeholder="Search areas of study" /><SuggestionList suggestions={activeSearch === 'education' && educationQuery.trim() ? educationSuggestions : []} onSelect={value => { onEducationFieldChange(value); setEducationQuery(''); setActiveSearch(null); }} /></div>
     </FilterSection>

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Made Area of study a separate filter section instead of nesting it under Education.
+
 - Location autocomplete now excludes malformed and non-canonical values, showing only city/province-formatted locations.
 
 - Filter suggestions now appear only for the search field currently being used, preventing employer options from appearing under Location.
