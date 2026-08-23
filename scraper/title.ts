@@ -278,6 +278,11 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   t = t.replace(TRAILING_PLAIN_POOL_METADATA, '').trim();
   t = t.replace(TRAILING_PIPELINE_METADATA, '').trim();
   t = t.replace(TRAILING_MULTIPLICITY_METADATA, '').trim();
+  // Annual recruitment cycles are listing metadata, not part of the public
+  // role name (for example, "Volunteer Probationary Firefighter - 2027
+  // Recruitment"). The listing type classifier retains the recruitment
+  // signal separately.
+  t = t.replace(/\s*[-–—]\s*\d{4}\s+recruitment\s*$/i, '').trim();
   t = t.replace(TRAILING_DURATION_METADATA, '').trim();
   t = t.replace(/\s*[-–—]\s*(?:re[-\s]?post(?:ing)?|periodic(?:\s+posting|\s+post)?)\s*$/i, '').trim();
   t = t.replace(/\s*[-–—]\s*(?:reaffichage|réaffichage)\s*$/i, '').trim();

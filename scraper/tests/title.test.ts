@@ -231,6 +231,7 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeSourceJobTitle('University of Ottawa', 'Fall 2026 BCH4932 G00'), 'Course Instructor');
     assert.equal(normalizeSourceJobTitle('University of Ottawa', 'Winter 2027- GNG2501 C'), 'Course Instructor');
     assert.equal(normalizeSourceJobTitle('York University', 'PASS Leader KINE 1031/2031 F/W (Academic Peer Support Assistant Lead)'), 'PASS Leader (Academic Peer Support Assistant Lead)');
+    assert.equal(normalizeJobTitle('Volunteer Probationary Firefighter - 2027 Recruitment'), 'Volunteer Probationary Firefighter');
     assert.equal(extractSourceAcademicTerm('York University', 'PASS Leader KINE 1031/2031 F/W 26/27'), 'Fall/Winter 2026-27');
   });
 

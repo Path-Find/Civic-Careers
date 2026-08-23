@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Removed annual recruitment-year metadata from public titles while retaining the recruitment classification, and repaired current uOttawa ATPUO pending titles into role titles with course and term metadata.
+
 - Reconciled current and archived publication statuses against the shared quality gate; 158 current and 431 archived rows were hidden or corrected without deleting their raw captures.
 
 - Fixed three structured-field quality failures: legitimate PascalCase departments and multi-course academic appointments no longer get blocked, and glued Ottawa office-hours captures are cleaned before publication.

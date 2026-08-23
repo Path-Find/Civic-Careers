@@ -589,6 +589,7 @@ const INVENTORY_TEXT_SIGNALS: RegExp[] = [
 ];
 const INVENTORY_TITLE_SIGNAL = /\b(?:applicant\s+pool|eligibility\s+list|inventory|talent\s+pool|periodic(?:\s+posting|\s+post)?)\b/i;
 const ONGOING_TEXT_SIGNALS: RegExp[] = [
+  /\b\d{4}\s+recruitment\b/i,
   /\bgeneral application pool\b/i,
   /\b(?:candidate|talent)\s+pool\b/i,
   /\b(?:general recruitment call|standing job posting)\b/i,
