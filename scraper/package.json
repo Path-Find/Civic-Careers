@@ -12,6 +12,7 @@
     "backfill-metadata-only": "npx tsx backfill-metadata-only.ts",
     "backfill-normalize-titles": "npx tsx backfill-normalize-titles.ts",
     "backfill-quality-title-rules": "npx tsx backfill-quality-title-rules.ts",
+    "backfill-quality-artifacts": "npx tsx backfill-quality-artifacts.ts",
     "backfill-normalize-salaries": "npx tsx backfill-normalize-salaries.ts",
     "backfill-stale-pending-salary": "npx tsx backfill-stale-pending-salary.ts",
     "backfill-clear-nonacademic-context": "npx tsx backfill-clear-nonacademic-context.ts",

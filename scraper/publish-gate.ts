@@ -63,7 +63,9 @@ const SCALAR_FIELD_LENGTH_CEILING: Record<string, number> = {
   department: 150,
   hours: 200,
   salary: 150,
-  location: 150,
+  // A federal posting can legitimately list many work locations; semicolon
+  // separated city lists routinely exceed 150 characters.
+  location: 500,
   // Real union names run up to ~70 chars ("Association of the Academic Staff
   // of the University of Alberta"); a City of Calgary board-parser bug was
   // found dumping the entire raw posting (position type, pay grade, hours,
@@ -94,7 +96,7 @@ const SCALAR_FIELD_LENGTH_CEILING: Record<string, number> = {
 function hasSquishedSentenceJoin(value: string): boolean {
   // York University uses the legitimate branded program name
   // `EmpowerAbility`; it is not a glued field boundary.
-  return !/\bEmpowerAbility\b/.test(value) && /[a-z]{3,}[A-Z][a-z]{5,}/.test(value);
+  return !/\b(?:EmpowerAbility|AccessAbility)\b/.test(value) && /[a-z]{3,}[A-Z][a-z]{5,}/.test(value);
 }
 
 function corruptedScalarField(details: PublishGateDetails): string | null {

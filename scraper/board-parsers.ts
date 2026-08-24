@@ -131,7 +131,7 @@ export function parseHamilton(rawText: string): ExtractedBoardMetadata {
 const CITY_OF_TORONTO_FIELD_LABELS = [
   'Division\\s*&\\s*Section', 'Work Location', 'Job Type\\s*&\\s*Duration',
   'Salary Range', 'Shift Information', 'Affiliation', 'Posting Period',
-  'Number of Positions', 'Job Classification', 'Posting Date',
+  'Number of Positions(?:\\s+Open)?', 'Job Classification', 'Posting Date',
 ];
 
 function cityOfTorontoField(label: string): RegExp {

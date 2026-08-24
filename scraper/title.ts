@@ -21,9 +21,12 @@ export function isEmploymentOrDurationParen(inner: string): boolean {
     return true;
   }
   if (/^(?:ft|pt)\s+(?:temporary|temp|casual|seasonal|permanent|term|contract)$/i.test(s)) return true;
+  if (/^(?:full[-\s]?time|part[-\s]?time|temporary|casual|permanent|contract)(?:\s*,?\s*(?:limited[-\s]?term|contract|term))$/i.test(s)) return true;
+  if (/^(?:full[-\s]?time|part[-\s]?time)\s+temporary$/i.test(s)) return true;
 
   // A posting count is metadata, not part of the public role name.
   if (/^\d+\s+positions?$/i.test(s)) return true;
+  if (/^(?:multiple|several)\s+positions?$/i.test(s)) return true;
   if (/^several\s+positions?$/i.test(s)) return true;
   if (/^up\s+to\s+\d+$/i.test(s)) return true;
 
@@ -31,9 +34,13 @@ export function isEmploymentOrDurationParen(inner: string): boolean {
   if (/^(?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?)\b(?:\s+(?:contract|term|assignment|position|temporary))?$/i.test(s)) {
     return true;
   }
+  if (/^\d+(?:\.\d+)?\s*[-–—]\s*\d+(?:\.\d+)?\s*(?:years?|months?|weeks?|days?)\s+(?:contract|term|appointment|assignment|position|temporary)$/i.test(s)) return true;
 
   // "2 Year Contract", "9 Month Contract", "18-months contract", "1-Year Contract"
   if (/^\d+(?:\.\d+)?\s*[-–—]?\s*(?:year|years|month|months|yr|yrs|mo|mos)\s+(?:contract|term|assignment|position|temporary)?$/i.test(s)) {
+    return true;
+  }
+  if (/^\d+(?:\.\d+)?\s*[-–—]\s*\d+(?:\.\d+)?\s*(?:year|years|month|months|yr|yrs|mo|mos)\s+(?:term\s+appointment|contract|appointment|assignment)$/i.test(s)) {
     return true;
   }
 
@@ -57,6 +64,8 @@ export function isEmploymentOrDurationParen(inner: string): boolean {
   if (/^(?:temporary\s+part[-\s]?time|temporary\s+full[-\s]?time|regular\s+part[-\s]?time|regular\s+full[-\s]?time|extended\s+contract\s+full[-\s]?time|part[-\s]?time\s+contract|fixed\s+term\s+contract|limited\s+term\s+contract|acting\/contract)$/i.test(s)) {
     return true;
   }
+  if (/^(?:part[-\s]?time\s+and\s+casual|non[-\s]?permanent)$/i.test(s)) return true;
+  if (/^(?:part[-\s]?time|full[-\s]?time)\s+backshift$/i.test(s)) return true;
 
   // Compound metadata such as "Permanent, On-Call" or
   // "Temporary, up to 6 months".
@@ -275,13 +284,14 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   ));
   // A status before a meaningful parenthetical belongs in employment_type,
   // e.g. `Professor, Part-Time (Physiotherapy)`.
-  t = t.replace(/,\s*(?:part[-\s]?time|full[-\s]?time|temporary|casual|permanent|contract)\s*(?=\()/i, ' ').trim();
+  t = t.replace(/[,\s-]+(?:part[-\s]?time|full[-\s]?time|temporary|casual|permanent|contract)\s*(?=\()/i, ' ').trim();
   // Portal annotations are not part of the role title. Keep this narrow to
   // explicit reposting/revision/multiplicity markers so meaningful
   // parentheticals remain intact.
   t = t.replace(/\s*\([^)]*\b(?:repost(?:ed|ing)?|revised|vacanc(?:y|ies)|positions?\s+available)\b[^)]*\)\s*$/i, '').trim();
   t = t.replace(/\s*[,–—-]?\s*(?:\d+|multiple|several)\s+(?:positions?|vacanc(?:y|ies))(?:\s+available)?\s*$/i, '').trim();
   t = t.replace(/\s+(?:repost(?:ed|ing)?|revised)\s*$/i, '').trim();
+  t = t.replace(/\s+\*?\s*(?:repost(?:ed|ing)?|revised)\s*\*?\s*$/i, '').trim();
   t = t.replace(/\s{2,}/g, ' ').trim();
 
   // Trailing dash inventory / employment
@@ -315,6 +325,15 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   t = t.replace(/\s*[-–—]\s*regular\s+part[-\s]?time(?:\s*\([^)]*\))?\s*$/i, '').trim();
   t = t.replace(/\s*[-–—]\s*(?:contract\/job\s+rotation|appendix\s+[A-Z0-9]+\s*\/\s*temporary)\s*$/i, '').trim();
   t = t.replace(/\s*[-–—]\s*(?:casual|temporary|temp|regular\s+part[-\s]?time|full[-\s]?time|part[-\s]?time)\s*\/\s*(?:on[-\s]?call|appendix\s+[A-Z0-9]+)(?:\s*\([^)]*\))?\s*$/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*(?:part[-\s]?time\s+\d+(?:\.\d+)?\s*FTE\s+contract|temporary\/AppD\s+replacement)\s*$/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*(?:[^-–—]*\s+)?temporary\/AppD\s+replacement\s*$/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*temporary\s+part[-\s]?time\b.*$/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*(?:PT|FT|P\/T|F\/T)\s*$/i, '').trim();
+  t = t.replace(/\s*[-–—]?\s*(?<![A-Za-z])(?:P\/T|F\/T|PT|FT)\b\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+  t = t.replace(/\s*,\s*(?:temporary\s+)?(?:part[-\s]?time|full[-\s]?time|casual|permanent|non[-\s]?permanent)(?:\s*,\s*|$)/i, ', ').trim();
+  t = t.replace(/\s*[-–—]\s*(?:temporary|temp|contract|casual|part[-\s]?time|full[-\s]?time)(?:\s+part[-\s]?time)?\s*\([^)]*\d{4}[^)]*\)\s*$/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*[^-–—]*\b(?:temporary|full[-\s]?time|part[-\s]?time)\b\s*$/i, '').trim();
+  t = t.replace(/\s*,\s*(?:regular\s+)?(?:full[-\s]?time|part[-\s]?time)\s*(?=,|$)/i, '').trim();
   t = t.replace(/\s+sessional\s*$/i, '').trim();
 
   // Some boards put the metadata before the role with a comma, e.g.
@@ -336,6 +355,7 @@ export function normalizeJobTitle(title: string | null | undefined): string {
 
   // Trailing punctuation / double spaces from removals
   t = t.replace(/\s*[-–—,;:/]+\s*$/g, '').trim();
+  t = t.replace(/\s*[-–—]\s*(?=\()/g, ' ').replace(/\(\s+/g, '(').trim();
   t = t.replace(/\s{2,}/g, ' ').trim();
   // "Technician  Creative" already collapsed; fix "Word -  - Word" style
   t = t.replace(/\s*[-–—]\s*[-–—]+/g, ' - ').trim();
@@ -347,6 +367,7 @@ export function normalizeJobTitle(title: string | null | undefined): string {
 
 /** Apply source-specific cleanup after the shared title normalization. */
 export function normalizeSourceJobTitle(source: string | null | undefined, title: string | null | undefined): string {
+  if (source === 'University of Ottawa' && /^ST[-\s]?PT$/i.test(String(title ?? '').trim())) return 'Course Instructor';
   let normalized = normalizeJobTitle(title);
   if (!normalized) return '';
 
@@ -354,6 +375,9 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     // uOttawa sometimes stores the generic course-instructor label (`ST-PT`)
     // instead of the role while the raw page still contains the course data.
     if (/^ST[-\s]?PT$/i.test(normalized)) return 'Course Instructor';
+    if (/^PT$/i.test(normalized) && extractSourceAcademicCourse(source, title)) return 'Course Instructor';
+    if (/^PT[-\s]+(?:aut|automne|fall|hiver|winter|printemps|spring)\b/i.test(String(title ?? ''))
+      && extractSourceAcademicCourse(source, title)) return 'Course Instructor';
     if (/^\/?\d{3,5}-[A-Z]\d{2}\s+(?:r[ée]affichage|repost(?:ed|ing)?)$/i.test(normalized)) return 'Course Instructor';
     // uOttawa's Workday headings commonly put the academic term, bargaining
     // unit, course code, and requisition ID into one display title, e.g.
@@ -453,6 +477,10 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     // in the same heading as the role title.
     normalized = normalized.replace(/\s*\(\d+\s+positions?\)/i, '').trim();
     normalized = normalized.replace(
+      /\s*(?:[-–—,]\s*)(?:FHLS|CDFM|FMCAD|FAST|BCTI|UGH|SWEL|SSE|ITS|R&SM|RO|Office of the Registrar|Campus Services)\s+(?:Admin|Support)\s*$/i,
+      '',
+    ).trim();
+    normalized = normalized.replace(
       /\s*(?:[-–—,]\s*)(?:(?:FHLS|CDFM|FMCAD|FAST|BCTI|UGH|SWEL|SSE|ITS|R&SM|RO|Office of the Registrar|Campus Services)(?:\s*[-–—]\s*(?:FT|PT)\s+(?:Admin|Support)|\s*[-–—]\s*(?:RPT|CPT|PC Prof|Clinical Contract|RPT Recurring))?|(?:FT|PT)\s+(?:Admin|Support)|(?:RPT|CPT|PC Prof|Clinical Contract|RPT Recurring))$/i,
       '',
     ).trim();
@@ -504,6 +532,7 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     // department, then appends section initials and the number of roles.
     normalized = normalized
       .replace(/^\s*(?:F|W|S)\d{2}\s+/i, '')
+      .replace(/^\s*(?:Spring\/Summer|Fall\/Winter|Winter\/Spring)\s+\d{4}\s*[-–—:]\s*(?:SAF|FAS?)\s*[-–—:]\s*/i, '')
       .replace(/^(?:Soc|SAF)\s+(?=(?:Academic|Teaching|Instructional)\s+Assistant\b)/i, '')
       .replace(/\s+[A-Z]{2,8}\s?\d{3,4}\s*\([^)]{1,24}\)(?:\s+[A-Z]{2})?(?:\s+\d+\s+roles?)?\s*$/i, '')
       .replace(/\s+\(\d+\)\s+[A-Z]{2}\s*$/i, '')
@@ -566,6 +595,16 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     }
   }
 
+  if (source === 'University of Winnipeg') {
+    // GMFT is a course prefix; do not let the shared FT abbreviation rule
+    // split it when normalizing archived or newly scraped titles.
+    normalized = normalized.replace(/\bGM\s+-\s*(?=\d)/gi, 'GMFT-');
+  }
+
+  if (source === 'Halifax Regional Municipality') {
+    normalized = normalized.replace(/\bBackshi\b/gi, 'Backshift');
+  }
+
   if (source === 'York University') {
     const courseCode = extractAcademicCourseCode(title, source);
     if (courseCode) normalized = normalized.replace(courseCode, '').trim();
@@ -582,6 +621,9 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
       .replace(/\s*[-–—:,]\s*(?:F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer))?(?:\s+\d{4}(?:[-/]\d{2,4})?)?)\s*$/i, '')
       .replace(/\s*\((?:Fall|Winter|Spring|Summer)\s+\d{4}(?:[-/]\d{2,4})?(?:\s*\/\s*(?:Fall|Winter|Spring|Summer)\s+\d{4}(?:[-/]\d{2,4})?)?\)\s*$/i, '')
       .replace(/^(?:F\/W\s+\d{2}\/\d{2}|(?:Fall|Winter|Spring|Summer)(?:\s*\/\s*(?:Fall|Winter|Spring|Summer)))\s*[-–—:,]\s*/i, '')
+      .replace(TERM_PATTERN, '')
+      .replace(/\s*\(\s*(?:in[-\s]?person|online(?:[-\s]?synchronous)?|remote)\s*\)\s*$/i, '')
+      .replace(/\s*[-–—:,]\s*$/g, '')
       .trim();
   }
 

@@ -45,6 +45,7 @@ export function normalizeDepartment(value: string | null | undefined): string {
     .replace(/\s+[-–—]\s+.*/, '')
     .replace(/^General$/i, '')
     .replace(/&/g, ' & ')
+    .replace(/,\s*/g, ', ')
     .replace(/\s+/g, ' ')
     .trim();
   if (!cleaned || /^n\/a$/i.test(cleaned)) return '';
@@ -144,7 +145,11 @@ function isNonUnionLabel(name: string): boolean {
 export function normalizeUnionName(raw: string | null | undefined): string {
   if (raw == null) return '';
   let s = String(raw).replace(/\?+$/g, '').replace(/\s+/g, ' ').trim();
+  s = s.replace(/\s*number\s+of\s+positions?\s+open\s*:\s*\d+.*$/i, '').trim();
   if (!s) return '';
+  // City of Toronto sometimes glued the qualified-list sentence onto the
+  // `Non-Union` label. The sentence is not a bargaining-unit name.
+  if (/^non[-\s]?union/i.test(s)) return '';
   if (isNonUnionLabel(s)) return '';
   if (/^union$/i.test(s)) return '';
 
