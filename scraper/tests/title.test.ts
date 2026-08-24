@@ -112,6 +112,13 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeJobTitle('Specialist, Diversity and Inclusion Programs and Projects (Revised)'), 'Specialist, Diversity and Inclusion Programs and Projects');
   });
 
+  it('strips compound source status annotations', () => {
+    assert.equal(normalizeJobTitle('Grounds Worker - Casual/On-Call'), 'Grounds Worker');
+    assert.equal(normalizeJobTitle('Payroll Representative - Temporary/Appendix D'), 'Payroll Representative');
+    assert.equal(normalizeJobTitle('Professor, Part-Time (Physiotherapy)'), 'Professor (Physiotherapy)');
+    assert.equal(normalizeJobTitle('Clerk A-Customer Service (FT Temporary)'), 'Clerk A-Customer Service');
+  });
+
   it('moves parenthetical union markers out of the display title', () => {
     assert.equal(
       normalizeJobTitle('TA (CUPE) - SED3115 A - Fall 2026'),
@@ -179,6 +186,7 @@ describe('normalizeJobTitle', () => {
       'Manufacturing Execution System (MES) Software Specialist',
     );
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'PM-01 Client Support Centre Agent'), 'Client Support Centre Agent');
+    assert.equal(normalizeSourceJobTitle('Government of Canada', 'Several SP-03 & SP-04 positions to start your career at the CRA!'), 'SP-03 & SP-04 - CRA career opportunities');
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'Team Leader - IT Business Line Advisory Services - Bilingual'), 'Team Leader - IT Business Line Advisory Services');
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'Bilingual Senior Specialist, Security Applications'), 'Senior Specialist, Security Applications');
     assert.equal(
@@ -203,6 +211,8 @@ describe('normalizeJobTitle', () => {
       normalizeSourceJobTitle('University of Ottawa', 'Sessional Lecturer: Winter 2027 Planning Seminar'),
       'Sessional Lecturer: Planning Seminar',
     );
+    assert.equal(normalizeSourceJobTitle('University of Ottawa', 'ST-PT'), 'Course Instructor');
+    assert.equal(normalizeSourceJobTitle('University of Ottawa', '/8112-A00 Réaffichage'), 'Course Instructor');
     assert.equal(
       normalizeSourceJobTitle('University of Ottawa', 'Winter Operations Coordinator'),
       'Winter Operations Coordinator',

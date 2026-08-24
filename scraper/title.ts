@@ -20,6 +20,7 @@ export function isEmploymentOrDurationParen(inner: string): boolean {
   if (/^(?:part[-\s]?time|full[-\s]?time|temporary|temp|casual|seasonal|permanent|term|contract|on[-\s]?call|inventory|re[-\s]?post|reaffichage|réaffichage|periodic(?:\s+posting)?|rpt|cpt|prn|fte|sessional)$/i.test(s)) {
     return true;
   }
+  if (/^(?:ft|pt)\s+(?:temporary|temp|casual|seasonal|permanent|term|contract)$/i.test(s)) return true;
 
   // A posting count is metadata, not part of the public role name.
   if (/^\d+\s+positions?$/i.test(s)) return true;
@@ -181,6 +182,7 @@ const TRAILING_POOL_METADATA = /\s*[-–—]\s*general\s+application\s+pool\s*$/
 const TRAILING_PLAIN_POOL_METADATA = /\s*[-–—]\s*pool\s*$/i;
 const TRAILING_PIPELINE_METADATA = /\s*[-–—]\s*pipeline\s+posting\s+only\s*$/i;
 const TRAILING_MULTIPLICITY_METADATA = /\s+x\s+\d+\s*$/i;
+const TRAILING_MULTIPLE_VACANCY_METADATA = /\s*[-–—]\s*(?:multiple|several)\s+vacanc(?:y|ies)(?:\s*\([^)]*\))?\s*$/i;
 
 // Course-code extraction only fires for sources that are actually academic institutions.
 // The pattern (letters + alphanumeric number) also matches non-academic requisition IDs
@@ -271,6 +273,9 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   t = t.replace(/\s*\(([^)]*)\)/g, (full, inner: string) => (
     isEmploymentOrDurationParen(inner) || isUnionMarkerParen(inner) ? '' : full
   ));
+  // A status before a meaningful parenthetical belongs in employment_type,
+  // e.g. `Professor, Part-Time (Physiotherapy)`.
+  t = t.replace(/,\s*(?:part[-\s]?time|full[-\s]?time|temporary|casual|permanent|contract)\s*(?=\()/i, ' ').trim();
   // Portal annotations are not part of the role title. Keep this narrow to
   // explicit reposting/revision/multiplicity markers so meaningful
   // parentheticals remain intact.
@@ -282,6 +287,7 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   // Trailing dash inventory / employment
   t = t.replace(/\s*[-–—]\s*inventory\s*$/i, '').trim();
   t = t.replace(TRAILING_VACANCY_METADATA, '').trim();
+  t = t.replace(TRAILING_MULTIPLE_VACANCY_METADATA, '').trim();
   t = t.replace(TRAILING_POSITION_METADATA, '').trim();
   t = t.replace(TRAILING_SEVERAL_POSITIONS_METADATA, '').trim();
   t = t.replace(/\s*,?\s*(?:multiple|several)\s+positions?\s+available\s*$/i, '').trim();
@@ -306,6 +312,9 @@ export function normalizeJobTitle(title: string | null | undefined): string {
     /\s*[-–—]\s*(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term|sessional|fixed[-\s]?term(?:\s+contract)?|limited\s+term\s+contract)\s*$/i,
     '',
   ).trim();
+  t = t.replace(/\s*[-–—]\s*regular\s+part[-\s]?time(?:\s*\([^)]*\))?\s*$/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*(?:contract\/job\s+rotation|appendix\s+[A-Z0-9]+\s*\/\s*temporary)\s*$/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*(?:casual|temporary|temp|regular\s+part[-\s]?time|full[-\s]?time|part[-\s]?time)\s*\/\s*(?:on[-\s]?call|appendix\s+[A-Z0-9]+)(?:\s*\([^)]*\))?\s*$/i, '').trim();
   t = t.replace(/\s+sessional\s*$/i, '').trim();
 
   // Some boards put the metadata before the role with a comma, e.g.
@@ -342,6 +351,10 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
   if (!normalized) return '';
 
   if (source === 'University of Ottawa') {
+    // uOttawa sometimes stores the generic course-instructor label (`ST-PT`)
+    // instead of the role while the raw page still contains the course data.
+    if (/^ST[-\s]?PT$/i.test(normalized)) return 'Course Instructor';
+    if (/^\/?\d{3,5}-[A-Z]\d{2}\s+(?:r[ée]affichage|repost(?:ed|ing)?)$/i.test(normalized)) return 'Course Instructor';
     // uOttawa's Workday headings commonly put the academic term, bargaining
     // unit, course code, and requisition ID into one display title, e.g.
     // `APTPUO---Winter-2027---API5135D_JR37962`. Those are metadata fields,
@@ -419,6 +432,14 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     // TalentPoolBuilder appends the employment-status field directly to the
     // captured heading, sometimes without a separating space.
     normalized = normalized.replace(/\s*employment\s+status.*$/i, '').trim();
+  }
+
+  if (source === 'Government of Canada'
+    && /^several\s+SP-\d{2}\s*&\s*SP-\d{2}\s+positions?\b/i.test(normalized)) {
+    return normalized
+      .replace(/^several\s+/i, '')
+      .replace(/\s+positions?\s+to\s+start\s+your\s+career\s+at\s+the\s+CRA!?$/i, ' - CRA career opportunities')
+      .trim();
   }
 
   if (source === 'City of Oshawa') {

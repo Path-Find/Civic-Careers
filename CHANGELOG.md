@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Cleared the current quality audit: valid live listings now use an explicit until-filled status, stale invalid captures are archived, and recurring title metadata is normalized by source-aware rules.
+
 - Added guarded closing-status and title-quality backfills that repair valid current and archived captures while leaving invalid pages hidden.
 
 - Ottawa academic backfills now use the same raw-text-aware scoped title rules as fresh parsing, so course titles are moved into academic metadata consistently.
