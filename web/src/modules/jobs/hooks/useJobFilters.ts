@@ -5,7 +5,13 @@ import type { CareerStage } from '../careerStage';
 import { CLOSING_SOON_DAYS, groupJobsByCompany, isExpired, jobFreshnessTimestamp, parseJobDetails, parseTagList } from '../jobUtils';
 
 export function parseLocationTerms(value: string): string[] {
-  return [...new Set(value.split(/[,;]+/).map(term => term.trim().toLowerCase()).filter(Boolean))];
+  const trimmed = value.trim();
+  const parts = trimmed.includes(';')
+    ? trimmed.split(';')
+    : /^[^,;]{2,80},\s*(?:AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)$/i.test(trimmed)
+      ? [trimmed]
+      : trimmed.split(',');
+  return [...new Set(parts.map(term => term.trim().toLowerCase()).filter(Boolean))];
 }
 
 export function matchesLocation(location: string | null | undefined, filter: string): boolean {

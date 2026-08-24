@@ -437,6 +437,26 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
 
+    if (view === 'locations') {
+      const locationSql = `SELECT DISTINCT COALESCE(jd.location, raw.pending_location) AS location
+        ${jobJoins}
+        WHERE j.is_active = 1
+          ${visiblePending}
+          ${publicDeadline}
+          AND NULLIF(TRIM(COALESCE(jd.location, raw.pending_location)), '') IS NOT NULL
+        ORDER BY location`;
+      const [currentLocations, archiveLocations] = await Promise.all([
+        db.execute(locationSql),
+        archiveDb.execute(locationSql),
+      ]);
+      const locations = [...new Set([...currentLocations.rows, ...archiveLocations.rows]
+        .map(row => String(row.location ?? '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean))].sort((left, right) => left.localeCompare(right));
+      res.setHeader('Cache-Control', PUBLIC_CACHE);
+      res.end(JSON.stringify(locations));
+      return;
+    }
+
     if (view === 'jobs') {
       let sourceFilters = sourceParam ? [sourceParam] : [];
       let sourceGroup = sourceParam ? organizationGroupForSources([sourceParam]) : null;
@@ -490,6 +510,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       const careerStages = [...new Set(parsed.searchParams.get('careerStages')?.split(',').map(value => value.trim()).filter(value =>
         ['student', 'early-career', 'experienced', 'senior'].includes(value)
       ) ?? [])];
+      const locations = [...new Set(parsed.searchParams.getAll('locations').map(value => value.trim().toLowerCase()).filter(Boolean))];
 
       const filterArgs: Array<string | number> = [];
       let filterClause = '';
@@ -497,6 +518,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       if (sourceFilters.length > 0) {
         filterClause += ` AND j.source IN (${sourceFilters.map(() => '?').join(', ')})`;
         filterArgs.push(...sourceFilters);
+      }
+
+      if (locations.length > 0) {
+        const locationText = `LOWER(COALESCE(jd.location, raw.pending_location, ''))`;
+        filterClause += ` AND (${locations.map(() => `${locationText} LIKE ?`).join(' OR ')})`;
+        filterArgs.push(...locations.map(location => `%${location}%`));
       }
 
       if (deadlineDays !== null && Number.isFinite(deadlineDays)) {

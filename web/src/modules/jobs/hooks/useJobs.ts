@@ -10,6 +10,7 @@ export type JobsListServerFilters = {
   deadlineDays: number | null;
   newlyAdded: boolean;
   sourceNames: string[];
+  locations: string[];
   educationLevels: string[];
   educationField: string;
   careerStages: string[];
@@ -19,6 +20,7 @@ const EMPTY_SERVER_FILTERS: JobsListServerFilters = {
   deadlineDays: null,
   newlyAdded: false,
   sourceNames: [],
+  locations: [],
   educationLevels: [],
   educationField: '',
   careerStages: [],
@@ -51,6 +53,7 @@ function appendServerFilters(params: URLSearchParams, filters: JobsListServerFil
   if (filters.sourceNames.length > 0) {
     params.set('sources', filters.sourceNames.join(','));
   }
+  filters.locations.forEach(location => params.append('locations', location));
   if (filters.educationLevels.length > 0) {
     params.set('educationLevels', filters.educationLevels.join(','));
   }
@@ -60,7 +63,7 @@ function appendServerFilters(params: URLSearchParams, filters: JobsListServerFil
   if (filters.careerStages.length > 0) {
     params.set('careerStages', filters.careerStages.join(','));
   }
-  if (filters.sourceNames.length > 0 || filters.educationLevels.length > 0 || filters.educationField.trim() || filters.careerStages.length > 0) {
+  if (filters.sourceNames.length > 0 || filters.locations.length > 0 || filters.educationLevels.length > 0 || filters.educationField.trim() || filters.careerStages.length > 0) {
     params.set('filtersVersion', '2');
   }
 }
@@ -78,6 +81,7 @@ export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [homeData, setHomeData] = useState<HomeData | null>(null);
   const [companySummaries, setCompanySummaries] = useState<CompanySummary[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [jobsTotal, setJobsTotal] = useState(0);
@@ -155,10 +159,14 @@ export function useJobs() {
     const companiesRequest = (view === 'jobs' || view === 'saved') && !companySlug
       ? fetchJson(`${API}/api/jobs?view=companies`)
       : Promise.resolve(null);
-    Promise.all([fetchJson(endpoint), companiesRequest])
-      .then(([data, companies]) => {
+    const locationsRequest = view === 'jobs'
+      ? fetchJson(`${API}/api/jobs?view=locations`)
+      : Promise.resolve(null);
+    Promise.all([fetchJson(endpoint), companiesRequest, locationsRequest])
+      .then(([data, companies, locationData]) => {
         if (requestId !== refreshRequestRef.current) return;
         if (companies) setCompanySummaries(Array.isArray(companies) ? companies : []);
+        if (locationData) setLocations(Array.isArray(locationData) ? locationData : []);
         if (view === 'home') {
           const recentJobs = data.recentJobs.map(normalizeJob);
           const closingSoonJobs = data.closingSoonJobs.map(normalizeJob);
@@ -268,6 +276,7 @@ export function useJobs() {
 
   return {
     jobs,
+    locations,
     homeData,
     companySummaries,
     loading,

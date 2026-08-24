@@ -4,7 +4,7 @@ import { jobIdFromPath, jobRoute, slugify } from './utils';
 import type { Job, ListingTypeFilter, View } from './types/jobs';
 import { parseJobDetails } from './modules/jobs/jobUtils';
 import { useJobs } from './modules/jobs/hooks/useJobs';
-import { useJobFilters } from './modules/jobs/hooks/useJobFilters';
+import { parseLocationTerms, useJobFilters } from './modules/jobs/hooks/useJobFilters';
 import { useRecentlyViewed } from './modules/jobs/hooks/useRecentlyViewed';
 import { JobRow } from './modules/jobs/components/JobRow';
 import { JobFiltersSidebar } from './modules/jobs/components/JobFiltersSidebar';
@@ -164,7 +164,7 @@ function replaceJobFiltersInUrl(state: JobUrlState) {
 }
 
 function App() {
-  const { jobs, homeData, companySummaries, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, jobsOrganization, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
+  const { jobs, homeData, companySummaries, locations, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, jobsOrganization, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -237,11 +237,12 @@ function App() {
     : educationFilteredJobs.length;
 
   /** Keep useJobs server filter ref in sync, then optionally re-fetch the list. */
-  const applyServerListFilters = (next: { deadlineDays?: number | null; newlyAdded?: boolean; sourceNames?: string[]; educationLevels?: string[]; educationField?: string; careerStages?: string[] }, shouldRefresh: boolean) => {
+  const applyServerListFilters = (next: { deadlineDays?: number | null; newlyAdded?: boolean; sourceNames?: string[]; locations?: string[]; educationLevels?: string[]; educationField?: string; careerStages?: string[] }, shouldRefresh: boolean) => {
     const serverFilters = {
       deadlineDays: next.deadlineDays ?? deadlineDays,
       newlyAdded: next.newlyAdded ?? newlyAdded,
       sourceNames: next.sourceNames ?? selectedCompanySources,
+      locations: next.locations ?? parseLocationTerms(locationTerm),
       educationLevels: next.educationLevels ?? selectedEducationLevels,
       educationField: next.educationField ?? educationField,
       careerStages: next.careerStages ?? selectedCareerStages,
@@ -336,7 +337,7 @@ function App() {
       setSelectedCareerStages(state.selectedCareerStages);
       // The API expands grouped organization names before querying source rows.
       const sourceNames = state.selectedCompanyNames;
-      setServerFilters({ deadlineDays: state.deadlineDays, newlyAdded: state.newlyAdded, sourceNames, educationLevels: state.selectedEducationLevels, educationField: state.educationField, careerStages: state.selectedCareerStages });
+      setServerFilters({ deadlineDays: state.deadlineDays, newlyAdded: state.newlyAdded, sourceNames, locations: parseLocationTerms(state.locationTerm), educationLevels: state.selectedEducationLevels, educationField: state.educationField, careerStages: state.selectedCareerStages });
     };
 
     const handlePopState = (shouldRefresh: boolean) => {
@@ -516,7 +517,7 @@ function App() {
   const reset = () => {
     setSelectedJob(null); setCurrentView('home'); setSearchTerm(''); setSelectedModes([]); setSelectedLanguages([]); setVehicleRequired(false); setMinSalary(null); setDeadlineDays(null); setListingTypeFilter(null); setSortNewest(false); setNewlyAdded(false);
     setLocationTerm(''); setShowStudentJobs(false); setShowAcademicJobs(false); setSelectedCareerStages([]); setSelectedCompanyTypes([]); setSelectedCompanyNames([]); setSelectedEducationLevels([]); setEducationField('');
-    setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], educationLevels: [], educationField: '', careerStages: [] });
+    setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], locations: [], educationLevels: [], educationField: '', careerStages: [] });
     window.history.pushState(null, '', '/');
     refresh();
   };
@@ -525,7 +526,7 @@ function App() {
     setSortNewest(true);
     setDeadlineDays(null);
     setNewlyAdded(false);
-    setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: selectedCompanySources, educationLevels: selectedEducationLevels, educationField, careerStages: selectedCareerStages });
+    setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: selectedCompanySources, locations: parseLocationTerms(locationTerm), educationLevels: selectedEducationLevels, educationField, careerStages: selectedCareerStages });
     if (navigateToJobs) handleNavigate('jobs');
     else refresh();
   };
@@ -533,7 +534,7 @@ function App() {
     setSortNewest(false);
     setDeadlineDays(14);
     setNewlyAdded(false);
-    setServerFilters({ deadlineDays: 14, newlyAdded: false, sourceNames: selectedCompanySources, educationLevels: selectedEducationLevels, educationField, careerStages: selectedCareerStages });
+    setServerFilters({ deadlineDays: 14, newlyAdded: false, sourceNames: selectedCompanySources, locations: parseLocationTerms(locationTerm), educationLevels: selectedEducationLevels, educationField, careerStages: selectedCareerStages });
     if (navigateToJobs) handleNavigate('jobs');
     else refresh();
   };
@@ -541,7 +542,7 @@ function App() {
     setSortNewest(false);
     setDeadlineDays(null);
     setNewlyAdded(true);
-    setServerFilters({ deadlineDays: null, newlyAdded: true, sourceNames: selectedCompanySources, educationLevels: selectedEducationLevels, educationField, careerStages: selectedCareerStages });
+    setServerFilters({ deadlineDays: null, newlyAdded: true, sourceNames: selectedCompanySources, locations: parseLocationTerms(locationTerm), educationLevels: selectedEducationLevels, educationField, careerStages: selectedCareerStages });
     if (navigateToJobs) handleNavigate('jobs');
     else refresh();
   };
@@ -568,7 +569,7 @@ function App() {
                     setSortNewest(false);
                     setDeadlineDays(null);
                     setNewlyAdded(false);
-                    setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], educationLevels: [], educationField: '', careerStages: [] });
+                    setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], locations: [], educationLevels: [], educationField: '', careerStages: [] });
                     setSelectedCompanyNames([]);
                     setSelectedEducationLevels([]);
                     setEducationField('');
@@ -673,6 +674,7 @@ function App() {
                 <JobFiltersSidebar
                   headerHeight={headerHeight}
                   jobs={jobs}
+                  locations={locations}
                   companyOptions={companySummaries.filter(company => Number(company.active_job_count) > 0)}
                   selectedCompanyNames={visibleSelectedCompanyNames}
                   selectedEducationLevels={selectedEducationLevels}
@@ -690,7 +692,7 @@ function App() {
                   closingSoonDisabled={allVisibleResultsUntilFilled}
                   savedView={currentView === 'saved'}
                   onMinSalaryChange={setMinSalary}
-                  onLocationChange={setLocationTerm}
+                  onLocationChange={value => { setLocationTerm(value); applyServerListFilters({ locations: parseLocationTerms(value) }, currentView === 'jobs'); }}
                   onModesChange={mode => setSelectedModes(prev => prev.includes(mode) ? prev.filter(value => value !== mode) : [...prev, mode])}
                   onLanguageChange={language => setSelectedLanguages(previous => previous.includes(language) ? previous.filter(value => value !== language) : [...previous, language])}
                   onVehicleRequiredChange={() => setVehicleRequired(previous => !previous)}
@@ -758,7 +760,7 @@ function App() {
                         setSelectedCompanyNames([]);
                         setSelectedEducationLevels([]);
                         setEducationField('');
-                        setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], educationLevels: [], educationField: '', careerStages: [] });
+                        setServerFilters({ deadlineDays: null, newlyAdded: false, sourceNames: [], locations: [], educationLevels: [], educationField: '', careerStages: [] });
                         handleNavigate('jobs', company.name, company.organizationSlug);
                       }}
                     />
