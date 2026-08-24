@@ -14,7 +14,7 @@ const TABLES = {
   },
   job_details: {
     key: 'id',
-    columns: ['id', 'job_title', 'department', 'location', 'workplace_address', 'salary_range', 'description', 'closing_date', 'is_inventory', 'listing_type', 'is_student', 'salary_min', 'salary_max', 'salary_period', 'work_model', 'employment_type', 'duration', 'hours', 'availability', 'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours', 'academic_supervisor', 'academic_appointment_type', 'academic_schedule', 'academic_term', 'is_unionized', 'union_name', 'benefits', 'required_skills', 'experience_requirements', 'education_requirements', 'license_requirements', 'vehicle_required', 'language_requirements', 'security_check_required', 'certification_requirements', 'software_requirements', 'medical_requirements', 'responsibility_tags', 'qualification_tags', 'posted_at', 'parser_version', 'start_date', 'career_stage'],
+    columns: ['id', 'job_title', 'department', 'location', 'workplace_address', 'salary_range', 'description', 'closing_date', 'is_inventory', 'listing_type', 'is_student', 'salary_min', 'salary_max', 'salary_period', 'work_model', 'employment_type', 'duration', 'hours', 'availability', 'academic_role_type', 'academic_course', 'academic_workload', 'academic_office_hours', 'academic_supervisor', 'academic_appointment_type', 'academic_schedule', 'academic_term', 'is_unionized', 'union_name', 'benefits', 'required_skills', 'experience_requirements', 'education_requirements', 'license_requirements', 'vehicle_required', 'language_requirements', 'security_check_required', 'certification_requirements', 'software_requirements', 'medical_requirements', 'responsibility_tags', 'qualification_tags', 'posted_at', 'parser_version', 'parser_rule_ids', 'start_date', 'career_stage'],
   },
   parse_failures: {
     key: 'id',
@@ -67,6 +67,8 @@ export class NeonDatabaseClient {
     await Promise.all([
       this.currentPool.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS publication_status TEXT NOT NULL DEFAULT 'hidden'`),
       this.archivePool.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS publication_status TEXT NOT NULL DEFAULT 'hidden'`),
+      this.currentPool.query(`ALTER TABLE job_details ADD COLUMN IF NOT EXISTS parser_rule_ids TEXT`),
+      this.archivePool.query(`ALTER TABLE job_details ADD COLUMN IF NOT EXISTS parser_rule_ids TEXT`),
     ]);
     const archiveMax = await this.archivePool.query<{ max: string | null }>('SELECT MAX(public_id)::text AS max FROM jobs');
     const currentMax = await this.currentPool.query<{ max: string | null }>('SELECT MAX(public_id)::text AS max FROM jobs');

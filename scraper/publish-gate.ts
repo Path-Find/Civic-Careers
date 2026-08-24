@@ -92,7 +92,9 @@ const SCALAR_FIELD_LENGTH_CEILING: Record<string, number> = {
 // (3,2)-letter threshold still false-positived on "ServiceNow"/"PeopleSoft"/
 // "GoodWorks" found live in the archive DB; (3,5) cleanly separates both sets.
 function hasSquishedSentenceJoin(value: string): boolean {
-  return /[a-z]{3,}[A-Z][a-z]{5,}/.test(value);
+  // York University uses the legitimate branded program name
+  // `EmpowerAbility`; it is not a glued field boundary.
+  return !/\bEmpowerAbility\b/.test(value) && /[a-z]{3,}[A-Z][a-z]{5,}/.test(value);
 }
 
 function corruptedScalarField(details: PublishGateDetails): string | null {

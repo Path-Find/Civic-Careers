@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Cleared the current quality audit: valid live listings now use an explicit until-filled status, stale invalid captures are archived, and recurring title metadata is normalized by source-aware rules.
+
+- Added guarded closing-status and title-quality backfills that repair valid current and archived captures while leaving invalid pages hidden.
+
+- Ottawa academic backfills now use the same raw-text-aware scoped title rules as fresh parsing, so course titles are moved into academic metadata consistently.
+
+- Refactored parsing around one shared per-job pipeline with quality gating and recorded rule provenance, so fresh parses and future audits can use the same deterministic decisions.
+
+- Added scoped parser-rule auditing and source-filtered title backfills, preventing employer-specific fixes from being applied across unrelated sources.
+
+- Multi-location postings now produce separate location suggestions instead of one combined pill.
+
+- Job search filters now query the full public catalogue instead of only the loaded page, and employer labels are consistent between job cards, details, and the company directory.
+
+- Removed academic context from 102 confirmed non-academic rows, repaired four duplicate-field rows, corrected two placeholder detail titles, and normalized 15 active source titles.
+
+- Area of study suggestions now use the full public catalogue instead of only the first loaded jobs, so subjects such as Science are discoverable and filterable.
+
+- Location search now uses the full public location list and server-side matching, so cities such as Toronto are available even when the first loaded jobs have no location.
+
+- Extended the public-job spot check through nine non-overlapping batches and repaired recurring Ottawa, Shared Health, Canada Post, and academic metadata errors found in the final round.
+
+- Added deterministic, source-scoped public-job spot checks and parser repairs for recurring salary, workload, title, course, and portal-capture errors.
+
 - Normalized 166 Education values to use concise Bachelor’s/Master’s labels while keeping currently enrolled requirements separate from Student/Co-op job classification.
 
 - Recovered four title-only Shared Health locations from explicit city names and added a safe source-specific fallback for future incomplete captures.

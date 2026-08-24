@@ -15,7 +15,7 @@
 export type HoursAvailability = { hours: string; availability: string };
 
 function clean(s: string): string {
-  return s.replace(/\s+/g, ' ').replace(/\u2013|\u2014/g, '-').trim();
+  return s.replace(/[\u200B\uFEFF]/g, '').replace(/\s+/g, ' ').replace(/\u2013|\u2014/g, '-').trim();
 }
 
 /** Extract "N hours per week" / "Up to N hours per week" / bare "N hours". */
@@ -41,6 +41,10 @@ export function normalizeHours(raw: string | null | undefined): string {
   if (new RegExp(`^${num} hours per week$`, 'i').test(s)) {
     const n = s.match(/^(\d{1,3}(?:\.\d{1,2})?)/)![1];
     return `${n} hours per week`;
+  }
+  if (new RegExp(`^${num} hours (?:per )?biweekly$`, 'i').test(s)) {
+    const n = s.match(/^([0-9]+(?:\.[0-9]+)?)/)![1];
+    return `${n} hours biweekly`;
   }
   if (new RegExp(`^Up to ${num} hours per week$`, 'i').test(s)) {
     const n = s.match(/(\d{1,3}(?:\.\d{1,2})?)/)![1];

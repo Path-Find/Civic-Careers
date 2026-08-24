@@ -58,7 +58,11 @@ function resolveSalary(row: Row): { display: string; min: number | null; max: nu
   // `salaryPeriod` defaults to yearly in several board parsers when the source
   // salary has no qualifier. Only trust a correction when the captured salary
   // text itself contains the explicit period.
-  const boardPeriod = source === 'City of Winnipeg' ? periodFrom(board.salary) : null;
+  const boardPeriod = source === 'City of Winnipeg'
+    ? periodFrom(board.salary)
+    : source === 'Shared Health Manitoba' || source === 'Canada Post' || source === 'University of Ottawa'
+      ? (board.salaryPeriod as SalaryPeriod | null)
+      : null;
 
   // A source-specific parser may correct a stale period, but it must agree
   // with the stored bounds before it is allowed to replace them. This is what

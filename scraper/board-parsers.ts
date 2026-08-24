@@ -9,6 +9,7 @@ import {
 } from './validate';
 import { PEOPLE_SOFT_SOURCES } from './title';
 import { parseSalaryText } from './salary-format';
+import { normalizeAvailability, normalizeHours } from './hours-availability';
 
 export interface ExtractedBoardMetadata {
   title?: string;
@@ -18,6 +19,7 @@ export interface ExtractedBoardMetadata {
   salary?: string;
   employmentType?: string;
   hours?: string;
+  availability?: string;
   workModel?: 'Hybrid' | 'Remote' | 'On-site';
   duration?: string | null;
   department?: string | null;
@@ -219,7 +221,7 @@ function workdayField(label: string): RegExp {
   return boundedField(label, WORKDAY_FIELD_LABELS);
 }
 
-export function parseWorkday(rawText: string): ExtractedBoardMetadata {
+export function parseWorkday(rawText: string, source = ''): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   // Location and Time Type
@@ -272,6 +274,23 @@ export function parseWorkday(rawText: string): ExtractedBoardMetadata {
   const closingMatch = rawText.match(workdayField('Posting Closing Date')) || rawText.match(workdayField('Closing Date'));
   if (closingMatch) {
     metadata.closingDate = extractClosingDate(closingMatch[0]);
+  }
+
+  if (source === 'University of Ottawa') {
+    const totalHours = rawText.match(/Total\s+Work\s+Hours\s*:\s*([0-9]+(?:\.[0-9]+)?)/i);
+    if (totalHours) metadata.hours = normalizeHours(`${totalHours[1]} hours`);
+    const courseHours = rawText.match(/\bHours\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*(hours?)?(?:\s+(biweekly|per\s+week))?/i);
+    if (courseHours) metadata.hours = normalizeHours(`${courseHours[1]} hours ${courseHours[3] ?? ''}`);
+    const hourlyRate = rawText.match(/Hourly\s+Rate\s*:[\s\S]{0,120}?(\$\s*[0-9][\d,]*(?:\.[0-9]{1,2})?)[\s\S]{0,80}?(?:or\/or|\/)[\s\S]{0,40}?(\$\s*[0-9][\d,]*(?:\.[0-9]{1,2})?)/i);
+    if (hourlyRate) {
+      const parsed = parseSalaryText(`${hourlyRate[1].replace(/\s+/g, '')}-${hourlyRate[2].replace(/\s+/g, '')} hour`, 'hourly');
+      if (parsed) {
+        metadata.salary = parsed.display;
+        metadata.salaryMin = parsed.min;
+        metadata.salaryMax = parsed.max;
+        metadata.salaryPeriod = parsed.period;
+      }
+    }
   }
 
   return metadata;
@@ -549,15 +568,15 @@ export function parseTaleo(rawText: string): ExtractedBoardMetadata {
  */
 const SUCCESS_FACTORS_FIELD_LABELS = [
   'Salary', 'Department\\s*/\\s*Unit', 'Department', 'Site', 'City', 'Union',
-  'Posting\\s+End\\s+Date', 'Work\\s+Arrangement', 'FTE', 'Requisition ID',
-  'Position Number', 'Shift',
+  'Posting\\s+End\\s+Date', 'Work\\s+Arrangement', 'FTE', 'Daily\\s+Hours\\s+Worked', 'Annual\\s+Base\\s+Hours',
+  'Anticipated\\s+Shift', 'Shift', 'Requisition ID', 'Position Number',
 ];
 
 function successFactorsField(label: string): RegExp {
   return boundedField(label, SUCCESS_FACTORS_FIELD_LABELS);
 }
 
-export function parseSuccessFactors(rawText: string): ExtractedBoardMetadata {
+export function parseSuccessFactors(rawText: string, source = ''): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   // Salary
@@ -568,7 +587,7 @@ export function parseSuccessFactors(rawText: string): ExtractedBoardMetadata {
     const parsed = parseSalaryMinMax(range);
     metadata.salaryMin = parsed.min;
     metadata.salaryMax = parsed.max;
-    metadata.salaryPeriod = normalizeSalaryPeriod(range);
+    metadata.salaryPeriod = source === 'Shared Health Manitoba' ? 'hourly' : normalizeSalaryPeriod(range);
   }
 
   // Department
@@ -604,10 +623,22 @@ export function parseSuccessFactors(rawText: string): ExtractedBoardMetadata {
     metadata.workModel = normalizeWorkModel(arrangementMatch[1]);
   }
 
-  // FTE / Hours
-  const fteMatch = rawText.match(successFactorsField('FTE'));
-  if (fteMatch) {
-    metadata.hours = `FTE: ${fteMatch[1].trim()}`;
+  // FTE is employment metadata, not a workload value. Use daily hours when
+  // the source provides them and keep the shift in Availability.
+  if (source === 'Shared Health Manitoba') {
+    const dailyHoursMatch = rawText.match(/Daily\\s+Hours\\s+Worked\\s*:\s*([0-9]+(?:\\.[0-9]+)?(?:\\s*[&/]\\s*[0-9]+(?:\\.[0-9]+)?)?)/i);
+    if (dailyHoursMatch) metadata.hours = normalizeHours(`${dailyHoursMatch[1].split(/[&/]/)[0].trim()} hours`);
+    // Some captures contain zero-width spaces after the label. Re-read the
+    // numeric value with a source-specific expression so Annual Base Hours
+    // can never become the displayed workload.
+    const explicitDailyHours = rawText.match(/Daily\s+hours\s+worked[^:]*:\s*[\u200b\u00a0]*([0-9]+(?:\.[0-9]+)?)/i);
+    if (explicitDailyHours) metadata.hours = `${explicitDailyHours[1]} hours`;
+    const shiftMatch = rawText.match(successFactorsField('Anticipated\\s+Shift'))
+      || rawText.match(successFactorsField('Shift'));
+    if (shiftMatch) metadata.availability = normalizeAvailability(shiftMatch[1]);
+  } else {
+    const fteMatch = rawText.match(successFactorsField('FTE'));
+    if (fteMatch) metadata.hours = `FTE: ${fteMatch[1].trim()}`;
   }
 
   return metadata;
@@ -675,7 +706,7 @@ export function parseTechnomedia(rawText: string): ExtractedBoardMetadata {
 /**
  * Parser for Jobs2Web platform postings.
  */
-export function parseJobs2Web(rawText: string): ExtractedBoardMetadata {
+export function parseJobs2Web(rawText: string, source = ''): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   const salaryMatch = rawText.match(/Salary:\s*(.+?)(?=\s*(?:Job Closing Date|Closing Date|Job Description|$))/i)
@@ -687,6 +718,10 @@ export function parseJobs2Web(rawText: string): ExtractedBoardMetadata {
     metadata.salaryMin = parsed.min;
     metadata.salaryMax = parsed.max;
     metadata.salaryPeriod = normalizeSalaryPeriod(range);
+    if (source === 'Canada Post' && !/\b(?:hour|hr|week|month|year|annual|annum|biweekly|daily|day)\b/i.test(range)) {
+      metadata.salary = `${range.replace(/\s+/g, '')} hour`;
+      metadata.salaryPeriod = 'hourly';
+    }
   }
 
   const closingMatch = rawText.match(/(?:Job Closing Date|Closing Date)\s*(?:\([^)]*\))?:\s*([^\n;]+)/i);
@@ -779,7 +814,7 @@ function peopleSoftField(label: string): RegExp {
   return boundedField(label, PEOPLE_SOFT_FIELD_LABELS);
 }
 
-export function parsePeopleSoft(rawText: string): ExtractedBoardMetadata {
+export function parsePeopleSoft(rawText: string, source = ''): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
   const deptMatch = rawText.match(peopleSoftField('Department')) || rawText.match(/Department\s*\n+([^\n]+)/i);
@@ -816,6 +851,19 @@ export function parsePeopleSoft(rawText: string): ExtractedBoardMetadata {
     metadata.unionName = normalizedUnion.union_name || null;
   }
 
+  if (source === 'Toronto Metropolitan University') {
+    const compensation = rawText.match(/Salary\s*&\s*Compensation[\s\S]{0,500}?\$\s*([\d,.]+)\s*per\s+hour[\s\S]{0,180}?\$\s*([\d,.]+)\s*per\s+hour/i);
+    if (compensation) {
+      const parsed = parseSalaryText(`$${compensation[1]}-$${compensation[2]} hour`, 'hourly');
+      if (parsed) {
+        metadata.salary = parsed.display;
+        metadata.salaryMin = parsed.min;
+        metadata.salaryMax = parsed.max;
+        metadata.salaryPeriod = parsed.period;
+      }
+    }
+  }
+
   return metadata;
 }
 
@@ -848,7 +896,7 @@ export function extractBoardSpecificMetadata(source: string, rawText: string): E
     'Region of Waterloo',
   ]);
   if (jobs2WebSources.has(source)) {
-    return parseJobs2Web(rawText);
+    return parseJobs2Web(rawText, source);
   }
 
   // Government of Canada
@@ -861,7 +909,7 @@ export function extractBoardSpecificMetadata(source: string, rawText: string): E
 
   // PeopleSoft sources
   if (PEOPLE_SOFT_SOURCES.has(source)) {
-    return parsePeopleSoft(rawText);
+    return parsePeopleSoft(rawText, source);
   }
 
   // SuccessFactors sources
@@ -873,7 +921,7 @@ export function extractBoardSpecificMetadata(source: string, rawText: string): E
     'TTC',
   ]);
   if (successFactorsSources.has(source)) {
-    return parseSuccessFactors(rawText);
+    return parseSuccessFactors(rawText, source);
   }
 
   // ADP sources
@@ -937,7 +985,7 @@ export function extractBoardSpecificMetadata(source: string, rawText: string): E
     'University of Ottawa',
   ]);
   if (workdaySources.has(source)) {
-    return parseWorkday(rawText);
+    return parseWorkday(rawText, source);
   }
 
   return {};

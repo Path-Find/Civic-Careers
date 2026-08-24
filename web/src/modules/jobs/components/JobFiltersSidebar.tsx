@@ -36,11 +36,13 @@ function isCanonicalLocation(value: string): boolean {
 }
 
 export function JobFiltersSidebar({
-  headerHeight, jobs, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, closingSoonDisabled, savedView,
+  headerHeight, jobs, locations, educationRequirements, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, closingSoonDisabled, savedView,
   onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onAcademicJobsChange, onCareerStageChange, onCompanyChange, onEducationLevelChange, onEducationFieldChange, onReset,
 }: {
   headerHeight: number;
   jobs: Job[];
+  locations: string[];
+  educationRequirements: string[];
   companyOptions: CompanySummary[];
   selectedCompanyNames: string[];
   selectedEducationLevels: EducationLevel[];
@@ -76,29 +78,28 @@ export function JobFiltersSidebar({
   const [locationQuery, setLocationQuery] = useState('');
   const [educationQuery, setEducationQuery] = useState('');
   const [activeSearch, setActiveSearch] = useState<'location' | 'company' | 'education' | null>(null);
-  const selectedLocations = useMemo(() => locationTerm.split(/[,;]+/).map(value => value.trim()).filter(Boolean), [locationTerm]);
+  const selectedLocations = useMemo(() => locationTerm.split(';').map(value => value.trim()).filter(Boolean), [locationTerm]);
   const companySuggestions = useMemo(() => companyOptions
     .map(company => publicOrganizationName(company.name))
     .filter(name => !selectedCompanyNames.includes(name))
     .filter(name => name.toLowerCase().includes(companyQuery.trim().toLowerCase()))
     .slice(0, 8), [companyOptions, companyQuery, selectedCompanyNames]);
-  const locationSuggestions = useMemo(() => [...new Set(jobs
-    .map(job => job.location?.trim() ?? '')
+  const locationSuggestions = useMemo(() => [...new Set((locations.length > 0 ? locations : jobs.map(job => job.location?.trim() ?? ''))
     .filter(location => location.length > 0 && location.length <= 100 && isCanonicalLocation(location)))]
     .filter(location => !selectedLocations.includes(location) && location.toLowerCase().includes(locationQuery.trim().toLowerCase()))
-    .slice(0, 8), [jobs, selectedLocations, locationQuery]);
-  const educationSuggestions = useMemo(() => educationFieldOptions(jobs.map(job => job.education_requirements))
+    .slice(0, 8), [jobs, locations, selectedLocations, locationQuery]);
+  const educationSuggestions = useMemo(() => educationFieldOptions(educationRequirements.length > 0 ? educationRequirements : jobs.map(job => job.education_requirements))
     .filter(value => value.toLowerCase().includes(educationQuery.trim().toLowerCase()))
     .filter(value => value !== educationField)
-    .slice(0, 8), [jobs, educationField, educationQuery]);
+    .slice(0, 8), [jobs, educationRequirements, educationField, educationQuery]);
   const selectLocation = (location: string) => {
-    if (!selectedLocations.includes(location)) onLocationChange([...selectedLocations, location].join(', '));
+    if (!selectedLocations.includes(location)) onLocationChange([...selectedLocations, location].join('; '));
     setLocationQuery('');
   };
 
   return <aside className="listing-sidebar" style={{ top: `${headerHeight + 20}px`, maxHeight: `calc(100vh - ${headerHeight + 40}px)` }}>
     <div className={`filter-heading ${savedView ? 'saved-filter-heading' : ''}`}><span className="filter-heading-label">Filters</span>{savedView && <p className="saved-filter-note">Filters apply to saved jobs only. Recently viewed jobs stay separate.</p>}</div>
-    <div className="filter-section"><label className="filter-title" htmlFor="location-filter">Location</label><div className="filter-search-wrap"><input id="location-filter" className="location-filter-input" value={locationQuery} onFocus={() => setActiveSearch('location')} onChange={event => setLocationQuery(event.target.value)} placeholder="Search locations" /><SuggestionList suggestions={activeSearch === 'location' && locationQuery.trim() ? locationSuggestions : []} onSelect={value => { selectLocation(value); setActiveSearch(null); }} /></div>{selectedLocations.length > 0 && <div className="filter-selected-list">{selectedLocations.map(location => <button key={location} type="button" className="filter-selected" onClick={() => onLocationChange(selectedLocations.filter(value => value !== location).join(', '))}>{location} ×</button>)}</div>}</div>
+    <div className="filter-section"><label className="filter-title" htmlFor="location-filter">Location</label><div className="filter-search-wrap"><input id="location-filter" className="location-filter-input" value={locationQuery} onFocus={() => setActiveSearch('location')} onChange={event => setLocationQuery(event.target.value)} placeholder="Search locations" /><SuggestionList suggestions={activeSearch === 'location' && locationQuery.trim() ? locationSuggestions : []} onSelect={value => { selectLocation(value); setActiveSearch(null); }} /></div>{selectedLocations.length > 0 && <div className="filter-selected-list">{selectedLocations.map(location => <button key={location} type="button" className="filter-selected" onClick={() => onLocationChange(selectedLocations.filter(value => value !== location).join('; '))}>{location} ×</button>)}</div>}</div>
     {companyOptions.length > 0 && <FilterSection title="Employer">
       <div className="filter-search-wrap"><input id="employer-filter" className="location-filter-input" value={companyQuery} onFocus={() => setActiveSearch('company')} onChange={event => setCompanyQuery(event.target.value)} placeholder="Search employers" aria-label="Search employers" /><SuggestionList suggestions={activeSearch === 'company' && companyQuery.trim() ? companySuggestions : []} onSelect={name => { onCompanyChange(name); setCompanyQuery(''); setActiveSearch(null); }} /></div>
       {selectedCompanyNames.length > 0 && <div className="filter-selected-list">{selectedCompanyNames.map(name => <button key={name} type="button" className="filter-selected" onClick={() => onCompanyChange(name)}>{name} ×</button>)}</div>}

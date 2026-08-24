@@ -6,7 +6,8 @@
  */
 import dotenv from 'dotenv';
 import { initDb } from './db';
-import { extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, normalizeSourceJobTitle } from './title';
+import { extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, normalizeSourceAcademicCourse, normalizeSourceJobTitle } from './title';
+import { applyParserTitleRules, parserContext } from './parser-rules';
 
 dotenv.config({ quiet: true });
 
@@ -84,7 +85,7 @@ async function main() {
       const storedCourse = String(row.academic_course ?? '').trim();
       const storedDepartment = String(row.department ?? '').trim();
       const storedOfficeHours = String(row.academic_office_hours ?? '').trim();
-      let title = normalizeSourceJobTitle(source, sourceTitle);
+      let title = applyParserTitleRules(parserContext(source), sourceTitle, rawText).title;
       // Never use the record ID as academic evidence. PeopleSoft, Workday,
       // and hashed source IDs resemble course codes closely enough to poison
       // the academic_course field.
@@ -111,7 +112,7 @@ async function main() {
       // Reconcile old poisoned values as well as filling blanks. A known
       // source-specific format is the safety boundary for clearing a value;
       // unknown academic sources retain their existing field untouched.
-      let repairedCourse = course || (isStoredCourseValid(source, storedCourse) ? storedCourse : '');
+      let repairedCourse = normalizeSourceAcademicCourse(source, course || (isStoredCourseValid(source, storedCourse) ? storedCourse : ''));
       if (source === 'University of Northern British Columbia') {
         repairedCourse = UNBC_COURSE_OVERRIDES[String(row.id)]
           || (/^Instructor$/i.test(title) ? repairedCourse : '');
