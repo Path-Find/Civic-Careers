@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Extended the public-job spot check through nine non-overlapping batches and repaired recurring Ottawa, Shared Health, Canada Post, and academic metadata errors found in the final round.
+
 - Added deterministic, source-scoped public-job spot checks and parser repairs for recurring salary, workload, title, course, and portal-capture errors.
 
 - Normalized 166 Education values to use concise Bachelor’s/Master’s labels while keeping currently enrolled requirements separate from Student/Co-op job classification.

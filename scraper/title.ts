@@ -582,12 +582,16 @@ export function normalizeSourceJobTitleFromRaw(
     const vacancy = String(rawText ?? '').match(/\bVacancy\s*:\s*([^\n]+)/i)?.[1]?.trim() ?? '';
     if (vacancy) return vacancy;
   }
+  if (source === "Queen's University" && /^J\d{4}-\d{4,5}$/i.test(normalized)) {
+    const position = String(rawText ?? '').match(/\bPosition\s+Title\s*:\s*([^\n]+)/i)?.[1]?.trim() ?? '';
+    if (position) return position;
+  }
   if (source === 'University of Ottawa') {
     const classification = String(rawText ?? '').match(/Job\s+Classification\s*:\s*([^\n]+)/i)?.[1] ?? '';
     if (/teaching\s+assistant|demonstrator|lab\s+monitor/i.test(classification)) return 'Teaching Assistant';
     if (/professor|instructor/i.test(classification)) return 'Course Instructor';
     if (/\bCourse\s+Code\s*:/i.test(String(rawText ?? ''))
-      && (/^A?TPUO\b/i.test(String(rawText ?? '')) || /^(?:A?TPUO|[A-Z][A-Z\s-]{5,})/i.test(String(title ?? '')))) return 'Course Instructor';
+      && (/\bA?TPUO\b/i.test(String(rawText ?? '')) || /^(?:A?TPUO|[A-Z][A-Z\s-]{5,})/i.test(String(title ?? '')))) return 'Course Instructor';
   }
   return normalized;
 }
@@ -650,6 +654,9 @@ export function normalizeSourceAcademicCourse(source: string | null | undefined,
   if (source === 'Durham College' && /^(?:Welding|Learning|Trades)\s+\d+$/i.test(course)) return '';
   if (source === 'OCAD University' && /^Studies\s+\d+$/i.test(course)) return '';
   if (source === 'Seneca College' && /^Senior\s+\d+$/i.test(course)) return '';
+  if (source === 'University of Saskatchewan' && /^Imaging\s+\d+$/i.test(course)) return '';
+  if (source === 'Humber College' && /^Engineer\s+\d+$/i.test(course)) return '';
+  if (source === 'OCAD University' && /^Hub\s+\d+$/i.test(course)) return '';
   if (/^(?:neogov|psft|lever|ca|imaging|jr\d+)\s+[a-f0-9-]+$/i.test(course)) return '';
   if (source === 'University of Guelph' && /^[A-Za-z]+\s+[0-9a-f]{8}\s+—\s+[0-9]{2}$/i.test(course)) return '';
   if (source === 'University of Winnipeg' && /^[A-Za-z]+\s+[0-9a-f]{8}\s+—\s+[0-9a-f]{4}$/i.test(course)) return '';
@@ -660,8 +667,8 @@ export function normalizeSourceAcademicCourse(source: string | null | undefined,
 /** Recover uOttawa's labelled course metadata when the Workday title was truncated. */
 export function extractSourceAcademicCourseFromRaw(source: string | null | undefined, rawText: string | null | undefined): string {
   if (source !== 'University of Ottawa' || !rawText) return '';
-  const code = String(rawText).match(/\bCourse Code:\s*([^\r\n]+?)(?=Section:|Course Description:|$)/i)?.[1]?.trim() ?? '';
-  const title = String(rawText).match(/\bCourse Title:\s*([^\r\n]+?)(?=Course Code:|Section:|Course Description:|$)/i)?.[1]?.trim() ?? '';
+  const code = String(rawText).match(/Course\s+Code\s*:\s*([A-Z]{2,6}\s*-?\s*\d{3,5}[A-Z]?)(?=Section\s*:|Course\s+Description\s*:|$)/i)?.[1]?.trim() ?? '';
+  const title = String(rawText).match(/Course\s+Title\s*:\s*([\s\S]{1,180}?)(?=Course\s+Code\s*:|Section\s*:|Course\s+Description\s*:|$)/i)?.[1]?.trim() ?? '';
   const normalizedCode = code.replace(/\s+/g, ' ').trim();
   if (!/^(?!JR|REQ)[A-Z]{2,6}\s*-?\s*\d{3,5}[A-Z]?(?:\d{2})?$/i.test(normalizedCode)) return '';
   const cleanTitle = title.replace(new RegExp(`^${normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*[,;:-]?\s*`, 'i'), '').trim();
