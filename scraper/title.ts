@@ -271,6 +271,12 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   t = t.replace(/\s*\(([^)]*)\)/g, (full, inner: string) => (
     isEmploymentOrDurationParen(inner) || isUnionMarkerParen(inner) ? '' : full
   ));
+  // Portal annotations are not part of the role title. Keep this narrow to
+  // explicit reposting/revision/multiplicity markers so meaningful
+  // parentheticals remain intact.
+  t = t.replace(/\s*\([^)]*\b(?:repost(?:ed|ing)?|revised|vacanc(?:y|ies)|positions?\s+available)\b[^)]*\)\s*$/i, '').trim();
+  t = t.replace(/\s*[,–—-]?\s*(?:\d+|multiple|several)\s+(?:positions?|vacanc(?:y|ies))(?:\s+available)?\s*$/i, '').trim();
+  t = t.replace(/\s+(?:repost(?:ed|ing)?|revised)\s*$/i, '').trim();
   t = t.replace(/\s{2,}/g, ' ').trim();
 
   // Trailing dash inventory / employment

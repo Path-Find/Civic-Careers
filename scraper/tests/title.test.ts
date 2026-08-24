@@ -106,6 +106,10 @@ describe('normalizeJobTitle', () => {
     );
     assert.equal(normalizeJobTitle('Relief School Crossing Guard (Up to 6)'), 'Relief School Crossing Guard');
     assert.equal(normalizeJobTitle('School Crossing Guard - GENERAL APPLICATION POOL'), 'School Crossing Guard');
+    assert.equal(normalizeJobTitle('Evaluation Specialist (2 Positions Available)'), 'Evaluation Specialist');
+    assert.equal(normalizeJobTitle('Skate Patrol (Part-time, 15 vacancies)'), 'Skate Patrol');
+    assert.equal(normalizeJobTitle('Academic Program Assistant REPOST'), 'Academic Program Assistant');
+    assert.equal(normalizeJobTitle('Specialist, Diversity and Inclusion Programs and Projects (Revised)'), 'Specialist, Diversity and Inclusion Programs and Projects');
   });
 
   it('moves parenthetical union markers out of the display title', () => {
