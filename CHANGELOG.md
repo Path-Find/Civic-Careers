@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Refactored parsing around one shared per-job pipeline with quality gating and recorded rule provenance, so fresh parses and future audits can use the same deterministic decisions.
+
 - Added scoped parser-rule auditing and source-filtered title backfills, preventing employer-specific fixes from being applied across unrelated sources.
 
 - Multi-location postings now produce separate location suggestions instead of one combined pill.

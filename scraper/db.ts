@@ -241,6 +241,7 @@ async function initializeDbOnce(): Promise<Client> {
       responsibility_tags TEXT,
       qualification_tags TEXT,
       posted_at TEXT,
+      parser_rule_ids TEXT,
       career_stage TEXT
     )
   `);
@@ -283,6 +284,12 @@ async function initializeDbOnce(): Promise<Client> {
 
   try {
     await client.execute(`ALTER TABLE job_details ADD COLUMN parser_version INTEGER`);
+  } catch (err: any) {
+    if (!/duplicate column/i.test(err.message)) throw err;
+  }
+
+  try {
+    await client.execute(`ALTER TABLE job_details ADD COLUMN parser_rule_ids TEXT`);
   } catch (err: any) {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
@@ -406,6 +413,7 @@ export async function saveJobDetails(client: Client, job: {
   responsibility_tags?: string;
   qualification_tags?: string;
   parser_version?: number;
+  parser_rule_ids?: string | null;
   posted_at?: string | null;
   start_date?: string | null;
   career_stage?: string | null;
@@ -420,14 +428,14 @@ export async function saveJobDetails(client: Client, job: {
       hours, availability, academic_role_type, academic_course, academic_workload, academic_office_hours, academic_supervisor, academic_appointment_type, academic_schedule, academic_term,
       education_requirements, license_requirements, vehicle_required, language_requirements,
       security_check_required, certification_requirements, software_requirements, medical_requirements,
-      responsibility_tags, qualification_tags, parser_version, posted_at, start_date, career_stage
+      responsibility_tags, qualification_tags, parser_version, posted_at, start_date, parser_rule_ids, career_stage
     )
     VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?
     )
     ON CONFLICT(id) DO UPDATE SET
       job_title = excluded.job_title,
@@ -474,6 +482,7 @@ export async function saveJobDetails(client: Client, job: {
       parser_version = excluded.parser_version,
       posted_at = excluded.posted_at,
       start_date = COALESCE(excluded.start_date, job_details.start_date),
+      parser_rule_ids = excluded.parser_rule_ids,
       career_stage = excluded.career_stage`,
     args: [
       job.id, job.job_title, job.department, job.location, job.workplace_address ?? null, job.salary_range,
@@ -490,7 +499,7 @@ export async function saveJobDetails(client: Client, job: {
       job.vehicle_required ?? null, job.language_requirements ?? null, job.security_check_required ?? null,
       job.certification_requirements ?? null, job.software_requirements ?? null, job.medical_requirements ?? null,
       job.responsibility_tags ?? null, job.qualification_tags ?? null,
-      job.parser_version ?? null, job.posted_at ?? null, job.start_date ?? null, job.career_stage ?? null,
+      job.parser_version ?? null, job.posted_at ?? null, job.start_date ?? null, job.parser_rule_ids ?? null, job.career_stage ?? null,
     ],
   });
   // Full AI (or full-details) rewrite invalidates prior human verification.

@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS job_details (
   qualification_tags TEXT,
   posted_at TEXT,
   parser_version INTEGER,
+  parser_rule_ids TEXT,
   start_date TEXT,
   career_stage TEXT
 );
