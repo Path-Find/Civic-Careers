@@ -308,6 +308,8 @@ export function normalizeJobTitle(title: string | null | undefined): string {
 
   // Leading "Temporary Part-Time/Full-Time" (combo only — not bare Temporary)
   t = t.replace(/^(?:temporary\s+)+(?:part[-\s]?time|full[-\s]?time)\s+/i, '');
+  // Some Njoyn boards include the regularity qualifier in front of the role.
+  t = t.replace(/^(?:regular\s+)+(?:part[-\s]?time|full[-\s]?time)\s+/i, '');
   // Leading Part-time / Full-time (hyphen, space, or concatenated)
   t = t.replace(/^(?:part[-\s]?time|full[-\s]?time)\s+/i, '');
   // Leading Casual after the above (e.g. "Part-Time Casual …")
@@ -411,6 +413,12 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     // TalentPoolBuilder appends the employment-status field directly to the
     // captured heading, sometimes without a separating space.
     normalized = normalized.replace(/\s*employment\s+status.*$/i, '').trim();
+  }
+
+  if (source === 'City of Oshawa') {
+    // Oshawa's Vacancy label sometimes includes a written duration. Keep the
+    // role while leaving duration to the structured duration field.
+    normalized = normalized.replace(/\s*[-–—]\s*up\s+to\s+twelve\s*\(\s*12\s*\)\s+months?\s*$/i, '').trim();
   }
 
   if (source === 'Humber College') {
@@ -580,17 +588,24 @@ export function normalizeSourceJobTitleFromRaw(
   }
   if (source === 'City of Oshawa' && /^J\d{4}-\d{4,5}$/i.test(normalized)) {
     const vacancy = String(rawText ?? '').match(/\bVacancy\s*:\s*([^\n]+)/i)?.[1]?.trim() ?? '';
-    if (vacancy) return vacancy;
+    if (vacancy) return normalizeSourceJobTitle(source, vacancy);
   }
   if (source === "Queen's University" && /^J\d{4}-\d{4,5}$/i.test(normalized)) {
     const position = String(rawText ?? '').match(/\bPosition\s+Title\s*:\s*([^\n]+)/i)?.[1]?.trim() ?? '';
-    if (position) return position;
+    if (position) return normalizeSourceJobTitle(source, position);
   }
   if (source === 'University of Ottawa') {
+    const preservedRole = /\b(?:research\s+(?:assistant|associate)|postdoctoral|professor|instructor|teaching\s+assistant|academic\s+expert|course\s+instructor|student)\b/i.test(normalized);
+    if (preservedRole) return normalized;
     const classification = String(rawText ?? '').match(/Job\s+Classification\s*:\s*([^\n]+)/i)?.[1] ?? '';
     if (/teaching\s+assistant|demonstrator|lab\s+monitor/i.test(classification)) return 'Teaching Assistant';
     if (/professor|instructor/i.test(classification)) return 'Course Instructor';
-    if (/\bCourse\s+Code\s*:/i.test(String(rawText ?? ''))
+    // Workday course postings can expose only a course title as the trusted
+    // heading. Recover a generic course role in that case, but never replace
+    // a real research/faculty/staff role merely because its page also contains
+    // a Course Code label elsewhere in the raw capture.
+    if (!preservedRole
+      && /\bCourse\s+Code\s*:/i.test(String(rawText ?? ''))
       && (/\bA?TPUO\b/i.test(String(rawText ?? '')) || /^(?:A?TPUO|[A-Z][A-Z\s-]{5,})/i.test(String(title ?? '')))) return 'Course Instructor';
   }
   return normalized;

@@ -133,6 +133,7 @@ describe('normalizeJobTitle', () => {
       'CJIIC Administrative Assistant',
     );
     assert.equal(normalizeJobTitle('Part Time - Food Services Worker'), 'Food Services Worker');
+    assert.equal(normalizeJobTitle('Regular Full-Time Health, Safety & Wellness Specialist'), 'Health, Safety & Wellness Specialist');
     assert.equal(normalizeJobTitle('Recreation Assistant - RE-POST (Periodic Posting)'), 'Recreation Assistant');
   });
 
@@ -279,6 +280,36 @@ describe('normalizeJobTitle', () => {
     assert.equal(
       extractSourceAcademicTermFromRaw('University of Ottawa', 'Academic Period:2027 Spring-Summer Semester'),
       'Spring/Summer 2027',
+    );
+  });
+
+  it('does not turn Ottawa research or academic-expert roles into course instructors', () => {
+    assert.equal(
+      normalizeSourceJobTitleFromRaw(
+        'University of Ottawa',
+        'Research Assistant',
+        'Job Classification: CUPE\nCourse Code: HIS1101\nResearch Assistant duties and qualifications',
+      ),
+      'Research Assistant',
+    );
+    assert.equal(
+      normalizeSourceJobTitleFromRaw(
+        'University of Ottawa',
+        'Academic Expert',
+        'Job Classification: CUPE\nCourse Code: CMN1560\nAcademic Expert requirements',
+      ),
+      'Academic Expert',
+    );
+  });
+
+  it('normalizes recovered Njoyn vacancy titles after extracting them from the body', () => {
+    assert.equal(
+      normalizeSourceJobTitleFromRaw('City of Oshawa', 'J0826-0016', 'Vacancy: Temporary Part-Time Aquafit Instructor'),
+      'Aquafit Instructor',
+    );
+    assert.equal(
+      normalizeSourceJobTitleFromRaw("Queen's University", 'J0626-0929', 'Position Title: Full-time Payroll Operations Manager'),
+      'Payroll Operations Manager',
     );
   });
 

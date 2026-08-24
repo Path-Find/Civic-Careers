@@ -4,6 +4,22 @@ What makes a job listing correct in this database. Use this to review any listin
 
 A listing fails review if it violates any of these. "Looks basically right" is not a pass — check every rule.
 
+## 0.1 Scoped parser rules
+
+Parser corrections are resolved from the narrowest applicable scope:
+
+1. company/source profile;
+2. scraper engine;
+3. shared database-wide normalizer.
+
+Unknown sources receive only shared rules. A source rule is not promoted to an
+engine or global rule until the same defect is confirmed in other sources and
+negative fixtures show that unaffected sources remain unchanged. Use the
+read-only `npm run audit:parser-rules` report before any backfill, and use
+`npm run backfill:scoped-title-rules -- --source="..."` with an explicit source
+filter for reviewed title repairs. Raw captures are never rewritten as part of
+parsing-quality repairs.
+
 ## Reference contract and audit
 
 Use [`job-field-format.md`](../job-field-format.md) for the complete
