@@ -7,6 +7,7 @@
 import dotenv from 'dotenv';
 import { initDb } from './db';
 import { extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, normalizeSourceAcademicCourse, normalizeSourceJobTitle } from './title';
+import { applyParserTitleRules, parserContext } from './parser-rules';
 
 dotenv.config({ quiet: true });
 
@@ -84,7 +85,7 @@ async function main() {
       const storedCourse = String(row.academic_course ?? '').trim();
       const storedDepartment = String(row.department ?? '').trim();
       const storedOfficeHours = String(row.academic_office_hours ?? '').trim();
-      let title = normalizeSourceJobTitle(source, sourceTitle);
+      let title = applyParserTitleRules(parserContext(source), sourceTitle, rawText).title;
       // Never use the record ID as academic evidence. PeopleSoft, Workday,
       // and hashed source IDs resemble course codes closely enough to poison
       // the academic_course field.
