@@ -164,7 +164,7 @@ function replaceJobFiltersInUrl(state: JobUrlState) {
 }
 
 function App() {
-  const { jobs, homeData, companySummaries, locations, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, jobsOrganization, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
+  const { jobs, homeData, companySummaries, locations, educationRequirements, loading, loadingMore, jobsTotal, jobsAvailableTotal, jobsSource, jobsOrganization, setServerFilters, loadMore, refresh, loadDescription, toggleSaved } = useJobs();
   const { recentlyViewedJobs, recordViewed, clearRecentlyViewed } = useRecentlyViewed(jobs);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -675,6 +675,7 @@ function App() {
                   headerHeight={headerHeight}
                   jobs={jobs}
                   locations={locations}
+                  educationRequirements={educationRequirements}
                   companyOptions={companySummaries.filter(company => Number(company.active_job_count) > 0)}
                   selectedCompanyNames={visibleSelectedCompanyNames}
                   selectedEducationLevels={selectedEducationLevels}

@@ -457,6 +457,26 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
 
+    if (view === 'education-fields') {
+      const educationSql = `SELECT DISTINCT jd.education_requirements AS education_requirements
+        ${jobJoins}
+        WHERE j.is_active = 1
+          ${visiblePending}
+          ${publicDeadline}
+          AND NULLIF(TRIM(COALESCE(jd.education_requirements, '')), '') IS NOT NULL
+        ORDER BY education_requirements`;
+      const [currentEducation, archiveEducation] = await Promise.all([
+        db.execute(educationSql),
+        archiveDb.execute(educationSql),
+      ]);
+      const educationRequirements = [...new Set([...currentEducation.rows, ...archiveEducation.rows]
+        .map(row => String(row.education_requirements ?? '').trim())
+        .filter(Boolean))];
+      res.setHeader('Cache-Control', PUBLIC_CACHE);
+      res.end(JSON.stringify(educationRequirements));
+      return;
+    }
+
     if (view === 'jobs') {
       let sourceFilters = sourceParam ? [sourceParam] : [];
       let sourceGroup = sourceParam ? organizationGroupForSources([sourceParam]) : null;

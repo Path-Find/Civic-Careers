@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Area of study suggestions now use the full public catalogue instead of only the first loaded jobs, so subjects such as Science are discoverable and filterable.
+
 - Location search now uses the full public location list and server-side matching, so cities such as Toronto are available even when the first loaded jobs have no location.
 
 - Extended the public-job spot check through nine non-overlapping batches and repaired recurring Ottawa, Shared Health, Canada Post, and academic metadata errors found in the final round.

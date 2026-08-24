@@ -36,12 +36,13 @@ function isCanonicalLocation(value: string): boolean {
 }
 
 export function JobFiltersSidebar({
-  headerHeight, jobs, locations, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, closingSoonDisabled, savedView,
+  headerHeight, jobs, locations, educationRequirements, companyOptions, selectedCompanyNames, selectedEducationLevels, educationField, selectedCareerStages, minSalary, locationTerm, selectedModes, selectedLanguages, vehicleRequired, deadlineDays, listingTypeFilter, showStudentJobs, showAcademicJobs, closingSoonDisabled, savedView,
   onMinSalaryChange, onLocationChange, onModesChange, onLanguageChange, onVehicleRequiredChange, onDeadlineChange, onListingTypeChange, onStudentJobsChange, onAcademicJobsChange, onCareerStageChange, onCompanyChange, onEducationLevelChange, onEducationFieldChange, onReset,
 }: {
   headerHeight: number;
   jobs: Job[];
   locations: string[];
+  educationRequirements: string[];
   companyOptions: CompanySummary[];
   selectedCompanyNames: string[];
   selectedEducationLevels: EducationLevel[];
@@ -87,10 +88,10 @@ export function JobFiltersSidebar({
     .filter(location => location.length > 0 && location.length <= 100 && isCanonicalLocation(location)))]
     .filter(location => !selectedLocations.includes(location) && location.toLowerCase().includes(locationQuery.trim().toLowerCase()))
     .slice(0, 8), [jobs, locations, selectedLocations, locationQuery]);
-  const educationSuggestions = useMemo(() => educationFieldOptions(jobs.map(job => job.education_requirements))
+  const educationSuggestions = useMemo(() => educationFieldOptions(educationRequirements.length > 0 ? educationRequirements : jobs.map(job => job.education_requirements))
     .filter(value => value.toLowerCase().includes(educationQuery.trim().toLowerCase()))
     .filter(value => value !== educationField)
-    .slice(0, 8), [jobs, educationField, educationQuery]);
+    .slice(0, 8), [jobs, educationRequirements, educationField, educationQuery]);
   const selectLocation = (location: string) => {
     if (!selectedLocations.includes(location)) onLocationChange([...selectedLocations, location].join('; '));
     setLocationQuery('');

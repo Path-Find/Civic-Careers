@@ -82,6 +82,7 @@ export function useJobs() {
   const [homeData, setHomeData] = useState<HomeData | null>(null);
   const [companySummaries, setCompanySummaries] = useState<CompanySummary[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
+  const [educationRequirements, setEducationRequirements] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [jobsTotal, setJobsTotal] = useState(0);
@@ -162,11 +163,15 @@ export function useJobs() {
     const locationsRequest = view === 'jobs'
       ? fetchJson(`${API}/api/jobs?view=locations`)
       : Promise.resolve(null);
-    Promise.all([fetchJson(endpoint), companiesRequest, locationsRequest])
-      .then(([data, companies, locationData]) => {
+    const educationRequirementsRequest = view === 'jobs'
+      ? fetchJson(`${API}/api/jobs?view=education-fields`)
+      : Promise.resolve(null);
+    Promise.all([fetchJson(endpoint), companiesRequest, locationsRequest, educationRequirementsRequest])
+      .then(([data, companies, locationData, educationData]) => {
         if (requestId !== refreshRequestRef.current) return;
         if (companies) setCompanySummaries(Array.isArray(companies) ? companies : []);
         if (locationData) setLocations(Array.isArray(locationData) ? locationData : []);
+        if (educationData) setEducationRequirements(Array.isArray(educationData) ? educationData : []);
         if (view === 'home') {
           const recentJobs = data.recentJobs.map(normalizeJob);
           const closingSoonJobs = data.closingSoonJobs.map(normalizeJob);
@@ -277,6 +282,7 @@ export function useJobs() {
   return {
     jobs,
     locations,
+    educationRequirements,
     homeData,
     companySummaries,
     loading,
