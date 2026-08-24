@@ -452,8 +452,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       const locations = [...new Set([...currentLocations.rows, ...archiveLocations.rows]
         .map(row => String(row.location ?? '').replace(/\s+/g, ' ').trim())
         .filter(Boolean))].sort((left, right) => left.localeCompare(right));
+      const individualLocations = [...new Set(locations.flatMap(location => location.split(/\s*;\s*/).map(value => value.trim()).filter(Boolean)))].sort((left, right) => left.localeCompare(right));
       res.setHeader('Cache-Control', PUBLIC_CACHE);
-      res.end(JSON.stringify(locations));
+      res.end(JSON.stringify(individualLocations));
       return;
     }
 

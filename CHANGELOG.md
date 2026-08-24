@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Multi-location postings now produce separate location suggestions instead of one combined pill.
+
 - Job search filters now query the full public catalogue instead of only the loaded page, and employer labels are consistent between job cards, details, and the company directory.
 
 - Removed academic context from 102 confirmed non-academic rows, repaired four duplicate-field rows, corrected two placeholder detail titles, and normalized 15 active source titles.
