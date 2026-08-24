@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CompanySummary, HomeData, Job, OrganizationGroup } from '../../../types/jobs';
+import type { CompanySummary, HomeData, Job, ListingTypeFilter, OrganizationGroup } from '../../../types/jobs';
 import { normalizeJob } from '../jobUtils';
 import { jobIdFromPath } from '../../../utils';
 
@@ -11,6 +11,14 @@ export type JobsListServerFilters = {
   newlyAdded: boolean;
   sourceNames: string[];
   locations: string[];
+  searchTerm: string;
+  modes: string[];
+  languages: string[];
+  vehicleRequired: boolean;
+  minSalary: number | null;
+  showStudentJobs: boolean;
+  showAcademicJobs: boolean;
+  listingTypeFilter: ListingTypeFilter;
   educationLevels: string[];
   educationField: string;
   careerStages: string[];
@@ -21,6 +29,14 @@ const EMPTY_SERVER_FILTERS: JobsListServerFilters = {
   newlyAdded: false,
   sourceNames: [],
   locations: [],
+  searchTerm: '',
+  modes: [],
+  languages: [],
+  vehicleRequired: false,
+  minSalary: null,
+  showStudentJobs: false,
+  showAcademicJobs: false,
+  listingTypeFilter: null,
   educationLevels: [],
   educationField: '',
   careerStages: [],
@@ -54,6 +70,14 @@ function appendServerFilters(params: URLSearchParams, filters: JobsListServerFil
     params.set('sources', filters.sourceNames.join(','));
   }
   filters.locations.forEach(location => params.append('locations', location));
+  if (filters.searchTerm.trim()) params.set('search', filters.searchTerm.trim());
+  filters.modes.forEach(mode => params.append('modes', mode));
+  filters.languages.forEach(language => params.append('languages', language));
+  if (filters.vehicleRequired) params.set('vehicle', '1');
+  if (filters.minSalary !== null) params.set('minSalary', String(filters.minSalary));
+  if (filters.showStudentJobs) params.set('student', '1');
+  if (filters.showAcademicJobs) params.set('academic', '1');
+  if (filters.listingTypeFilter) params.set('listingType', filters.listingTypeFilter);
   if (filters.educationLevels.length > 0) {
     params.set('educationLevels', filters.educationLevels.join(','));
   }
@@ -63,7 +87,7 @@ function appendServerFilters(params: URLSearchParams, filters: JobsListServerFil
   if (filters.careerStages.length > 0) {
     params.set('careerStages', filters.careerStages.join(','));
   }
-  if (filters.sourceNames.length > 0 || filters.locations.length > 0 || filters.educationLevels.length > 0 || filters.educationField.trim() || filters.careerStages.length > 0) {
+  if (filters.sourceNames.length > 0 || filters.locations.length > 0 || filters.searchTerm.trim() || filters.modes.length > 0 || filters.languages.length > 0 || filters.vehicleRequired || filters.minSalary !== null || filters.showStudentJobs || filters.showAcademicJobs || filters.listingTypeFilter || filters.educationLevels.length > 0 || filters.educationField.trim() || filters.careerStages.length > 0) {
     params.set('filtersVersion', '2');
   }
 }

@@ -531,6 +531,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         ['student', 'early-career', 'experienced', 'senior'].includes(value)
       ) ?? [])];
       const locations = [...new Set(parsed.searchParams.getAll('locations').map(value => value.trim().toLowerCase()).filter(Boolean))];
+      const searchTerm = parsed.searchParams.get('search')?.trim().toLowerCase() ?? '';
+      const modes = [...new Set(parsed.searchParams.getAll('modes').filter(value => ['In-person', 'Hybrid', 'Remote'].includes(value)))];
+      const languages = [...new Set(parsed.searchParams.getAll('languages').filter(value => ['English', 'French'].includes(value)))];
+      const vehicleRequired = parsed.searchParams.get('vehicle') === '1';
+      const minSalaryRaw = parsed.searchParams.get('minSalary');
+      const minSalary = minSalaryRaw === null || minSalaryRaw === '' ? null : Number(minSalaryRaw);
+      const showStudentJobs = parsed.searchParams.get('student') === '1';
+      const showAcademicJobs = parsed.searchParams.get('academic') === '1';
+      const listingType = parsed.searchParams.get('listingType');
 
       const filterArgs: Array<string | number> = [];
       let filterClause = '';
@@ -545,6 +554,47 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         filterClause += ` AND (${locations.map(() => `${locationText} LIKE ?`).join(' OR ')})`;
         filterArgs.push(...locations.map(location => `%${location}%`));
       }
+
+      if (searchTerm) {
+        const searchText = `LOWER(COALESCE(${publicTitle}, '') || ' ' || COALESCE(jd.department, '') || ' ' || COALESCE(j.source, ''))`;
+        filterClause += ` AND ${searchText} LIKE ?`;
+        filterArgs.push(`%${searchTerm}%`);
+      }
+
+      if (modes.length > 0) {
+        const modeValues = modes.flatMap(mode => mode === 'In-person' ? ['In-person', 'On-site'] : [mode]);
+        filterClause += ` AND jd.work_model IN (${modeValues.map(() => '?').join(', ')})`;
+        filterArgs.push(...modeValues);
+      }
+
+      if (languages.length > 0) {
+        const languageText = `LOWER(COALESCE(jd.language_requirements, ''))`;
+        for (const language of languages) {
+          filterClause += ` AND (${languageText} LIKE ? OR ${languageText} LIKE '%bilingual%')`;
+          filterArgs.push(`%${language.toLowerCase()}%`);
+        }
+      }
+
+      if (vehicleRequired) filterClause += ' AND jd.vehicle_required = 1';
+
+      if (minSalary !== null && Number.isFinite(minSalary)) {
+        const yearlySalary = `CASE LOWER(COALESCE(jd.salary_period, ''))
+          WHEN 'hourly' THEN jd.salary_min * 2080
+          WHEN 'daily' THEN jd.salary_min * 260
+          WHEN 'weekly' THEN jd.salary_min * 52
+          WHEN 'biweekly' THEN jd.salary_min * 26
+          WHEN 'monthly' THEN jd.salary_min * 12
+          WHEN 'yearly' THEN jd.salary_min
+          ELSE NULL END`;
+        filterClause += ` AND ${yearlySalary} >= ?`;
+        filterArgs.push(minSalary);
+      }
+
+      if (showStudentJobs) filterClause += ` AND COALESCE(jd.is_student, raw.pending_is_student, 0) = 1`;
+      if (showAcademicJobs) filterClause += ' AND jd.academic_role_type IS NOT NULL';
+      if (listingType === 'inventory') filterClause += ` AND ${effectiveInventory} = 1`;
+      else if (listingType === 'ongoing_recruitment') filterClause += ` AND ${effectiveListingType} = 'ongoing_recruitment'`;
+      else filterClause += ` AND ${effectiveInventory} = 0`;
 
       if (deadlineDays !== null && Number.isFinite(deadlineDays)) {
         if (deadlineDays === -1) {

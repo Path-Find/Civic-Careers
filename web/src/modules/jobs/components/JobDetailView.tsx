@@ -5,6 +5,7 @@ import { parseTagList } from '../jobUtils';
 import { CopyLinkButton } from './CopyLinkButton';
 import { pendingDetailAction } from '../pendingDetailAction';
 import type { Job, JobDetails, View } from '../../../types/jobs';
+import { publicOrganizationName } from '../organizationMetadata';
 
 const REPORT_REASONS = [
   'Wrong job title',
@@ -175,7 +176,7 @@ export function JobDetailView({ job, details, headerHeight, onNavigate, onToggle
       <div className="detail-content">
         <div className="detail-card">
           <div className="detail-source-row">
-            <span className="detail-source" onClick={() => onNavigate('jobs', job.source)}>{job.source}</span>
+            <span className="detail-source" onClick={() => onNavigate('jobs', job.source)}>{publicOrganizationName(job.source)}</span>
             {job.department && job.department !== job.source && !isTitleLikeDepartment(job.job_title, job.department) && <span className="detail-department"> · {job.department}</span>}
           </div>
           <h1 className="detail-title" title={job.job_title || undefined}>{job.job_title}</h1>

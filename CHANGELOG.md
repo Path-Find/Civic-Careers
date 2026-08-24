@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Job search filters now query the full public catalogue instead of only the loaded page, and employer labels are consistent between job cards, details, and the company directory.
+
+- Removed academic context from 102 confirmed non-academic rows, repaired four duplicate-field rows, corrected two placeholder detail titles, and normalized 15 active source titles.
+
 - Area of study suggestions now use the full public catalogue instead of only the first loaded jobs, so subjects such as Science are discoverable and filterable.
 
 - Location search now uses the full public location list and server-side matching, so cities such as Toronto are available even when the first loaded jobs have no location.

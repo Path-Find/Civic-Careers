@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import type { MouseEvent } from 'react';
 import { daysUntilClose, formatDate, jobRoute } from '../../../utils';
 import type { Job } from '../../../types/jobs';
+import { publicOrganizationName } from '../organizationMetadata';
 
 export function JobRow({ job, onClick }: { job: Job; onClick: () => void }) {
   const days = daysUntilClose(job.closing_date);
@@ -25,7 +26,7 @@ export function JobRow({ job, onClick }: { job: Job; onClick: () => void }) {
         {job.academic_term && <span className="job-badge job-badge-status" data-status="academic-term">{job.academic_term}</span>}
       </div>
       <div className="job-row-meta">
-        <span className="job-row-source">{job.source}</span>
+        <span className="job-row-source">{publicOrganizationName(job.source)}</span>
         {job.department && <span>• {job.department}</span>}
       </div>
     </div>
