@@ -681,6 +681,8 @@ function stripEducationLabelPrefix(value: string): string {
     const next = text
       // "Your application must clearly explain how you meet the followingEducation:-"
       .replace(/^your\s+application\s+must\s+clearly\s+explain\s+how\s+you\s+meet\s+the\s+following\s*/i, '')
+      .replace(/^education\s+and\s+experience\s*/i, '')
+      .replace(/^the\s+requirements\s+for\s+this\s+role\s+are\s+acquired\s+through\s*/i, '')
       .replace(/^\*{0,2}education\*{0,2}\s*:\s*/i, '')
       .replace(/^amendment\s+to\s+education\s*:\s*/i, '')
       .replace(/^\*{0,2}ed(?:ucation)?\s*\d+\.?\s*[-–—:]?\s*/i, '')
@@ -712,6 +714,7 @@ function cleanEducationRequirement(value: string): string {
     .replace(/^your\s+application\s+must\s+clearly\s+explain\s+how\s+you\s+meet\s+the\s+following\s*education\s*:\s*[-–—]?\s*/i, '')
     .replace(/\s*(?:learn more about\b|applied\s*\/\s*assessed\b|competencies?\s*:).*/i, '')
     .replace(/\*\*candidates?\s+invited\b[\s\S]*$/i, '')
+    .replace(/\s+plus\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+years?.*$/i, '')
     .replace(/\.\s+(?=(?:a|an|the)\s+(?:demonstrated|ability)\b|candidate\s+has\b).*/i, '.');
   const cleaned = (educationIndex >= 0 && LICENSE_TERM.test(educationPrefix) ? withoutAdministrativeTail.slice(educationIndex) : withoutAdministrativeTail)
     .replace(/\s+(?:and\s+)?(?:valid\s+|current\s+|must\s+(?:have|hold|possess)\s+|registered\s+(?:as|with)\s+|registration\s+(?:with|in|as)\s+)(?:[^.]+(?:licen[cs]e|p\.?\s*eng\.?|professional\s+engineer|certificate\s+of\s+qualification|registration)[^.]*).*$/i, '')

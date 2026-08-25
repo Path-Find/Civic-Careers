@@ -349,6 +349,15 @@ test('strips Education:/classification/stream prefixes from education requiremen
   );
 });
 
+test('strips glued Education and Experience headings from requirements', () => {
+  assert.deepEqual(
+    normalizeEducationRequirements([
+      'EDUCATION AND EXPERIENCEThe requirements for this role are acquired through completion of a Bachelor\'s in computer science plus eight years of related experience in cybersecurity',
+    ]),
+    ["Bachelor's in computer science"],
+  );
+});
+
 test('preserves partial high-school education', () => {
   assert.deepEqual(normalizeEducationRequirements(['Partial high school']), ['Partial high school']);
   const normalized = normalizeEducationRequirements(["Bachelor's degree in Business Administration; or"]);

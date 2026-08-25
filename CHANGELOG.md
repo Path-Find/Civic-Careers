@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added source-specific capture guards for search-result shells, unavailable postings, and glued requirement headings; the second deterministic pilot fully parsed 10 valid jobs and hid invalid captures instead of publishing them.
+
 - Added ID-scoped missing-field backfills so reviewed deterministic parsing pilots can complete safe structured extraction without touching unrelated jobs.
 
 - Added ID-scoped deterministic metadata backfills so reviewed pilot jobs can be rerun without touching the rest of the parsing queue.

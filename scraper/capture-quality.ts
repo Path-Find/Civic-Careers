@@ -21,7 +21,7 @@ export function looksUnrendered(text: string): boolean {
 
 const BOT_CHALLENGE = /(?:checking your browser|confirm you are not a robot|please verify you are human|activity and behavior on (?:this )?site made us think that you are a bot|activity and behavior on this website made us think that you are a bot|incident id:\s*[a-f0-9-]{8,})/i;
 const OBJECT_STORAGE_ERROR = /(?:^|\n)\s*404 not found\b|NoSuchKey|specified key does not exist/i;
-const EXPIRED_PAGE = /(?:this (?:position|job|posting) is no longer available|sorry, (?:this )?posting is no longer available|this job has (?:already )?expired|this job posting has already expired)\.?/i;
+const EXPIRED_PAGE = /(?:this (?:position|job|posting) is no longer available|sorry, (?:this )?posting is no longer available|this job has (?:already )?expired|this job posting has already expired|this posting is not available|sorry, this position has been filled)\.?/i;
 
 export function classifyRawCapture(source: string, rawText: string): RawCaptureQuality {
   const text = rawText.trim();
@@ -65,6 +65,23 @@ export function classifyRawCapture(source: string, rawText: string): RawCaptureQ
   if (source === 'Toronto Metropolitan University'
     && (text.match(/Search Results/gi)?.length ?? 0) >= 10
     && !/\b(?:responsibilities|qualifications|requirements|salary\s*[:\-]|location\s*[:\-]|job\s+summary)\b/i.test(text)) {
+    return { valid: false, issue: 'generic_portal' };
+  }
+
+  // Western PeopleSoft detail URLs can return the full search-results table
+  // instead of the selected posting. It contains many real-looking titles,
+  // but no role-specific body, so never treat it as a job capture.
+  if (source === 'Western University'
+    && /Search Results List/i.test(text)
+    && /\b\d+\s+jobs?\s+found\b/i.test(text)
+    && /Job Title\s*Job ID\s*Department\s*Employee Group/i.test(text)) {
+    return { valid: false, issue: 'generic_portal' };
+  }
+
+  // Durham PeopleSoft can return the sign-in/search shell for a detail URL.
+  if (source === 'Durham Region'
+    && /Employment Opportunities\s*Employment Opportunities/i.test(text)
+    && !/\b(?:responsibilities|qualifications|requirements|salary\s*[:\-]|location\s*[:\-]|job\s+description|closing\s+date)\b/i.test(text)) {
     return { valid: false, issue: 'generic_portal' };
   }
 
