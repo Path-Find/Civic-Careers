@@ -9,7 +9,7 @@ type Statement = string | { sql: string; args: unknown[] };
 type Execute = (statement: Statement) => Promise<{ rows: Array<Record<string, unknown>> }>;
 type Change = { id: string; source: string; field: 'raw' | 'details'; from: string; to: string };
 
-const FLAGGED_TITLE = /\b(?:revised|repost(?:ed|ing)?|vacanc(?:y|ies)|(?:several|multiple|\d+)\s+positions?|positions?\s+available|full[- ]?time|part[- ]?time|temporary|casual|permanent|contract|regular\s+part[- ]?time|r[ée]affichage)\b/i;
+const FLAGGED_TITLE = /(?:\b(?:revised|repost(?:ed|ing)?|vacanc(?:y|ies)|(?:several|multiple|\d+)\s+positions?|positions?\s+available|full[- ]?time|part[- ]?time|temporary|casual|permanent|non[- ]?permanent|contract|regular\s+part[- ]?time|r[ée]affichage|P\/?T|F\/?T)\b|\bGM\s+-\s*\d|\b\d+\s*[-–—]\s*\d+\s+months?\b)/i;
 const QUERY = `SELECT j.id, j.source, r.title AS raw_title, d.job_title AS detail_title
                FROM jobs j LEFT JOIN raw_jobs r ON r.id=j.id LEFT JOIN job_details d ON d.id=j.id`;
 
