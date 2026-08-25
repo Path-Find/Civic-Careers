@@ -500,7 +500,10 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     normalized = normalized.replace(/\s*\(\s*#\d{3,}\s*\)\s*$/i, '').trim();
     // Classification groups and levels (PM-01, EC-04, AS-03, etc.) are also
     // source metadata. Keep the role name as the public title.
-    normalized = normalized.replace(/^[A-Z]{2,5}-\d{2}\s+/i, '').trim();
+    // Keep paired classification titles such as `SP-03 & SP-04 - ...` intact;
+    // the whole classification group is meaningful there, not a removable
+    // prefix on the first role name.
+    normalized = normalized.replace(/^[A-Z]{2,5}-\d{2}\s+(?!&\s*[A-Z]{2,5}-\d{2}\b)/i, '').trim();
     // Federal language markers belong in language_requirements, not in the
     // public role title, whether the source puts them first or last.
     normalized = normalized
@@ -659,6 +662,17 @@ export function normalizeSourceJobTitleFromRaw(
   rawText: string | null | undefined,
 ): string {
   const normalized = normalizeSourceJobTitle(source, title);
+  if (source === 'Government of Canada' && /^&\s*SP-\d{2}\b/i.test(normalized)) {
+    const campaignClassification = String(rawText ?? '').match(/\bSeveral\s+(SP-\d{2}\s*&\s*SP-\d{2})\s+positions?\s+to\s+start\s+your\s+career\s+at\s+the\s+CRA!?/i);
+    if (campaignClassification) return `${campaignClassification[1]} - CRA career opportunities`;
+    const pairedClassification = String(rawText ?? '').match(/\b(SP-\d{2}\s*&\s*SP-\d{2})\s*[-–—:]\s*([^\n]{3,160})/i);
+    if (pairedClassification) {
+      const role = normalized.replace(/^&\s*/i, '').replace(/^SP-\d{2}\s*[-–—:]\s*/i, '').trim();
+      if (role && pairedClassification[2].toLowerCase().includes(role.toLowerCase())) {
+        return `${pairedClassification[1]} - ${role}`.trim();
+      }
+    }
+  }
   if (source === 'City of Burlington'
     && /Adult Recreation Services Unit is currently accepting applications[\s\S]{0,300}Program Leader\/Instructor,?\s*RCC[\s\S]{0,100}Specialized Program Instructor,?\s*RCC/i.test(String(rawText ?? ''))) {
     return 'Program Leader/Instructor and Specialized Program Instructor';

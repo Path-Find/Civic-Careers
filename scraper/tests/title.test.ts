@@ -194,6 +194,15 @@ describe('normalizeJobTitle', () => {
       'Manufacturing Execution System (MES) Software Specialist',
     );
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'PM-01 Client Support Centre Agent'), 'Client Support Centre Agent');
+    assert.equal(normalizeSourceJobTitle('Government of Canada', 'SP-03 & SP-04 - CRA career opportunities'), 'SP-03 & SP-04 - CRA career opportunities');
+    assert.equal(
+      normalizeSourceJobTitleFromRaw(
+        'Government of Canada',
+        '& SP-04 - CRA career opportunities',
+        'Several SP-03 & SP-04 positions to start your career at the CRA!\nJob description',
+      ),
+      'SP-03 & SP-04 - CRA career opportunities',
+    );
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'Several SP-03 & SP-04 positions to start your career at the CRA!'), 'SP-03 & SP-04 - CRA career opportunities');
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'Team Leader - IT Business Line Advisory Services - Bilingual'), 'Team Leader - IT Business Line Advisory Services');
     assert.equal(normalizeSourceJobTitle('Government of Canada', 'Bilingual Senior Specialist, Security Applications'), 'Senior Specialist, Security Applications');

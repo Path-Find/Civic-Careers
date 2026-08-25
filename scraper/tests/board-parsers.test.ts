@@ -129,6 +129,11 @@ test('parseWorkday removes the glued FT marker before a Campus label', () => {
   assert.equal(parsed.department, 'Department of Physics');
 });
 
+test('parseWorkday recovers Ottawa hours glued to Salary Grade', () => {
+  const result = parseWorkday('35Salary Grade:SSUO Grade 08Salary Range:$68,149 - $86,083', 'University of Ottawa');
+  assert.equal(result.hours, '35 hours per week');
+});
+
 test('parseWorkday still runs into free-form prose when no known label follows (known residual gap)', () => {
   // When a field is the LAST labeled one before free-form description text
   // begins, there is no next label to bound the capture at. This case is
@@ -373,6 +378,11 @@ test('parseGovernmentOfCanada extracts a location glued into the syndicated summ
   assert.equal(parsed.location, 'Ottawa, ON');
 });
 
+test('parseGovernmentOfCanada recovers SmartRecruiters Ottawa location glue', () => {
+  const result = parseGovernmentOfCanada('Station ChefFull-timeOpen to: All\nAdditional Information\nStation Chefottawa, ON');
+  assert.equal(result.location, 'Ottawa, ON');
+});
+
 test('parsePeopleSoft extracts fields correctly', () => {
   const rawText = `
 Department: Human Resources
@@ -413,4 +423,9 @@ test('parsePeopleSoft extracts the location field', () => {
 test('parsePeopleSoft uses Western\'s campus location when the tenant omits it', () => {
   const parsed = parsePeopleSoft('Job Title\nCoordinator\nDepartment\nAdministration', 'Western University');
   assert.equal(parsed.location, 'London, ON');
+});
+
+test('parsePeopleSoft recovers Western hours glued to the salary grade label', () => {
+  const result = parsePeopleSoft('35Salary Grade: 13The base salary will be $62,480 - $89,040', 'Western University');
+  assert.equal(result.hours, '35 hours per week');
 });

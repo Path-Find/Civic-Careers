@@ -11,6 +11,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { extractLabeledLocation, normalizeLocation, normalizeSourceLocation, normalizeSourceLocationFromTitle } from './location';
+import { extractBoardSpecificMetadata } from './board-parsers';
 
 dotenv.config({ quiet: true });
 
@@ -57,10 +58,20 @@ async function main() {
   const allRows = [...currentRows, ...archiveRows];
   for (const row of allRows) {
     const from = String(row.location ?? '').trim();
-    const normalized = normalizeSourceLocation(String(row.source ?? ''), String(row.raw_text ?? ''))
-      || normalizeSourceLocationFromTitle(String(row.source ?? ''), String(row.job_title ?? ''))
+    const rawText = String(row.raw_text ?? '');
+    const source = String(row.source ?? '');
+    // Government of Canada postings can contain a list of eligibility or
+    // deployment locations elsewhere in the body; its board parser is not a
+    // safe fallback for the canonical location field. Use board recovery only
+    // for the two campus layouts reviewed in this pass.
+    const boardLocation = source === 'University of Ottawa' || source === 'Western University'
+      ? extractBoardSpecificMetadata(source, rawText).location ?? ''
+      : '';
+    const normalized = normalizeLocation(boardLocation)
+      || normalizeSourceLocation(source, rawText)
+      || normalizeSourceLocationFromTitle(source, String(row.job_title ?? ''))
       || normalizeLocation(from);
-    const recovered = !normalized ? extractLabeledLocation(String(row.raw_text ?? '')) : '';
+    const recovered = !normalized ? extractLabeledLocation(rawText) : '';
     // Never erase a populated location during this repair pass. If neither
     // the stored value nor the preserved source can be normalized, retain the
     // original for a later source-specific review.
@@ -110,7 +121,7 @@ async function main() {
       for (let i = 0; i < storeChanges.length; i += BATCH) {
       const slice = storeChanges.slice(i, i + BATCH);
       const statements = slice.map((c) => ({
-        sql: `UPDATE job_details SET location = ? WHERE id = ? AND location = ?`,
+        sql: `UPDATE job_details SET location = ? WHERE id = ? AND COALESCE(location, '') = ?`,
         args: [c.to || null, c.id, c.from],
       }));
       const executeBatch = store === 'archive' ? client.batchArchive?.bind(client) : client.batch.bind(client);

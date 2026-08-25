@@ -269,6 +269,12 @@ export function parseWorkday(rawText: string, source = ''): ExtractedBoardMetada
   if (hoursMatch) {
     metadata.hours = hoursMatch[1].trim();
   }
+  if (source === 'University of Ottawa' && !metadata.hours) {
+    // Some Workday captures glue the numeric weekly-hours value directly to
+    // the next label: `35Salary Grade:`.
+    const gluedHours = rawText.match(/\b(\d{1,3}(?:\.\d{1,2})?)\s*Salary\s+Grade\s*:/i);
+    if (gluedHours) metadata.hours = `${gluedHours[1]} hours per week`;
+  }
 
   // Term / Length of Contract
   const termMatch = rawText.match(workdayField('Term')) || rawText.match(workdayField('Length of Contract'));
@@ -781,7 +787,16 @@ export function parseGovernmentOfCanada(rawText: string): ExtractedBoardMetadata
     // Syndicated GC postings often glue the location directly to the title
     // summary instead of rendering a Location section.
     const inlineLocation = rawText.match(/\b([A-Z][A-Za-z.'-]+,\s*(?:ON|QC|BC|AB|MB|SK|NS|NB|NL|PE|YT|NT|NU)(?:,\s*Canada)?)\b/);
-    if (inlineLocation) metadata.location = inlineLocation[1].trim();
+    if (inlineLocation) {
+      const value = inlineLocation[1].trim();
+      metadata.location = /ottawa,\s*on$/i.test(value) ? 'Ottawa, ON' : value;
+    }
+  }
+  if (!metadata.location && /ottawa,\s*on\b/i.test(rawText)) {
+    // SmartRecruiters can glue the final city to the captured role title
+    // (`Station Chefottawa, ON`). Recover the city without retaining the
+    // title/boilerplate text as the location.
+    metadata.location = 'Ottawa, ON';
   }
 
   return metadata;
@@ -876,6 +891,13 @@ export function parsePeopleSoft(rawText: string, source = ''): ExtractedBoardMet
     const normalizedUnion = normalizeUnionFields(rawUnion, isUnion);
     metadata.isUnionized = normalizedUnion.is_unionized ? 1 : 0;
     metadata.unionName = normalizedUnion.union_name || null;
+  }
+
+  if (source === 'Western University' && !metadata.hours) {
+    // Western's PeopleSoft tenant can omit the Hours label and glue the
+    // weekly value to `Salary Grade:` or `Level K`.
+    const gluedHours = rawText.match(/\b(\d{1,3}(?:\.\d{1,2})?)\s*(?:Salary\s+Grade\s*:|Level\s+[A-Z]\b)/i);
+    if (gluedHours) metadata.hours = `${gluedHours[1]} hours per week`;
   }
 
   if (source === 'Toronto Metropolitan University') {
