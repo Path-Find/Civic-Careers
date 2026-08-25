@@ -49,6 +49,12 @@ const APPLY = process.argv.includes('--apply');
 const INCLUDE_SOFT_PARSED = process.argv.includes('--include-soft-parsed');
 const ACADEMIC_ONLY = process.argv.includes('--academic-only');
 const SOURCE_ONLY = process.argv.find(arg => arg.startsWith('--source='))?.slice('--source='.length) ?? '';
+const REQUESTED_IDS = new Set(
+  (process.env.PARSE_IDS ?? '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean),
+);
 const UNPARSED_ONLY = !INCLUDE_SOFT_PARSED;
 const EXCLUDED_SOURCES = new Set(
   (process.env.EXCLUDE_SOURCES ?? '')
@@ -223,6 +229,9 @@ async function main() {
     ? "AND (r.source ILIKE '%university%' OR r.source ILIKE '%college%' OR r.source ILIKE '%polytechnic%' OR r.source ILIKE '%institute%')"
     : '';
   const sourceOnlyFilter = SOURCE_ONLY ? 'AND r.source = ?' : '';
+  const idFilter = REQUESTED_IDS.size
+    ? `AND r.id IN (${[...REQUESTED_IDS].map(() => '?').join(',')})`
+    : '';
   const parseScope = UNPARSED_ONLY
     ? 'r.parsed_at IS NULL'
     : '(r.parsed_at IS NULL OR d.parser_version = 0)';
@@ -242,9 +251,10 @@ async function main() {
       ${sourceExclusion}
       ${academicSourceFilter}
       ${sourceOnlyFilter}
+      ${idFilter}
     ORDER BY r.scraped_at ASC
   `,
-    args: [...EXCLUDED_SOURCES, ...(SOURCE_ONLY ? [SOURCE_ONLY] : [])],
+    args: [...EXCLUDED_SOURCES, ...(SOURCE_ONLY ? [SOURCE_ONLY] : []), ...REQUESTED_IDS],
   });
 
   const rows = result.rows as unknown as RawRow[];
