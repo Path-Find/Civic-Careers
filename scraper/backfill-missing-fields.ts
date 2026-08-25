@@ -22,6 +22,12 @@ dotenv.config({ quiet: true });
 const APPLY = process.argv.includes('--apply');
 const INCLUDE_STRUCTURED = process.argv.includes('--include-structured');
 const REPAIR_ARTIFACTS = process.argv.includes('--repair-artifacts');
+const REQUESTED_IDS = new Set(
+  (process.env.PARSE_IDS ?? '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean),
+);
 
 type Row = Record<string, unknown> & { store: 'current' | 'archive' };
 type Change = { id: string; source: string; store: Row['store']; fields: Record<string, unknown> };
@@ -168,9 +174,14 @@ function candidateChanges(row: Row): Record<string, unknown> {
 async function main() {
   const db = await initDb() as any;
   const archive = db as { executeArchive?: (statement: unknown) => Promise<{ rows: any[] }> };
-  const currentRows = (await db.execute(QUERY)).rows.map((row: any) => ({ ...row, store: 'current' as const }));
+  const idFilter = REQUESTED_IDS.size
+    ? ` AND j.id IN (${[...REQUESTED_IDS].map(() => '?').join(',')})`
+    : '';
+  const scopedQuery = `${QUERY} ${idFilter}`;
+  const queryArgs = [...REQUESTED_IDS];
+  const currentRows = (await db.execute({ sql: scopedQuery, args: queryArgs })).rows.map((row: any) => ({ ...row, store: 'current' as const }));
   const archiveRows = archive.executeArchive
-    ? (await archive.executeArchive(QUERY)).rows.map((row: any) => ({ ...row, store: 'archive' as const }))
+    ? (await archive.executeArchive({ sql: scopedQuery, args: queryArgs })).rows.map((row: any) => ({ ...row, store: 'archive' as const }))
     : [];
   const changes: Change[] = [];
   const repairs: Change[] = [];

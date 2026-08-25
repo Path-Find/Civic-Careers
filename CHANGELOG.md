@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added ID-scoped missing-field backfills so reviewed deterministic parsing pilots can complete safe structured extraction without touching unrelated jobs.
+
 - Added ID-scoped deterministic metadata backfills so reviewed pilot jobs can be rerun without touching the rest of the parsing queue.
 
 - Repaired deterministic archived title, academic metadata, hours, union, and capture artifacts while keeping unverifiable historical rows hidden.
