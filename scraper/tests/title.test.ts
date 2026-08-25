@@ -112,6 +112,14 @@ describe('normalizeJobTitle', () => {
     assert.equal(normalizeJobTitle('Specialist, Diversity and Inclusion Programs and Projects (Revised)'), 'Specialist, Diversity and Inclusion Programs and Projects');
   });
 
+  it('strips pool and posting-count metadata from titles', () => {
+    assert.equal(normalizeJobTitle('Pool - Custodian Relief'), 'Custodian Relief');
+    assert.equal(normalizeJobTitle('Professor – School of Community Services Talent Pool'), 'Professor – School of Community Services');
+    assert.equal(normalizeJobTitle('Faculty (On-Call Pool), Aviation Operations Programs'), 'Faculty, Aviation Operations Programs');
+    assert.equal(normalizeJobTitle('Community Compliance Officer (3 Part-time Positions)'), 'Community Compliance Officer');
+    assert.equal(normalizeJobTitle('Building Servicer 2 - Arena / Outdoor Pool Attendant'), 'Building Servicer 2 - Arena / Outdoor Pool Attendant');
+  });
+
   it('strips compound source status annotations', () => {
     assert.equal(normalizeJobTitle('Grounds Worker - Casual/On-Call'), 'Grounds Worker');
     assert.equal(normalizeJobTitle('Payroll Representative - Temporary/Appendix D'), 'Payroll Representative');

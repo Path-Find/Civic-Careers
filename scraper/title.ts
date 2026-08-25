@@ -28,7 +28,11 @@ export function isEmploymentOrDurationParen(inner: string): boolean {
   if (/^\d+\s+positions?$/i.test(s)) return true;
   if (/^(?:multiple|several)\s+positions?$/i.test(s)) return true;
   if (/^several\s+positions?$/i.test(s)) return true;
+  if (/^\d+\s+part[-\s]?time\s+positions?$/i.test(s)) return true;
   if (/^up\s+to\s+\d+$/i.test(s)) return true;
+
+  // Pool labels are listing metadata, not role names.
+  if (/^(?:(?:on[-\s]?call|hiring|talent|applicant)\s+)?pool(?:\s*[-–—:].*)?$/i.test(s)) return true;
 
   // "Approximately 2-year contract", "up to 6 months", "18 months"
   if (/^(?:(?:approx(?:imately|\.)?|up to)\s+)?\d+(?:\.\d+)?\s*[-–—]?\s*(?:years?|months?|weeks?|days?)\b(?:\s+(?:contract|term|assignment|position|temporary))?$/i.test(s)) {
@@ -304,6 +308,10 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   t = t.replace(TRAILING_COUNT_METADATA, '').trim();
   t = t.replace(TRAILING_POOL_METADATA, '').trim();
   t = t.replace(TRAILING_PLAIN_POOL_METADATA, '').trim();
+  t = t.replace(/^pool\s*[-–—:]+\s*/i, '').trim();
+  t = t.replace(/^(?:(?:talent|hiring|on[-\s]?call|applicant)\s+)?pool\s*[-–—:]+\s*/i, '').trim();
+  t = t.replace(/\s*[-–—]\s*(?:pool\s+posting|(?:talent|hiring|on[-\s]?call|applicant)\s+pool)\s*$/i, '').trim();
+  t = t.replace(/\s+(?:talent|hiring|on[-\s]?call|applicant|float|cas)\s+pool\b/gi, '').trim();
   t = t.replace(TRAILING_PIPELINE_METADATA, '').trim();
   t = t.replace(TRAILING_MULTIPLICITY_METADATA, '').trim();
   // Annual recruitment cycles are listing metadata, not part of the public
@@ -816,7 +824,7 @@ export function extractSourceAcademicTermFromRaw(source: string | null | undefin
 export function isUsableJobTitle(title: string | null | undefined): boolean {
   const normalized = normalizeJobTitle(title);
   if (!normalized) return false;
-  return !/^(?:skip\s+to\b|search\s+jobs?\b|job\s+description|no\s+results?\b|frequently\s+asked\b|view\s+(?:the\s+)?job(?:\s+(?:details|posting))?\b|apply\s+now\b|click\s+here\b|read\s+more\b|see\s+details\b|job\s+details\b|workload\s*(?:n\s*)?\(in\s+days\)\s+to\s+receive\s+an\s+alert\b|an\s+academic\s+strike\s+is\s+in\s+effect\b)/i.test(normalized);
+  return !/^(?:skip\s+to\b|search\s+jobs?\b|job\s+description|no\s+results?\b|frequently\s+asked\b|view\s+(?:the\s+)?job(?:\s+(?:details|posting))?\b|apply\s+now\b|click\s+here\b|read\s+more\b|see\s+details\b|job\s+details\b|general\s+application(?:\s+pool)?\b|workload\s*(?:n\s*)?\(in\s+days\)\s+to\s+receive\s+an\s+alert\b|an\s+academic\s+strike\s+is\s+in\s+effect\b)/i.test(normalized);
 }
 
 /**
