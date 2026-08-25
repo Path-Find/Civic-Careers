@@ -12,6 +12,7 @@
 import dotenv from 'dotenv';
 import { initDb } from './db';
 import { normalizeActiveClosingDateStatus } from './closing-date';
+import { classifyRawCapture } from './capture-quality';
 import { extractRawJobTitle, extractUrlJobTitle, isUsableJobTitle } from './title';
 
 dotenv.config({ quiet: true });
@@ -19,6 +20,7 @@ dotenv.config({ quiet: true });
 const APPLY = process.argv.includes('--apply');
 const limitArgument = process.argv.find(value => value.startsWith('--limit='));
 const LIMIT = Math.max(1, Math.min(100, Number(limitArgument?.split('=')[1] ?? 100)));
+const SOURCE_ONLY = process.argv.find(value => value.startsWith('--source='))?.slice('--source='.length) ?? '';
 
 const EVIDENCE_PATTERN = /closing date|deadline|apply by|apply before|last day to apply|applications? must be received|expires|posting close|posting end date|close date|time left to apply|end date/i;
 
@@ -53,7 +55,7 @@ async function main() {
     throw new Error('This production backfill requires explicit NEON_CURRENT_DATABASE_URL and NEON_ARCHIVE_DATABASE_URL values; refusing to write through the local Turso fallback.');
   }
   const db = await initDb();
-  const result = await db.execute(`
+  const result = await db.execute({sql: `
     SELECT j.id, j.public_id, j.source, j.verified_at,
            r.title, r.raw_text, r.pending_closing_date,
            r.pending_closing_date_status, r.parsed_at,
@@ -80,8 +82,9 @@ async function main() {
           AND (r.pending_closing_date IS NULL OR TRIM(r.pending_closing_date) = '')
           AND COALESCE(r.pending_closing_date_status, 'not_checked') = 'not_checked')
       )
+      ${SOURCE_ONLY ? 'AND j.source = ?' : ''}
     ORDER BY j.public_id
-  `);
+  `, args: SOURCE_ONLY ? [SOURCE_ONLY] : []});
 
   const today = new Date().toISOString().slice(0, 10);
   const rows = (result.rows as unknown as Row[]).map(row => {
@@ -93,11 +96,12 @@ async function main() {
       display_title: row.display_title || sourceTitle || urlTitle || null,
     };
   });
-  const titleFixes = rows.filter(row => !isUsableJobTitle(row.detail_title) && isUsableJobTitle(row.display_title));
+  const validRows = rows.filter(row => classifyRawCapture(row.source, String(row.raw_text ?? '')).valid);
+  const titleFixes = validRows.filter(row => !isUsableJobTitle(row.detail_title) && isUsableJobTitle(row.display_title));
   const candidates: Array<Row & {
     closingDate: string | null;
     closingStatus: 'known' | 'open_until_filled';
-  }> = rows.flatMap(row => {
+  }> = validRows.flatMap(row => {
     if (row.date_recovery_eligible !== 1) return [];
     const closing = normalizeActiveClosingDateStatus(String(row.raw_text ?? ''));
     if (closing.status === 'open_until_filled') {

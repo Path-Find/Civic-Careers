@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Marked 18 valid Western University postings without a source closing date as until-filled and prevented invalid captures from entering the recovery queue.
+
 - Repaired stored Ottawa, Western, and Government of Canada captures for glued hours, canonical locations, academic course/term metadata, and source-specific title artifacts without re-scraping.
 
 - Repaired current Ottawa, Government of Canada, and Western captures from source pages, filled verified missing fields, and added engine/source guards for glued locations, Western campus defaults, missing-detail rows, and GC portal shells.
