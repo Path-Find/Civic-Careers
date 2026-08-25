@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Repaired current Ottawa, Government of Canada, and Western captures from source pages, filled verified missing fields, and added engine/source guards for glued locations, Western campus defaults, missing-detail rows, and GC portal shells.
+
 - Expanded title cleanup for hiring-pool and part-time metadata while preserving legitimate pool roles; current University of Northern British Columbia listings blocked by the source CAPTCHA are now soft-parsed instead of presented as fully parsed.
 
 - Added source-specific capture guards for search-result shells, unavailable postings, and glued requirement headings; the second deterministic pilot fully parsed 10 valid jobs and hid invalid captures instead of publishing them.

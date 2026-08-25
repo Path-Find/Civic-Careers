@@ -234,7 +234,7 @@ async function main() {
     : '';
   const parseScope = UNPARSED_ONLY
     ? 'r.parsed_at IS NULL'
-    : '(r.parsed_at IS NULL OR d.parser_version = 0)';
+    : '(r.parsed_at IS NULL OR d.id IS NULL OR d.parser_version = 0)';
   const safeRowGuard = UNPARSED_ONLY
     ? 'AND d.id IS NULL AND j.verified_at IS NULL'
     : 'AND j.verified_at IS NULL';

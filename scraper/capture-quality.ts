@@ -48,6 +48,15 @@ export function classifyRawCapture(source: string, rawText: string): RawCaptureQ
     return { valid: false, issue: 'generic_portal' };
   }
 
+  // GC Jobs can return its search/alert shell under a real poster ID when the
+  // detail page is blocked or fails to render. The shell has no posting body.
+  if (source === 'Government of Canada'
+    && /Search by Keyword/i.test(text)
+    && /(?:Select how often|Search by Location|Create Alert)/i.test(text)
+    && !/\b(?:position summary|job description|duties|qualifications|responsibilities|salary|closing date|who can apply|employment status|reference number|selection process number)\b/i.test(text)) {
+    return { valid: false, issue: 'generic_portal' };
+  }
+
   // ICBC talent-community pages are recruitment pools, not individual jobs.
   if (source === 'ICBC'
     && /\b(?:talent\s+community|talent\s+pool)\b/i.test(text)

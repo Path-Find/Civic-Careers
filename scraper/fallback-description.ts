@@ -121,6 +121,12 @@ export function formatCapturedDescription(rawText: string, title?: string): stri
   const text = rawText.replace(/\u00a0/g, ' ').trim();
   if (text.length < 300) return null;
 
+  // Some GC Jobs career-pool postings contain only a concise opening summary
+  // followed by structured fields. Keep that source text as a small overview
+  // instead of leaving a valid posting without a details record.
+  const gcPoolSummary = text.match(/((?:Several|Multiple)\s+[^\n]{20,180}?)(?=\s+Group\s+and\s+level\b)/i)?.[1]?.trim();
+  if (gcPoolSummary) return `## Overview\n${gcPoolSummary}`;
+
   const sections: CapturedSection[] = [];
 
   // University of Toronto separates the employer profile from the role copy;

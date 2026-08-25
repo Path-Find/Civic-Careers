@@ -22,6 +22,8 @@ dotenv.config({ quiet: true });
 const APPLY = process.argv.includes('--apply');
 const INCLUDE_STRUCTURED = process.argv.includes('--include-structured');
 const REPAIR_ARTIFACTS = process.argv.includes('--repair-artifacts');
+const CURRENT_ONLY = process.argv.includes('--current-only');
+const SOURCE_FILTER = process.argv.find(argument => argument.startsWith('--source='))?.slice('--source='.length) ?? '';
 const REQUESTED_IDS = new Set(
   (process.env.PARSE_IDS ?? '')
     .split(',')
@@ -177,11 +179,13 @@ async function main() {
   const idFilter = REQUESTED_IDS.size
     ? ` AND j.id IN (${[...REQUESTED_IDS].map(() => '?').join(',')})`
     : '';
-  const scopedQuery = `${QUERY} ${idFilter}`;
-  const queryArgs = [...REQUESTED_IDS];
-  const currentRows = (await db.execute({ sql: scopedQuery, args: queryArgs })).rows.map((row: any) => ({ ...row, store: 'current' as const }));
+  const sourceFilter = SOURCE_FILTER ? ' AND j.source = ?' : '';
+  const queryArgs = [...(SOURCE_FILTER ? [SOURCE_FILTER] : []), ...REQUESTED_IDS];
+  const filteredQuery = `${QUERY} ${sourceFilter}${idFilter}`;
+  const currentRows = (await db.execute({ sql: filteredQuery, args: queryArgs })).rows.map((row: any) => ({ ...row, store: 'current' as const }));
   const archiveRows = archive.executeArchive
-    ? (await archive.executeArchive({ sql: scopedQuery, args: queryArgs })).rows.map((row: any) => ({ ...row, store: 'archive' as const }))
+    && !CURRENT_ONLY
+    ? (await archive.executeArchive({ sql: filteredQuery, args: queryArgs })).rows.map((row: any) => ({ ...row, store: 'archive' as const }))
     : [];
   const changes: Change[] = [];
   const repairs: Change[] = [];

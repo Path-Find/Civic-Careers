@@ -233,6 +233,16 @@ export function parseWorkday(rawText: string, source = ''): ExtractedBoardMetada
     metadata.location = workdayHeaderMatch[1].trim();
     metadata.employmentType = normalizeEmploymentType(workdayHeaderMatch[2]);
   }
+  if (source === 'University of Ottawa') {
+    const campusLocation = rawText.match(/Campus\s*:\s*([^,]+,\s*[A-Z]{2})/i)?.[1]?.trim();
+    if (campusLocation) metadata.location = campusLocation;
+    const inlineOttawa = rawText.match(/\b(Ottawa,\s*ON)\b/i)?.[1]?.trim();
+    if (inlineOttawa) metadata.location = inlineOttawa;
+    if ((/Campus/i.test(metadata.location ?? '') || !metadata.location)
+      && /(?:Apply)?locations?|Campus/i.test(rawText)) {
+      metadata.location = 'Ottawa, ON';
+    }
+  }
 
   // Department
   const deptMatch = rawText.match(workdayField('Department'));
@@ -767,6 +777,12 @@ export function parseGovernmentOfCanada(rawText: string): ExtractedBoardMetadata
       .replace(/\s+/g, ' ');
     metadata.location = locLines;
   }
+  if (!metadata.location) {
+    // Syndicated GC postings often glue the location directly to the title
+    // summary instead of rendering a Location section.
+    const inlineLocation = rawText.match(/\b([A-Z][A-Za-z.'-]+,\s*(?:ON|QC|BC|AB|MB|SK|NS|NB|NL|PE|YT|NT|NU)(?:,\s*Canada)?)\b/);
+    if (inlineLocation) metadata.location = inlineLocation[1].trim();
+  }
 
   return metadata;
 }
@@ -820,6 +836,17 @@ export function parsePeopleSoft(rawText: string, source = ''): ExtractedBoardMet
   const deptMatch = rawText.match(peopleSoftField('Department')) || rawText.match(/Department\s*\n+([^\n]+)/i);
   if (deptMatch) {
     metadata.department = normalizeDepartment(deptMatch[1]);
+  }
+
+  const locationMatch = rawText.match(peopleSoftField('Location'))
+    || rawText.match(/Location\s*\n+([^\n]+)/i);
+  if (locationMatch) {
+    metadata.location = locationMatch[1].trim();
+  }
+  // Western's PeopleSoft detail pages omit a location for many postings even
+  // though these roles are campus-based. Keep this scoped to that tenant.
+  if (source === 'Western University' && !metadata.location) {
+    metadata.location = 'London, ON';
   }
 
   const salaryMatch = rawText.match(peopleSoftField('Salary Range'))

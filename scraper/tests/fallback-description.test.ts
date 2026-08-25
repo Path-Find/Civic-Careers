@@ -32,6 +32,11 @@ test('rejects a raw page without recognizable job sections', () => {
   assert.equal(formatWorkdayFallbackDescription('Skip to main contentLoadingFollow Us'), null);
 });
 
+test('keeps a concise Government of Canada career-pool summary', () => {
+  const description = formatCapturedDescription('Several SP-03 & SP-04 positions to start your career at the CRA! Group and level SP-004 Location Jonquière, Montréal, Shawinigan Closing Date September 7, 2026 ' + 'Structured field '.repeat(20));
+  assert.equal(description, '## Overview\nSeveral SP-03 & SP-04 positions to start your career at the CRA!');
+});
+
 test('formats a non-Workday position overview and qualifications capture', () => {
   const result = formatCapturedDescription(
     'Position OverviewThis role coordinates patient care and supports the clinical team. '

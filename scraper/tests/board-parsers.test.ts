@@ -140,6 +140,16 @@ test('parseWorkday still runs into free-form prose when no known label follows (
   assert.notEqual(result.salary, '$68,149.00 - $86,083.00');
 });
 
+test('parseWorkday uses the Ottawa campus location when the Workday header glues campus text', () => {
+  const parsed = parseWorkday('ApplylocationsLees CampusOttawa, ONtime typeFull timeposted onPosted YesterdayCampus:Ottawa, ON', 'University of Ottawa');
+  assert.equal(parsed.location, 'Ottawa, ON');
+});
+
+test('parseWorkday defaults Ottawa postings to Ottawa when the campus omits the province', () => {
+  const parsed = parseWorkday('ApplylocationsMain CampusOttawa time typePart timeposted onPosted Yesterday', 'University of Ottawa');
+  assert.equal(parsed.location, 'Ottawa, ON');
+});
+
 test('parseOntarioHealthAtHome extracts structured fields correctly', () => {
   const rawText = `
 Status: Full-Time or Part-Time
@@ -358,6 +368,11 @@ $112,823 to $131,504
   assert.equal(result.location, 'Kingston (Ontario), North York (Ontario)');
 });
 
+test('parseGovernmentOfCanada extracts a location glued into the syndicated summary', () => {
+  const parsed = parseGovernmentOfCanada('Senior IT Project Manager Ottawa, ON, CanadaFull-timeOpen to: All');
+  assert.equal(parsed.location, 'Ottawa, ON');
+});
+
 test('parsePeopleSoft extracts fields correctly', () => {
   const rawText = `
 Department: Human Resources
@@ -388,4 +403,14 @@ test('parsePeopleSoft correctly identifies a non-union "Exempt" position without
   const rawText = 'Position and Pay InformationBusiness Unit: VariousUnion: ExemptPosition Type: Permanent and Temporary Compensation: Salary will be based on the position.Hours of work: Standard 35 hour work week';
   const result = parsePeopleSoft(rawText);
   assert.equal(result.isUnionized, 0);
+});
+
+test('parsePeopleSoft extracts the location field', () => {
+  const parsed = parsePeopleSoft('Job Title\nCoordinator\nLocation\nLondon, ON\nDepartment\nAdministration');
+  assert.equal(parsed.location, 'London, ON');
+});
+
+test('parsePeopleSoft uses Western\'s campus location when the tenant omits it', () => {
+  const parsed = parsePeopleSoft('Job Title\nCoordinator\nDepartment\nAdministration', 'Western University');
+  assert.equal(parsed.location, 'London, ON');
 });
