@@ -378,6 +378,25 @@ describe('normalizeJobTitle', () => {
     );
   });
 
+  it('cleans U of T academic-term, emergency, and course-title metadata', () => {
+    assert.equal(
+      normalizeSourceJobTitle('University of Toronto', '2026-27 Fall and Winter Sessional Lecturer Emergency Positions'),
+      'Sessional Lecturer',
+    );
+    assert.equal(
+      normalizeSourceJobTitle('University of Toronto', '2026 Fall (Sep-Dec) Sessional Instructional Asst | RSM462H1 - Managing People in the Context of Glo'),
+      'Sessional Instructional Asst',
+    );
+    assert.equal(
+      extractSourceAcademicTerm('University of Toronto', '2026-27 Fall and Winter Sessional Lecturer Emergency Positions'),
+      'Fall/Winter 2026-27',
+    );
+  });
+
+  it('registers UBC as a Workday source and removes seasonal title metadata', () => {
+    assert.equal(normalizeSourceJobTitle('UBC', 'Front Counter 2 (Winter)'), 'Front Counter 2');
+  });
+
   it('does not strip bare Temporary proper-name prefixes', () => {
     assert.equal(
       normalizeJobTitle('Temporary Employment Services (TES), Office Assistant'),

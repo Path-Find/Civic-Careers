@@ -579,6 +579,19 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
   }
 
   if (source === 'University of Toronto') {
+    // Jobs2Web titles can begin with a fiscal academic term and append
+    // "Emergency Positions" or the full course title. Those are metadata;
+    // keep the role in the display title and move the term/course elsewhere.
+    normalized = normalized
+      .replace(/^\s*20\d{2}[-/]\d{2,4}\s+(?:Fall|Winter|Spring|Summer)(?:\s+and\s+|\s*\/\s*)(?:Fall|Winter|Spring|Summer)\s*/i, '')
+      .replace(/^\s*20\d{2}\s+(?:Fall|Winter|Spring|Summer)\s*(?:\([^)]{2,24}\))?\s*/i, '')
+      .replace(/\s+(?:Emergency\s+)?Positions?\s*$/i, '')
+      .trim();
+    const courseCode = extractAcademicCourseCode(title, source);
+    const courseIndex = courseCode ? normalized.toLowerCase().indexOf(courseCode.toLowerCase()) : -1;
+    if (courseIndex > 0 && /\b(?:sessional|lecturer|instructional\s+asst|instructional\s+assistant)\b/i.test(normalized)) {
+      normalized = normalized.slice(0, courseIndex).replace(/\s*[|–—:-]\s*$/, '').trim();
+    }
     normalized = normalized
       .replace(/^\s*Emergency\s+Posting\s*[-–—:]\s*/i, '')
       .replace(/\s*[-–—:]\s*Emergency\s+Posting\s*$/i, '')
@@ -604,6 +617,15 @@ export function normalizeSourceJobTitle(source: string | null | undefined, title
     } else {
       normalized = unbcTitle;
     }
+  }
+
+  if (source === 'UBC') {
+    // UBC Workday occasionally appends the academic season to instructional
+    // and campus-support titles; it belongs in the academic term metadata.
+    normalized = normalized
+      .replace(/\s*\(\s*(?:Fall|Winter|Spring|Summer)(?:\s+\d{4})?\s*\)\s*$/i, '')
+      .replace(/\s*[-–—:,]\s*(?:Fall|Winter|Spring|Summer)(?:\s+\d{4})?\s*$/i, '')
+      .trim();
   }
 
   if (source === 'University of Winnipeg') {
@@ -789,6 +811,10 @@ export function extractSourceAcademicTerm(source: string | null | undefined, tit
   if (!value || !/university|college|polytechnic/i.test(String(source ?? ''))) return '';
   const full = extractAcademicTerm(value);
   if (full) return full;
+  if (source === 'University of Toronto') {
+    const fiscalSeasons = value.match(/\b(20\d{2})[-/]((?:\d{2}|\d{4}))\s+(Fall|Winter|Spring|Summer)(?:\s+and\s+|\s*\/\s*)(Fall|Winter|Spring|Summer)\b/i);
+    if (fiscalSeasons) return `${fiscalSeasons[3]}/${fiscalSeasons[4]} ${fiscalSeasons[1]}-${fiscalSeasons[2].slice(-2)}`;
+  }
   const reversed = value.match(/\b(20\d{2})\s+(Fall|Winter|Spring|Summer|Automne|Hiver|Été|Ete|Printemps)\b/i);
   if (reversed) return `${reversed[2]} ${reversed[1]}`;
   if (source === 'York University') {

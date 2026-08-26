@@ -32,6 +32,36 @@ test('removes repeated Canada Post values boilerplate in one pass', () => {
   );
 });
 
+test('removes University of Toronto Jobs2Web and institutional footers', () => {
+  assert.equal(
+    cleanSourceDescriptionBoilerplate(
+      'University of Toronto',
+      '## Responsibilities\n- Teach the course. Diversity Statement The University of Toronto embraces Diversity and is building a culture of belonging that increases our capacity. Accessibility Statement The University is committed to accessibility. Job Segment: Research, Education Apply now » Find similar jobs: All Opportunities',
+    ),
+    '## Responsibilities\n- Teach the course.',
+  );
+});
+
+test('removes Western institutional and employer boilerplate', () => {
+  assert.equal(
+    cleanSourceDescriptionBoilerplate(
+      'Western University',
+      '## Responsibilities\n- Teach the course. Western Values Diversity The University invites applications from all qualified individuals. Western offers a broad and exciting variety of part-time and temporary employment opportunities with ample room for job exploration and growth. Within our beautiful campus, you are part of a progressive work environment that promotes work/life balance including access to our state-of-the-art recreation centre. Apply for an opportunity to be part of the Western community and contribute to its success! We thank all applicants for their interest; however, only those chosen for an interview will be contacted.',
+    ),
+    '## Responsibilities\n- Teach the course.',
+  );
+});
+
+test('removes the confirmed UBC institutional introduction', () => {
+  assert.equal(
+    cleanSourceDescriptionBoilerplate(
+      'UBC',
+      '## Responsibilities\n- Lead the project. The University of British Columbia is a global centre for research and teaching, consistently ranked among the top 20 public universities in the world. Since 1915, UBC’s entrepreneurial spirit has embraced innovation and challenged the status quo. UBC encourages its students, staff and faculty to challenge convention, lead discovery and explore new ways of learning. At UBC, bold thinking is given a place to develop into ideas that can change the world.',
+    ),
+    '## Responsibilities\n- Lead the project.',
+  );
+});
+
 test('keeps the complete role paragraph when a person name precedes the title', () => {
   const result = cleanOverviewBoilerplate(
     'The lab studies health outcomes across Canada.\n\nReporting to Monica Aggarwal, the Research Associate will manage recruitment and data analysis.',

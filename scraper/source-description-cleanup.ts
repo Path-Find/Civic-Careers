@@ -2,6 +2,9 @@ import { UNIVERSITY_OF_OTTAWA_DESCRIPTION_RULES } from './source-rules/universit
 import { SHARED_HEALTH_DESCRIPTION_RULES } from './source-rules/shared-health-manitoba';
 import { CANADA_POST_DESCRIPTION_RULES } from './source-rules/canada-post';
 import { YORK_UNIVERSITY_DESCRIPTION_RULES } from './source-rules/york-university';
+import { UNIVERSITY_OF_TORONTO_DESCRIPTION_RULES } from './source-rules/university-of-toronto';
+import { WESTERN_UNIVERSITY_DESCRIPTION_RULES } from './source-rules/western-university';
+import { UBC_DESCRIPTION_RULES } from './source-rules/ubc';
 
 type SourceRule = {
   name: string;
@@ -16,6 +19,9 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
   'Shared Health Manitoba': SHARED_HEALTH_DESCRIPTION_RULES,
   'University of Ottawa': UNIVERSITY_OF_OTTAWA_DESCRIPTION_RULES,
   'York University': YORK_UNIVERSITY_DESCRIPTION_RULES,
+  'University of Toronto': UNIVERSITY_OF_TORONTO_DESCRIPTION_RULES,
+  'Western University': WESTERN_UNIVERSITY_DESCRIPTION_RULES,
+  UBC: UBC_DESCRIPTION_RULES,
   'Brock University': [
     { name: 'brock-employer-introduction', pattern: /Brock University is located on the traditional territory of the Haudenosaunee and Anishinaabe peoples,[\s\S]*?Break through at Brock\./i, mode: 'inline' },
   ],

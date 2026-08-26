@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Cleaned confirmed University of Toronto Jobs2Web and institutional footer text from 20 current and 41 archived descriptions, and moved U of T term/course metadata out of 15 archived titles/fields.
+
+- Added Western University source rules and removed confirmed institutional, employer-pitch, accessibility, and thank-you boilerplate from 121 current descriptions.
+
+- Registered UBC as a Workday source, removed its confirmed institutional introduction from 4 current and 4 archived descriptions, and cleaned the stored seasonal title metadata.
+
+- Audited Brock University, TransLink, City of Toronto, and City of Ottawa against current and archived captures; no additional safe cleanup changes were found.
+
+- Prevented academic metadata backfills from repeatedly proposing detail-field writes for raw-only archived captures.
+
 - Cleaned confirmed Canada Post portal, consent, and employer boilerplate from 168 current and 69 archived descriptions, including repeated values blocks, with source-scoped idempotent rules.
 
 - Removed the confirmed York University Cegid portal footer from 3 current and 5 archived descriptions and added a York-only regression rule.

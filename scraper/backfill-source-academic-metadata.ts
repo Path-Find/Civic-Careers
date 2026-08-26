@@ -53,7 +53,7 @@ async function main() {
   }
 
   const query = `
-    SELECT j.id, j.source, r.title AS raw_title, r.raw_text, d.job_title AS detail_title,
+    SELECT j.id, j.source, r.title AS raw_title, r.raw_text, d.id AS detail_id, d.job_title AS detail_title,
            d.academic_course, d.academic_term
            ,d.department, d.academic_office_hours
     FROM jobs j
@@ -85,6 +85,7 @@ async function main() {
       if (SOURCE_FILTER && source.toLowerCase() !== SOURCE_FILTER) continue;
       const rawTitle = String(row.raw_title ?? '').trim();
       const detailTitle = String(row.detail_title ?? '').trim();
+      const hasDetails = Boolean(row.detail_id);
       const sourceTitle = rawTitle || detailTitle;
       const rawText = String(row.raw_text ?? '');
       const storedCourse = String(row.academic_course ?? '').trim();
@@ -129,15 +130,15 @@ async function main() {
           .replace(/^Studies\s+390\s+—\s+3:\s*/i, 'First Nations Studies 390-3 — ')
           .replace(/^CPSC\s+100\s+—\s+&\s+CPSC\s+321$/i, 'CPSC 100 & CPSC 321');
       }
-      if (repairedCourse !== storedCourse) {
+      if (hasDetails && repairedCourse !== storedCourse) {
         courseChanges += 1;
         writes.push({ sql: 'UPDATE job_details SET academic_course = ? WHERE id = ?', args: [repairedCourse || null, String(row.id)] });
       }
-      if (term && term !== String(row.academic_term ?? '').trim()) {
+      if (hasDetails && term && term !== String(row.academic_term ?? '').trim()) {
         termChanges += 1;
         writes.push({ sql: 'UPDATE job_details SET academic_term = ? WHERE id = ?', args: [term, String(row.id)] });
       }
-      if (source === 'University of Ottawa') {
+      if (hasDetails && source === 'University of Ottawa') {
         const repairedDepartment = storedDepartment
           .replace(/[_\s]+FT(?=Campus:)/i, '')
           .replace(/Campus:[\s\S]*$/i, '')
@@ -151,7 +152,7 @@ async function main() {
         .replace(/Posting\s+limited\s+to\s*:.*/i, '')
         .replace(/\s+/g, ' ')
         .trim();
-      if (repairedOfficeHours !== storedOfficeHours) {
+      if (hasDetails && repairedOfficeHours !== storedOfficeHours) {
         officeHoursChanges += 1;
         writes.push({ sql: 'UPDATE job_details SET academic_office_hours = ? WHERE id = ?', args: [repairedOfficeHours || null, String(row.id)] });
       }

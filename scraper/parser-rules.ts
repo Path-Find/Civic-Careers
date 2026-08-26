@@ -29,6 +29,7 @@ export interface ParsedTitleResult {
 const SOURCE_ENGINES: Record<string, string> = {
   'University of Ottawa': 'workday',
   'University of Toronto': 'jobs2web',
+  UBC: 'workday',
   'Brock University': 'workday',
   'York University': 'technomedia',
   'City of Vaughan': 'njoyn',
@@ -50,6 +51,7 @@ const SOURCE_TITLE_RULE_SOURCES = new Set([
   'Toronto Metropolitan University',
   'Brock University',
   'University of Toronto',
+  'UBC',
   'University of Northern British Columbia',
   'York University',
   'City of Waterloo',
