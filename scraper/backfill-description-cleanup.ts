@@ -13,14 +13,17 @@ const compensationOnly = process.argv.includes('--compensation-only');
 
 async function main() {
   const db = await initDb();
-  const result = await db.execute(`
-    SELECT j.id, j.source, jd.job_title, jd.description
-    FROM jobs j
-    JOIN job_details jd ON jd.id = j.id
-    WHERE jd.description IS NOT NULL AND jd.description != ''
-      ${sourceFilter ? 'AND j.source = ?' : ''}
-    ORDER BY j.source, j.id
-  `, sourceFilter ? [sourceFilter] : undefined);
+  const result = await db.execute({
+    sql: `
+      SELECT j.id, j.source, jd.job_title, jd.description
+      FROM jobs j
+      JOIN job_details jd ON jd.id = j.id
+      WHERE jd.description IS NOT NULL AND jd.description != ''
+        ${sourceFilter ? 'AND j.source = ?' : ''}
+      ORDER BY j.source, j.id
+    `,
+    args: sourceFilter ? [sourceFilter] : [],
+  });
 
   const transformed = result.rows.map(row => {
     const before = String(row.description ?? '');

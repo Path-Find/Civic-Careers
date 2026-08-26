@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added Ottawa-specific description cleanup for recurring Workday portal/legal footers and applied it to 44 current records; the backfill tool now works with Neon source filters.
+
 - Added source-specific Ottawa faculty description boundaries so portal metadata, structured pay/location fields, application instructions, and Similar Jobs content stay out of job descriptions.
 
 - Improved Ottawa academic replay parsing for raw course codes, course titles, session terms, numeric course codes, and campus locations; scoped source metadata repairs were applied without certifying incomplete rows.

@@ -426,3 +426,25 @@ test('does not remove a role paragraph that merely mentions Metrolinx', () => {
   const description = '## Overview\nThe manager will improve Metrolinx service reliability.';
   assert.equal(cleanSourceDescriptionBoilerplate('Metrolinx', description), description);
 });
+
+test('removes Ottawa Workday footer chrome from stored descriptions', () => {
+  const description = `## Responsibilities
+Teach courses and conduct research.
+
+Similar Jobs (14) Professor in Accounting locations2 Location Follow UsPolicy 90 - Access to Information`;
+  assert.equal(
+    cleanSourceDescriptionBoilerplate('University of Ottawa', description),
+    '## Responsibilities\nTeach courses and conduct research.',
+  );
+});
+
+test('removes Ottawa equity footer without removing preceding role content', () => {
+  const description = `## Qualifications
+PhD in a related field.
+
+The University of Ottawa is committed to ensuring equity, diversity, and inclusion in its hiring process. All qualified candidates are invited to apply.`;
+  assert.equal(
+    cleanSourceDescriptionBoilerplate('University of Ottawa', description),
+    '## Qualifications\nPhD in a related field.',
+  );
+});
