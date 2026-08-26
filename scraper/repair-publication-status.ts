@@ -161,15 +161,12 @@ async function main() {
         args.push(decision.id, decision.to);
         return 'WHEN ? THEN ?';
       }).join(' ');
-      const activeCases = keepActive
-        ? chunk.map(decision => {
-          args.push(decision.id);
-          return `WHEN ? THEN ${decision.to === 'hidden' ? 0 : 1}`;
-        }).join(' ')
-        : '';
-      const activeSql = keepActive
-        ? `, is_active = CASE id ${activeCases} ELSE is_active END`
-        : '';
+      const activeCases = chunk.map(decision => {
+        args.push(decision.id);
+        const active = keepActive ? (decision.to === 'hidden' ? 0 : 1) : 0;
+        return `WHEN ? THEN ${active}`;
+      }).join(' ');
+      const activeSql = `, is_active = CASE id ${activeCases} ELSE is_active END`;
       await execute({
         sql: `UPDATE jobs
               SET publication_status = CASE id ${cases} END${activeSql}

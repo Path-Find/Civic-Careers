@@ -136,6 +136,25 @@ export class NeonDatabaseClient {
     });
   }
 
+  /** Run several related archive-database writes under both routing locks. */
+  async archiveTransaction<T>(callback: (client: {
+    execute: (statement: Statement) => Promise<unknown>;
+    batch: (statements: Statement[]) => Promise<unknown>;
+  }) => Promise<T>): Promise<T> {
+    return this.withRoutingLocks(async ({ archive }) => {
+      const execute = async (statement: Statement) => {
+        const { sql, args } = statementParts(statement);
+        return resultSet(await archive.query<Row>(postgresPlaceholders(sql), args));
+      };
+      const batch = async (statements: Statement[]) => {
+        const results = [];
+        for (const statement of statements) results.push(await execute(statement));
+        return results;
+      };
+      return callback({ execute, batch });
+    });
+  }
+
   async restoreIfArchived(id: string): Promise<void> {
     await this.withRoutingLocks(async ({ archive, current }) => {
       const archived = await archive.query<{ id: string }>(

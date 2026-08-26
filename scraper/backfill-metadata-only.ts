@@ -48,6 +48,7 @@ const APPLY = process.argv.includes('--apply');
 // re-run of deterministic metadata, never the normal queue path.
 const INCLUDE_SOFT_PARSED = process.argv.includes('--include-soft-parsed');
 const SOFT_ONLY = process.argv.includes('--soft-only');
+const INCLUDE_ARCHIVE = process.argv.includes('--include-archive');
 const ACADEMIC_ONLY = process.argv.includes('--academic-only');
 const SOURCE_ONLY = process.argv.find(arg => arg.startsWith('--source='))?.slice('--source='.length) ?? '';
 const REQUESTED_IDS = new Set(
@@ -93,6 +94,7 @@ type RawRow = {
   title: string | null;
   first_seen_at: string;
   posted_at: string | null;
+  store: 'current' | 'archive';
 };
 
 const DATE_VALUE = '(?:[A-Za-z]{3,9}\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s*\\d{2,4}|\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}|\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})';
@@ -269,7 +271,30 @@ async function main() {
     args: [...EXCLUDED_SOURCES, ...(SOURCE_ONLY ? [SOURCE_ONLY] : []), ...REQUESTED_IDS],
   });
 
-  const rows = result.rows as unknown as RawRow[];
+  const currentRows = result.rows.map((row: any) => ({ ...row, store: 'current' as const }));
+  const archiveExecute = (db as any).executeArchive;
+  const archiveRows = INCLUDE_ARCHIVE && archiveExecute
+    ? (await archiveExecute.call(db, {
+      sql: `
+      SELECT r.id, r.url, r.application_url, r.source, r.raw_text, r.title, r.first_seen_at, r.posted_at,
+             d.parser_version
+      FROM raw_jobs r
+      LEFT JOIN job_details d ON d.id = r.id
+      LEFT JOIN jobs j ON j.id = r.id
+      WHERE ${parseScope}
+        AND (r.raw_text IS NOT NULL AND r.raw_text != '')
+        ${safeRowGuard}
+        ${sourceExclusion}
+        ${academicSourceFilter}
+        ${sourceOnlyFilter}
+        ${softOnlyFilter}
+        ${idFilter}
+      ORDER BY r.scraped_at ASC
+    `,
+      args: [...EXCLUDED_SOURCES, ...(SOURCE_ONLY ? [SOURCE_ONLY] : []), ...REQUESTED_IDS],
+    })).rows.map((row: any) => ({ ...row, store: 'archive' as const }))
+    : [];
+  const rows = [...currentRows, ...archiveRows] as RawRow[];
   const invalid = rows.filter(row => invalidRaw(row.source, row.raw_text));
   const genuine = rows.filter(row => !invalidRaw(row.source, row.raw_text));
   console.log(`[Metadata backfill] ${APPLY ? 'Applying' : 'Dry run'}${UNPARSED_ONLY ? ' (safe unparsed-only)' : ' (including existing soft parses)'}: ${genuine.length} genuine row(s), ${invalid.length} invalid row(s).`);
@@ -385,7 +410,9 @@ async function main() {
   }
 
   async function processWithSafeTransaction(row: RawRow) {
-    const transaction = (db as any).currentTransaction;
+    const transaction = row.store === 'archive'
+      ? (db as any).archiveTransaction
+      : (db as any).currentTransaction;
     if (typeof transaction === 'function') {
       await transaction.call(db, (writer: any) => processRow(row, writer));
     } else {
