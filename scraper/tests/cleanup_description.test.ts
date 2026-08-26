@@ -11,6 +11,27 @@ test('removes preceding employer copy at paragraph boundaries', () => {
   assert.equal(result, 'The Research Associate will coordinate studies and analyze results.');
 });
 
+test('removes York Cegid portal controls from the captured description footer', () => {
+  assert.equal(
+    cleanSourceDescriptionBoilerplate(
+      'York University',
+      '## Responsibilities\n- Lead the program. #LI-DNI Print Add to my favorites Remove from favorites My favorites(0) Send by Email Share Job 62 of 392 Legal Disclaimer | CNIL | Accessibility ©2026 Cegid Contact us | Cookie Usage Policy',
+    ),
+    '## Responsibilities\n- Lead the program.',
+  );
+});
+
+test('removes repeated Canada Post values boilerplate in one pass', () => {
+  const values = 'Our Values - Trust, Respect and Deliver represent our fundamental promise to ourselves, our expectations of one and another and our shared duty to our country.';
+  assert.equal(
+    cleanSourceDescriptionBoilerplate(
+      'Canada Post',
+      `## Responsibilities\n- Deliver mail. ${values} ${values}`,
+    ),
+    '## Responsibilities\n- Deliver mail.',
+  );
+});
+
 test('keeps the complete role paragraph when a person name precedes the title', () => {
   const result = cleanOverviewBoilerplate(
     'The lab studies health outcomes across Canada.\n\nReporting to Monica Aggarwal, the Research Associate will manage recruitment and data analysis.',
@@ -445,6 +466,17 @@ Provides direct patient care and participates in team rounds.
   assert.equal(
     cleanSourceDescriptionBoilerplate('Shared Health Manitoba', description),
     '## Responsibilities\nProvides direct patient care and participates in team rounds.',
+  );
+});
+
+test('removes Canada Post portal, consent, and employer boilerplate', () => {
+  const description = `## Overview
+Sorts and delivers mail to customers.
+
+Our behaviours – Make the call, Know the destination, Deliver for others, Ignite our pride; embody our values, bringing them to life and guiding our actions. Find similar jobs: Postal office, Canada Post: All Current Opportunities × Cookie Consent Manager`;
+  assert.equal(
+    cleanSourceDescriptionBoilerplate('Canada Post', description),
+    '## Overview\nSorts and delivers mail to customers.',
   );
 });
 

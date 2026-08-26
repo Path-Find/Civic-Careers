@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Cleaned confirmed Canada Post portal, consent, and employer boilerplate from 168 current and 69 archived descriptions, including repeated values blocks, with source-scoped idempotent rules.
+
+- Removed the confirmed York University Cegid portal footer from 3 current and 5 archived descriptions and added a York-only regression rule.
+
+- Applied the existing Government of Canada description rules to 4 remaining current records; the source audit now has no further safe cleanup candidates.
+
 - Added Shared Health Manitoba source rules for recurring SuccessFactors portal and policy text, cleaned 747 current descriptions, and applied the same cleanup to future deterministic backfills.
 
 - Completed the Ottawa description repair by handling confusable Workday labels and replacing the remaining active faculty description contaminated with portal metadata.
