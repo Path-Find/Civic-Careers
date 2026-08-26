@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Improved Ottawa academic replay parsing for raw course codes, course titles, session terms, numeric course codes, and campus locations; scoped source metadata repairs were applied without certifying incomplete rows.
+
 - Promoted a verified 20-job TransLink replay from soft-parsed to fully parsed using stored source captures only; all 20 passed the quality gate.
 
 - Centralized parse finalization so normal parsing and deterministic backfills persist closing metadata and promotion state together.

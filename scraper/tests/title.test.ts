@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractAndStripAcademicMetadata, extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle, normalizeSourceJobTitleFromRaw } from '../title';
+import { extractAndStripAcademicMetadata, extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, extractTitleDuration, extractUrlJobTitle, isEmploymentOrDurationParen, isUsableJobTitle, normalizeJobTitle, normalizeSourceAcademicCourse, normalizeSourceJobTitle, normalizeSourceJobTitleFromRaw } from '../title';
 
 describe('isEmploymentOrDurationParen', () => {
   it('matches employment and duration parentheticals', () => {
@@ -309,8 +309,24 @@ describe('normalizeJobTitle', () => {
       'MED6505 — Technologie en enseignement en santé',
     );
     assert.equal(
+      extractSourceAcademicCourseFromRaw('University of Ottawa', 'Course Title: Enseignement du françaisCourse Code: PED2788 / PED2789Section:'),
+      'PED2788 / PED2789 — Enseignement du français',
+    );
+    assert.equal(
+      extractSourceAcademicCourseFromRaw('University of Ottawa', 'Course Title: DIDA D\'INFORMATIQUECourse Code: 4727Section:'),
+      "4727 — DIDA D'INFORMATIQUE",
+    );
+    assert.equal(
+      normalizeSourceAcademicCourse('University of Ottawa', 'NSG57501 — Physiopathologie (Partie 1 de 2)'),
+      'NSG57501 — Physiopathologie (Partie 1 de 2)',
+    );
+    assert.equal(
       extractSourceAcademicTermFromRaw('University of Ottawa', 'Academic Period:2027 Spring-Summer Semester'),
       'Spring/Summer 2027',
+    );
+    assert.equal(
+      extractSourceAcademicTermFromRaw('University of Ottawa', 'Session:2026 Fall Semester'),
+      'Fall 2026',
     );
   });
 

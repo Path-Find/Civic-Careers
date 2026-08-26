@@ -767,16 +767,18 @@ export function normalizeSourceAcademicCourse(source: string | null | undefined,
   if (source === 'University of Guelph' && /^[A-Za-z]+\s+[0-9a-f]{8}\s+—\s+[0-9]{2}$/i.test(course)) return '';
   if (source === 'University of Winnipeg' && /^[A-Za-z]+\s+[0-9a-f]{8}\s+—\s+[0-9a-f]{4}$/i.test(course)) return '';
   if (source === 'University of Northern British Columbia' && /^(?:Instructor|Professor|Lecturer)$/i.test(course)) return '';
-  return course.replace(/[)\]]+$/g, '').trim();
+  const opening = (course.match(/[([]/g) ?? []).length;
+  const closing = (course.match(/[)\]]/g) ?? []).length;
+  return closing > opening ? course.replace(/[)\]]+$/g, '').trim() : course;
 }
 
 /** Recover uOttawa's labelled course metadata when the Workday title was truncated. */
 export function extractSourceAcademicCourseFromRaw(source: string | null | undefined, rawText: string | null | undefined): string {
   if (source !== 'University of Ottawa' || !rawText) return '';
-  const code = String(rawText).match(/Course\s+Code\s*:\s*([A-Z]{2,6}\s*-?\s*\d{3,5}[A-Z]?)(?=Section\s*:|Course\s+Description\s*:|$)/i)?.[1]?.trim() ?? '';
+  const code = String(rawText).match(/Course\s+Code\s*:\s*([A-Z]{2,6}\s*-?\s*\d{3,5}[A-Z]?(?:\s*\/\s*(?:[A-Z]{2,6}\s*)?\d{3,5}[A-Z]?)?|\d{3,5})(?=Section\s*:|Course\s+Description\s*:|$)/i)?.[1]?.trim() ?? '';
   const title = String(rawText).match(/Course\s+Title\s*:\s*([\s\S]{1,180}?)(?=Course\s+Code\s*:|Section\s*:|Course\s+Description\s*:|$)/i)?.[1]?.trim() ?? '';
   const normalizedCode = code.replace(/\s+/g, ' ').trim();
-  if (!/^(?!JR|REQ)[A-Z]{2,6}\s*-?\s*\d{3,5}[A-Z]?(?:\d{2})?$/i.test(normalizedCode)) return '';
+  if (!/^(?!JR|REQ)(?:[A-Z]{2,6}\s*-?\s*\d{3,5}[A-Z]?(?:\s*\/\s*(?:[A-Z]{2,6}\s*)?\d{3,5}[A-Z]?)?|\d{3,5})$/i.test(normalizedCode)) return '';
   const cleanTitle = title.replace(new RegExp(`^${normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*[,;:-]?\s*`, 'i'), '').trim();
   return cleanTitle ? `${normalizedCode} — ${cleanTitle}` : normalizedCode;
 }
@@ -823,7 +825,7 @@ export function extractSourceAcademicTerm(source: string | null | undefined, tit
 /** Recover uOttawa's Academic Period label when it was omitted from the title. */
 export function extractSourceAcademicTermFromRaw(source: string | null | undefined, rawText: string | null | undefined): string {
   if (source !== 'University of Ottawa' || !rawText) return '';
-  const period = String(rawText).match(/Academic Period:\s*(\d{4})\s+([A-Za-z]+(?:[-/]\s*[A-Za-z]+)?)\s+Semester/i);
+  const period = String(rawText).match(/(?:Academic Period|Session)\s*:\s*(\d{4})\s+([A-Za-z]+(?:[-/]\s*[A-Za-z]+)?)\s+Semester/i);
   if (!period) return '';
   const label = period[2].replace(/\s*[-/]\s*/g, '/');
   const normalized = label

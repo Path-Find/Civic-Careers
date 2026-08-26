@@ -17,7 +17,7 @@ import {
   saveJobDetails,
 } from './db';
 import { extractRecentRelativePostedDate, extractPostedDate, normalizePostedDate } from './posted-date';
-import { extractAndStripAcademicMetadata, extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicTerm, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from './title';
+import { extractAndStripAcademicMetadata, extractRawJobTitle, extractSourceAcademicCourse, extractSourceAcademicCourseFromRaw, extractSourceAcademicTerm, extractSourceAcademicTermFromRaw, isUsableJobTitle, normalizeJobTitle, normalizeSourceJobTitle } from './title';
 import {
   dedupeSkillsAgainstSoftware,
   extractCertificationRequirements,
@@ -100,6 +100,8 @@ function invalidRaw(source: string, rawText: string): boolean {
 }
 
 function extractLocation(rawText: string): string {
+  const ottawa = rawText.match(/\b(Ottawa,\s*ON)(?=(?:Main|Lees)\s+Campus|Other|\btime\s+type|\bposted\s+on)/i)?.[1];
+  if (ottawa) return normalizeLocation(ottawa);
   const workday = /apply\s*locations?(.+?)(?:time\s*type|posted\s*on|job\s*requisition)/i.exec(rawText)?.[1];
   const labelled = /(?:^|\b)locations?\s*[:\-]?\s*(.+?)(?:\btime\s*type|\bposted\s+on|\bjob\s+requisition|\bdepartment\s*[:\-]|$)/i.exec(rawText)?.[1];
   return normalizeLocation((workday ?? labelled ?? '').replace(/\s+/g, ' ').trim());
@@ -160,8 +162,12 @@ function buildDetails(row: RawRow) {
     salaryMax: parsedSalary?.max ?? null,
     salaryPeriod: parsedSalary?.period ?? null,
     academicTerm: academicMeta.academicTerm,
-    academicCourse: extractSourceAcademicCourse(row.source, sourceTitle) || academicMeta.academicCourse,
-    academicTerm: extractSourceAcademicTerm(row.source, sourceTitle) || academicMeta.academicTerm,
+    academicCourse: extractSourceAcademicCourseFromRaw(row.source, row.raw_text)
+      || extractSourceAcademicCourse(row.source, sourceTitle)
+      || academicMeta.academicCourse,
+    academicTerm: extractSourceAcademicTermFromRaw(row.source, row.raw_text)
+      || extractSourceAcademicTerm(row.source, sourceTitle)
+      || academicMeta.academicTerm,
   };
 
   const custom = extractBoardSpecificMetadata(row.source, row.raw_text);

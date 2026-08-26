@@ -14,6 +14,7 @@ dotenv.config({ quiet: true });
 const APPLY = process.argv.includes('--apply');
 const CURRENT_ONLY = process.argv.includes('--current-only');
 const SOURCE_FILTER = process.argv.find(arg => arg.startsWith('--source='))?.slice('--source='.length).trim().toLowerCase() || '';
+const REQUESTED_IDS = new Set((process.env.PARSE_IDS ?? '').split(',').map(id => id.trim()).filter(Boolean));
 const isAcademicSource = (source: string) => /university|college|polytechnic|institut/i.test(source);
 
 const STORED_COURSE_PATTERNS: Record<string, RegExp> = {
@@ -63,10 +64,14 @@ async function main() {
         OR j.source ILIKE '%polytechnic%'
         OR j.source ILIKE '%institute%')
       AND (r.title IS NOT NULL OR d.job_title IS NOT NULL)
+      ${REQUESTED_IDS.size ? `AND j.id IN (${[...REQUESTED_IDS].map(() => '?').join(',')})` : ''}
   `;
 
   for (const store of stores) {
-    const result = await store.execute(query);
+    const result = await store.execute({
+      sql: query,
+      args: [...REQUESTED_IDS],
+    });
     let titleChanges = 0;
     let courseChanges = 0;
     let termChanges = 0;
@@ -92,6 +97,10 @@ async function main() {
       const course = extractSourceAcademicCourseFromRaw(source, rawText) || extractSourceAcademicCourse(source, sourceTitle);
       const term = extractSourceAcademicTermFromRaw(source, rawText) || extractSourceAcademicTerm(source, sourceTitle);
       if (source === 'University of Ottawa') {
+        const classification = rawText.match(/Job\s+Classification\s*:\s*([^\n]+)/i)?.[1] ?? '';
+        if (/teaching\s+assistant|demonstrator|lab\s+monitor/i.test(classification)) title = 'Teaching Assistant';
+        else if (/professor|instructor/i.test(classification) && !/research\s+(?:assistant|associate)/i.test(title)) title = 'Course Instructor';
+        else if (course && /\b(?:APTPUO|ATPUO)\b/i.test(rawText)) title = 'Course Instructor';
         if (storedCourse && /^APTPUO\b/i.test(sourceTitle)) title = 'Course Instructor';
         if (/^APTPUO\s+Étudiant\.e/i.test(sourceTitle)) title = 'Student Professor';
         if (/^Student\s+Part-time\s+Prof\s+APTPUO$/i.test(sourceTitle)) title = 'Student Professor';
