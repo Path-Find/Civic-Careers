@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Recovered 23 Queen's requisition-ID titles and 25 missing Alberta, Calgary, and Queen's locations from stored captures; the other seven audited sources needed no safe data changes.
+
 - Audited the next ten high-volume sources; removed 49 confirmed Metrolinx boilerplate descriptions and repaired 2 archived Metrolinx titles, with no safe changes needed for the other nine sources.
 
 - Canonicalized Ottawa Jobs2Web records and future scraper runs to `City of Ottawa`, removing the duplicate company label across current and archived data.
