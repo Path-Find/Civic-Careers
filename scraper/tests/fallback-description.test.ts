@@ -100,3 +100,27 @@ test('formats concise structured course postings deterministically', () => {
 
   assert.match(result ?? '', /## Qualifications\n/);
 });
+
+test('formats uOttawa faculty captures without portal chrome or structured metadata', () => {
+  const result = formatCapturedDescription(
+    'Applications must be received BEFORE (YYYY/MM/DD): '
+      + 'The University invites applications for a faculty position in public health. '
+      + 'Position Title: Assistant Professor '
+      + 'Duties: Teach courses, conduct research, supervise graduate students, and contribute to academic service. '
+      + 'Terms: New tenure-track appointment. Salary: $99,377. '
+      + 'Required Qualifications: PhD in a related field and a strong research record. '
+      + 'Deadline: July 23, 2026. Apply online through the careers portal. '
+      + 'Similar Jobs (14) Other role Follow Us Policy 90',
+  );
+
+  assert.equal(result, [
+    '## Overview',
+    'The University invites applications for a faculty position in public health.',
+    '',
+    '## Responsibilities',
+    'Teach courses, conduct research, supervise graduate students, and contribute to academic service.',
+    '',
+    '## Qualifications',
+    'PhD in a related field and a strong research record.',
+  ].join('\n'));
+});

@@ -115,11 +115,40 @@ function isSafeFallbackDescription(description: string): boolean {
  * page remains pending rather than being published as a fake description.
  */
 export function formatCapturedDescription(rawText: string, title?: string): string | null {
-  const existing = formatWorkdayFallbackDescription(rawText);
-  if (existing && isSafeFallbackDescription(existing)) return existing;
-
   const text = rawText.replace(/\u00a0/g, ' ').trim();
   if (text.length < 300) return null;
+
+  // uOttawa faculty postings have a reliable Workday boundary even when the
+  // page has no narrative headings: the role copy starts after the blank
+  // "Applications must be received" label, duties are introduced by
+  // "Duties:", and qualifications end at "Deadline:". Keeping these source
+  // boundaries prevents portal metadata, salary/location, application
+  // instructions, and Similar Jobs chrome from becoming description prose.
+  if (/applications\s+must\s+be\s+received\s+before\b/i.test(text)
+    && /\bduties\s*:/i.test(text)
+    && /\brequired\s+qualifications\s*:/i.test(text)) {
+    const ottawaSections: CapturedSection[] = [];
+    const ottawaOverview = capturedSection(
+      capturedBetween(text, /applications\s+must\s+be\s+received\s+before\s*\([^)]*\)\s*:/i, /position\s+title\s*:/i),
+      '## Overview',
+    );
+    if (ottawaOverview) ottawaSections.push(ottawaOverview);
+    const ottawaResponsibilities = capturedSection(
+      capturedBetween(text, /\bduties\s*:/i, /(?:terms\s*:|rank\s+and\s+salary\s*:|salary\s*:|benefits\s+package\s*:|location\s+of\s+work\s*:)/i),
+      '## Responsibilities',
+    );
+    if (ottawaResponsibilities) ottawaSections.push(ottawaResponsibilities);
+    const ottawaQualifications = capturedSection(
+      capturedBetween(text, /\brequired\s+qualifications\s*:/i, /(?:deadline\s*:|application\s+package\s*:|applications?\s+must\s+be\s+received)/i),
+      '## Qualifications',
+    );
+    if (ottawaQualifications) ottawaSections.push(ottawaQualifications);
+    const rendered = renderCapturedSections(ottawaSections);
+    if (rendered && isSafeFallbackDescription(rendered)) return rendered;
+  }
+
+  const existing = formatWorkdayFallbackDescription(rawText);
+  if (existing && isSafeFallbackDescription(existing)) return existing;
 
   // Some GC Jobs career-pool postings contain only a concise opening summary
   // followed by structured fields. Keep that source text as a small overview
