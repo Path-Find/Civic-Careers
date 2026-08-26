@@ -36,6 +36,7 @@ import { normalizeDuration } from './duration';
 import { normalizeLocation } from './location';
 import { classifyRawCapture } from './capture-quality';
 import { formatCapturedDescription } from './fallback-description';
+import { cleanSourceDescriptionBoilerplate } from './source-description-cleanup';
 import { extractBoardSpecificMetadata } from './board-parsers';
 import { evaluateJobQuality } from './quality-pipeline';
 import { formatSalaryDisplay, parseSalaryText } from './salary-format';
@@ -298,14 +299,15 @@ async function main() {
       notePending(quality.reasons.join('; ') || 'quality gate');
       return;
     }
-    const description = formatCapturedDescription(row.raw_text, safeDetails.title);
-    if (!description) {
+    const capturedDescription = formatCapturedDescription(row.raw_text, safeDetails.title);
+    if (!capturedDescription) {
       // Non-Workday captures remain safe pending shells. Never hide a valid
       // source capture merely because this deterministic fallback does not
       // know how to turn it into a full description.
       notePending('could not format captured description');
       return;
     }
+    const description = cleanSourceDescriptionBoilerplate(row.source, capturedDescription);
     // Body-side deterministic extraction — same functions the AI parser uses
     // to cross-check its own output, run here with no AI result to reconcile
     // against. Pure regex/keyword matching against the formatted description.

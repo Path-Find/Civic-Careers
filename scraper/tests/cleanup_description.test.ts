@@ -427,6 +427,27 @@ test('does not remove a role paragraph that merely mentions Metrolinx', () => {
   assert.equal(cleanSourceDescriptionBoilerplate('Metrolinx', description), description);
 });
 
+test('removes Shared Health portal and policy boilerplate', () => {
+  const description = `## Qualifications
+Registered nurse with current Manitoba registration.
+
+Accommodations are available upon request during the assessment and selection process. Similar Jobs: Postes cliniques, Clinical Jobs`;
+  assert.equal(
+    cleanSourceDescriptionBoilerplate('Shared Health Manitoba', description),
+    '## Qualifications\nRegistered nurse with current Manitoba registration.',
+  );
+});
+
+test('keeps Shared Health role content while removing repeated application policy text', () => {
+  const description = `## Responsibilities
+Provides direct patient care and participates in team rounds.
+\n\nWe thank all applicants but only those selected for an interview will be contacted.`;
+  assert.equal(
+    cleanSourceDescriptionBoilerplate('Shared Health Manitoba', description),
+    '## Responsibilities\nProvides direct patient care and participates in team rounds.',
+  );
+});
+
 test('removes Ottawa Workday footer chrome from stored descriptions', () => {
   const description = `## Responsibilities
 Teach courses and conduct research.

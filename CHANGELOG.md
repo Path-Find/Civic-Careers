@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added Shared Health Manitoba source rules for recurring SuccessFactors portal and policy text, cleaned 747 current descriptions, and applied the same cleanup to future deterministic backfills.
+
 - Completed the Ottawa description repair by handling confusable Workday labels and replacing the remaining active faculty description contaminated with portal metadata.
 
 - Began isolating employer-specific parser rules in source modules, starting with University of Ottawa, so company fixes stay scoped and auditable.

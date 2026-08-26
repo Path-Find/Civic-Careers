@@ -1,4 +1,5 @@
 import { UNIVERSITY_OF_OTTAWA_DESCRIPTION_RULES } from './source-rules/university-of-ottawa';
+import { SHARED_HEALTH_DESCRIPTION_RULES } from './source-rules/shared-health-manitoba';
 
 type SourceRule = {
   name: string;
@@ -9,6 +10,7 @@ type SourceRule = {
 // These are source-template fingerprints, not broad keyword filters. A rule is
 // added only after the same block has been reviewed across multiple postings.
 const SOURCE_RULES: Record<string, SourceRule[]> = {
+  'Shared Health Manitoba': SHARED_HEALTH_DESCRIPTION_RULES,
   'University of Ottawa': UNIVERSITY_OF_OTTAWA_DESCRIPTION_RULES,
   'Brock University': [
     { name: 'brock-employer-introduction', pattern: /Brock University is located on the traditional territory of the Haudenosaunee and Anishinaabe peoples,[\s\S]*?Break through at Brock\./i, mode: 'inline' },
