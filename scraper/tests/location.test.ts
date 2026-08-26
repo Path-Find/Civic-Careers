@@ -97,6 +97,13 @@ test('repairs glued Chatham-Kent arena locations by source signal', () => {
   assert.equal(normalizeSourceLocation('Other source', 'Location: Various municipal arenas'), '');
 });
 
+test('repairs glued Town of Caledon address locations by source signal', () => {
+  assert.equal(
+    normalizeSourceLocation('Town of Caledon', 'Locations Caledon East Community Complex6215 Old Church RdCaledon, ON L7C 1J7, CAN Albion Bolton Community Centre150 Queen St SBolton, ON L7E 1E3, CAN'),
+    'Caledon, ON; Bolton, ON',
+  );
+});
+
 test('uses Shared Health city instead of facility name for location', () => {
   assert.equal(
     normalizeSourceLocation('Shared Health Manitoba', 'City: Winnipeg Site: St. Boniface Hospital Department / Unit: Intensive Care'),

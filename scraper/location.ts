@@ -568,6 +568,14 @@ export function normalizeSourceLocation(source: string | null | undefined, rawTe
   if (source === 'Municipality of Chatham-Kent' && /Location:\s*Various municipal arenas/i.test(String(rawText ?? ''))) {
     return 'Chatham-Kent, ON';
   }
+  if (source === 'Town of Caledon') {
+    // This portal glues the street address to the city (`RdCaledon, ON` and
+    // `SBolton, ON`). Recover only the reviewed municipalities; do not try to
+    // generalize this address-layout repair to other sources.
+    const cities = [...String(rawText ?? '').matchAll(/(Caledon|Bolton),\s*ON\b/gi)]
+      .map(match => `${match[1]}, ON`);
+    return normalizeLocation(cities.join('; '));
+  }
   if (source === 'Shared Health Manitoba') {
     // Shared Health labels the facility as "Site" but separately provides the
     // actual city. Store the city in the canonical location field; the site
