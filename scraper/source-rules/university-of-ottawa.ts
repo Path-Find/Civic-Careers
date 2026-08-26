@@ -19,11 +19,13 @@ export const UNIVERSITY_OF_OTTAWA_DESCRIPTION_RULES: OttawaDescriptionRule[] = [
 /** Boundaries used by Ottawa faculty postings with flattened Workday text. */
 export const OTTAWA_FACULTY_DESCRIPTION_BOUNDARIES = {
   header: /applications\s+must\s+be\s+received\s+before\s*\([^)]*\)\s*:/i,
-  title: /position\s+title\s*:/i,
-  duties: /\bduties\s*:/i,
+  title: /position\s+titl(?:e|е)\s*:/i,
+  duties: /duties\s*:/i,
   dutiesEnd: /(?:terms\s*:|rank\s+and\s+salary\s*:|salary\s*:|benefits\s+package\s*:|location\s+of\s+work\s*:)/i,
-  qualifications: /\brequired\s+qualifications\s*:/i,
-  qualificationsEnd: /(?:deadline\s*:|application\s+package\s*:|applications?\s+must\s+be\s+received)/i,
+  // Some Workday captures contain a visually identical Cyrillic "е" in
+  // "Required", so accept that source artifact without broadening the label.
+  qualifications: /r(?:e|е)quired\s+qualificati(?:o|о)ns\s*:/i,
+  qualificationsEnd: /(?:d(?:e|е)adline\s*:|application\s+package\s*:|applications?\s+must\s+be\s+received)/i,
 } as const;
 
 export function isOttawaFacultyCapture(text: string): boolean {

@@ -124,3 +124,23 @@ test('formats uOttawa faculty captures without portal chrome or structured metad
     'PhD in a related field and a strong research record.',
   ].join('\n'));
 });
+
+test('handles confusable Workday labels in Ottawa faculty captures', () => {
+  const result = formatCapturedDescription(
+    'Applications must be received BEFORE (YYYY/MM/DD): The faculty invites applications for a research role. '
+      + 'Position Titlе: Assistant Professor Duties: Teach, research, supervise students, and serve the faculty. '
+      + 'Terms: Tenure-track Required Qualificatiоns: PhD and a strong research record with demonstrated teaching experience. '
+      + 'Dеadline: October 16, 2026. Similar Jobs (3) Follow UsPolicy 90',
+  );
+
+  assert.equal(result, [
+    '## Overview',
+    'The faculty invites applications for a research role.',
+    '',
+    '## Responsibilities',
+    'Teach, research, supervise students, and serve the faculty.',
+    '',
+    '## Qualifications',
+    'PhD and a strong research record with demonstrated teaching experience.',
+  ].join('\n'));
+});

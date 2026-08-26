@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Completed the Ottawa description repair by handling confusable Workday labels and replacing the remaining active faculty description contaminated with portal metadata.
+
 - Began isolating employer-specific parser rules in source modules, starting with University of Ottawa, so company fixes stay scoped and auditable.
 
 - Added Ottawa-specific description cleanup for recurring Workday portal/legal footers and applied it to 44 current records; the backfill tool now works with Neon source filters.
