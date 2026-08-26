@@ -1491,6 +1491,13 @@ function tryExtractLicenseFromText(text: string, section: RequirementSection): s
     && !/\b(?:must|valid|possess|hold|possession|required)\b/i.test(text)) {
     return null;
   }
+  // A duty such as "responsible for ... Master Business License registration"
+  // is not a licence the applicant must hold. Keep this guard narrow so a
+  // duty that explicitly requires a valid credential still survives.
+  if (/^\s*(?:responsible\s+for|assist(?:ance|ing)?\b|coordinate\b|administer\b|provide\b|support\b|perform\b|execute\b|manage\b)/i.test(text)
+    && !/\b(?:must|valid|possess|hold|possession|required|maintain|obtain)\b/i.test(text)) {
+    return null;
+  }
   if (section !== 'required' && text.length > 300) return null;
   if (section !== 'required' && !LICENSE_REQUIRED_CUE.test(text) && !new RegExp(LICENSE_CLASS, 'i').test(text)) return null;
 

@@ -6,6 +6,7 @@
  *
  *   npx tsx backfill-missing-fields.ts
  *   npx tsx backfill-missing-fields.ts --apply
+ *   npx tsx backfill-missing-fields.ts --soft-only --include-structured
  */
 import dotenv from 'dotenv';
 import { initDb } from './db';
@@ -23,6 +24,7 @@ const APPLY = process.argv.includes('--apply');
 const INCLUDE_STRUCTURED = process.argv.includes('--include-structured');
 const REPAIR_ARTIFACTS = process.argv.includes('--repair-artifacts');
 const CURRENT_ONLY = process.argv.includes('--current-only');
+const SOFT_ONLY = process.argv.includes('--soft-only');
 const SOURCE_FILTER = process.argv.find(argument => argument.startsWith('--source='))?.slice('--source='.length) ?? '';
 const REQUESTED_IDS = new Set(
   (process.env.PARSE_IDS ?? '')
@@ -30,12 +32,17 @@ const REQUESTED_IDS = new Set(
     .map(id => id.trim())
     .filter(Boolean),
 );
+const JSON_LIST_FIELDS = new Set([
+  'benefits', 'required_skills', 'software_requirements', 'experience_requirements',
+  'education_requirements', 'license_requirements', 'language_requirements',
+  'certification_requirements',
+]);
 
 type Row = Record<string, unknown> & { store: 'current' | 'archive' };
 type Change = { id: string; source: string; store: Row['store']; fields: Record<string, unknown> };
 
 const QUERY = `
-  SELECT j.id, j.source, r.raw_text,
+  SELECT j.id, j.source, j.publication_status, r.raw_text,
          d.job_title, d.department, d.location, d.salary_range, d.salary_min,
          d.salary_max, d.salary_period, d.employment_type, d.work_model,
          d.duration, d.hours, d.union_name, d.description, d.benefits,
@@ -181,8 +188,9 @@ async function main() {
     ? ` AND j.id IN (${[...REQUESTED_IDS].map(() => '?').join(',')})`
     : '';
   const sourceFilter = SOURCE_FILTER ? ' AND j.source = ?' : '';
+  const softFilter = SOFT_ONLY ? " AND j.publication_status = 'soft_parsed'" : '';
   const queryArgs = [...(SOURCE_FILTER ? [SOURCE_FILTER] : []), ...REQUESTED_IDS];
-  const filteredQuery = `${QUERY} ${sourceFilter}${idFilter}`;
+  const filteredQuery = `${QUERY} ${sourceFilter}${idFilter}${softFilter}`;
   const currentRows = (await db.execute({ sql: filteredQuery, args: queryArgs })).rows.map((row: any) => ({ ...row, store: 'current' as const }));
   const archiveRows = archive.executeArchive
     && !CURRENT_ONLY
@@ -220,7 +228,9 @@ async function main() {
     const columns = Object.keys(change.fields);
     const guarded = columns.filter(column => change.fields[column] !== null);
     const guard = guarded.length > 0
-      ? ` AND ${guarded.map(column => `(${column} IS NULL OR TRIM(CAST(${column} AS TEXT)) = '')`).join(' AND ')}`
+      ? ` AND ${guarded.map(column => JSON_LIST_FIELDS.has(column)
+        ? `(${column} IS NULL OR TRIM(CAST(${column} AS TEXT)) IN ('', '[]', 'null'))`
+        : `(${column} IS NULL OR TRIM(CAST(${column} AS TEXT)) = '')`).join(' AND ')}`
       : '';
     const sql = `UPDATE job_details SET ${columns.map(column => `${column} = ?`).join(', ')} WHERE id = ?${guard}`;
     const statement = { sql, args: [...columns.map(column => change.fields[column]), change.id] };

@@ -117,6 +117,25 @@ export class NeonDatabaseClient {
     });
   }
 
+  /** Run several related current-database writes under one advisory lock. */
+  async currentTransaction<T>(callback: (client: {
+    execute: (statement: Statement) => Promise<unknown>;
+    batch: (statements: Statement[]) => Promise<unknown>;
+  }) => Promise<T>): Promise<T> {
+    return this.withCurrentLock(async client => {
+      const execute = async (statement: Statement) => {
+        const { sql, args } = statementParts(statement);
+        return resultSet(await client.query<Row>(postgresPlaceholders(sql), args));
+      };
+      const batch = async (statements: Statement[]) => {
+        const results = [];
+        for (const statement of statements) results.push(await execute(statement));
+        return results;
+      };
+      return callback({ execute, batch });
+    });
+  }
+
   async restoreIfArchived(id: string): Promise<void> {
     await this.withRoutingLocks(async ({ archive, current }) => {
       const archived = await archive.query<{ id: string }>(

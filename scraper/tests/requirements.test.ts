@@ -504,6 +504,12 @@ test('does not treat student registration as a professional licence', () => {
   assert.deepEqual(extractLicenseRequirements('Registration as a full-time student in a post-secondary accredited academic institution is required.'), []);
 });
 
+test('does not treat licence registration duties as applicant licences', () => {
+  assert.deepEqual(extractProfessionalLicenseRequirements(
+    'Responsible for providing assistance with customer service and administrative functions including Master Business License registration.',
+  ), []);
+});
+
 test('extracts quoted class driver licences and skips nice-to-have licences', () => {
   assert.deepEqual(extractLicenseRequirements(`## Qualifications
 - Must have valid class “C” driver’s license to operate a trolley. Previous demonstrated experience as a bus driver is an asset.

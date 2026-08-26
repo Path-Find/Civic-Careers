@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Replayed 1,509 soft-parsed current jobs from preserved captures and promoted only records passing the shared quality gate; missing-field backfills are now idempotent for empty JSON arrays, and invalid captures remain recoverable.
+
+- Added a narrow licence parser guard so job duties mentioning licence registration are not misclassified as applicant requirements.
+
 - Reconciled publication status for 101 invalid or incomplete captures across current and archived data so unusable records cannot appear publicly, while preserving every raw capture for future recovery.
 
 - Completed the remaining low-volume source audit across 86 sources and 294 jobs; repaired one Saint-Boniface title and confirmed no other safe parser or data changes were needed.

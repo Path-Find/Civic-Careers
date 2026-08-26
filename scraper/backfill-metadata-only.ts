@@ -10,7 +10,6 @@
  */
 import dotenv from 'dotenv';
 import {
-  discardRawJob,
   finalizeParsedJob,
   initDb,
   saveJob,
@@ -48,6 +47,7 @@ const APPLY = process.argv.includes('--apply');
 // --include-soft-parsed is an explicit maintenance escape hatch for a reviewed
 // re-run of deterministic metadata, never the normal queue path.
 const INCLUDE_SOFT_PARSED = process.argv.includes('--include-soft-parsed');
+const SOFT_ONLY = process.argv.includes('--soft-only');
 const ACADEMIC_ONLY = process.argv.includes('--academic-only');
 const SOURCE_ONLY = process.argv.find(arg => arg.startsWith('--source='))?.slice('--source='.length) ?? '';
 const REQUESTED_IDS = new Set(
@@ -64,7 +64,10 @@ const EXCLUDED_SOURCES = new Set(
     .filter(Boolean),
 );
 const DETERMINISTIC_PARSER_VERSION = 0;
-const CONCURRENCY = 10;
+// Each job still uses guarded writes and finalization; this only limits how
+// many independent jobs are in flight so Neon latency does not make a large
+// stored-capture replay unnecessarily slow.
+const CONCURRENCY = 25;
 
 // When a section has no bullet markers, descriptionLines() can't split it and
 // the whole paragraph is treated as one "line" — extractors built for real
@@ -236,6 +239,7 @@ async function main() {
     ? "AND (r.source ILIKE '%university%' OR r.source ILIKE '%college%' OR r.source ILIKE '%polytechnic%' OR r.source ILIKE '%institute%')"
     : '';
   const sourceOnlyFilter = SOURCE_ONLY ? 'AND r.source = ?' : '';
+  const softOnlyFilter = SOFT_ONLY ? "AND j.publication_status = 'soft_parsed'" : '';
   const idFilter = REQUESTED_IDS.size
     ? `AND r.id IN (${[...REQUESTED_IDS].map(() => '?').join(',')})`
     : '';
@@ -258,6 +262,7 @@ async function main() {
       ${sourceExclusion}
       ${academicSourceFilter}
       ${sourceOnlyFilter}
+      ${softOnlyFilter}
       ${idFilter}
     ORDER BY r.scraped_at ASC
   `,
@@ -278,7 +283,9 @@ async function main() {
     return;
   }
 
-  for (const row of invalid) await discardRawJob(db, row.id);
+  // Invalid captures remain in raw_jobs for later recovery. Publication
+  // status repair keeps them hidden; deleting the source evidence would make
+  // a future recapture or manual review impossible.
 
   let promoted = 0;
   let leftPending = 0;
@@ -287,7 +294,7 @@ async function main() {
     leftPending += 1;
     pendingReasons.set(reason, (pendingReasons.get(reason) ?? 0) + 1);
   };
-  async function processRow(row: RawRow) {
+  async function processRow(row: RawRow, writer: any) {
     const details = buildDetails(row);
     const sanitized = sanitizeDeterministicMetadata(details, row);
     const safeDetails = sanitized.details;
@@ -320,13 +327,13 @@ async function main() {
     const vehicleRequired = extractVehicleRequired(description);
     const securityCheckRequired = extractSecurityRequirementLabel(description);
 
-    await saveJob(db, {
+    await saveJob(writer, {
       id: row.id,
       url: row.application_url ?? row.url,
       source: row.source,
       first_seen_at: row.first_seen_at,
     });
-    await saveJobDetails(db, {
+    await saveJobDetails(writer, {
       id: row.id,
       job_title: quality.title,
       department: safeDetails.department || '',
@@ -367,9 +374,9 @@ async function main() {
     // A details write alone intentionally remains soft-parsed. Promote only
     // after the deterministic replay has produced a valid description and
     // passed the shared quality gate above.
-    await finalizeParsedJob(db, row.id, safeDetails.closingDate || null);
+    await finalizeParsedJob(writer, row.id, safeDetails.closingDate || null);
     if (safeDetails.postedAt) {
-      await db.execute({
+      await writer.execute({
         sql: `UPDATE raw_jobs SET posted_at = COALESCE(posted_at, ?) WHERE id = ?`,
         args: [safeDetails.postedAt, row.id],
       });
@@ -377,8 +384,17 @@ async function main() {
     promoted += 1;
   }
 
+  async function processWithSafeTransaction(row: RawRow) {
+    const transaction = (db as any).currentTransaction;
+    if (typeof transaction === 'function') {
+      await transaction.call(db, (writer: any) => processRow(row, writer));
+    } else {
+      await processRow(row, db);
+    }
+  }
+
   for (let i = 0; i < genuine.length; i += CONCURRENCY) {
-    await Promise.all(genuine.slice(i, i + CONCURRENCY).map(processRow));
+    await Promise.all(genuine.slice(i, i + CONCURRENCY).map(processWithSafeTransaction));
     console.log(`[Metadata backfill] Progress: ${Math.min(i + CONCURRENCY, genuine.length)}/${genuine.length}`);
   }
 
