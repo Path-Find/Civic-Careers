@@ -381,12 +381,24 @@ test('removes global portal UI from sources without a custom rule', () => {
 test('removes Ottawa Public Library footer captured under City of Ottawa', () => {
   const result = cleanSourceDescriptionBoilerplate('City of Ottawa',
     '## Responsibilities\n- Lead the program. Please save a copy of the job poster. Once the closing date has passed, it will no longer be available. We thank all applicants for their interest. Qualifications');
-  assert.equal(result, '## Responsibilities\n- Lead the program. Qualifications');
+  assert.equal(result, '## Responsibilities\n- Lead the program.');
 });
 
 test('removes additional global careers portal controls', () => {
   const result = cleanSourceDescriptionBoilerplate('Unknown employer',
     '## Overview\n- Support the team. Job Location: Oshawa, ON, Canada Apply Now Share Save Job');
+  assert.equal(result, '## Overview\n- Support the team.');
+});
+
+test('removes a generic application footer only from the posting tail', () => {
+  const result = cleanSourceDescriptionBoilerplate('Unknown employer',
+    '## Qualifications\n- Strong communication skills. We thank all applicants for their interest. Only those candidates selected for an interview will be contacted.');
+  assert.equal(result, '## Qualifications\n- Strong communication skills.');
+});
+
+test('removes common accommodation and equal-opportunity footer variants', () => {
+  const result = cleanSourceDescriptionBoilerplate('Unknown employer',
+    '## Overview\n- Support the team. If you require an accommodation during the recruitment process, please contact Human Resources. We are an equal opportunity employer.');
   assert.equal(result, '## Overview\n- Support the team.');
 });
 

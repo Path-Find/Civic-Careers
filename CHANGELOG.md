@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added generic, tail-anchored application-footer rules and removed 405 additional records; the cleanup now covers 1,457 confirmed boilerplate records without stripping repeated job requirements from the middle of descriptions.
+
 - Added a repeatable current/archive description audit and removed 518 confirmed employer-portal boilerplate records; source-specific and global rules now prevent the reviewed OCAD, Waterloo, Oakville, Kitchener, Ottawa Library, and portal-footer captures from returning.
 
 - Added archive-safe deterministic replay for soft-parsed records, promoting 569 archived jobs while keeping 40 uncertain captures soft-parsed; archive publication reconciliation now also enforces inactive state and is idempotent.

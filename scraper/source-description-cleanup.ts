@@ -26,6 +26,16 @@ const GLOBAL_PORTAL_RULES: SourceRule[] = [
   { name: 'portal-cookie-acceptance', pattern: /Accept\s+View\s*&\s*Accept our privacy statement[\s\S]*$/i, mode: 'suffix' },
 ];
 
+// These are generic application-footer signals. They are only anchored to a
+// posting's tail, so a role's qualifications or duties mentioning one of
+// these concepts are not removed from the middle of the description.
+const GLOBAL_APPLICATION_FOOTER_RULES: SourceRule[] = [
+  { name: 'generic-thank-you-application-footer', pattern: /(?:We thank all applicants|We thank all candidates|We appreciate all applications)[\s\S]*$/i, mode: 'suffix' },
+  { name: 'generic-selected-candidates-footer', pattern: /Only (?:those )?candidates selected for (?:an )?interview[\s\S]*$/i, mode: 'suffix' },
+  { name: 'generic-accommodation-application-footer', pattern: /(?:If you require (?:an )?accommodation|Should you require (?:an )?accommodation)[\s\S]*$/i, mode: 'suffix' },
+  { name: 'generic-equal-opportunity-footer', pattern: /(?:We are an equal opportunity employer|All qualified (?:persons|candidates|individuals) are encouraged to apply)[\s\S]*$/i, mode: 'suffix' },
+];
+
 // These are source-template fingerprints, not broad keyword filters. A rule is
 // added only after the same block has been reviewed across multiple postings.
 const SOURCE_RULES: Record<string, SourceRule[]> = {
@@ -296,10 +306,10 @@ function removeRuleFromParagraphs(description: string, rules: SourceRule[]): str
 }
 
 export function cleanSourceDescriptionBoilerplate(source: string, description: string): string {
-  const rules = [...GLOBAL_PORTAL_RULES, ...(SOURCE_RULES[source] ?? [])];
+  const rules = [...GLOBAL_PORTAL_RULES, ...GLOBAL_APPLICATION_FOOTER_RULES, ...(SOURCE_RULES[source] ?? [])];
   return rules ? removeRuleFromParagraphs(description, rules) : description;
 }
 
 export function sourceDescriptionRuleNames(source: string): string[] {
-  return [...GLOBAL_PORTAL_RULES, ...(SOURCE_RULES[source] ?? [])].map(rule => rule.name);
+  return [...GLOBAL_PORTAL_RULES, ...GLOBAL_APPLICATION_FOOTER_RULES, ...(SOURCE_RULES[source] ?? [])].map(rule => rule.name);
 }
