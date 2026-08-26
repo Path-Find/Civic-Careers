@@ -592,6 +592,16 @@ function successFactorsField(label: string): RegExp {
   return boundedField(label, SUCCESS_FACTORS_FIELD_LABELS);
 }
 
+function successFactorsDepartmentField(source: string): RegExp {
+  // Halton's SuccessFactors capture glues `Division` and `Pay Range` to the
+  // department value. Keep those delimiters scoped to Halton so other
+  // SuccessFactors tenants do not inherit an unreviewed layout assumption.
+  const labels = source === 'Halton Region'
+    ? [...SUCCESS_FACTORS_FIELD_LABELS, 'Division', 'Pay\\s+Range', 'Job\\s+Type', 'Work\\s+Location', 'Employee\\s+Group', 'Vacancy\\s+Status']
+    : SUCCESS_FACTORS_FIELD_LABELS;
+  return boundedField('Department\\s*(?:/\\s*Unit)?', labels);
+}
+
 export function parseSuccessFactors(rawText: string, source = ''): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
@@ -607,7 +617,7 @@ export function parseSuccessFactors(rawText: string, source = ''): ExtractedBoar
   }
 
   // Department
-  const deptMatch = rawText.match(successFactorsField('Department\\s*(?:/\\s*Unit)?'));
+  const deptMatch = rawText.match(successFactorsDepartmentField(source));
   if (deptMatch) {
     metadata.department = normalizeDepartment(deptMatch[1]);
   }

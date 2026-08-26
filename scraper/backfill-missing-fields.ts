@@ -109,7 +109,8 @@ function corruptedBackfillValues(row: Row): Record<string, unknown> {
   const department = text(row.department);
   const location = text(row.location);
   const hours = text(row.hours);
-  if (/[a-z]{3,}(?:Position Type|Employee Group|Posting Information)/i.test(department)
+  if ((text(row.source) === 'Halton Region' && /(?:Division|Pay\s+Range|Job\s+Type|Work\s+Location|Employee\s+Group|Vacancy\s+Status)/i.test(department))
+    || /[a-z]{3,}(?:Position Type|Employee Group|Posting Information)/i.test(department)
     || /(?:position\s+type|employee\s+group|posting\s+information)\s*:/i.test(department)) fields.department = null;
   if (/Campus[a-z]|(?:job\s+type|employment\s+tenure|posting\s+information)\s*:/i.test(location)) fields.location = null;
   if (/^FTE:\s*[\u200b\s]*(?:casual|n\/a|none)/i.test(hours)) fields.hours = null;
@@ -223,8 +224,9 @@ async function main() {
       : '';
     const sql = `UPDATE job_details SET ${columns.map(column => `${column} = ?`).join(', ')} WHERE id = ?${guard}`;
     const statement = { sql, args: [...columns.map(column => change.fields[column]), change.id] };
-    if (change.store === 'archive' && archive.executeArchive) await archive.executeArchive(statement);
-    else await db.execute(statement);
+    if (change.store === 'archive' && archive.batchArchive) await archive.batchArchive([statement]);
+    else if (change.store === 'archive' && archive.executeArchive) await archive.executeArchive(statement);
+    else await db.batch([statement], 'write');
     updated++;
   }
   console.log(`Applied ${updated} row update(s); populated fields only where they were empty.`);

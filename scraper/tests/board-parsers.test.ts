@@ -298,6 +298,14 @@ Salary: $32.588 - $51.165
   assert.equal(result.salaryMax, 51.165);
 });
 
+test('parseSuccessFactors keeps Halton glued department fields scoped', () => {
+  const result = parseSuccessFactors(
+    'Posting ID: 5330Department: Social & Community ServicesDivision: Services For SeniorsPay Range: $25.50 - $26.98/hourJob Type: Relief/ Casual',
+    'Halton Region',
+  );
+  assert.equal(result.department, 'Social & Community Services');
+});
+
 test('parseTechnomedia extracts York University fields correctly', () => {
   const rawText = `
 Department/Faculty (BU)
