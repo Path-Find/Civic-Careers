@@ -1,4 +1,4 @@
-import { deactivateExpiredJobs, discardRawJob, initDb, getUnparsedJobs, saveJob, saveJobDetails, markJobParsed, recordParseFailure, clearParseFailure, countStalledParseFailures, setPublicationStatus } from './db';
+import { deactivateExpiredJobs, discardRawJob, initDb, getUnparsedJobs, saveJob, saveJobDetails, finalizeParsedJob, recordParseFailure, clearParseFailure, countStalledParseFailures, setPublicationStatus } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, notifyDiscord } from './utils';
 import { classifyRawCapture } from './capture-quality';
@@ -80,7 +80,7 @@ async function main() {
           ...candidate,
           parser_version: PARSER_VERSION,
         });
-        await markJobParsed(db, raw.id);
+        await finalizeParsedJob(db, raw.id);
         await clearParseFailure(db, raw.id);
         done++;
         process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ✅`);

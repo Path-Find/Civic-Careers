@@ -753,11 +753,22 @@ export async function getUnparsedJobs(client: Client, excludedSources: string[] 
   }));
 }
 
-export async function markJobParsed(client: Client, id: string) {
-  await client.batch([
+/** Finalize a quality-approved parse as one shared state transition. */
+export async function finalizeParsedJob(client: Client, id: string, closingDate?: string | null) {
+  const statements = [] as Array<{ sql: string; args: unknown[] }>;
+  if (closingDate !== undefined) {
+    statements.push({
+      sql: `UPDATE raw_jobs
+            SET pending_closing_date = ?, pending_closing_date_status = ?
+            WHERE id = ?`,
+      args: [closingDate || null, closingDate ? 'known' : 'open_until_filled', id],
+    });
+  }
+  statements.push(
     { sql: `UPDATE raw_jobs SET parsed_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [id] },
     { sql: `UPDATE jobs SET publication_status = 'fully_parsed' WHERE id = ?`, args: [id] },
-  ], 'write');
+  );
+  await client.batch(statements, 'write');
 }
 
 export async function setPublicationStatus(client: Client, id: string, status: 'hidden' | 'soft_parsed' | 'fully_parsed') {

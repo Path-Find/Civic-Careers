@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { deactivateExpiredJobs, promotePendingJobs, saveJob, saveJobDetails, savePendingJob, saveRawJob } from '../db';
+import { deactivateExpiredJobs, finalizeParsedJob, promotePendingJobs, saveJob, saveJobDetails, savePendingJob, saveRawJob } from '../db';
 
 test('deactivateExpiredJobs updates active jobs before the supplied date', async () => {
   const statements: Array<{ sql: string; args?: unknown[] }> = [];
@@ -133,6 +133,24 @@ test('saveRawJob creates a shell listing without marking it parsed', async () =>
   assert.match(statements[1].sql, /ON CONFLICT\(id\) DO UPDATE/i);
   assert.match(statements[2].sql, /publication_status/i);
   assert.equal(statements[2].args?.[0], 'soft_parsed');
+});
+
+test('finalizeParsedJob persists closing status and full-parse state together', async () => {
+  const statements: Array<{ sql: string; args?: unknown[] }> = [];
+  const client = {
+    batch: async (queries: Array<{ sql: string; args?: unknown[] }>) => {
+      statements.push(...queries);
+      return [];
+    },
+  };
+
+  await finalizeParsedJob(client as never, 'job-finalize-1', null);
+
+  assert.equal(statements.length, 3);
+  assert.match(statements[0].sql, /pending_closing_date_status/i);
+  assert.deepEqual(statements[0].args, [null, 'open_until_filled', 'job-finalize-1']);
+  assert.match(statements[1].sql, /parsed_at\s*=\s*CURRENT_TIMESTAMP/i);
+  assert.match(statements[2].sql, /publication_status\s*=\s*'fully_parsed'/i);
 });
 
 test('saveRawJob recovers a source title when the scraper did not provide one', async () => {
