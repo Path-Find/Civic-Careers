@@ -356,6 +356,16 @@ async function main() {
       vehicle_required: requirementFlagToDb(vehicleRequired),
       security_check_required: requirementFlagToDb(securityCheckRequired),
     });
+    await db.execute({
+      sql: `UPDATE raw_jobs
+            SET pending_closing_date = ?, pending_closing_date_status = ?
+            WHERE id = ?`,
+      args: [safeDetails.closingDate || null, safeDetails.closingDate ? 'known' : 'open_until_filled', row.id],
+    });
+    // A details write alone intentionally remains soft-parsed. Promote only
+    // after the deterministic replay has produced a valid description and
+    // passed the shared quality gate above.
+    await markJobParsed(db, row.id);
     if (safeDetails.postedAt) {
       await db.execute({
         sql: `UPDATE raw_jobs SET posted_at = COALESCE(posted_at, ?) WHERE id = ?`,
