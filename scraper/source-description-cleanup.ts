@@ -1,3 +1,5 @@
+import { UNIVERSITY_OF_OTTAWA_DESCRIPTION_RULES } from './source-rules/university-of-ottawa';
+
 type SourceRule = {
   name: string;
   pattern: RegExp;
@@ -7,20 +9,7 @@ type SourceRule = {
 // These are source-template fingerprints, not broad keyword filters. A rule is
 // added only after the same block has been reviewed across multiple postings.
 const SOURCE_RULES: Record<string, SourceRule[]> = {
-  'University of Ottawa': [
-    // Workday appends the related-jobs carousel and legal footer to some
-    // flattened captures. These are portal chrome, never role content.
-    { name: 'uottawa-similar-jobs-footer', pattern: /Similar Jobs\s*\(\d+\)[\s\S]*$/i, mode: 'suffix' },
-    { name: 'uottawa-follow-us-footer', pattern: /Follow Us\s*Policy 90[\s\S]*$/i, mode: 'suffix' },
-    // The equity/accommodation notice is a standard Ottawa footer. Keep it
-    // out of the role description while preserving any preceding job copy.
-    { name: 'uottawa-equity-accommodation-footer', pattern: /The University of Ottawa is committed to ensuring equity, diversity, and inclusion[\s\S]*$/i, mode: 'suffix' },
-    { name: 'uottawa-covid-policy-footer', pattern: /Prior to May 1, 2022, the University required all students[\s\S]*$/i, mode: 'suffix' },
-    // Course/faculty postings often end with generic application directions;
-    // the actual deadline and requirements are already structured separately.
-    { name: 'uottawa-academic-careers-application-footer', pattern: /(?:^|\s)Further details about academic careers can be found online\.[\s\S]*$/i, mode: 'suffix' },
-    { name: 'uottawa-training-footer', pattern: /(?:^|\s)The University of Ottawa employees? (?:are|required to|must)[\s\S]*$/i, mode: 'suffix' },
-  ],
+  'University of Ottawa': UNIVERSITY_OF_OTTAWA_DESCRIPTION_RULES,
   'Brock University': [
     { name: 'brock-employer-introduction', pattern: /Brock University is located on the traditional territory of the Haudenosaunee and Anishinaabe peoples,[\s\S]*?Break through at Brock\./i, mode: 'inline' },
   ],

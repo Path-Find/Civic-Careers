@@ -1,3 +1,5 @@
+import { isOttawaFacultyCapture, OTTAWA_FACULTY_DESCRIPTION_BOUNDARIES } from './source-rules/university-of-ottawa';
+
 /**
  * Turns a rendered Workday page into a readable emergency description when AI
  * parsing is unavailable. This is deliberately conservative; returning null
@@ -124,22 +126,20 @@ export function formatCapturedDescription(rawText: string, title?: string): stri
   // "Duties:", and qualifications end at "Deadline:". Keeping these source
   // boundaries prevents portal metadata, salary/location, application
   // instructions, and Similar Jobs chrome from becoming description prose.
-  if (/applications\s+must\s+be\s+received\s+before\b/i.test(text)
-    && /\bduties\s*:/i.test(text)
-    && /\brequired\s+qualifications\s*:/i.test(text)) {
+  if (isOttawaFacultyCapture(text)) {
     const ottawaSections: CapturedSection[] = [];
     const ottawaOverview = capturedSection(
-      capturedBetween(text, /applications\s+must\s+be\s+received\s+before\s*\([^)]*\)\s*:/i, /position\s+title\s*:/i),
+      capturedBetween(text, OTTAWA_FACULTY_DESCRIPTION_BOUNDARIES.header, OTTAWA_FACULTY_DESCRIPTION_BOUNDARIES.title),
       '## Overview',
     );
     if (ottawaOverview) ottawaSections.push(ottawaOverview);
     const ottawaResponsibilities = capturedSection(
-      capturedBetween(text, /\bduties\s*:/i, /(?:terms\s*:|rank\s+and\s+salary\s*:|salary\s*:|benefits\s+package\s*:|location\s+of\s+work\s*:)/i),
+      capturedBetween(text, OTTAWA_FACULTY_DESCRIPTION_BOUNDARIES.duties, OTTAWA_FACULTY_DESCRIPTION_BOUNDARIES.dutiesEnd),
       '## Responsibilities',
     );
     if (ottawaResponsibilities) ottawaSections.push(ottawaResponsibilities);
     const ottawaQualifications = capturedSection(
-      capturedBetween(text, /\brequired\s+qualifications\s*:/i, /(?:deadline\s*:|application\s+package\s*:|applications?\s+must\s+be\s+received)/i),
+      capturedBetween(text, OTTAWA_FACULTY_DESCRIPTION_BOUNDARIES.qualifications, OTTAWA_FACULTY_DESCRIPTION_BOUNDARIES.qualificationsEnd),
       '## Qualifications',
     );
     if (ottawaQualifications) ottawaSections.push(ottawaQualifications);
