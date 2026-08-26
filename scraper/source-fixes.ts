@@ -22,6 +22,7 @@ export function defenceConstructionApplicationUrl(rawText: string): string | nul
 }
 
 export function canonicalSourceForRaw(source: string, rawText: string): string {
+  if (source === 'City of Ottawa (Jobs2Web)') return 'City of Ottawa';
   return source === 'Government of Canada' && isDefenceConstructionCanadaPosting(rawText)
     ? 'Defence Construction Canada'
     : source;

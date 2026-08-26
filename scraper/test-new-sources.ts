@@ -179,8 +179,8 @@ const SOURCES = {
     scrapeJobs2Web(db, context, 'https://jobs.novascotia.ca/go/All-Opportunities/502817/', 'Government of Nova Scotia'),
   'Ontario Energy Board': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://careers.oeb.ca/', 'Ontario Energy Board'),
-  'City of Ottawa (Jobs2Web)': (db: Client, context: BrowserContext) =>
-    scrapeJobs2Web(db, context, 'https://jobs-emplois.ottawa.ca/city-jobs/search/', 'City of Ottawa (Jobs2Web)'),
+  'City of Ottawa': (db: Client, context: BrowserContext) =>
+    scrapeJobs2Web(db, context, 'https://jobs-emplois.ottawa.ca/city-jobs/search/', 'City of Ottawa'),
   'City of Saskatoon': (db: Client, context: BrowserContext) =>
     scrapeJobs2Web(db, context, 'https://careers.saskatoon.ca/search/', 'City of Saskatoon'),
   'Regional Municipality of Wood Buffalo': (db: Client, context: BrowserContext) =>

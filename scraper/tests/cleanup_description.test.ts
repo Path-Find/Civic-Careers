@@ -62,6 +62,16 @@ test('removes the confirmed UBC institutional introduction', () => {
   );
 });
 
+test('removes Dalhousie PeopleAdmin institutional boilerplate', () => {
+  assert.equal(
+    cleanSourceDescriptionBoilerplate(
+      'Dalhousie University',
+      '## Responsibilities\n- Coordinate the program. Diversity Statement Dalhousie University commits to achieving inclusive excellence through continually championing equity, diversity, inclusion, and accessibility. The university encourages applications from Indigenous Peoples of Turtle Island (especially Mi’kmaq), persons of Black/African descent (especially African Nova Scotians), and members of other racialized groups, persons with disabilities, women, persons identifying as members of 2SLGBTQIA+ communities, and all candidates who would contribute to the diversity of our community. In accordance with our Employment Equity Policy, preference will be given in hiring processes to candidates who self-identify as members of one or more of the equity-deserving groups listed above.',
+    ),
+    '## Responsibilities\n- Coordinate the program.',
+  );
+});
+
 test('keeps the complete role paragraph when a person name precedes the title', () => {
   const result = cleanOverviewBoilerplate(
     'The lab studies health outcomes across Canada.\n\nReporting to Monica Aggarwal, the Research Associate will manage recruitment and data analysis.',

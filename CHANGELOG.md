@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Canonicalized Ottawa Jobs2Web records and future scraper runs to `City of Ottawa`, removing the duplicate company label across current and archived data.
+
+- Added Dalhousie PeopleAdmin cleanup rules and removed 35 confirmed institutional/application boilerplate blocks from current and archived descriptions.
+
+- Confirmed CMHC, Waterloo, Government of Alberta, and Ontario Health atHome have no additional safe source-rule cleanup candidates in stored current or archived captures.
+
 - Cleaned confirmed University of Toronto Jobs2Web and institutional footer text from 20 current and 41 archived descriptions, and moved U of T term/course metadata out of 15 archived titles/fields.
 
 - Added Western University source rules and removed confirmed institutional, employer-pitch, accessibility, and thank-you boilerplate from 121 current descriptions.

@@ -184,11 +184,11 @@ const BATCHES: Record<string, Record<string, SourceRunner>> = {
       'https://careers.oeb.ca/',
       'Ontario Energy Board',
     ),
-    'City of Ottawa (Jobs2Web)': (db, context) => scrapeJobs2Web(
+    'City of Ottawa': (db, context) => scrapeJobs2Web(
       db,
       context,
       'https://jobs-emplois.ottawa.ca/city-jobs/search/',
-      'City of Ottawa (Jobs2Web)',
+      'City of Ottawa',
     ),
     'City of Saskatoon': (db, context) => scrapeJobs2Web(
       db,

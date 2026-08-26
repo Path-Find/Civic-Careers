@@ -5,6 +5,7 @@ import { YORK_UNIVERSITY_DESCRIPTION_RULES } from './source-rules/york-universit
 import { UNIVERSITY_OF_TORONTO_DESCRIPTION_RULES } from './source-rules/university-of-toronto';
 import { WESTERN_UNIVERSITY_DESCRIPTION_RULES } from './source-rules/western-university';
 import { UBC_DESCRIPTION_RULES } from './source-rules/ubc';
+import { DALHOUSIE_DESCRIPTION_RULES } from './source-rules/dalhousie-university';
 
 type SourceRule = {
   name: string;
@@ -22,6 +23,7 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
   'University of Toronto': UNIVERSITY_OF_TORONTO_DESCRIPTION_RULES,
   'Western University': WESTERN_UNIVERSITY_DESCRIPTION_RULES,
   UBC: UBC_DESCRIPTION_RULES,
+  'Dalhousie University': DALHOUSIE_DESCRIPTION_RULES,
   'Brock University': [
     { name: 'brock-employer-introduction', pattern: /Brock University is located on the traditional territory of the Haudenosaunee and Anishinaabe peoples,[\s\S]*?Break through at Brock\./i, mode: 'inline' },
   ],
