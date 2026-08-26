@@ -369,6 +369,8 @@ export function normalizeJobTitle(title: string | null | undefined): string {
   t = t.replace(/\s*[-–—]\s*[-–—]+/g, ' - ').trim();
   t = t.replace(/\s{2,}/g, ' ').trim();
   t = t.replace(/\s*[-–—]\s*(?:part[-\s]?time|full[-\s]?time|temporary|contract|casual|seasonal|permanent|term|fixed[-\s]?term(?:\s+contract)?|limited\s+term\s+contract)\s*$/i, '').trim();
+  // Some portals append employment status without a separator.
+  t = t.replace(/\s+(?:part[-\s]?time|full[-\s]?time)\s*$/i, '').trim();
 
   return t || original;
 }

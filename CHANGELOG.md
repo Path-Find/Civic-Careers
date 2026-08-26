@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Removed trailing employment-status text from 3 archived Kitchener title fields and hardened the shared title normalizer for undelimited `Part Time`/`Full Time` suffixes; the remaining 24 audited sources needed no safe changes.
+
 - Repaired 34 missing locations and 17 missing or malformed Halton Region fields from stored captures, and hardened the Halton SuccessFactors parser against glued department labels.
 
 - Repaired 34 missing locations across Caledon, Conservation Halton, and VIA Rail, including a Town of Caledon-specific fix for glued street-address captures; the other seven audited sources needed no safe changes.

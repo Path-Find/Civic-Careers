@@ -266,6 +266,7 @@ describe('normalizeJobTitle', () => {
     );
     assert.equal(normalizeJobTitle('Project Coordinator (Capital Project Delivery) - PIPELINE POSTING ONLY'), 'Project Coordinator (Capital Project Delivery)');
     assert.equal(normalizeJobTitle('Clinical Practice Nurse Clinician x 20 (RPT)'), 'Clinical Practice Nurse Clinician');
+    assert.equal(normalizeJobTitle('Office and Program Clerk (Community Centre) Part Time'), 'Office and Program Clerk (Community Centre)');
   });
 
   it('moves Toronto and TMU course metadata out of display titles', () => {
