@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added a repeatable current/archive description audit and removed 486 confirmed employer-portal boilerplate records; source-specific and global rules now prevent the reviewed OCAD, Waterloo, Oakville, Kitchener, Ottawa Library, and portal-footer captures from returning.
+
 - Added archive-safe deterministic replay for soft-parsed records, promoting 569 archived jobs while keeping 40 uncertain captures soft-parsed; archive publication reconciliation now also enforces inactive state and is idempotent.
 
 - Replayed 1,509 soft-parsed current jobs from preserved captures and promoted only records passing the shared quality gate; missing-field backfills are now idempotent for empty JSON arrays, and invalid captures remain recoverable.

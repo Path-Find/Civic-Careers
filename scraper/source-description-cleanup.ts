@@ -13,6 +13,19 @@ type SourceRule = {
   mode?: 'paragraph' | 'suffix' | 'inline';
 };
 
+// These are unmistakable portal UI captures rather than employer language.
+// They are safe across sources because the match is anchored to the end of the
+// description and includes the portal's distinctive control text.
+const GLOBAL_PORTAL_RULES: SourceRule[] = [
+  { name: 'portal-back-share-apply-controls', pattern: /Back\s+Share\s+Apply\s+Now\s*$/i, mode: 'suffix' },
+  { name: 'sap-cookie-consent-footer', pattern: /(?:Required Cookies These cookies are required to use this website|Because we respect your right to privacy, you can choose not to allow some types of cookies\.|All rights reserved\.\s*Powered by\s*Privacy|cookie consent manager\s+when you visit any website)[\s\S]*$/i, mode: 'suffix' },
+  { name: 'workday-portal-footer', pattern: /(?:Privacy Statement©?\s*\d{4}\s*Workday, Inc\.\s*All rights reserved\.|Privacy Policy©?\s*\d{4}\s*Workday, Inc\.|©?\s*\d{4}\s*Workday, Inc\.\s*All rights reserved\.)\s*$/i, mode: 'suffix' },
+  { name: 'portal-apply-navigation', pattern: /(?:Apply Now\s*»\s*Find similar jobs:|Options\s+Apply Now\s*Apply\s*Share\s*Refer)[\s\S]*$/i, mode: 'suffix' },
+  { name: 'portal-job-location-controls', pattern: /Job Location:\s*[^\n]*?\s+Apply Now\s*Share\s*Save Job\s*$/i, mode: 'suffix' },
+  { name: 'portal-careers-page-controls', pattern: /Apply Now\s*Share\s*Save Job\s*Thank you for visiting [\s\S]*?careers page and viewing our current opportunities\.?\s*$/i, mode: 'suffix' },
+  { name: 'portal-cookie-acceptance', pattern: /Accept\s+View\s*&\s*Accept our privacy statement[\s\S]*$/i, mode: 'suffix' },
+];
+
 // These are source-template fingerprints, not broad keyword filters. A rule is
 // added only after the same block has been reviewed across multiple postings.
 const SOURCE_RULES: Record<string, SourceRule[]> = {
@@ -60,6 +73,19 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
   ],
   'University of Waterloo': [
     { name: 'waterloo-employer-introduction', pattern: /At the\s+University of Waterloo, we create and promote a culture where everyone can reach their full potential\. As an employee, you get support\s*&\s*opportunities that empower you to advance your career\. Explore how we can bring big ideas to life, together\. The University is a welcoming workplace for those of all abilities, interests, and expertise\. As part of our workforce, you can do what you do best, every day\. Learn more about our recruitment process\./i, mode: 'inline' },
+    { name: 'waterloo-institutional-workday-footer', pattern: /The University of Waterloo acknowledges that much of our work takes place on the traditional territory[\s\S]*$/i, mode: 'suffix' },
+    { name: 'waterloo-workday-footer', pattern: /At the University of Waterloo, we think differently, we act with purpose, and we work together\.[\s\S]*$/i, mode: 'suffix' },
+  ],
+  'OCAD University': [
+    { name: 'ocad-recruitment-equity-footer', pattern: /(?:Please note that People & Culture cannot update you on the status of your application|As an employer committed to employment equity, we encourage applications)[\s\S]*$/i, mode: 'suffix' },
+    { name: 'ocad-portal-controls', pattern: /Back\s+Share\s+Apply\s+Now\s*$/i, mode: 'suffix' },
+  ],
+  'Town of Oakville': [
+    { name: 'oakville-dated-recruitment-footer', pattern: /DATED:\s*[A-Za-z]+\s+\d{1,2},\s+\d{4}[\s\S]*$/i, mode: 'suffix' },
+    { name: 'oakville-recruitment-footer', pattern: /The Town[’']s recruitment software includes elements of artificial intelligence[\s\S]*$/i, mode: 'suffix' },
+  ],
+  'City of Ottawa': [
+    { name: 'opl-application-equity-footer', pattern: /Please save a copy of the job poster\.[\s\S]*?(?=\s+Qualifications\b|$)/i, mode: 'inline' },
   ],
   Metrolinx: [
     { name: 'dont-meet-every-requirement', pattern: /(?:(?:^|\n\s*\n)\s*|(?<=\.\s))(?:\*\*)?(?:#{1,6}\s*)?Don[’']t Meet Every Requirement\??\*{0,2}[\s\S]*$/i, mode: 'suffix' },
@@ -101,6 +127,9 @@ const SOURCE_RULES: Record<string, SourceRule[]> = {
     // figures ("$227,378 per year") and "per annum" pay-table rows are
     // untouched — verified those aren't duplicates worth stripping the same way.
     { name: 'tdsb-salary-range-restatement', pattern: /(?:Salary:\s*)?\$[\d,]+(?:\.\d+)?\s*-\s*\$[\d,]+(?:\.\d+)?\s*per\s+year\.?[ \t]*/gi, mode: 'inline' },
+  ],
+  'City of Kitchener': [
+    { name: 'kitchener-sap-cookie-footer', pattern: /Required Cookies These cookies are required to use this website[\s\S]*$/i, mode: 'suffix' },
   ],
   'CMHC': [
     // Job Requisition ID through Security Requirement/Salary — every field in
@@ -267,10 +296,10 @@ function removeRuleFromParagraphs(description: string, rules: SourceRule[]): str
 }
 
 export function cleanSourceDescriptionBoilerplate(source: string, description: string): string {
-  const rules = SOURCE_RULES[source];
+  const rules = [...GLOBAL_PORTAL_RULES, ...(SOURCE_RULES[source] ?? [])];
   return rules ? removeRuleFromParagraphs(description, rules) : description;
 }
 
 export function sourceDescriptionRuleNames(source: string): string[] {
-  return (SOURCE_RULES[source] ?? []).map(rule => rule.name);
+  return [...GLOBAL_PORTAL_RULES, ...(SOURCE_RULES[source] ?? [])].map(rule => rule.name);
 }

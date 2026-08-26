@@ -348,6 +348,48 @@ The Administrative Coordinator provides support to undergraduate programs and re
   assert.equal(result, '## Overview\n\nThe Administrative Coordinator provides support to undergraduate programs and research activities.');
 });
 
+test('removes Waterloo Workday institutional footer', () => {
+  const result = cleanSourceDescriptionBoilerplate('University of Waterloo',
+    '## Responsibilities\n- Coordinate the program. At the University of Waterloo, we think differently, we act with purpose, and we work together. We advance learning and knowledge through teaching, research, and scholarship. Learn more about WaterlooRead MoreCurrent employees, please apply via the Job Hub. University of Waterloo Privacy Statement© 2026 Workday, Inc. All rights reserved.');
+  assert.equal(result, '## Responsibilities\n- Coordinate the program.');
+});
+
+test('removes OCAD recruitment footer and portal controls', () => {
+  const result = cleanSourceDescriptionBoilerplate('OCAD University',
+    '## Responsibilities\n- Lead the project. Please note that People & Culture cannot update you on the status of your application as these searches are decentralized. You will only be contacted if shortlisted. As an employer committed to employment equity, we encourage applications from members of equity-seeking communities. Back Share Apply Now');
+  assert.equal(result, '## Responsibilities\n- Lead the project.');
+});
+
+test('removes Oakville recruitment footer', () => {
+  const result = cleanSourceDescriptionBoilerplate('Town of Oakville',
+    '## Qualifications\n- Strong customer service skills. DATED: August 24, 2026The Town’s recruitment software includes elements of artificial intelligence to assist in screening. This job profile reflects the general requirements of the job. We thank all applicants and advise that only those selected for an interview will be contacted. Back Share Apply Now');
+  assert.equal(result, '## Qualifications\n- Strong customer service skills.');
+});
+
+test('removes Kitchener SAP cookie footer', () => {
+  const result = cleanSourceDescriptionBoilerplate('City of Kitchener',
+    '## Responsibilities\n- Maintain aquatic facilities. Required Cookies These cookies are required to use this website and can\'t be turned off. Confirm My Choices Accept All Cookies');
+  assert.equal(result, '## Responsibilities\n- Maintain aquatic facilities.');
+});
+
+test('removes global portal UI from sources without a custom rule', () => {
+  const result = cleanSourceDescriptionBoilerplate('Unknown employer',
+    '## Responsibilities\n- Lead the project. Apply Now » Find similar jobs: view all jobs, × cookie consent manager when you visit any website, it may store or retrieve information on your browser. Privacy Statement© 2026 Workday, Inc. All rights reserved.');
+  assert.equal(result, '## Responsibilities\n- Lead the project.');
+});
+
+test('removes Ottawa Public Library footer captured under City of Ottawa', () => {
+  const result = cleanSourceDescriptionBoilerplate('City of Ottawa',
+    '## Responsibilities\n- Lead the program. Please save a copy of the job poster. Once the closing date has passed, it will no longer be available. We thank all applicants for their interest. Qualifications');
+  assert.equal(result, '## Responsibilities\n- Lead the program. Qualifications');
+});
+
+test('removes additional global careers portal controls', () => {
+  const result = cleanSourceDescriptionBoilerplate('Unknown employer',
+    '## Overview\n- Support the team. Job Location: Oshawa, ON, Canada Apply Now Share Save Job');
+  assert.equal(result, '## Overview\n- Support the team.');
+});
+
 test('removes GC work-environment / intent / important-messages process blocks', () => {
   const input = `**Work environment:**
 
