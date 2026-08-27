@@ -147,7 +147,17 @@ function buildDetails(row: RawRow) {
   const parsedSalary = parseSalaryText(salaryCapture);
   const salary = parsedSalary?.display || '';
   const employmentType = row.raw_text.match(/\b(permanent\s+(?:full[- ]time|part[- ]time)|temporary\s+(?:full[- ]time|part[- ]time)|full[- ]time|part[- ]time|casual|contract)\b/i)?.[1] || '';
-  const hours = row.raw_text.match(/(?:hours?\s+of\s+work|hours?\s+per\s+week|weekly\s+hours?\s+of\s+work|fte)\s*[:\-]?\s*((?:[^.;]|\.(?=\d)){3,100})/i)?.[1]?.trim() || '';
+  // A bare "fte" trigger with no required label separator matched inline
+  // asides like "(1.0 FTE) Maintenance Mechanic" and captured whatever
+  // followed as if it were an hours-of-work value (e.g. the rest of the job
+  // title, or up to 100 chars of the next sentence) -- confirmed live on
+  // peopleadmin_careers_bcit_ca_10404/10442. "FTE" only counts as a real
+  // signal when it's actually labeled ("FTE: 1.0", "FTE - Full Time").
+  const hours = (
+    row.raw_text.match(/(?:hours?\s+of\s+work|hours?\s+per\s+week|weekly\s+hours?\s+of\s+work)\s*[:\-]?\s*((?:[^.;]|\.(?=\d)){3,100})/i)?.[1]
+    ?? row.raw_text.match(/\bfte\s*[:\-]\s*((?:[^.;]|\.(?=\d)){3,100})/i)?.[1]
+    ?? ''
+  ).trim();
 
   const base = {
     title,
