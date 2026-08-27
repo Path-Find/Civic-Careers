@@ -104,6 +104,15 @@ function corruptedScalarField(details: PublishGateDetails): string | null {
     const value = (details as unknown as Record<string, unknown>)[field];
     if (typeof value !== 'string' || !value) continue;
     if (value.length > ceiling) return field;
+    // A real value for any of these fields is one fact pulled from one
+    // labeled field, never several paragraphs -- a raw newline means a
+    // capture ran across an unrelated field or section boundary (found live:
+    // an "hours" value containing "Posting Closing Date:", "Terms of
+    // employment", even unrelated portal text like "resetting your
+    // password"). Checked against every already-published, trusted row in
+    // the dataset with zero legitimate newline-containing value for any of
+    // these fields, so this has no known false-positive case.
+    if (value.includes('\n')) return field;
     // Department names commonly contain deliberate PascalCase names such as
     // AccessAbility; unlike prose fields, that is not evidence of a glued
     // capture. The length ceiling still catches a department that swallowed
