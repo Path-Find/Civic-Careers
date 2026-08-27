@@ -15,6 +15,7 @@ export interface ExtractedBoardMetadata {
   title?: string;
   listingType?: string;
   location?: string | null;
+  workplaceAddress?: string | null;
   closingDate?: string | null;
   salary?: string;
   employmentType?: string;
@@ -855,6 +856,31 @@ function peopleSoftField(label: string): RegExp {
   return boundedField(label, PEOPLE_SOFT_FIELD_LABELS);
 }
 
+// PeopleSoft's "Position and Pay Information" Location field is often a
+// building/street address, not a city -- no Canadian city name in this
+// dataset starts with a digit, so this is a safe, cheap signal. A street
+// address published as the public location is confirmed live on ~25 City of
+// Winnipeg postings (e.g. "1120 Waverley Street, Hybrid with designated work
+// location" instead of "Winnipeg, MB") and on Calgary postings.
+function looksLikeStreetAddress(value: string): boolean {
+  return /^\d/.test(value.trim());
+}
+
+// Single-city PeopleSoft tenants where a street-address capture can safely
+// fall back to the employer's one home city. Multi-city regional employers
+// (Durham Region, Niagara Region) are deliberately excluded -- a posting's
+// real city varies per role, so guessing one would trade a wrong address for
+// a wrong city instead of fixing anything.
+const PEOPLE_SOFT_HOME_CITY: Record<string, string> = {
+  'City of Calgary': 'Calgary, AB',
+  'City of Winnipeg': 'Winnipeg, MB',
+  'Toronto Metropolitan University': 'Toronto, ON',
+  'McMaster University': 'Hamilton, ON',
+  'Western University': 'London, ON',
+  'Fleming College': 'Lindsay, ON',
+  'TransLink': 'Greater Vancouver, BC',
+};
+
 export function parsePeopleSoft(rawText: string, source = ''): ExtractedBoardMetadata {
   const metadata: ExtractedBoardMetadata = {};
 
@@ -866,12 +892,20 @@ export function parsePeopleSoft(rawText: string, source = ''): ExtractedBoardMet
   const locationMatch = rawText.match(peopleSoftField('Location'))
     || rawText.match(/Location\s*\n+([^\n]+)/i);
   if (locationMatch) {
-    metadata.location = locationMatch[1].trim();
+    const value = locationMatch[1].trim();
+    if (looksLikeStreetAddress(value)) {
+      metadata.workplaceAddress = value;
+    } else {
+      metadata.location = value;
+    }
   }
   // Western's PeopleSoft detail pages omit a location for many postings even
   // though these roles are campus-based. Keep this scoped to that tenant.
-  if (source === 'Western University' && !metadata.location) {
-    metadata.location = 'London, ON';
+  // A street-address capture (workplaceAddress set, location still empty)
+  // falls back the same way, for Western and the other single-city tenants
+  // in PEOPLE_SOFT_HOME_CITY.
+  if (!metadata.location && PEOPLE_SOFT_HOME_CITY[source]) {
+    metadata.location = PEOPLE_SOFT_HOME_CITY[source];
   }
 
   const salaryMatch = rawText.match(peopleSoftField('Salary Range'))
