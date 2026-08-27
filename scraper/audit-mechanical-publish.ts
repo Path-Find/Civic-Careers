@@ -92,8 +92,16 @@ async function main() {
       sql: `DELETE FROM jobs WHERE id IN (${batch.map(() => '?').join(',')})`,
       args: batch,
     });
+    // A row removed here must re-enter the normal unparsed queue, not vanish.
+    // Without this, raw_jobs.parsed_at stays set from the earlier (bad) parse,
+    // so getUnparsedJobs() skips it forever and it can only get a jobs row
+    // back if the scraper happens to revisit that exact posting.
+    await db.execute({
+      sql: `UPDATE raw_jobs SET parsed_at = NULL WHERE id IN (${batch.map(() => '?').join(',')})`,
+      args: batch,
+    });
   }
-  console.log(`[Audit] Removed ${ids.length} job(s) from jobs + job_details.`);
+  console.log(`[Audit] Removed ${ids.length} job(s) from jobs + job_details and requeued their raw_jobs rows for reparsing.`);
 }
 
 main().catch(error => {

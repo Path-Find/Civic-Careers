@@ -81,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending PeopleSoft listings now explain how to find the source posting** — the official board opens without a misleading fragment deep link and includes the source job ID to search.
 - **Jobs filters now work on narrow screens** — the filter controls remain reachable without forcing a second scrolling panel, and Saved clearly keeps its filters separate from Recently viewed.
 - **PDF postings no longer rely on fragile text extraction** — listings keep their original PDF link and show a clear details-pending state instead of risking misleading parsed content.
+- Fixed the quality-gate purge (`audit-mechanical-publish.ts`) permanently stranding removed listings — deleting a corrupted `jobs`/`job_details` row left `raw_jobs.parsed_at` set, so the row silently dropped out of the parse queue forever unless the scraper happened to revisit that exact posting; the purge now clears `parsed_at` so removed listings re-enter the normal queue for a fresh parse. Requeued 525 rows already stranded this way by the August field-gluing cleanup.
 - **Job headers no longer repeat title-like role categories as departments** — Canada Post delivery roles no longer show the same role twice.
 
 ## [1.9.10] - 2026-08-10
