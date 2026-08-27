@@ -74,7 +74,8 @@ Posting Period: 17-AUG-2026 to 18-SEP-2026
   `;
   const result = parseCityOfToronto(rawText);
   assert.equal(result.department, 'Corporate Real Estate Management, Fire & Life Safety Program Office');
-  assert.equal(result.location, '35 Spadina Road');
+  assert.equal(result.location, 'Toronto, ON');
+  assert.equal(result.workplaceAddress, '35 Spadina Road');
   assert.equal(result.employmentType, 'Permanent');
   assert.equal(result.duration, 'Permanent');
   assert.equal(result.salary, '$89,337.00 - $132,880.00, TM1451 and PTM2');

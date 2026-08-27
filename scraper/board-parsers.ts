@@ -148,10 +148,21 @@ export function parseCityOfToronto(rawText: string): ExtractedBoardMetadata {
     metadata.department = normalizeDepartment(deptMatch[1]);
   }
 
-  // Location
+  // Location. "Work Location" is a specific worksite address (sometimes
+  // several, comma-separated), not a city -- confirmed live on 25 active
+  // postings (e.g. "1530 Markham Road, 5100 Yonge St, 850 Coxwell Ave" shown
+  // as the location). Every City of Toronto posting is in Toronto, so an
+  // address-shaped capture keeps the address (for future map features) and
+  // the public location falls back to the one home city.
   const locMatch = rawText.match(cityOfTorontoField('Work Location'));
   if (locMatch) {
-    metadata.location = locMatch[1].trim();
+    const value = locMatch[1].trim();
+    if (looksLikeStreetAddress(value)) {
+      metadata.workplaceAddress = value;
+      metadata.location = 'Toronto, ON';
+    } else {
+      metadata.location = value;
+    }
   }
 
   // Job Type & Duration
