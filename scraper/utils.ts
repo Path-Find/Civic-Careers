@@ -1,10 +1,10 @@
 import { createHash } from 'crypto';
 import { Page, Frame, BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
-import { discardRawJob, refreshClosingDate, retireJob, savePendingJob, saveRawJob } from './db';
+import { discardRawJob, markRawJobBlocked, refreshClosingDate, retireJob, savePendingJob, saveRawJob } from './db';
 import { extractPostedDate, extractRecentRelativePostedDate, normalizePostedDate } from './posted-date';
 import { extractClosingDate } from './closing-date';
-import { classifyRawCapture, looksUnrendered } from './capture-quality';
+import { classifyRawCapture, isBlockedCapture, looksUnrendered } from './capture-quality';
 
 export { looksUnrendered } from './capture-quality';
 
@@ -235,9 +235,15 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
       rawText = await extractFrom(contentFrame ?? page);
     }
 
-    if (!rawText || rawText.length < 100 || looksUnrendered(rawText)) {
+    if (!rawText) {
       console.warn(`\n   ⚠️  [${sourceName}] Page never rendered real content: ${descriptionUrl}`);
       await discardRawJob(db, job.id!);
+      return false;
+    }
+
+    if (rawText.length < 100 || looksUnrendered(rawText)) {
+      console.warn(`\n   ⚠️  [${sourceName}] Blocked (unrendered/short capture): ${descriptionUrl}`);
+      await markRawJobBlocked(db, { id: job.id!, url: descriptionUrl, application_url: applicationUrl, source: sourceName, title: job.title, raw_text: rawText });
       return false;
     }
 
@@ -248,7 +254,11 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
     const captureQuality = classifyRawCapture(sourceName, rawText);
     if (!captureQuality.valid) {
       console.warn(`\n   ⚠️  [${sourceName}] Rejected ${captureQuality.issue} capture: ${descriptionUrl}`);
-      await discardRawJob(db, job.id!);
+      if (isBlockedCapture(captureQuality.issue)) {
+        await markRawJobBlocked(db, { id: job.id!, url: descriptionUrl, application_url: applicationUrl, source: sourceName, title: job.title, raw_text: rawText });
+      } else {
+        await discardRawJob(db, job.id!);
+      }
       return false;
     }
 

@@ -713,6 +713,60 @@ export async function discardRawJob(client: Client, id: string) {
   ], 'write');
 }
 
+/**
+ * A bot challenge, expired-page notice, or non-rendering shell means the
+ * source page could not be captured this attempt — the posting may still be
+ * real. Per docs/job-lifecycle.md this is the `blocked` pending-closing-date
+ * status: keep the row so it's visible as a review queue (see
+ * blocked-jobs-report.ts) instead of silently deleting it, hide it from
+ * public listings, and exclude it from automatic reparse retries. Never let
+ * a blocked attempt overwrite a previously captured real posting or a
+ * previously confirmed closing date.
+ */
+export async function markRawJobBlocked(client: Client, job: {
+  id: string;
+  url: string;
+  application_url?: string | null;
+  source: string;
+  title?: string | undefined;
+  raw_text: string;
+}) {
+  await asNeonClient(client)?.restoreIfArchived(job.id);
+  await client.batch([
+    {
+      sql: `INSERT INTO raw_jobs (id, url, application_url, source, raw_text, title, pending_closing_date_status, first_seen_at, scraped_at, parsed_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'blocked', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL)
+        ON CONFLICT(id) DO UPDATE SET
+          url = excluded.url,
+          application_url = COALESCE(excluded.application_url, raw_jobs.application_url),
+          source = excluded.source,
+          raw_text = CASE
+            WHEN LENGTH(COALESCE(raw_jobs.raw_text, '')) >= LENGTH(excluded.raw_text) THEN raw_jobs.raw_text
+            ELSE excluded.raw_text
+          END,
+          title = COALESCE(raw_jobs.title, excluded.title),
+          pending_closing_date_status = CASE
+            WHEN raw_jobs.pending_closing_date_status = 'known' THEN 'known'
+            ELSE 'blocked'
+          END,
+          scraped_at = CURRENT_TIMESTAMP`,
+      args: [job.id, job.url, job.application_url ?? null, job.source, job.raw_text, job.title ?? null],
+    },
+    {
+      sql: `INSERT INTO jobs (id, url, source, is_active, first_seen_at, scraped_at)
+        SELECT id, COALESCE(application_url, url), source, 0, first_seen_at, scraped_at
+        FROM raw_jobs WHERE id = ?
+        ON CONFLICT(id) DO UPDATE SET scraped_at = excluded.scraped_at`,
+      args: [job.id],
+    },
+    {
+      sql: `UPDATE jobs SET publication_status = 'hidden', is_active = 0
+            WHERE id = ? AND publication_status <> 'fully_parsed'`,
+      args: [job.id],
+    },
+  ], 'write');
+}
+
 export async function getUnparsedJobs(client: Client, excludedSources: string[] = []): Promise<Array<{ id: string; url: string; application_url: string | null; source: string; raw_text: string; title: string | null; first_seen_at: string; posted_at: string | null }>> {
   const sourceExclusion = excludedSources.length > 0
     ? `AND r.source NOT IN (${excludedSources.map(() => '?').join(',')})`

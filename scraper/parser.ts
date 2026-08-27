@@ -1,7 +1,7 @@
-import { deactivateExpiredJobs, discardRawJob, initDb, getUnparsedJobs, saveJob, saveJobDetails, finalizeParsedJob, recordParseFailure, clearParseFailure, countStalledParseFailures, setPublicationStatus } from './db';
+import { deactivateExpiredJobs, discardRawJob, markRawJobBlocked, initDb, getUnparsedJobs, saveJob, saveJobDetails, finalizeParsedJob, recordParseFailure, clearParseFailure, countStalledParseFailures, setPublicationStatus } from './db';
 import { parseJobWithAI, PARSER_VERSION } from './ai_parser';
 import { githubRunUrl, notifyDiscord } from './utils';
-import { classifyRawCapture } from './capture-quality';
+import { classifyRawCapture, isBlockedCapture } from './capture-quality';
 import { buildParsedCandidate, type ParserRawJob } from './parser-pipeline';
 
 const CONCURRENCY = Number(process.env.PARSER_CONCURRENCY ?? 2);
@@ -46,9 +46,16 @@ async function main() {
     const batch = rawJobs.slice(i, i + CONCURRENCY);
     await Promise.all(batch.map(async (raw) => {
       const captureQuality = classifyRawCapture(raw.source, raw.raw_text);
-      if (raw.raw_text.trim().length < 100 || !captureQuality.valid) {
-        await discardRawJob(db, raw.id);
-        process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ⏭ (${raw.source}: invalid capture discarded)`);
+      const tooShort = raw.raw_text.trim().length < 100;
+      if (tooShort || !captureQuality.valid) {
+        const blocked = tooShort || (!captureQuality.valid && isBlockedCapture(captureQuality.issue));
+        if (blocked) {
+          await markRawJobBlocked(db, { id: raw.id, url: raw.url, application_url: raw.application_url, source: raw.source, title: raw.title ?? undefined, raw_text: raw.raw_text });
+          process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ⏭ (${raw.source}: blocked, needs attention)`);
+        } else {
+          await discardRawJob(db, raw.id);
+          process.stdout.write(`\r[Parser] ${done}/${rawJobs.length} ⏭ (${raw.source}: invalid capture discarded)`);
+        }
         return;
       }
 

@@ -20,6 +20,11 @@ export function looksUnrendered(text: string): boolean {
 }
 
 const BOT_CHALLENGE = /(?:checking your browser|confirm you are not a robot|please verify you are human|activity and behavior on (?:this )?site made us think that you are a bot|activity and behavior on this website made us think that you are a bot|incident id:\s*[a-f0-9-]{8,})/i;
+// Workday's edge-network challenge (seen on ubc.wd10.myworkdayjobs.com and
+// other myworkdayjobs.com tenants): a short "Security Check" interstitial
+// with no job content that never matched BOT_CHALLENGE above, so it was
+// being saved and treated like an ordinary successful capture.
+const WORKDAY_VERIFICATION_CHALLENGE = /verification successful\.?\s*waiting for [^\n]+ to respond|support id:\s*[a-f0-9]+\s*[-–]\s*client ip:/i;
 const OBJECT_STORAGE_ERROR = /(?:^|\n)\s*404 not found\b|NoSuchKey|specified key does not exist/i;
 const EXPIRED_PAGE = /(?:this (?:position|job|posting) is no longer available|sorry, (?:this )?posting is no longer available|this job has (?:already )?expired|this job posting has already expired|this posting is not available|sorry, this position has been filled)\.?/i;
 
@@ -28,6 +33,7 @@ export function classifyRawCapture(source: string, rawText: string): RawCaptureQ
   if (!text) return { valid: false, issue: 'empty' };
   if (looksUnrendered(text)) return { valid: false, issue: 'unrendered' };
   if (OBJECT_STORAGE_ERROR.test(text)) return { valid: false, issue: 'error_page' };
+  if (WORKDAY_VERIFICATION_CHALLENGE.test(text)) return { valid: false, issue: 'bot_challenge' };
   if (BOT_CHALLENGE.test(text)) {
     // hCaptcha or reCAPTCHA widgets embedded in a real job detail page often contain static labels 
     // like "Confirm you are not a robot" or "Please verify you are human".
@@ -95,4 +101,15 @@ export function classifyRawCapture(source: string, rawText: string): RawCaptureQ
   }
 
   return { valid: true };
+}
+
+/**
+ * True for a source-access failure (bot challenge, expired-page notice, or a
+ * non-rendering shell) — the posting itself may still be real, so per
+ * docs/job-lifecycle.md this should be kept and marked `blocked` for review
+ * rather than deleted. False for a capture that is simply empty or the wrong
+ * page entirely, which has nothing worth keeping.
+ */
+export function isBlockedCapture(issue: RawCaptureIssue): boolean {
+  return issue === 'bot_challenge' || issue === 'expired_page' || issue === 'unrendered';
 }
