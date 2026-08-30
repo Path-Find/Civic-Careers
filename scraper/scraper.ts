@@ -44,6 +44,7 @@ export { urlId, scrapeRawAndStage } from './utils';
 interface ScrapeTask {
   engine: string;
   label: string;
+  allowEmptyCapture?: boolean;
   run: (db: Client, context: BrowserContext) => Promise<void>;
 }
 
@@ -122,7 +123,8 @@ const TASKS: ScrapeTask[] = [
   { engine: 'rss', label: 'City of Kingston', run: (db, ctx) => scrapeRSS(db, ctx, 'https://careers.cityofkingston.ca/CL2/net/ResumeProcessing/RssFeedOutput.aspx?CLID=61577&lang=1', 'City of Kingston', 'kingston', 'https://careers.cityofkingston.ca/CL2/xweb/xweb.asp?CLID=61577&page=joblisting&lang=1') },
   { engine: 'jazzhr', label: 'City of Belleville', run: (db, ctx) => scrapeJazzHR(db, ctx, 'https://cityofbelleville.applytojob.com/apply/', 'City of Belleville', 'belleville') },
   { engine: 'workland', label: 'City of Cornwall', run: (db, ctx) => scrapeWorkland(db, ctx, 'https://atlas.workland.com/careers/cornwall/jobs?page=1', 'City of Cornwall', 'cornwall') },
-  { engine: 'custom', label: 'Town of Smiths Falls', run: (db, ctx) => scrapeSmithsFalls(db, ctx) },
+  // The board explicitly publishes a no-openings row when the town has no jobs.
+  { engine: 'custom', label: 'Town of Smiths Falls', allowEmptyCapture: true, run: (db, ctx) => scrapeSmithsFalls(db, ctx) },
 
   // 10. Higher Education (Colleges & Universities)
   { engine: 'jobs2web', label: 'University of Toronto', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.utoronto.ca/search/', 'University of Toronto') },
@@ -206,7 +208,7 @@ async function main() {
     try {
       const taskStartedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
       await task.run(db, taskContext);
-      await cleanupExpiredJobsForSource(db, task.label, taskStartedAt);
+      await cleanupExpiredJobsForSource(db, task.label, taskStartedAt, task.allowEmptyCapture);
       await db.execute({
         sql: `INSERT INTO source_scrape_status (source, last_successful_scrape_at, last_status)
               VALUES (?, CURRENT_TIMESTAMP, 'success')

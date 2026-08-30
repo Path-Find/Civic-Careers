@@ -50,6 +50,20 @@ test('cleanupExpiredJobsForSource refuses to archive a source when the scrape ca
   assert.match(statements[0], /SELECT COUNT\(\*\)/i);
 });
 
+test('cleanupExpiredJobsForSource allows an explicitly empty source and still deactivates old jobs', async () => {
+  const statements: Array<{ sql: string; args?: unknown[] }> = [];
+  const client = {
+    execute: async (query: { sql: string; args?: unknown[] } | string) => {
+      if (typeof query === 'string') statements.push({ sql: query });
+      else statements.push(query);
+      return { rows: [{ count: 0 }], rowsAffected: 0 };
+    },
+  };
+
+  await cleanupExpiredJobsForSource(client as never, 'Town of Smiths Falls', '2026-08-29 00:00:00', true);
+  assert.ok(statements.some(s => s.sql.includes('SET is_active = 0')));
+});
+
 test('cleanupExpiredJobs is a no-op global path (do not use for expiry)', async () => {
   const statements: Array<{ sql: string; args?: unknown[] }> = [];
   const client = {

@@ -171,13 +171,13 @@ export class NeonDatabaseClient {
     });
   }
 
-  async moveSourceMissingJobsToArchive(source: string, runStartedAt: string): Promise<number> {
+  async moveSourceMissingJobsToArchive(source: string, runStartedAt: string, allowEmptyCapture = false): Promise<number> {
     return this.withRoutingLocks(async ({ current, archive }) => {
       const touched = await current.query<{ count: string }>(
         `SELECT COUNT(*)::text AS count FROM raw_jobs WHERE source = $1 AND scraped_at >= $2`,
         [source, runStartedAt],
       );
-      if (Number(touched.rows[0]?.count ?? 0) === 0) {
+      if (!allowEmptyCapture && Number(touched.rows[0]?.count ?? 0) === 0) {
         throw new Error(`[${source}] No postings were captured; refusing to archive existing jobs for this source.`);
       }
       const result = await current.query<{ id: string }>(

@@ -926,17 +926,18 @@ export async function cleanupExpiredJobsForSource(
   client: Client,
   source: string,
   runStartedAt: string,
+  allowEmptyCapture = false,
 ): Promise<void> {
   const neon = asNeonClient(client);
   if (neon) {
-    await neon.moveSourceMissingJobsToArchive(source, runStartedAt);
+    await neon.moveSourceMissingJobsToArchive(source, runStartedAt, allowEmptyCapture);
     return;
   }
   const touched = await client.execute({
     sql: `SELECT COUNT(*) AS count FROM raw_jobs WHERE source = ? AND scraped_at >= ?`,
     args: [source, runStartedAt],
   });
-  if (Number(touched.rows[0]?.count ?? 0) === 0) {
+  if (!allowEmptyCapture && Number(touched.rows[0]?.count ?? 0) === 0) {
     throw new Error(`[${source}] No postings were captured; refusing to archive existing jobs for this source.`);
   }
   await client.execute({
