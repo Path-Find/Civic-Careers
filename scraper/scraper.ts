@@ -168,10 +168,14 @@ const TASKS: ScrapeTask[] = [
 async function main() {
   const headless = !process.env.DISPLAY && process.env.CI !== 'false';
   const engineFilter = process.env.SCRAPE_ENGINE;
-  const tasks = engineFilter ? TASKS.filter(t => t.engine === engineFilter) : TASKS;
+  const sourceFilter = process.env.SCRAPE_SOURCE;
+  const tasks = TASKS.filter(task =>
+    (!engineFilter || task.engine === engineFilter)
+    && (!sourceFilter || task.label === sourceFilter)
+  );
 
-  if (engineFilter && tasks.length === 0) {
-    console.error(`No tasks found for engine "${engineFilter}"`);
+  if ((engineFilter || sourceFilter) && tasks.length === 0) {
+    console.error(`No tasks found for${engineFilter ? ` engine "${engineFilter}"` : ''}${engineFilter && sourceFilter ? ' and' : ''}${sourceFilter ? ` source "${sourceFilter}"` : ''}`);
     process.exit(1);
   }
 
@@ -182,7 +186,7 @@ async function main() {
   });
   const db = await initDb();
 
-  console.log(`--- STARTING SCRAPE RUN${engineFilter ? ` (engine: ${engineFilter})` : ''} — ${tasks.length} source(s) ---`);
+  console.log(`--- STARTING SCRAPE RUN${engineFilter ? ` (engine: ${engineFilter})` : ''}${sourceFilter ? ` (source: ${sourceFilter})` : ''} — ${tasks.length} source(s) ---`);
 
   // Match SQLite's CURRENT_TIMESTAMP format ("YYYY-MM-DD HH:MM:SS", no "T"/"Z")
   // — comparing against a raw ISO string breaks the >= comparison below.

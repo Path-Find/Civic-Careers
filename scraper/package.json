@@ -6,6 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "scrape": "npx tsx scraper.ts",
+    "scrape:ops": "CI=false OPS_MANUAL_CAPTCHA=true SCRAPE_ENGINE=custom SCRAPE_SOURCE=\"Province of Ontario\" npx tsx scraper.ts",
     "parse": "npx tsx parser.ts",
     "backfill-software": "npx tsx backfill-software.ts",
     "backfill-posted-dates": "npx tsx backfill-posted-dates.ts",

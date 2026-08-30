@@ -8,6 +8,20 @@ export function isOntarioPublicServiceBotChallenge(text: string): boolean {
   return /(?:radware|hcaptcha|captcha|validate\.perfdrive\.com|security verification|activity and behavior on (?:this )?site made us think that you are a bot|incident id:\s*[a-f0-9-]{8,})/i.test(text);
 }
 
+async function ensureOPSAccess(page: import('playwright').Page, sourceName: string): Promise<void> {
+  const pageText = await page.locator('body').innerText().catch(() => '');
+  if (!isOntarioPublicServiceBotChallenge(`${page.url()}\n${pageText}`)) return;
+
+  if (process.env.OPS_MANUAL_CAPTCHA === 'true' && !process.env.CI) {
+    console.log(`[${sourceName}] Radware challenge detected; waiting 60 seconds for manual CAPTCHA completion...`);
+    await page.waitForTimeout(60000);
+    const retryText = await page.locator('body').innerText().catch(() => '');
+    if (!isOntarioPublicServiceBotChallenge(`${page.url()}\n${retryText}`)) return;
+  }
+
+  throw new Error(`${sourceName}: official board blocked by Radware/hCaptcha challenge`);
+}
+
 // These federal postings are listed in GC Jobs but the employer's own page is
 // the real application destination. Keep stable canonical URLs here so a
 // routine scrape does not overwrite them with the generic GC detail page.
@@ -17,10 +31,7 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
   const page = await context.newPage();
   try {
     await safeGoto(page, 'https://www.gojobs.gov.on.ca/Search.aspx');
-    const initialText = await page.locator('body').innerText().catch(() => '');
-    if (isOntarioPublicServiceBotChallenge(`${page.url()}\n${initialText}`)) {
-      throw new Error(`${sourceName}: official board blocked by Radware/hCaptcha challenge`);
-    }
+    await ensureOPSAccess(page, sourceName);
     const searchInput = await page.$('input[type="text"]');
     if (searchInput) await searchInput.type(' ', { delay: 100 });
     const btn = await page.$('#btnSearch');
@@ -30,24 +41,22 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
     }
     // Radware can replace the results page after the search action, leaving
     // the scraper with an empty result set instead of an obvious challenge.
-    const postSearchText = await page.locator('body').innerText().catch(() => '');
-    if (isOntarioPublicServiceBotChallenge(`${page.url()}\n${postSearchText}`)) {
-      throw new Error(`${sourceName}: official board blocked by Radware/hCaptcha challenge`);
-    }
+    await ensureOPSAccess(page, sourceName);
 
     let hasNextPage = true;
     let pageNum = 1;
     while (hasNextPage) {
       console.log(`[${sourceName}] Page ${pageNum}...`);
       const summaries = await page.evaluate(() => {
-        const table = document.querySelector('#dgSearchResults');
-        if (!table) return [];
-        const rows = Array.from(table.querySelectorAll('tr')).slice(1);
-        return rows.map(row => {
-          const titleLink = row.querySelector('a');
-          if (!titleLink) return null;
-          return { title: titleLink.textContent?.trim() || '', url: (titleLink as HTMLAnchorElement).href };
-        }).filter(r => r && r.title && !r.url.includes('javascript:')) as { id: string; title: string; url: string }[];
+        const seen = new Set<string>();
+        return Array.from(document.querySelectorAll<HTMLAnchorElement>('#SearchResultDiv a[href*="Preview.aspx"][href*="JobID="]'))
+          .map(link => ({ title: link.textContent?.trim() || '', url: link.href }))
+          .filter(job => {
+            const jobId = new URL(job.url).searchParams.get('JobID');
+            if (!job.title || !jobId || new URL(job.url).searchParams.get('Language')?.toLowerCase() !== 'english' || seen.has(jobId)) return false;
+            seen.add(jobId);
+            return true;
+          });
       });
 
       let count = 0;
@@ -58,10 +67,11 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
         await scrapeRawAndStage(db, context, job, sourceName);
       }
       console.log(`\n[${sourceName}] Finished page ${pageNum}.`);
-      const nextLink = await page.$('#dgSearchResults tr:last-child a:has-text("Next")');
+      const nextLink = await page.$('#SearchResultDiv a:has-text("Next")');
       if (nextLink) {
         await nextLink.click();
-        await page.waitForTimeout(7000);
+        await page.waitForTimeout(3000);
+        await ensureOPSAccess(page, sourceName);
         pageNum++;
       } else {
         hasNextPage = false;

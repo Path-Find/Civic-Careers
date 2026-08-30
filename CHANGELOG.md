@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Ontario OPS scraping now follows the current results markup and supports an opt-in headed run with a 60-second manual CAPTCHA window, restoring one-off local collection when the site permits access.
 - Ontario’s Radware challenge is now recognized after search as well as on initial load, so a blocked board is reported as blocked instead of a misleading empty scrape failure.
 - Empty source boards that explicitly report no openings now complete successfully while safely retiring their old listings, so a legitimate zero-job source no longer turns the full scrape red.
 - Refactored the parsing pipeline around one shared per-job flow with quality gating, recorded rule provenance, and centralized parse finalization — so normal parsing and deterministic backfills persist closing metadata and promotion state the same way — and began isolating employer-specific parser rules into their own source modules (starting with the University of Ottawa) and its backfills onto the same raw-text-aware scoped title rules used by fresh parsing, so a fix for one employer stays scoped, auditable, and consistent across both paths.
