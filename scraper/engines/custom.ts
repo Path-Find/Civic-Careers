@@ -12,7 +12,7 @@ async function ensureOPSAccess(page: import('playwright').Page, sourceName: stri
   const pageText = await page.locator('body').innerText().catch(() => '');
   if (!isOntarioPublicServiceBotChallenge(`${page.url()}\n${pageText}`)) return;
 
-  if (process.env.OPS_MANUAL_CAPTCHA === 'true' && !process.env.CI) {
+  if (process.env.OPS_MANUAL_CAPTCHA === 'true' && process.env.CI !== 'true') {
     console.log(`[${sourceName}] Radware challenge detected; waiting 60 seconds for manual CAPTCHA completion...`);
     await page.waitForTimeout(60000);
     const retryText = await page.locator('body').innerText().catch(() => '');
@@ -32,9 +32,7 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
   try {
     await safeGoto(page, 'https://www.gojobs.gov.on.ca/Search.aspx');
     await ensureOPSAccess(page, sourceName);
-    const searchInput = await page.$('input[type="text"]');
-    if (searchInput) await searchInput.type(' ', { delay: 100 });
-    const btn = await page.$('#btnSearch');
+    const btn = await page.$('#btnSearch, [id$="_btnSearch"]');
     if (btn) {
       await btn.click();
       await page.waitForTimeout(5000);
@@ -42,6 +40,7 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
     // Radware can replace the results page after the search action, leaving
     // the scraper with an empty result set instead of an obvious challenge.
     await ensureOPSAccess(page, sourceName);
+    await page.waitForSelector('#SearchResultDiv a[href*="Preview.aspx"][href*="JobID="]', { timeout: 15000 }).catch(() => {});
 
     let hasNextPage = true;
     let pageNum = 1;
