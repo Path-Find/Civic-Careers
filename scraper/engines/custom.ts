@@ -28,6 +28,12 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
       await btn.click();
       await page.waitForTimeout(5000);
     }
+    // Radware can replace the results page after the search action, leaving
+    // the scraper with an empty result set instead of an obvious challenge.
+    const postSearchText = await page.locator('body').innerText().catch(() => '');
+    if (isOntarioPublicServiceBotChallenge(`${page.url()}\n${postSearchText}`)) {
+      throw new Error(`${sourceName}: official board blocked by Radware/hCaptcha challenge`);
+    }
 
     let hasNextPage = true;
     let pageNum = 1;
