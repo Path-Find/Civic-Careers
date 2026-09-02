@@ -28,7 +28,7 @@ The active list below is derived from `scraper/scraper.ts`'s `TASKS` array and s
 - **Mohawk College** — [Home](https://talent-mohawkcollege.csod.com/ux/ats/careersite/2/home?c=talent-mohawkcollege)
 - **Ontario Tech University** — [Home](https://ontariotechu.csod.com/ux/ats/careersite/4/home?c=ontariotechu)
 
-## Custom (11)
+## Custom (10)
 
 - **City of Barrie** — [Search](https://careers.barrie.ca/search/)
 - **City of Brantford** — [Current Opportunities](https://www.brantford.ca/your-government/careers/current-opportunities/)
@@ -37,10 +37,13 @@ The active list below is derived from `scraper/scraper.ts`'s `TASKS` array and s
 - **Conservation Halton** — [Employment](https://www.conservationhalton.ca/about-us/employment/)
 - **Government of Canada** — [GC Jobs](https://emploisfp-psjobs.cfp-psc.gc.ca/psrs-srfp/applicant/page2440?fromMenu=true&toggleLanguage=en) (covers Transport Canada, Statistics Canada, Infrastructure Canada, and many other federal departments)
 - **Northumberland County** — [Careers](https://northumberland.ca/county-government/careers/)
-- **Province of Ontario (OPS)** — [Ontario Public Service Jobs](https://www.gojobs.gov.on.ca/Search.aspx) — headed local scrape; manual CAPTCHA may be required (`cd scraper && npm run scrape:ops`)
 - **Toronto District School Board** — [Job Postings](https://www.tdsb.on.ca/jobpostings/list.html)
 - **Town of Smiths Falls** — [Careers](https://www.smithsfalls.ca/)
 - **Waterfront Toronto** — [Opportunities](https://www.waterfrontoronto.ca/opportunities/join-our-team)
+
+## Deferred
+
+- **Province of Ontario (OPS)** — [Ontario Public Service Jobs](https://www.gojobs.gov.on.ca/Search.aspx) — deferred because the official board returns a Radware/hCaptcha challenge to automated access; existing listings are retained and the manual `scrape:ops` command remains available when authorized access is possible.
 
 ## Dayforce HCM (5)
 
