@@ -68,7 +68,9 @@ const DETERMINISTIC_PARSER_VERSION = 0;
 // Each job still uses guarded writes and finalization; this only limits how
 // many independent jobs are in flight so Neon latency does not make a large
 // stored-capture replay unnecessarily slow.
-const CONCURRENCY = 25;
+// Neon current/archive pools are intentionally small; matching the current
+// pool size prevents a large replay from exhausting connections.
+const CONCURRENCY = 1;
 
 // When a section has no bullet markers, descriptionLines() can't split it and
 // the whole paragraph is treated as one "line" — extractors built for real
