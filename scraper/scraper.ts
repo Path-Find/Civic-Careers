@@ -239,7 +239,10 @@ async function main() {
   if (expiredCount > 0) console.log(`[Expiry] Deactivated ${expiredCount} job(s) past their closing date.`);
   await browser.close();
 
-  if (process.env.DISCORD_WEBHOOK_URL) {
+  // Matrix jobs run one engine per GitHub Actions job. Sending here creates a
+  // noisy burst of near-identical Discord messages; the parser remains the
+  // single workflow-level completion notification.
+  if (process.env.DISCORD_WEBHOOK_URL && !process.env.GITHUB_ACTIONS) {
     const afterCount = labels.length > 0 ? await countForLabels() : 0;
     const netNew = afterCount - beforeCount;
     const touchedResult = await db.execute({
