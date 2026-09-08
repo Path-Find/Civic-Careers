@@ -18,6 +18,7 @@ import { scrapeAvanti } from './engines/avanti';
 import { scrapeBambooHR, scrapeCreateTO } from './engines/bamboohr';
 import { scrapeTalentPoolBuilder } from './engines/talentpoolbuilder';
 import {
+  scrapeOPS,
   scrapeGC,
   scrapeWaterfront,
   scrapeBarrie,
@@ -165,10 +166,18 @@ async function main() {
   const headless = !process.env.DISPLAY && process.env.CI !== 'false';
   const engineFilter = process.env.SCRAPE_ENGINE;
   const sourceFilter = process.env.SCRAPE_SOURCE;
-  const tasks = TASKS.filter(task =>
-    (!engineFilter || task.engine === engineFilter)
-    && (!sourceFilter || task.label === sourceFilter)
-  );
+  // OPS is intentionally excluded from scheduled TASKS because its board
+  // requires a human CAPTCHA step. Keep the documented manual command as an
+  // explicit opt-in without making OPS part of the normal production scrape.
+  const manualOpsRequested = process.env.OPS_MANUAL_CAPTCHA === 'true'
+    && engineFilter === 'custom'
+    && sourceFilter === 'Province of Ontario';
+  const tasks: ScrapeTask[] = manualOpsRequested
+    ? [{ engine: 'custom', label: 'Province of Ontario', run: (db, ctx) => scrapeOPS(db, ctx) }]
+    : TASKS.filter(task =>
+      (!engineFilter || task.engine === engineFilter)
+      && (!sourceFilter || task.label === sourceFilter)
+    );
 
   if ((engineFilter || sourceFilter) && tasks.length === 0) {
     console.error(`No tasks found for${engineFilter ? ` engine "${engineFilter}"` : ''}${engineFilter && sourceFilter ? ' and' : ''}${sourceFilter ? ` source "${sourceFilter}"` : ''}`);

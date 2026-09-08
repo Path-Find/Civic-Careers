@@ -13,10 +13,14 @@ async function ensureOPSAccess(page: import('playwright').Page, sourceName: stri
   if (!isOntarioPublicServiceBotChallenge(`${page.url()}\n${pageText}`)) return;
 
   if (process.env.OPS_MANUAL_CAPTCHA === 'true' && process.env.CI !== 'true') {
-    console.log(`[${sourceName}] Radware challenge detected; waiting 60 seconds for manual CAPTCHA completion...`);
-    await page.waitForTimeout(60000);
-    const retryText = await page.locator('body').innerText().catch(() => '');
-    if (!isOntarioPublicServiceBotChallenge(`${page.url()}\n${retryText}`)) return;
+    const timeoutMs = Number(process.env.OPS_MANUAL_CAPTCHA_TIMEOUT_MS || 10 * 60 * 1000);
+    const deadline = Date.now() + timeoutMs;
+    console.log(`[${sourceName}] CAPTCHA detected in the visible browser. Complete it there; scraping will resume automatically (waiting up to ${Math.ceil(timeoutMs / 60000)} minutes)...`);
+    while (Date.now() < deadline) {
+      await page.waitForTimeout(1000);
+      const retryText = await page.locator('body').innerText().catch(() => '');
+      if (!isOntarioPublicServiceBotChallenge(`${page.url()}\n${retryText}`)) return;
+    }
   }
 
   throw new Error(`${sourceName}: official board blocked by Radware/hCaptcha challenge`);
@@ -63,7 +67,9 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
         count++;
         job.id = new URL(job.url).searchParams.get('JobID') || urlId(job.url);
         process.stdout.write(`\r[${sourceName}] ${count}/${summaries.length}`);
-        await scrapeRawAndStage(db, context, job, sourceName);
+        await scrapeRawAndStage(db, context, job, sourceName, {
+          ensureAccess: (detailPage) => ensureOPSAccess(detailPage, sourceName),
+        });
       }
       console.log(`\n[${sourceName}] Finished page ${pageNum}.`);
       const nextLink = await page.$('#SearchResultDiv a:has-text("Next")');

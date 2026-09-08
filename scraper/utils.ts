@@ -35,6 +35,10 @@ export interface JobSummary {
   retiredPage?: (rawText: string) => boolean;
 }
 
+export interface ScrapeRawOptions {
+  ensureAccess?: (page: Page) => Promise<void>;
+}
+
 export const BASE_CONFIG = {
   userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
   viewport: { width: 1280, height: 800 }
@@ -117,7 +121,7 @@ export async function handleRedirections(page: Page, depth = 0): Promise<boolean
   return depth > 0;
 }
 
-export async function scrapeRawAndStage(db: Client, context: BrowserContext, job: JobSummary, sourceName: string): Promise<boolean> {
+export async function scrapeRawAndStage(db: Client, context: BrowserContext, job: JobSummary, sourceName: string, options?: ScrapeRawOptions): Promise<boolean> {
   const descriptionUrl = job.descriptionUrl ?? job.url;
   const applicationUrl = job.applicationUrl ?? job.url;
   const existing = await db.execute({ sql: `SELECT parsed_at, raw_text FROM raw_jobs WHERE id = ?`, args: [job.id!] });
@@ -165,6 +169,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
   const page = await context.newPage();
   try {
     await safeGoto(page, descriptionUrl, 45000);
+    await options?.ensureAccess?.(page);
 
     // Dayforce detail pages contain normal external-site copy in their footer;
     // the generic interstitial handler would mistake that text for a redirect
@@ -172,6 +177,7 @@ export async function scrapeRawAndStage(db: Client, context: BrowserContext, job
     if (!/jobs\.dayforcehcm\.com\/.*\/jobs\/\d+/i.test(descriptionUrl)) {
       await handleRedirections(page);
     }
+    await options?.ensureAccess?.(page);
     await page.waitForSelector('body', { timeout: 10000 });
 
     const metadataPostedAt = ['City of Toronto', 'University of Toronto', 'CMHC', 'Region of Waterloo', 'City of London', 'Mississauga', 'City of Vancouver', 'University of Waterloo', 'City of Waterloo', 'City of Richmond Hill'].includes(sourceName)
