@@ -36,6 +36,11 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
   try {
     await safeGoto(page, 'https://www.gojobs.gov.on.ca/Search.aspx');
     await ensureOPSAccess(page, sourceName);
+    // The ASP.NET form only submits the active-postings search after a field
+    // interaction. This harmless value was part of the last working manual
+    // flow and is especially important when returning from a CAPTCHA page.
+    const searchInput = await page.$('input[type="text"]');
+    if (searchInput) await searchInput.type(' ', { delay: 100 });
     const btn = await page.$('#btnSearch, [id$="_btnSearch"]');
     if (btn) {
       await btn.click();
@@ -61,6 +66,10 @@ export async function scrapeOPS(db: Client, context: BrowserContext) {
             return true;
           });
       });
+
+      if (summaries.length === 0 && pageNum === 1) {
+        throw new Error(`${sourceName}: search returned no postings after CAPTCHA; the results panel did not load`);
+      }
 
       let count = 0;
       for (const job of summaries) {

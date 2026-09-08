@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Homepage quick filters** — ending within 14 days, added in the last 7 days, and city-based Near me with browser-location permission, manual fallback, and a matching count when a city is already known.
 
 ### Fixed
+- OPS manual scraping now re-submits the active-postings form after CAPTCHA instead of returning zero results.
 - Restored the documented manual Ontario scrape path with automatic pause-and-resume around CAPTCHA checks while keeping the board out of scheduled production runs.
 - Trial source checks now record the intermittently unavailable Greater Sudbury board as externally blocked, and retry VIP Cloud detail navigation after transient result-page failures so one board does not turn a whole trial run red.
 - Reduced deterministic metadata-backfill concurrency so large pending replays do not exhaust Neon connections and fail before publishing captured jobs.
