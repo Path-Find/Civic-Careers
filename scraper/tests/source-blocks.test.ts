@@ -13,5 +13,13 @@ test('recognizes known external source blocks without hiding ordinary failures',
   }
 
   assert.equal(isExternalSourceBlock(new Error('Njoyn request timed out')), false);
+  assert.equal(
+    isExternalSourceBlock(new Error('page.goto: net::ERR_TIMED_OUT at https://myjobs.greatersudbury.ca/psc/MYJOBS/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL')),
+    true,
+  );
+  assert.equal(
+    isExternalSourceBlock(new Error('PeopleSoft redirected to https://myjobs.greatersudbury.ca/psc/MYJOBS/?cmd=login&errorPg=ckreq')),
+    true,
+  );
   assert.equal(isExternalSourceBlock(new Error('Alongside widget returned HTTP 500')), false);
 });

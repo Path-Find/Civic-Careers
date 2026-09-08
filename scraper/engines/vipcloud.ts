@@ -22,6 +22,7 @@ export function extractVipCloudJobs(rows: VipCloudRow[], portalUrl: string) {
     const canonicalUrl = `${portalUrl}#${encodeURIComponent(requisition)}`;
     return [{
       id: urlId(canonicalUrl),
+      requisition,
       title,
       url: canonicalUrl,
       applicationUrl: portalUrl,
@@ -46,6 +47,52 @@ async function readDetailFrame(page: import('playwright').Page): Promise<Frame> 
   if (!frame) throw new Error('VIP Cloud detail iframe did not expose a frame');
   await frame.locator('body').waitFor({ state: 'attached', timeout: 15000 });
   return frame;
+}
+
+async function waitForListing(page: import('playwright').Page) {
+  await page.locator('table tbody tr').first().waitFor({ state: 'attached', timeout: 15000 });
+}
+
+async function returnToListing(page: import('playwright').Page, portalUrl: string) {
+  try {
+    await page.locator('a').filter({ hasText: /^Back$/ }).first().click({ force: true });
+    await waitForListing(page);
+  } catch {
+    // VIP Cloud occasionally leaves the results page half-rendered after the
+    // detail iframe closes. Reload the board so the next row is not lost.
+    await safeGoto(page, portalUrl, 60000);
+    await waitForListing(page);
+  }
+}
+
+async function readVipDetail(
+  page: import('playwright').Page,
+  portalUrl: string,
+  job: ReturnType<typeof extractVipCloudJobs>[number],
+) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const titleControl = page
+        .locator('table tbody tr')
+        .filter({ hasText: job.requisition })
+        .locator('[clk="1"]')
+        .first();
+      await titleControl.waitFor({ state: 'visible', timeout: 15000 });
+      await titleControl.click({ force: true });
+      const detailFrame = await readDetailFrame(page);
+      const rawText = (await detailFrame.locator('body').innerText()).trim();
+      if (rawText.length < 100) throw new Error(`VIP Cloud detail was empty for ${job.title}`);
+      return rawText;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) {
+        await safeGoto(page, portalUrl, 60000);
+        await waitForListing(page);
+      }
+    }
+  }
+  throw lastError;
 }
 
 export async function scrapeVipCloud(
@@ -78,14 +125,10 @@ export async function scrapeVipCloud(
     const jobs = extractVipCloudJobs(rows, portalUrl);
     console.log(`[${sourceName}] Found ${jobs.length} jobs`);
 
-    const titleControls = page.locator('table tbody tr [clk="1"]');
     for (let index = 0; index < jobs.length; index += 1) {
       const job = jobs[index];
       if (!job) continue;
-      await titleControls.nth(index).click({ force: true });
-      const detailFrame = await readDetailFrame(page);
-      const rawText = (await detailFrame.locator('body').innerText()).trim();
-      if (rawText.length < 100) throw new Error(`VIP Cloud detail was empty for ${job.title}`);
+      const rawText = await readVipDetail(page, portalUrl, job);
       await saveRawJob(db, {
         id: job.id,
         url: job.url,
@@ -96,8 +139,7 @@ export async function scrapeVipCloud(
         posted_at: job.postedAt,
       });
       process.stdout.write(' ✅');
-      await page.locator('a').filter({ hasText: /^Back$/ }).first().click({ force: true });
-      await page.locator('table tbody tr').first().waitFor({ state: 'attached', timeout: 15000 });
+      await returnToListing(page, portalUrl);
     }
     console.log(`\n[${sourceName}] Done.`);
   } finally {

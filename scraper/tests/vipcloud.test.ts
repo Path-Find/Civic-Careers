@@ -19,6 +19,7 @@ test('extracts VIP Cloud requisitions and normalizes dates', () => {
   ], 'https://townofws-careers.vipcloud.ca/default'), [
     {
       id: '1d7bdf9bb9b2',
+      requisition: '00813',
       title: 'Aquafit Instructor',
       url: 'https://townofws-careers.vipcloud.ca/default#00813',
       applicationUrl: 'https://townofws-careers.vipcloud.ca/default',
