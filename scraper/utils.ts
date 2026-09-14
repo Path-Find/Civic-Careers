@@ -65,6 +65,7 @@ export function isExternalSourceBlock(error: unknown): boolean {
     /Alongside widget returned HTTP (?:403|429|526)\b/i,
     /page\.goto: net::ERR_TIMED_OUT.*myjobs\.greatersudbury\.ca/i,
     /myjobs\.greatersudbury\.ca.*(?:cmd=login|errorPg=ckreq)/i,
+    /page\.goto: net::ERR_CONNECTION_RESET.*careersconnect\.translink\.bc\.ca/i,
   ].some(pattern => pattern.test(message));
 }
 
