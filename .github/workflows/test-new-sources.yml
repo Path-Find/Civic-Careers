@@ -3,6 +3,13 @@ name: Trial Source Scrape
 on:
   schedule:
     - cron: '0 7 * * 1,4' # Match the regular scrape: Monday and Thursday at 3:00 AM EDT
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: 'Optional comma-separated trial sources; blank runs all sources'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   test:
@@ -43,4 +50,5 @@ jobs:
           TRIAL_DB_URL: ${{ secrets.TURSO_URL }}
           ALLOW_LIVE_TRIAL_DB: "1"
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          TRIAL_SOURCES: ${{ inputs.sources || '' }}
         run: cd scraper && npx tsx test-new-sources.ts

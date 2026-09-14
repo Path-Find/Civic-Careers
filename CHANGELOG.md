@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Homepage quick filters** — ending within 14 days, added in the last 7 days, and city-based Near me with browser-location permission, manual fallback, and a matching count when a city is already known.
 
 ### Fixed
+- Trial source checks can now be run manually against the current code instead of waiting for the next scheduled run.
 - Trial source checks now classify intermittent TransLink connection resets as external blocks instead of failing the whole workflow.
 - OPS manual scraping now re-submits the active-postings form after CAPTCHA instead of returning zero results.
 - Restored the documented manual Ontario scrape path with automatic pause-and-resume around CAPTCHA checks while keeping the board out of scheduled production runs.
