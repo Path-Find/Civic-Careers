@@ -59,7 +59,7 @@ const TASKS: ScrapeTask[] = [
 
   // 2. Libraries & Specialized
   // TPL (Njoyn) blocked by Radware bot protection — cannot scrape headlessly
-  { engine: 'custom', label: 'Waterfront Toronto', run: (db, ctx) => scrapeWaterfront(db, ctx) },
+  { engine: 'custom', label: 'Waterfront Toronto', allowEmptyCapture: true, run: (db, ctx) => scrapeWaterfront(db, ctx) },
 
   // 3. Crown Corps & Conservation
   { engine: 'jobs2web', label: 'CMHC', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.cmhc-schl.gc.ca/search/', 'CMHC') },
@@ -136,7 +136,7 @@ const TASKS: ScrapeTask[] = [
   { engine: 'workday', label: 'Algonquin College', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://algonquincollege.wd3.myworkdayjobs.com/CareerOpportunities', 'Algonquin College') },
   { engine: 'workday', label: 'Fanshawe College', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://fanshawec.wd3.myworkdayjobs.com/fanshawecareers', 'Fanshawe College') },
   { engine: 'njoyn', label: 'Carleton University', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://carleton.njoyn.com/CL2/xweb/xweb.asp?CLID=53443&page=joblisting&lang=1', 'Carleton University') },
-  { engine: 'adp', label: 'Algoma University', run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=325cbdb8-d490-4480-ae8d-d332911ec006&ccId=19000101_000001&lang=en_CA', 'Algoma University') },
+  { engine: 'adp', label: 'Algoma University', allowEmptyCapture: true, run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=325cbdb8-d490-4480-ae8d-d332911ec006&ccId=19000101_000001&lang=en_CA', 'Algoma University') },
   { engine: 'taleo', label: 'OCAD University', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=OCADU&cws=37', 'OCAD University') },
   { engine: 'taleo', label: 'Humber College', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://humber.taleo.net/careersection/hbr_ex/jobsearch.ftl?lang=en', 'Humber College') },
   { engine: 'njoyn', label: "Queen's University", run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://queensu.njoyn.com/cl4/xweb/xweb.asp?page=joblisting&CLID=74827', "Queen's University") },
