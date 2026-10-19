@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Homepage quick filters** — ending within 14 days, added in the last 7 days, and city-based Near me with browser-location permission, manual fallback, and a matching count when a city is already known.
 
 ### Fixed
+- A Dayforce job board with genuinely no openings (Town of Orangeville) was treated as broken and failed the daily scrape; the portal's own "no jobs" message now counts as a valid empty result, while an empty page without it still fails (#284).
 - New jobs no longer go missing from the site when one slow or broken job board stalls the daily update; the remaining boards still publish, and the failed board is flagged in the run (#283).
 - Production scrapes now accept explicitly empty Waterfront Toronto and Algoma University boards without failing the entire run.
 - Trial source checks can now be run manually against the current code instead of waiting for the next scheduled run.

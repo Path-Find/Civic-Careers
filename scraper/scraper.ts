@@ -71,7 +71,9 @@ interface ScrapeTask {
   // CI matrix shard within the engine (default 1). Heavy sources get their own
   // shard so one engine's leg stays under its step timeout.
   shard?: number;
-  run: (db: Client, context: BrowserContext) => Promise<void>;
+  // An engine may report a confirmed-empty capture (the portal's own "no jobs"
+  // message), which is treated like allowEmptyCapture for that run only.
+  run: (db: Client, context: BrowserContext) => Promise<void | { confirmedEmpty?: boolean }>;
 }
 
 // Grouped by engine (not just region) so CI can run each engine as its own
@@ -357,8 +359,9 @@ async function main() {
     const taskContext = await browser.newContext(BASE_CONFIG);
     try {
       const taskStartedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
-      await task.run(db, taskContext);
-      await cleanupExpiredJobsForSource(db, task.label, taskStartedAt, task.allowEmptyCapture);
+      const outcome = await task.run(db, taskContext);
+      const allowEmpty = task.allowEmptyCapture || Boolean(outcome && outcome.confirmedEmpty);
+      await cleanupExpiredJobsForSource(db, task.label, taskStartedAt, allowEmpty);
       await db.execute({
         sql: `INSERT INTO source_scrape_status (source, last_successful_scrape_at, last_status)
               VALUES (?, CURRENT_TIMESTAMP, 'success')

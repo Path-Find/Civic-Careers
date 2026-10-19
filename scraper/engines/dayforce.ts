@@ -2,7 +2,20 @@ import { BrowserContext } from 'playwright';
 import { Client } from '@libsql/client';
 import { urlId, scrapeRawAndStage } from '../utils';
 
-export async function scrapeDayforce(db: Client, context: BrowserContext, portalUrl: string, sourceName: string) {
+// Dayforce's own empty-state text when a portal genuinely has no openings.
+// Only this explicit message counts as a confirmed-empty capture; zero links
+// without it still fails the source's zero-postings safety check.
+const DAYFORCE_NO_JOBS = /we could not find any jobs/i;
+
+export function isDayforceNoJobsText(text: string): boolean {
+  return DAYFORCE_NO_JOBS.test(text);
+}
+
+export interface DayforceResult {
+  confirmedEmpty: boolean;
+}
+
+export async function scrapeDayforce(db: Client, context: BrowserContext, portalUrl: string, sourceName: string): Promise<DayforceResult> {
   console.log(`Scraping ${sourceName} (Dayforce)...`);
   const page = await context.newPage();
   try {
@@ -20,6 +33,7 @@ export async function scrapeDayforce(db: Client, context: BrowserContext, portal
 
     let pageNum = 1;
     let hasNextPage = true;
+    let totalJobs = 0;
     while (hasNextPage) {
       console.log(`[${sourceName}] Page ${pageNum}...`);
       await page.waitForSelector('a[href*="/jobs/"]', { timeout: 15000 }).catch(() => {});
@@ -39,6 +53,7 @@ export async function scrapeDayforce(db: Client, context: BrowserContext, portal
           });
       });
 
+      totalJobs += summaries.length;
       let count = 0;
       for (const job of summaries) {
         count++;
@@ -64,6 +79,15 @@ export async function scrapeDayforce(db: Client, context: BrowserContext, portal
       }
       hasNextPage = false;
     }
+
+    if (totalJobs === 0) {
+      const bodyText = await page.evaluate(() => document.body?.innerText || '').catch(() => '');
+      if (isDayforceNoJobsText(bodyText)) {
+        console.log(`[${sourceName}] Portal reports no open jobs; treating as a confirmed empty capture.`);
+        return { confirmedEmpty: true };
+      }
+    }
+    return { confirmedEmpty: false };
   } catch (err: any) {
     console.error(`Error scraping ${sourceName}: ${err.message}`);
     throw err;

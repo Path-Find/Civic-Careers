@@ -32,7 +32,7 @@ import { scrapeWorkzoom } from './engines/workzoom';
 import { scrapeSapWebDynpro } from './engines/sap-webdynpro';
 import { scrapeBrassRing, scrapeCollingwood, scrapeEdmontonPhenom, scrapeHaltonHills, scrapeNanaimo, scrapeNipissing, scrapeNorthBay, scrapeNorthernCollege, scrapePickering, scrapeStClairCollege, scrapeStLawrenceCollege, scrapeVaughanPL } from './engines/custom';
 
-type SourceRunner = (db: Client, context: BrowserContext) => Promise<void>;
+type SourceRunner = (db: Client, context: BrowserContext) => Promise<unknown>;
 
 const BATCHES: Record<string, Record<string, SourceRunner>> = {
   'workday-1': {
