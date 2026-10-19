@@ -54,13 +54,17 @@ jobs:
     needs: setup
     # A source outage should be visible on its matrix job without blocking
     # promotion of the engines that completed successfully.
+    # continue-on-error only tolerates *failed* legs. A leg that hits the job
+    # timeout ends as *cancelled*, which still skipped promote (#283), so the
+    # scraper steps carry their own shorter timeout and fail first instead.
     continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
         engine: ${{ fromJSON(needs.setup.outputs.engines) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Workday refreshes parsed detail pages and routinely runs 36-43 minutes.
+    timeout-minutes: ${{ matrix.engine == 'workday' && 75 || 50 }}
 
     steps:
       - uses: actions/checkout@v7
@@ -80,6 +84,7 @@ jobs:
 
       - name: Run Scraper headed (${{ matrix.engine }})
         if: matrix.engine == 'njoyn' || matrix.engine == 'jobs2web'
+        timeout-minutes: 40
         env:
           NEON_CURRENT_DATABASE_URL: ${{ secrets.NEON_CURRENT_DATABASE_URL }}
           NEON_ARCHIVE_DATABASE_URL: ${{ secrets.NEON_ARCHIVE_DATABASE_URL }}
@@ -92,6 +97,7 @@ jobs:
 
       - name: Run Scraper (${{ matrix.engine }})
         if: matrix.engine != 'njoyn' && matrix.engine != 'jobs2web'
+        timeout-minutes: ${{ matrix.engine == 'workday' && 65 || 40 }}
         env:
           NEON_CURRENT_DATABASE_URL: ${{ secrets.NEON_CURRENT_DATABASE_URL }}
           NEON_ARCHIVE_DATABASE_URL: ${{ secrets.NEON_ARCHIVE_DATABASE_URL }}
@@ -102,8 +108,19 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: cd scraper && npx tsx scraper.ts
 
+      - name: Report failed engine
+        if: failure()
+        run: |
+          echo "::warning title=Scrape failed::${{ matrix.engine }} scrape failed or timed out; its existing jobs were kept and promote still runs."
+          echo "- :warning: \`${{ matrix.engine }}\` scrape failed or timed out" >> "$GITHUB_STEP_SUMMARY"
+
   promote:
-    needs: scrape
+    needs: [setup, scrape]
+    # Promote whatever the healthy engines captured. Failed, empty, or timed-out
+    # sources never archive their existing jobs (cleanup only runs after a
+    # source succeeds with postings), and the promote scripts only work on rows
+    # already in the database, so running after failures can't wipe live data.
+    if: ${{ always() && needs.setup.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
