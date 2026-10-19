@@ -29,6 +29,18 @@ import {
   scrapeSmithsFalls,
   scrapeNorthumberland,
   scrapeTDSB,
+  scrapeBrassRing,
+  scrapeCollingwood,
+  scrapeEdmontonPhenom,
+  scrapeHaltonHills,
+  scrapeNanaimo,
+  scrapeNipissing,
+  scrapeNorthBay,
+  scrapeNorthernCollege,
+  scrapePickering,
+  scrapeStClairCollege,
+  scrapeStLawrenceCollege,
+  scrapeVaughanPL,
 } from './engines/custom';
 import { scrapeRSS } from './engines/rss';
 import { scrapeJazzHR } from './engines/jazzhhr';
@@ -37,6 +49,17 @@ import { scrapeJibe } from './engines/jibe';
 import { scrapePeopleSoft } from './engines/peoplesoft';
 import { scrapeCSOD } from './engines/csod';
 import { scrapeTechnomedia } from './engines/technomedia';
+import { scrapeNeogov } from './engines/neogov';
+import { scrapePeopleAdmin } from './engines/peopleadmin';
+import { scrapeLever } from './engines/lever';
+import { scrapePrevue } from './engines/prevue';
+import { scrapeSelkirk } from './engines/selkirk';
+import { scrapeHiringPlatform } from './engines/hiringplatform';
+import { scrapeApplyToEducation } from './engines/applytoeducation';
+import { scrapeWorkable } from './engines/workable';
+import { scrapeWorkzoom } from './engines/workzoom';
+import { scrapeSapWebDynpro } from './engines/sap-webdynpro';
+import { scrapeAlongside } from './engines/alongside';
 
 export { scrapeSuccessFactors, scrapeWorkday, scrapeWaterfront, scrapeConservationHalton, scrapeADP };
 export { urlId, scrapeRawAndStage } from './utils';
@@ -45,6 +68,9 @@ interface ScrapeTask {
   engine: string;
   label: string;
   allowEmptyCapture?: boolean;
+  // CI matrix shard within the engine (default 1). Heavy sources get their own
+  // shard so one engine's leg stays under its step timeout.
+  shard?: number;
   run: (db: Client, context: BrowserContext) => Promise<void>;
 }
 
@@ -160,12 +186,126 @@ const TASKS: ScrapeTask[] = [
 
   // 14. PeopleSoft Fluid (only tenants confirmed working so far — see issue #37)
   { engine: 'peoplesoft', label: 'City of Winnipeg', run: (db, ctx) => scrapePeopleSoft(db, ctx, 'https://careers.winnipeg.ca/psc/cgext/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U', 'City of Winnipeg') },
+
+  // 15. Graduated from the Trial Action on 2026-10-19 (11-21 consecutive passes each).
+  { engine: 'taleo', label: 'Niagara College', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?act=redirectCwsV2&cws=38&org=NIAGARACOLLEGE', 'Niagara College') },
+  { engine: 'peoplesoft', label: 'Fleming College', run: (db, ctx) => scrapePeopleSoft(db, ctx, 'https://rsprd.flemingc.on.ca/psc/RSPRD/EMPLOYEE/RSMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant', 'Fleming College') },
+  { engine: 'peoplesoft', label: 'Western University', run: (db, ctx) => scrapePeopleSoft(db, ctx, 'https://recruit.uwo.ca/psc/hrprdwebER/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U', 'Western University') },
+  { engine: 'peoplesoft', label: 'Toronto Metropolitan University', run: (db, ctx) => scrapePeopleSoft(db, ctx, 'https://careers.torontomu.ca/psc/hrcgprd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U', 'Toronto Metropolitan University') },
+  { engine: 'peoplesoft', label: 'McMaster University', run: (db, ctx) => scrapePeopleSoft(db, ctx, 'https://careers.mcmaster.ca/psp/prcsprd/EMPLOYEE/HRMS/c/HRS_HRAM.HRS_APP_SCHJOB.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=1001&customTab=MCM_STAFF_POS&IgnoreParamTempl=customTab', 'McMaster University') },
+  { engine: 'peoplesoft', label: 'City of Calgary', run: (db, ctx) => scrapePeopleSoft(db, ctx, 'https://recruiting.calgary.ca/psc/hcm/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Page=HRS_APP_SCHJOB&SiteId=1', 'City of Calgary') },
+  { engine: 'peoplesoft', label: 'Durham Region', run: (db, ctx) => scrapePeopleSoft(db, ctx, 'https://recruitregion.durham.ca/psc/recruit_rmd/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB&Action=U&FOCUS=Applicant&SiteId=3', 'Durham Region') },
+  { engine: 'peoplesoft', label: 'Niagara Region', run: (db, ctx) => scrapePeopleSoft(db, ctx, 'https://careers.niagararegion.ca/psc/careers/EMPLOYEE/PSFT_HR/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?FOCUS=Applicant&Siteid=1002', 'Niagara Region') },
+  { engine: 'oracle', label: 'University of Alberta', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://iaejup.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/UOA-Careers/jobs', 'University of Alberta') },
+  { engine: 'csod', label: 'University of Saskatchewan', run: (db, ctx) => scrapeCSOD(db, ctx, 'https://usask.csod.com/ux/ats/careersite/14/home?c=usask', 'University of Saskatchewan') },
+  { engine: 'neogov', label: 'Cambrian College', run: (db, ctx) => scrapeNeogov(db, ctx, 'https://gjobs.neogov.ca/careers/cambriancollege', 'Cambrian College') },
+  { engine: 'njoyn', label: 'City of Abbotsford', run: (db, ctx) => scrapeNjoyn(db, ctx, 'https://abbotsford.njoyn.com/CL3/xweb/Xweb.asp?CLID=55227&page=joblisting', 'City of Abbotsford') },
+  { engine: 'taleo', label: 'City of Burnaby', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?org=CITYBURNABY&cws=37', 'City of Burnaby') },
+  { engine: 'taleo', label: 'City of Delta', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/jobSearch?org=XNZ8Q7&cws=37', 'City of Delta') },
+  { engine: 'taleo', label: 'City of Richmond (BC)', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=TRQS8M&cws=37', 'City of Richmond (BC)') },
+  { engine: 'taleo', label: 'District of West Vancouver', run: (db, ctx) => scrapeTaleo(db, ctx, 'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?org=WESTVAN&cws=40', 'District of West Vancouver') },
+  { engine: 'hrsmart', label: 'City of Kamloops', run: (db, ctx) => scrapeHRSmart(db, ctx, 'https://kamloops.hua.hrsmart.com/hr/ats/JobSearch/search', 'City of Kamloops') },
+  { engine: 'peopleadmin', label: 'City of Kelowna', run: (db, ctx) => scrapePeopleAdmin(db, ctx, 'https://careeropportunities.kelowna.ca/postings/search', 'City of Kelowna') },
+  { engine: 'hrsmart', label: 'Town of Newmarket', run: (db, ctx) => scrapeHRSmart(db, ctx, 'https://newmarket.hua.hrsmart.com/hr/ats/JobSearch/viewAll', 'Town of Newmarket') },
+  { engine: 'jazzhr', label: 'County of Brant', run: (db, ctx) => scrapeJazzHR(db, ctx, 'https://countyofbrant.applytojob.com/apply/', 'County of Brant', 'brant') },
+  { engine: 'ultipro', label: 'Lambton County', run: (db, ctx) => scrapeUltiPro(db, ctx, 'https://recruiting.ultipro.ca/COR5004CLMB/JobBoard/6b014206-1003-40c3-98a0-b2340f1971da/?o=postedDateDesc&q=', 'Lambton County') },
+  { engine: 'jazzhr', label: 'Essex County', run: (db, ctx) => scrapeJazzHR(db, ctx, 'https://app.jazz.co/widgets/basic/create/countyofessex', 'Essex County', 'essex') },
+  { engine: 'dayforce', label: 'Grey County', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://jobs.dayforcehcm.com/en-CA/greycounty/CANDIDATEPORTAL', 'Grey County') },
+  { engine: 'dayforce', label: 'City of Quinte West', run: (db, ctx) => scrapeDayforce(db, ctx, 'https://canr58.dayforcehcm.com/CandidatePortal/en-CA/quintewest', 'City of Quinte West') },
+  { engine: 'jobs2web', shard: 2, label: 'County of Wellington', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.wellington.ca/search/', 'County of Wellington') },
+  { engine: 'neogov', label: 'Loyalist College', run: (db, ctx) => scrapeNeogov(db, ctx, 'https://gjobs.neogov.ca/careers/loyalistcollege', 'Loyalist College') },
+  { engine: 'workday', shard: 2, label: 'LCBO', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://lcbo.wd3.myworkdayjobs.com/LCBOCareerSite', 'LCBO') },
+  { engine: 'workday', label: 'OLG', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://olg.wd3.myworkdayjobs.com/Careers', 'OLG') },
+  { engine: 'workday', label: 'Public Health Ontario', run: (db, ctx) => scrapeWorkday(db, ctx, 'https://publichealthontario.wd10.myworkdayjobs.com/PHOCareerSite', 'Public Health Ontario') },
+  { engine: 'oracle', label: 'WSIB', run: (db, ctx) => scrapeOracleCloud(db, ctx, 'https://wsib-iaepup.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs?mode=location', 'WSIB') },
+  { engine: 'icims', label: 'Ontario Health atHome', run: (db, ctx) => scrapeICIMS(db, ctx, 'https://healthcareathomejobs-en.icims.com/jobs/search?ss=1', 'Ontario Health atHome') },
+  { engine: 'peopleadmin', label: 'Dalhousie University', run: (db, ctx) => scrapePeopleAdmin(db, ctx, 'https://dal.peopleadmin.ca/postings/search', 'Dalhousie University') },
+  { engine: 'peopleadmin', label: 'University of Lethbridge', run: (db, ctx) => scrapePeopleAdmin(db, ctx, 'https://uleth.peopleadmin.ca/postings/search', 'University of Lethbridge') },
+  { engine: 'peopleadmin', label: 'Confederation College', run: (db, ctx) => scrapePeopleAdmin(db, ctx, 'https://confederationcollege.peopleadmin.ca/postings/search', 'Confederation College') },
+  { engine: 'peopleadmin', label: 'British Columbia Institute of Technology', run: (db, ctx) => scrapePeopleAdmin(db, ctx, 'https://careers.bcit.ca/postings/search', 'British Columbia Institute of Technology') },
+  { engine: 'peopleadmin', label: 'Douglas College', run: (db, ctx) => scrapePeopleAdmin(db, ctx, 'https://www.douglascollegecareers.ca/postings/search', 'Douglas College') },
+  { engine: 'custom', label: 'Vaughan Public Library', run: (db, ctx) => scrapeVaughanPL(db, ctx) },
+  { engine: 'custom', label: 'St. Clair College', run: (db, ctx) => scrapeStClairCollege(db, ctx) },
+  { engine: 'custom', label: 'St. Lawrence College', run: (db, ctx) => scrapeStLawrenceCollege(db, ctx) },
+  { engine: 'custom', label: 'Halifax Regional Municipality', run: (db, ctx) => scrapeBrassRing(db, ctx) },
+  { engine: 'custom', label: 'Nipissing University', run: (db, ctx) => scrapeNipissing(db, ctx) },
+  { engine: 'custom', label: 'Northern College', run: (db, ctx) => scrapeNorthernCollege(db, ctx) },
+  { engine: 'custom', label: 'City of Edmonton', run: (db, ctx) => scrapeEdmontonPhenom(db, ctx) },
+  { engine: 'lever', label: 'Okanagan College', run: (db, ctx) => scrapeLever(db, ctx, 'okanagan', 'Okanagan College') },
+  { engine: 'prevue', label: 'College of the Rockies', run: (db, ctx) => scrapePrevue(db, ctx, 'cotr', 886, 'College of the Rockies') },
+  { engine: 'selkirk', label: 'Selkirk College', run: (db, ctx) => scrapeSelkirk(db, ctx, 'Selkirk College') },
+  { engine: 'custom', label: 'City of Pickering', run: (db, ctx) => scrapePickering(db, ctx, 'City of Pickering') },
+  { engine: 'custom', label: 'Pickering Public Library', run: (db, ctx) => scrapePickering(db, ctx, 'Pickering Public Library') },
+  { engine: 'custom', label: 'Town of Halton Hills', run: (db, ctx) => scrapeHaltonHills(db, ctx) },
+  { engine: 'custom', label: 'City of North Bay', run: (db, ctx) => scrapeNorthBay(db, ctx) },
+  { engine: 'custom', label: 'Town of Collingwood', run: (db, ctx) => scrapeCollingwood(db, ctx) },
+  { engine: 'custom', label: 'City of Nanaimo', run: (db, ctx) => scrapeNanaimo(db, ctx) },
+  { engine: 'hiringplatform', label: 'City of Orillia', run: (db, ctx) => scrapeHiringPlatform(db, ctx, 'https://orillia.hiringplatform.ca/list/careers', 'City of Orillia') },
+  { engine: 'adp', label: 'Credit Valley Conservation', run: (db, ctx) => scrapeADP(db, ctx, 'https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=628c6eb9-02b8-492d-b651-c4f1a4220344&ccId=9201548179279_3&lang=en_CA&selectedMenuKey=CurrentOpenings', 'Credit Valley Conservation') },
+  { engine: 'applytoeducation', label: 'Toronto Catholic District School Board', run: (db, ctx) => scrapeApplyToEducation(db, ctx, 'https://www.tcdsb.org/page/jobs', 'Toronto Catholic District School Board') },
+  { engine: 'workable', label: 'Norfolk County', run: (db, ctx) => scrapeWorkable(db, ctx, 'norfolk-county', 'Norfolk County') },
+  { engine: 'avanti', label: 'Bruce County', run: (db, ctx) => scrapeAvanti(db, ctx, 'https://brucecounty.myavanti.ca/careers', 'Bruce County') },
+  { engine: 'workzoom', label: 'County of Renfrew', run: (db, ctx) => scrapeWorkzoom(db, ctx, 'https://curos.ca/curos/COR2302/V/TRBJO_PUBLIC', 'County of Renfrew') },
+  { engine: 'sap-webdynpro', label: 'Manitoba Hydro', run: (db, ctx) => scrapeSapWebDynpro(db, ctx, 'https://careers.hydro.mb.ca/sap/bc/webdynpro/sap/hrrcf_a_unreg_job_search', 'Manitoba Hydro') },
+  { engine: 'jobs2web', shard: 2, label: 'Government of Alberta', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobpostings.alberta.ca/go/All-Jobs-GoA/2617217/', 'Government of Alberta') },
+  { engine: 'jobs2web', shard: 2, label: 'Canada Post', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.canadapost.ca/go/Canada-Post-All-Current-Opportunities/2319117/', 'Canada Post') },
+  { engine: 'jobs2web', shard: 2, label: 'Bank of Canada', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.bankofcanada.ca/go/All-Job-Opportunities/2400817/', 'Bank of Canada') },
+  { engine: 'jobs2web', shard: 2, label: 'ICBC', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.icbc.com/go/All-Current-Job-Opportunities/2681517/', 'ICBC') },
+  { engine: 'jobs2web', shard: 2, label: 'SaskPower', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.saskpower.com/search/?q', 'SaskPower') },
+  { engine: 'jobs2web', shard: 2, label: 'SaskTel', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.sasktel.com/go/Current-Opportunities/2684517/', 'SaskTel') },
+  { engine: 'jobs2web', shard: 2, label: 'Government of Nova Scotia', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.novascotia.ca/go/All-Opportunities/502817/', 'Government of Nova Scotia') },
+  { engine: 'jobs2web', shard: 2, label: 'Ontario Energy Board', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.oeb.ca/', 'Ontario Energy Board') },
+  { engine: 'jobs2web', shard: 2, label: 'City of Saskatoon', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://careers.saskatoon.ca/search/', 'City of Saskatoon') },
+  { engine: 'jobs2web', shard: 2, label: 'Regional Municipality of Wood Buffalo', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.rmwb.ca/search/', 'Regional Municipality of Wood Buffalo') },
+  { engine: 'alongside', label: 'University of New Brunswick', run: (db, ctx) => scrapeAlongside(db, ctx, [
+    'https://widget.alongside.com/widgets/jobs_widget/horizontal/235818/en',
+    'https://widget.alongside.com/widgets/jobs_widget/horizontal/235818/en/internal',
+    'https://widget.alongside.com/widgets/jobs_widget/horizontal/249707/en/internal',
+  ], 'University of New Brunswick') },
+  { engine: 'alongside', label: "Saint Mary's University", run: (db, ctx) => scrapeAlongside(db, ctx, [
+    'https://widget.alongside.com/widgets/jobs_widget/horizontal/247668/en',
+    'https://widget.alongside.com/widgets/jobs_widget/horizontal/201305/en',
+  ], "Saint Mary's University") },
+  { engine: 'successfactors', shard: 2, label: 'Shared Health Manitoba', run: (db, ctx) => scrapeSuccessFactors(
+    db,
+    ctx,
+    'https://careers.wrha.mb.ca/search/?createNewAlert=false&q=&locationsearch=&optionsFacetsDD_facility=&optionsFacetsDD_customfield2=',
+    'Shared Health Manitoba',
+    'https://careers.wrha.mb.ca',
+  ) },
+  { engine: 'ultipro', label: 'London Public Library', run: (db, ctx) => scrapeUltiPro(
+    db,
+    ctx,
+    'https://recruiting.ultipro.ca/LON5100LPLY/JobBoard/5a8bb7ac-1f7b-4aae-9db8-37f3df5b9940/?o=postedDateDesc&q=',
+    'London Public Library',
+  ) },
+  { engine: 'taleo', label: 'Richmond Public Library', run: (db, ctx) => scrapeTaleo(
+    db,
+    ctx,
+    'https://tre.tbe.taleo.net/tre01/ats/careers/v2/searchResults?cws=44&org=TRQS8M',
+    'Richmond Public Library',
+  ) },
+  { engine: 'taleo', label: 'Edmonton Public Library', run: (db, ctx) => scrapeTaleo(
+    db,
+    ctx,
+    'https://edmonton.taleo.net/careersection/epl-ext/jobsearch.ftl',
+    'Edmonton Public Library',
+  ) },
+  { engine: 'peoplesoft', label: 'TransLink', run: (db, ctx) => scrapePeopleSoft(
+    db,
+    ctx,
+    'https://careersconnect.translink.bc.ca/psc/EXT/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_SCHJOB_FL&Action=U&FOCUS=Applicant&SiteId=2',
+    'TransLink',
+  ) },
+  { engine: 'jobs2web', shard: 2, label: 'BC Transit', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.bctransit.com/search/', 'BC Transit') },
+  { engine: 'jobs2web', shard: 2, label: 'Toronto Hydro', run: (db, ctx) => scrapeJobs2Web(db, ctx, 'https://jobs.torontohydro.com/search/', 'Toronto Hydro') },
 ];
 
 async function main() {
   const headless = !process.env.DISPLAY && process.env.CI !== 'false';
   const engineFilter = process.env.SCRAPE_ENGINE;
   const sourceFilter = process.env.SCRAPE_SOURCE;
+  const shardFilter = process.env.SCRAPE_SHARD ? Number(process.env.SCRAPE_SHARD) : undefined;
   // OPS is intentionally excluded from scheduled TASKS because its board
   // requires a human CAPTCHA step. Keep the documented manual command as an
   // explicit opt-in without making OPS part of the normal production scrape.
@@ -177,6 +317,7 @@ async function main() {
     : TASKS.filter(task =>
       (!engineFilter || task.engine === engineFilter)
       && (!sourceFilter || task.label === sourceFilter)
+      && (shardFilter === undefined || (task.shard ?? 1) === shardFilter)
     );
 
   if ((engineFilter || sourceFilter) && tasks.length === 0) {

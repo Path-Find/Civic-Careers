@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added 78 public-sector employers to the live feed after they passed repeated trial scrapes, including the Government of Alberta, Government of Nova Scotia, Edmonton, Calgary, Canada Post, Bank of Canada, LCBO and Shared Health Manitoba.
 - Added enforced hidden, soft-parsed, and fully parsed publication states, so corrupt or unusable listings are removed from public results while safe partial parses stay visible with pending details.
 - Introduced deterministic, board-specific metadata parsers (Hamilton, Toronto, Workday, Ontario Health atHome, Taleo, Dayforce, Njoyn, ADP, and SuccessFactors tenants) and extended deterministic parsing to York, Canada Post, University of Toronto, CMHC, Guelph, Vancouver, Richmond Hill, Brampton, Waterloo, Government of Canada, and further PeopleSoft tenants; registered UBC as a Workday source; promoted Algoma University, VIA Rail Canada, VIA TGF Inc., and City of Ottawa (Jobs2Web) from pending to active; and expanded validated trial-source coverage to federal, crown, provincial, and British Columbia municipal boards ahead of promotion.
 - Added a range-based closing date parser (`Posting Period`) to recover deadlines from City of Toronto and similar postings.

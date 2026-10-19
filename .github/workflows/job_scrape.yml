@@ -34,20 +34,37 @@ on:
           - peoplesoft
           - csod
           - technomedia
+          - neogov
+          - peopleadmin
+          - lever
+          - prevue
+          - selkirk
+          - hiringplatform
+          - applytoeducation
+          - workable
+          - workzoom
+          - sap-webdynpro
+          - alongside
 
 jobs:
   setup:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      engines: ${{ steps.set.outputs.engines }}
+      legs: ${{ steps.set.outputs.legs }}
     steps:
       - id: set
         run: |
+          # One leg per engine shard. Heavy sources carry `shard: 2` in
+          # scraper.ts TASKS so their engine's leg stays under its step timeout:
+          # successfactors (Shared Health Manitoba), workday (LCBO), and jobs2web
+          # (the 2026-10-19 trial graduates). Every TASKS engine must be listed
+          # here, or it is never scheduled.
+          ALL='[{"engine":"successfactors","shard":1},{"engine":"successfactors","shard":2},{"engine":"workday","shard":1},{"engine":"workday","shard":2},{"engine":"njoyn","shard":1},{"engine":"oracle","shard":1},{"engine":"dayforce","shard":1},{"engine":"jobs2web","shard":1},{"engine":"jobs2web","shard":2},{"engine":"icims","shard":1},{"engine":"hrsmart","shard":1},{"engine":"ultipro","shard":1},{"engine":"adp","shard":1},{"engine":"taleo","shard":1},{"engine":"avanti","shard":1},{"engine":"bamboohr","shard":1},{"engine":"talentpoolbuilder","shard":1},{"engine":"custom","shard":1},{"engine":"rss","shard":1},{"engine":"jazzhr","shard":1},{"engine":"workland","shard":1},{"engine":"jibe","shard":1},{"engine":"peoplesoft","shard":1},{"engine":"csod","shard":1},{"engine":"technomedia","shard":1},{"engine":"neogov","shard":1},{"engine":"peopleadmin","shard":1},{"engine":"lever","shard":1},{"engine":"prevue","shard":1},{"engine":"selkirk","shard":1},{"engine":"hiringplatform","shard":1},{"engine":"applytoeducation","shard":1},{"engine":"workable","shard":1},{"engine":"workzoom","shard":1},{"engine":"sap-webdynpro","shard":1},{"engine":"alongside","shard":1}]'
           if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.engine }}" = "all" ] || [ -z "${{ inputs.engine }}" ]; then
-            echo 'engines=["successfactors","workday","njoyn","oracle","dayforce","jobs2web","icims","hrsmart","ultipro","adp","taleo","avanti","bamboohr","talentpoolbuilder","custom","rss","jazzhr","workland","jibe","peoplesoft","csod","technomedia"]' >> "$GITHUB_OUTPUT"
+            echo "legs=$ALL" >> "$GITHUB_OUTPUT"
           else
-            echo 'engines=["${{ inputs.engine }}"]' >> "$GITHUB_OUTPUT"
+            echo "legs=$(echo "$ALL" | jq -c --arg e "${{ inputs.engine }}" 'map(select(.engine == $e))')" >> "$GITHUB_OUTPUT"
           fi
 
   scrape:
@@ -61,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: ${{ fromJSON(needs.setup.outputs.engines) }}
+        include: ${{ fromJSON(needs.setup.outputs.legs) }}
     runs-on: ubuntu-latest
     # Workday refreshes parsed detail pages and routinely runs 36-43 minutes.
     timeout-minutes: ${{ matrix.engine == 'workday' && 75 || 50 }}
@@ -82,7 +99,7 @@ jobs:
       - name: Install Playwright Browsers
         run: cd scraper && npx playwright install chromium --with-deps
 
-      - name: Run Scraper headed (${{ matrix.engine }})
+      - name: Run Scraper headed (${{ matrix.engine }} ${{ matrix.shard }})
         if: matrix.engine == 'njoyn' || matrix.engine == 'jobs2web'
         timeout-minutes: 40
         env:
@@ -91,11 +108,12 @@ jobs:
           TURSO_URL: ${{ secrets.TURSO_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           SCRAPE_ENGINE: ${{ matrix.engine }}
+          SCRAPE_SHARD: ${{ matrix.shard }}
           REFRESH_PARSED_DETAIL_PAGES: ${{ matrix.engine == 'workday' && 'true' || 'false' }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: cd scraper && xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24" npx tsx scraper.ts
 
-      - name: Run Scraper (${{ matrix.engine }})
+      - name: Run Scraper (${{ matrix.engine }} ${{ matrix.shard }})
         if: matrix.engine != 'njoyn' && matrix.engine != 'jobs2web'
         timeout-minutes: ${{ matrix.engine == 'workday' && 65 || 40 }}
         env:
@@ -104,6 +122,7 @@ jobs:
           TURSO_URL: ${{ secrets.TURSO_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           SCRAPE_ENGINE: ${{ matrix.engine }}
+          SCRAPE_SHARD: ${{ matrix.shard }}
           REFRESH_PARSED_DETAIL_PAGES: ${{ matrix.engine == 'workday' && 'true' || 'false' }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: cd scraper && npx tsx scraper.ts
@@ -111,7 +130,7 @@ jobs:
       - name: Report failed engine
         if: failure()
         run: |
-          echo "::warning title=Scrape failed::${{ matrix.engine }} scrape failed or timed out; its existing jobs were kept and promote still runs."
+          echo "::warning title=Scrape failed::${{ matrix.engine }} shard ${{ matrix.shard }} scrape failed or timed out; its existing jobs were kept and promote still runs."
           echo "- :warning: \`${{ matrix.engine }}\` scrape failed or timed out" >> "$GITHUB_STEP_SUMMARY"
 
   promote:
